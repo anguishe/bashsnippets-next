@@ -884,3 +884,12 @@
     </script>
 
   </main>
+    <script>
+      function reportHeight() {
+        window.parent.postMessage({ iframeHeight: document.body.scrollHeight }, '*');
+      }
+      window.addEventListener('load', reportHeight);
+      window.addEventListener('resize', reportHeight);
+      const observer = new MutationObserver(reportHeight);
+      observer.observe(document.body, { childList: true, subtree: true, attributes: false });
+    </script>

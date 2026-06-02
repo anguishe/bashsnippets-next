@@ -246,7 +246,7 @@ export default async function SnippetPage({ params }: PageProps) {
           </p>
         </div>
 
-        <article className="snippet-content [&_h2]:mb-4 [&_h2]:mt-10 [&_h2]:font-heading [&_h2]:text-xl [&_h2]:font-bold [&_h3]:mb-3 [&_h3]:mt-6 [&_h3]:font-heading [&_h3]:text-lg [&_h3]:font-semibold [&_li]:text-muted [&_ol]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-4 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-muted [&_pre]:mb-4 [&_pre]:overflow-x-auto [&_table]:mb-6 [&_table]:w-full [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_td]:text-sm [&_th]:border [&_th]:border-border [&_th]:bg-bg3 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-sm [&_th]:text-text [&_ul]:mb-4 [&_ul]:list-disc [&_ul]:pl-6">
+        <article className="prose-snippet">
           <Content components={mdxComponents} />
         </article>
 

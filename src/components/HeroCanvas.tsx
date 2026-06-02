@@ -28,8 +28,9 @@ export default function HeroCanvas() {
         return;
       }
 
-      const width = window.innerWidth;
-      const height = window.innerHeight;
+      const parent = canvas.parentElement;
+      const width = parent?.clientWidth ?? window.innerWidth;
+      const height = parent?.clientHeight ?? window.innerHeight;
 
       const webglRenderer = new THREE.WebGLRenderer({ canvas, antialias: true });
       renderer = webglRenderer;
@@ -70,8 +71,9 @@ export default function HeroCanvas() {
       scene.add(new THREE.Points(geometry, material));
 
       const onResize = () => {
-        const w = window.innerWidth;
-        const h = window.innerHeight;
+        const el = canvas.parentElement;
+        const w = el?.clientWidth ?? window.innerWidth;
+        const h = el?.clientHeight ?? window.innerHeight;
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
         webglRenderer.setSize(w, h);
@@ -117,7 +119,7 @@ export default function HeroCanvas() {
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none fixed left-0 top-0 z-[1] h-screen w-screen"
+      className="pointer-events-none absolute inset-0 z-[1] h-full w-full"
       aria-hidden="true"
     />
   );

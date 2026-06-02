@@ -8,14 +8,14 @@ import './globals.css';
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
   weight: ['400', '600'],
-  variable: '--font-ibm-plex-mono',
+  variable: '--font-mono',
   display: 'swap',
 });
 
 const syne = Syne({
   subsets: ['latin'],
   weight: ['400', '700', '800'],
-  variable: '--font-syne',
+  variable: '--font-heading',
   display: 'swap',
 });
 
@@ -83,7 +83,7 @@ export default function RootLayout({
           href="/opensearch.xml"
         />
       </head>
-      <body className="flex min-h-screen flex-col bg-bg font-mono text-text">
+      <body className="flex min-h-screen flex-col bg-bg text-text">
         <Nav />
         <div className="flex-1">{children}</div>
         <Footer />

@@ -803,3 +803,159 @@ chmod 700 ~/private/</pre>
   </div>
 
   </main>
+    <script>
+      (function () {
+        var SCOPES = ['owner', 'group', 'others'];
+        var PERMS = [
+          { id: 'read', bit: 4, char: 'r' },
+          { id: 'write', bit: 2, char: 'w' },
+          { id: 'execute', bit: 1, char: 'x' }
+        ];
+
+        function getCheckbox(scope, perm) {
+          return document.getElementById(scope + '-' + perm);
+        }
+
+        function bitForScope(scope) {
+          var sum = 0;
+          PERMS.forEach(function (p) {
+            var cb = getCheckbox(scope, p.id);
+            if (cb && cb.checked) sum += p.bit;
+          });
+          return sum;
+        }
+
+        function symbolicForScope(scope) {
+          return PERMS.map(function (p) {
+            var cb = getCheckbox(scope, p.id);
+            return (cb && cb.checked) ? p.char : '-';
+          }).join('');
+        }
+
+        function updateSecurityWarnings(octal) {
+          var w777 = document.getElementById('warning-777');
+          var w666 = document.getElementById('warning-666');
+          var i644 = document.getElementById('info-644');
+          if (w777) w777.style.display = octal === '777' ? 'block' : 'none';
+          if (w666) w666.style.display = octal === '666' ? 'block' : 'none';
+          if (i644) i644.style.display = octal === '644' ? 'block' : 'none';
+        }
+
+        function updatePermissions() {
+          var octal = SCOPES.map(bitForScope).join('');
+          var symbolic = SCOPES.map(symbolicForScope).join('');
+
+          var octalEl = document.getElementById('octal-value');
+          var symbolicEl = document.getElementById('symbolic-value');
+          var commandEl = document.getElementById('command-value');
+
+          if (octalEl) {
+            if (octalEl.textContent !== octal) {
+              octalEl.textContent = octal;
+              octalEl.classList.remove('pulse');
+              void octalEl.offsetWidth;
+              octalEl.classList.add('pulse');
+            } else {
+              octalEl.textContent = octal;
+            }
+          }
+          if (symbolicEl) symbolicEl.textContent = symbolic;
+          if (commandEl) commandEl.textContent = 'chmod ' + octal + ' filename';
+
+          updateSecurityWarnings(octal);
+        }
+
+        function setFromOctal(octalStr) {
+          var digits = String(octalStr).replace(/\D/g, '').padStart(3, '0').slice(-3);
+          SCOPES.forEach(function (scope, i) {
+            var digit = parseInt(digits.charAt(i), 10) || 0;
+            PERMS.forEach(function (p) {
+              var cb = getCheckbox(scope, p.id);
+              if (cb) cb.checked = (digit & p.bit) !== 0;
+            });
+          });
+          updatePermissions();
+        }
+
+        function resetPermissions() {
+          SCOPES.forEach(function (scope) {
+            PERMS.forEach(function (p) {
+              var cb = getCheckbox(scope, p.id);
+              if (cb) cb.checked = false;
+            });
+          });
+          updatePermissions();
+        }
+
+        function copyChmod() {
+          var val = document.getElementById('octal-value').textContent;
+          var text = 'chmod ' + val + ' filename';
+          var btn = document.getElementById('copy-btn');
+          var origLabel = btn.textContent;
+          var origColor = btn.style.color;
+
+          function showCopied() {
+            btn.textContent = 'copied!';
+            btn.style.color = '#39d353';
+            setTimeout(function () {
+              btn.textContent = origLabel;
+              btn.style.color = origColor;
+            }, 2000);
+          }
+
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(showCopied).catch(function () {
+              var ta = document.createElement('textarea');
+              ta.value = text;
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand('copy');
+              document.body.removeChild(ta);
+              showCopied();
+            });
+          } else {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showCopied();
+          }
+        }
+
+        function reportHeight() {
+          window.parent.postMessage({ iframeHeight: document.body.scrollHeight }, '*');
+        }
+
+        SCOPES.forEach(function (scope) {
+          PERMS.forEach(function (p) {
+            var cb = getCheckbox(scope, p.id);
+            if (cb) cb.addEventListener('change', updatePermissions);
+          });
+        });
+
+        document.querySelectorAll('[data-chmod-preset]').forEach(function (card) {
+          card.addEventListener('click', function () {
+            setFromOctal(card.getAttribute('data-chmod-preset') || '000');
+          });
+        });
+
+        var copyBtn = document.getElementById('copy-btn');
+        if (copyBtn) copyBtn.addEventListener('click', copyChmod);
+
+        var resetBtn = document.getElementById('reset-btn');
+        if (resetBtn) resetBtn.addEventListener('click', resetPermissions);
+
+        window.addEventListener('load', function () {
+          updatePermissions();
+          reportHeight();
+        });
+        window.addEventListener('resize', reportHeight);
+        document.addEventListener('change', function () {
+          setTimeout(reportHeight, 50);
+        });
+        var observer = new MutationObserver(reportHeight);
+        observer.observe(document.body, { childList: true, subtree: true, attributes: false });
+      })();
+    </script>

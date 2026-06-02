@@ -2,39 +2,63 @@
 
 import { useState } from 'react';
 
-type CopyState = 'idle' | 'success';
-
 interface CopyButtonProps {
   code: string;
-  filename?: string;
 }
 
 export default function CopyButton({ code }: CopyButtonProps) {
-  const [state, setState] = useState<CopyState>('idle');
+  const [state, setState] = useState<'idle' | 'copied' | 'error'>('idle');
 
-  const handleCopy = async () => {
+  async function handleCopy() {
     try {
-      await navigator.clipboard.writeText(code);
-      setState('success');
-      window.setTimeout(() => setState('idle'), 2000);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(code);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = code;
+        ta.style.position = 'absolute';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setState('copied');
+      setTimeout(() => setState('idle'), 2000);
     } catch {
-      setState('idle');
+      setState('error');
+      setTimeout(() => setState('idle'), 2000);
     }
-  };
-
-  const isSuccess = state === 'success';
+  }
 
   return (
     <button
       type="button"
       onClick={handleCopy}
-      className={`cursor-pointer rounded border bg-transparent px-3 py-1 font-mono text-xs transition-colors ${
-        isSuccess
-          ? 'border-green text-green'
-          : 'border-border text-muted hover:border-green hover:text-green'
-      }`}
+      style={{
+        background: '#1c2128',
+        color:
+          state === 'copied'
+            ? '#39d353'
+            : state === 'error'
+              ? '#e3b341'
+              : '#8b949e',
+        border: `1px solid ${
+          state === 'copied'
+            ? '#39d353'
+            : state === 'error'
+              ? '#e3b341'
+              : '#30363d'
+        }`,
+        borderRadius: '4px',
+        fontFamily: "'IBM Plex Mono', monospace",
+        fontSize: '11px',
+        padding: '3px 10px',
+        cursor: 'pointer',
+        transition: 'color 0.15s, border-color 0.15s',
+      }}
     >
-      {isSuccess ? '✓ copied' : 'copy'}
+      {state === 'copied' ? 'copied!' : state === 'error' ? 'failed' : 'copy'}
     </button>
   );
 }

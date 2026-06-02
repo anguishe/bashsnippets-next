@@ -12,7 +12,6 @@
   --green: #39d353;
   --green-dim: #1a4a2e;
   --amber: #e3b341;
-  --amber-dim: #3d2f0d;
   --blue: #58a6ff;
   --blue-dim: #0d2a4a;
   --muted: #8b949e;
@@ -20,23 +19,99 @@
   --radius: 8px;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
-.fade-in {
-  opacity: 1;
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
 }
 
 .fade-in.js-animate {
   opacity: 0;
-  transform: translateY(18px);
+  transform: translateY(24px);
   transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
 .fade-in.js-animate.visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading), 'Syne', sans-serif;
+  color: var(--text);
+}
+
+code,
+pre,
+kbd,
+.filename,
+.label,
+.tag {
+  font-family: var(--font-mono), 'IBM Plex Mono', monospace;
+}
+
+.prose-snippet h2 {
+  font-family: var(--font-heading), 'Syne', sans-serif;
+  font-size: 1.35rem;
+  color: var(--text);
+  margin: 2rem 0 0.75rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+
+.prose-snippet h3 {
+  font-family: var(--font-heading), 'Syne', sans-serif;
+  font-size: 1.1rem;
+  color: var(--text);
+  margin: 1.5rem 0 0.5rem;
+}
+
+.prose-snippet p {
+  color: var(--text);
+  line-height: 1.75;
+  margin: 0.75rem 0;
+}
+
+.prose-snippet a {
+  color: var(--blue);
+}
+
+.prose-snippet a:hover {
+  color: var(--green);
+}
+
+.prose-snippet table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+.prose-snippet th {
+  background: var(--bg2);
+  color: var(--text);
+  font-family: var(--font-heading), 'Syne', sans-serif;
+  padding: 10px 14px;
+  text-align: left;
+  border: 1px solid var(--border);
+}
+
+.prose-snippet td {
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.prose-snippet tr:nth-child(even) {
+  background: var(--bg2);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 @keyframes fadeUp {
@@ -60,11 +135,12 @@ html {
   }
 }
 
-.tool-embed-content {
-  all: initial;
-  display: block;
-  color: #e6edf3;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 15px;
-  line-height: 1.7;
+.tool-embed {
+  box-sizing: border-box;
+}
+
+.tool-embed *,
+.tool-embed *::before,
+.tool-embed *::after {
+  box-sizing: border-box;
 }

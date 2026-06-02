@@ -1,5 +1,6 @@
 import AffiliateBox from '@/components/AffiliateBox';
 import HeroCanvasLoader from '@/components/HeroCanvasLoader';
+import ScrollReveal from '@/components/ScrollReveal';
 import { snippets, type SnippetMeta } from '@/lib/snippets';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -162,7 +163,7 @@ export default function Home() {
       />
 
       {/* Section 1 — Hero */}
-      <section className="relative mx-auto min-h-[90vh] max-w-[860px] px-6 py-20 text-center">
+      <section className="relative mx-auto min-h-screen max-w-[860px] overflow-hidden px-6 py-20 text-center">
         <HeroCanvasLoader />
         <div className="relative z-10">
           <span className="mb-6 inline-block rounded-full border border-green bg-green-dim px-3 py-1 text-xs uppercase tracking-widest text-green">
@@ -210,24 +211,26 @@ export default function Home() {
 
       {/* Section 2 — Stats Bar */}
       <section className="border-y border-border bg-bg2 px-6 py-5">
-        <div className="mx-auto flex max-w-4xl flex-wrap justify-center md:flex-nowrap">
-          {[
-            { value: '20+', label: 'Working Scripts' },
-            { value: '100%', label: 'Tested on Linux' },
-            { value: '0', label: 'Logins Required' },
-            { value: 'Free', label: 'Always' },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="px-6 text-center md:border-r md:border-border md:px-10 last:md:border-r-0"
-            >
-              <p className="font-heading text-2xl font-extrabold tabular-nums text-green">
-                {stat.value}
-              </p>
-              <p className="mt-1 text-xs text-muted">{stat.label}</p>
-            </div>
-          ))}
-        </div>
+        <ScrollReveal>
+          <div className="mx-auto flex max-w-4xl flex-wrap justify-center md:flex-nowrap">
+            {[
+              { value: '20+', label: 'Working Scripts' },
+              { value: '100%', label: 'Tested on Linux' },
+              { value: '0', label: 'Logins Required' },
+              { value: 'Free', label: 'Always' },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="px-6 text-center md:border-r md:border-border md:px-10 last:md:border-r-0"
+              >
+                <p className="font-heading text-2xl font-extrabold tabular-nums text-green">
+                  {stat.value}
+                </p>
+                <p className="mt-1 text-xs text-muted">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </ScrollReveal>
       </section>
 
       {/* Section 3 — Snippets Grid */}
@@ -235,54 +238,58 @@ export default function Home() {
         id="snippets"
         className="mx-auto max-w-4xl border-t border-border px-6 py-20"
       >
-        <p className="mb-2 text-xs uppercase tracking-widest text-green">
-          {'// the good stuff'}
-        </p>
-        <h2 className="mb-4 font-heading text-3xl font-extrabold text-text">
-          Copy-Paste Scripts That Work
-        </h2>
-        <p className="mb-10 text-muted">
-          Every snippet runs on Ubuntu, Debian, Fedora, and macOS. Tested
-          personally.
-        </p>
+        <ScrollReveal>
+          <p className="mb-2 text-xs uppercase tracking-widest text-green">
+            {'// the good stuff'}
+          </p>
+          <h2 className="mb-4 font-heading text-3xl font-extrabold text-text">
+            Copy-Paste Scripts That Work
+          </h2>
+          <p className="mb-10 text-muted">
+            Every snippet runs on Ubuntu, Debian, Fedora, and macOS. Tested
+            personally.
+          </p>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {featuredSnippets.map((snippet) => (
-            <article
-              key={snippet.slug}
-              className="flex flex-col rounded-lg border border-border bg-bg2 p-4"
-            >
-              <div className="flex items-start gap-2">
-                <h3 className="flex-1 text-sm font-semibold text-text">
-                  <span aria-hidden="true">{tagIcon(snippet.tags[0])} </span>
-                  {snippet.title}
-                </h3>
-                <span className={difficultyBadgeClass(snippet.difficulty)}>
-                  {snippet.difficulty}
-                </span>
-              </div>
-              <p className="mt-2 text-xs leading-relaxed text-muted">
-                {truncateDescription(snippet.description)}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-1">
-                {snippet.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-              <Link
-                href={`/snippets/${snippet.slug}`}
-                className="mt-3 text-xs text-blue transition-colors hover:text-text"
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {featuredSnippets.map((snippet, index) => (
+              <ScrollReveal
+                key={snippet.slug}
+                style={{ transitionDelay: `${index * 0.07}s` }}
               >
-                Full guide →
-              </Link>
-            </article>
-          ))}
-        </div>
+                <article className="flex flex-col rounded-lg border border-border bg-bg2 p-4">
+                  <div className="flex items-start gap-2">
+                    <h3 className="flex-1 text-sm font-semibold text-text">
+                      <span aria-hidden="true">{tagIcon(snippet.tags[0])} </span>
+                      {snippet.title}
+                    </h3>
+                    <span className={difficultyBadgeClass(snippet.difficulty)}>
+                      {snippet.difficulty}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed text-muted">
+                    {truncateDescription(snippet.description)}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {snippet.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <Link
+                    href={`/snippets/${snippet.slug}`}
+                    className="mt-3 text-xs text-blue transition-colors hover:text-text"
+                  >
+                    Full guide →
+                  </Link>
+                </article>
+              </ScrollReveal>
+            ))}
+          </div>
+        </ScrollReveal>
 
         <div className="mt-10 flex flex-wrap gap-3">
           <Link
@@ -305,7 +312,7 @@ export default function Home() {
         id="tools"
         className="border-y border-border bg-bg2 px-6 py-20"
       >
-        <div className="mx-auto max-w-4xl">
+        <ScrollReveal className="mx-auto max-w-4xl">
           <p className="mb-2 text-xs uppercase tracking-widest text-green">
             {'// interactive tools'}
           </p>
@@ -339,7 +346,7 @@ export default function Home() {
           >
             See all 6 tools →
           </Link>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* Section 5 — FAQ */}
@@ -347,31 +354,35 @@ export default function Home() {
         id="faq"
         className="mx-auto max-w-3xl border-t border-border px-6 py-20"
       >
-        <p className="mb-2 text-xs uppercase tracking-widest text-green">
-          {'// faq'}
-        </p>
-        <h2 className="mb-6 font-heading text-3xl font-extrabold text-text">
-          Common Questions
-        </h2>
+        <ScrollReveal>
+          <p className="mb-2 text-xs uppercase tracking-widest text-green">
+            {'// faq'}
+          </p>
+          <h2 className="mb-6 font-heading text-3xl font-extrabold text-text">
+            Common Questions
+          </h2>
 
-        <div>
-          {faqItems.map((item) => (
-            <details key={item.question} className="group">
-              <summary className="cursor-pointer border-b border-border py-4 font-heading font-semibold text-text">
-                {item.question}
-              </summary>
-              <p className="py-4 text-sm leading-relaxed text-muted">
-                {item.answer}
-              </p>
-            </details>
-          ))}
-        </div>
+          <div>
+            {faqItems.map((item) => (
+              <details key={item.question} className="group">
+                <summary className="cursor-pointer border-b border-border py-4 font-heading font-semibold text-text">
+                  {item.question}
+                </summary>
+                <p className="py-4 text-sm leading-relaxed text-muted">
+                  {item.answer}
+                </p>
+              </details>
+            ))}
+          </div>
+        </ScrollReveal>
       </section>
 
       {/* Section 6 — Affiliate */}
       <section className="mx-auto max-w-4xl border-t border-border px-6 py-10">
-        <AffiliateBox partner="digitalocean" />
-        <AffiliateBox partner="namecheap" className="mt-4" />
+        <ScrollReveal>
+          <AffiliateBox partner="digitalocean" />
+          <AffiliateBox partner="namecheap" className="mt-4" />
+        </ScrollReveal>
       </section>
     </>
   );

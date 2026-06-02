@@ -5,16 +5,17 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 const navLinks = [
+  { href: '/', label: 'Home' },
   { href: '/snippets', label: 'Snippets' },
   { href: '/tools', label: 'Tools' },
   { href: '/about', label: 'About' },
-  { href: '/contact', label: 'Contact' },
 ] as const;
 
 function linkClassName(isActive: boolean): string {
+  const base = 'transition-[color] duration-150';
   return isActive
-    ? 'text-green transition-colors'
-    : 'text-muted hover:text-text transition-colors';
+    ? `${base} font-semibold text-green`
+    : `${base} text-muted hover:text-text`;
 }
 
 export default function Nav() {
@@ -29,12 +30,10 @@ export default function Nav() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-bg2/93 backdrop-blur-md">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="font-heading text-lg font-extrabold">
-          <span className="text-green">bash</span>
-          <span className="text-muted">/</span>
-          snippets
+    <header className="sticky top-0 z-50 border-b border-border bg-bg2">
+      <nav className="mx-auto flex max-w-[1100px] items-center justify-between px-6 py-4">
+        <Link href="/" className="font-heading text-lg font-bold text-text">
+          BashSnippets<span className="text-green">.xyz</span>
         </Link>
 
         <div className="hidden items-center gap-8 md:flex">
