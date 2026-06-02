@@ -1,0 +1,143 @@
+import Callout from '@/components/Callout'
+
+## The Script
+
+Copy this into `mysql-backup.sh`, edit the configuration block, then make it executable.
+
+```bash
+#!/bin/bash
+
+CHECK="✓"
+CROSS="✗"
+
+# --- Configuration ---
+DB_USER="root"
+DB_PASS="your_password"          # Or use ~/.my.cnf for security
+DB_NAME="your_database"          # Change to your DB name
+BACKUP_DIR="/var/backups/mysql"
+KEEP_DAYS=7                       # Delete backups older than this
+DATE=$(date '+%Y-%m-%d_%H-%M-%S')
+FILENAME="${DB_NAME}_${DATE}.sql.gz"
+
+# --- Create backup directory if it doesn't exist ---
+mkdir -p "$BACKUP_DIR"
+
+# --- Run the backup ---
+echo "Backing up database: $DB_NAME..."
+
+if mysqldump -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" | gzip > "${BACKUP_DIR}/${FILENAME}"; then
+  echo "$CHECK Backup created: ${BACKUP_DIR}/${FILENAME}"
+  echo "$CHECK Size: $(du -sh "${BACKUP_DIR}/${FILENAME}" | cut -f1)"
+else
+  echo "$CROSS Backup FAILED for $DB_NAME — check credentials and database name"
+  exit 1
+fi
+
+# --- Delete old backups ---
+echo "Removing backups older than $KEEP_DAYS days..."
+find "$BACKUP_DIR" -name "*.sql.gz" -mtime +"$KEEP_DAYS" -delete
+echo "$CHECK Cleanup complete"
+
+# --- Show current backups ---
+echo "Current backups:"
+ls -lh "$BACKUP_DIR"/*.sql.gz 2>/dev/null || echo "No backups found"
+```
+
+<Callout type="success" title="Important — security">
+
+**Never hardcode DB passwords in production.** Use `~/.my.cnf` instead:
+
+Create `~/.my.cnf` (for example `nano ~/.my.cnf`) with:
+
+Then run `chmod 600 ~/.my.cnf` and remove `-u` and `-p` from the `mysqldump` command so credentials are read from that file.
+
+</Callout>
+
+## Quick Setup
+
+### Step 1 — Save the script
+
+```bash
+nano mysql-backup.sh
+```
+
+Paste the script, adjust `DB_USER`, `DB_NAME`, `BACKUP_DIR`, and `KEEP_DAYS`, then save.
+
+### Step 2 — Executable permission
+
+```bash
+chmod +x mysql-backup.sh
+```
+
+### Step 3 — Test run
+
+```bash
+./mysql-backup.sh
+```
+
+You should see checkmarks, the new `.sql.gz` path, and a listing of current backups.
+
+## How It Works
+
+**`-u"$DB_USER"` and `-p"$DB_PASS"`** — These pass the MySQL username and password to `mysqldump`. Putting the flags adjacent to the quoted variables (`-u"root"`) avoids a space between `-p` and the password, which `mysqldump` expects when you supply the password on the command line. Prefer `~/.my.cnf` in production so the password never appears in process listings or the script file.
+
+**Gzip pipe** — `mysqldump` writes SQL to standard output. The pipe sends that stream into `gzip`, which compresses it before the shell redirects the result into `${BACKUP_DIR}/${FILENAME}`. You get a single `.sql.gz` file without an intermediate uncompressed dump on disk.
+
+**`find … -mtime +"$KEEP_DAYS" -delete`** — `-mtime +N` matches files last modified more than `N` days ago. Combined with `-name '*.sql.gz'`, only compressed dumps in your backup directory are removed. This keeps disk usage bounded while still honoring roughly “last seven daily backups” when you run the script once per day.
+
+**`mkdir -p "$BACKUP_DIR"`** — Creates the backup directory (and any missing parents) without error if it already exists, so the script can run on a fresh path or under cron without manual setup.
+
+## Schedule It with Cron
+
+Open your crontab and point it at the full path of the script:
+
+```bash
+crontab -e
+```
+
+```bash
+# Every night at 2:00
+0 2 * * * /home/user/mysql-backup.sh
+```
+
+<Callout type="info" title="Cron PATH">
+
+If the job fails silently, set an explicit `PATH` at the top of the crontab or use absolute paths to `mysqldump` and `gzip`. Cron runs with a minimal environment.
+
+</Callout>
+
+## Variations
+
+| Use case | What to change |
+| --- | --- |
+| Backup all databases | Run mysqldump --all-databases (and adjust FILENAME if you want a fixed name like all-databases_DATE.sql.gz). Omit the single-database argument. |
+| Backup to a remote server | After a successful local dump, copy the file with scp or rsync to another host or object storage. Keeps data off the machine you are backing up. |
+| MariaDB | The flow is the same. Use the MariaDB client tools: often mariadb-dump instead of mysqldump, and mariadb for restores — options align closely with MySQL. |
+
+    Get $200 Free →
+
+## Frequently Asked Questions
+
+### How do I backup a MySQL database with bash?
+
+Use `mysqldump`: `mysqldump -u username -p dbname > backup.sql`. In a script, pass the password with `-p'password'` or use a `.my.cnf` credentials file.
+
+### How do I automate MySQL backups with cron?
+
+Write a `mysqldump` script, `chmod +x` it, then add to crontab: `0 2 * * * /home/user/mysql-backup.sh` to run every night at 2am.
+
+### How do I keep only the last 7 MySQL backups?
+
+Use `find` to delete old files: `find /backup/ -name '*.sql.gz' -mtime +7 -delete`. This removes any backup files older than 7 days.
+
+### Should I compress MySQL backups?
+
+Yes. Pipe `mysqldump` output through `gzip`: `mysqldump ... | gzip > backup.sql.gz`. A typical database compresses 80–90%, saving significant disk space.
+
+### How do I backup all MySQL databases at once?
+
+Use `mysqldump --all-databases` instead of specifying one database name. This creates a single dump of all databases.
+
+    Create a Droplet →
+
+      Search domains →

@@ -1,0 +1,886 @@
+<style>
+    /* ============================================================
+       BASE RESET & CSS VARIABLES
+       ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0d1117;
+      --bg2:         #161b22;
+      --bg3:         #1c2128;
+      --border:      #30363d;
+      --green:       #39d353;
+      --green-dim:   #1a4a2e;
+      --amber:       #e3b341;
+      --blue:        #58a6ff;
+      --blue-dim:    #0d2744;
+      --muted:       #8b949e;
+      --text:        #e6edf3;
+      --radius:      8px;
+      --mono-font:    'IBM Plex Mono', monospace;
+      --heading-font: 'Syne', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--mono-font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ============================================================
+       NAVIGATION (copied from index.html)
+       ============================================================ */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 8;
+      background: rgba(13,17,23,0.93);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+    nav.nav--hidden {
+      transform: translateY(-100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      nav { transition: none; }
+    }
+
+    .nav-logo {
+      font-family: var(--heading-font);
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--green);
+      letter-spacing: -0.5px;
+      text-decoration: none;
+    }
+    .nav-logo span { color: var(--muted); }
+
+    .nav-links { display: flex; gap: 20px; list-style: none; }
+    .nav-links a {
+      font-size: 13px;
+      color: var(--muted);
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .nav-links a.active { color: var(--green); }
+
+    /* ============================================================
+       MOBILE NAV (hamburger + drawer)
+       ============================================================ */
+    .nav-mobile-menu {
+      display: none;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 18px;
+      padding: 4px 10px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-family: var(--mono-font);
+      line-height: 1;
+    }
+    .nav-mobile-menu:hover { color: var(--text); border-color: var(--muted); }
+
+    .nav-mobile-drawer {
+      display: none;
+      flex-direction: column;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      gap: 4px;
+      position: sticky;
+      top: 53px;
+      z-index: 7;
+    }
+    .nav-mobile-drawer.open { display: flex; }
+    .nav-mobile-drawer a {
+      font-size: 14px;
+      color: var(--muted);
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      text-decoration: none;
+    }
+    .nav-mobile-drawer a:last-child { border-bottom: none; }
+    .nav-mobile-drawer a:hover { color: var(--text); }
+
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .nav-mobile-menu { display: block; }
+    }
+
+    /* ============================================================
+       MAIN LAYOUT
+       ============================================================ */
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ============================================================
+       BREADCRUMB
+       ============================================================ */
+    .breadcrumb {
+      font-family: var(--mono-font);
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .breadcrumb a {
+      color: var(--muted);
+    }
+    .breadcrumb a:hover {
+      color: var(--text);
+      text-decoration: none;
+    }
+    .breadcrumb-sep {
+      color: var(--border);
+    }
+
+    /* ============================================================
+       PAGE INTRO
+       ============================================================ */
+    .page-intro {
+      margin-bottom: 40px;
+    }
+    .page-intro .intro-label {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--green);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 12px;
+    }
+    .page-intro h1 {
+      font-family: var(--heading-font);
+      font-weight: 800;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+    .page-intro .intro-subtext {
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 640px;
+      line-height: 1.7;
+    }
+
+    #inp-code:focus,
+    #sel-handler:focus {
+      border-color: var(--green) !important;
+      outline: none;
+    }
+
+    .code-pill:hover {
+      border-color: var(--green) !important;
+    }
+
+    .code-pill {
+      position: relative;
+    }
+
+    .code-pill::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 8px);
+      transform: translateX(-50%) translateY(4px);
+      max-width: 180px;
+      width: max-content;
+      background: #1c2128;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.4;
+      padding: 6px 8px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 100ms ease, transform 100ms ease;
+      white-space: normal;
+      z-index: 5;
+    }
+
+    .code-pill:hover::after,
+    .code-pill:focus-visible::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    #btn-copy:disabled {
+      opacity: 0.4;
+      cursor: not-allowed !important;
+    }
+
+    #btn-copy.copy-flash {
+      background: rgba(57, 211, 83, 0.4) !important;
+      transition: background 150ms ease;
+    }
+
+    #handler-card.handler-flash {
+      animation: handler-border-flash 600ms ease;
+    }
+
+    @keyframes handler-border-flash {
+      0% { border-left-color: var(--green); }
+      100% { border-left-color: var(--border); }
+    }
+
+    #result-loading {
+      display: none;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+    }
+
+    .skeleton-line {
+      display: block;
+      height: 14px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--bg3) 0%, #30363d 45%, var(--bg3) 90%);
+      background-size: 200% 100%;
+      animation: skeleton-shimmer 700ms ease infinite;
+    }
+
+    @keyframes skeleton-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    #copy-toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%) translateY(12px);
+      background: #1c2128;
+      border: 1px solid var(--green);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono-font);
+      font-size: 12px;
+      line-height: 1.4;
+      padding: 10px 14px;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    #copy-toast.show {
+      animation: toast-slide-fade 1.8s ease forwards;
+    }
+
+    @keyframes toast-slide-fade {
+      0% { opacity: 0; transform: translateX(-50%) translateY(12px); }
+      12% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      82% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(0); }
+    }
+
+    @media (max-width: 768px) {
+      #lookup-wrap {
+        flex-direction: column !important;
+      }
+      #lookup-panel,
+      #result-panel {
+        width: 100% !important;
+        position: static !important;
+      }
+    }
+
+    /* ============================================================
+       TOOL BODY — educational content below the interactive UI
+       ============================================================ */
+    .tool-body {
+      max-width: 960px;
+      margin: 48px auto;
+      padding: 0 24px;
+    }
+    .tool-body h2 {
+      font-family: var(--heading-font);
+      font-weight: 700;
+      font-size: clamp(1.3rem, 3vw, 1.8rem);
+      color: var(--green);
+      margin: 40px 0 16px;
+      letter-spacing: -0.5px;
+    }
+    .tool-body h2:first-child { margin-top: 0; }
+    .tool-body h3 {
+      font-family: var(--heading-font);
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text);
+      margin: 28px 0 8px;
+    }
+    .tool-body p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+    .ref-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0 32px;
+      font-size: 13px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .ref-table th {
+      text-align: left;
+      padding: 12px 16px;
+      color: var(--muted);
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .ref-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--bg3);
+      color: var(--muted);
+      vertical-align: top;
+    }
+    .ref-table td:first-child {
+      color: var(--green);
+      font-weight: 600;
+      font-family: var(--mono-font);
+    }
+    .ref-table tr:last-child td { border-bottom: none; }
+  </style>
+
+  <main>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">BashSnippets</a>
+      <span class="breadcrumb-sep">/</span>
+      <a href="/tools/">Tools</a>
+      <span class="breadcrumb-sep">/</span>
+      <span>Exit Code Lookup</span>
+    </div>
+
+    <!-- Page intro -->
+    <div class="page-intro">
+      <div class="intro-label">FREE TOOL</div>
+      <h1>Bash Exit Code Lookup &amp; Handler Generator</h1>
+      <p class="intro-subtext">Type an exit code and get the meaning, common causes, and a ready-to-paste error handler. No more Googling 'what is exit code 127'.</p>
+    </div>
+
+    <div id="lookup-wrap" style="display:flex;gap:24px;max-width:1100px;margin:32px auto;padding:0 24px;align-items:flex-start;">
+      <div id="lookup-panel" style="width:340px;flex-shrink:0;">
+        <label for="inp-code" style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px;">Exit Code</label>
+        <input type="number" id="inp-code" placeholder="0-255" min="0" max="255"
+          style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono-font);font-size:14px;padding:10px 12px;outline:none;">
+
+        <label for="sel-handler" style="font-size:12px;color:var(--muted);display:block;margin-top:16px;margin-bottom:6px;">Handler Type</label>
+        <select id="sel-handler" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono-font);font-size:13px;padding:10px 12px;">
+          <option value="ifelse">if/else block</option>
+          <option value="case">case statement</option>
+          <option value="inline">inline || fallback</option>
+        </select>
+
+        <div style="margin-top:20px;">
+          <div style="font-family:var(--mono-font);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">// common codes</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+            <button type="button" class="code-pill" data-code="0" data-tooltip="Success" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:var(--mono-font);font-size:11px;cursor:pointer;">0 (success)</button>
+            <button type="button" class="code-pill" data-code="1" data-tooltip="General error" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:var(--mono-font);font-size:11px;cursor:pointer;">1 (error)</button>
+            <button type="button" class="code-pill" data-code="2" data-tooltip="Misuse of shell builtin" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:var(--mono-font);font-size:11px;cursor:pointer;">2 (misuse)</button>
+            <button type="button" class="code-pill" data-code="126" data-tooltip="Command cannot execute" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:var(--mono-font);font-size:11px;cursor:pointer;">126 (not exec)</button>
+            <button type="button" class="code-pill" data-code="127" data-tooltip="Command not found" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:var(--mono-font);font-size:11px;cursor:pointer;">127 (not found)</button>
+            <button type="button" class="code-pill" data-code="130" data-tooltip="Script terminated by Ctrl-C" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:var(--mono-font);font-size:11px;cursor:pointer;">130 (ctrl-c)</button>
+            <button type="button" class="code-pill" data-code="137" data-tooltip="Script terminated by SIGKILL" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:var(--mono-font);font-size:11px;cursor:pointer;">137 (SIGKILL)</button>
+            <button type="button" class="code-pill" data-code="139" data-tooltip="Segmentation fault" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:var(--mono-font);font-size:11px;cursor:pointer;">139 (segfault)</button>
+            <button type="button" class="code-pill" data-code="143" data-tooltip="Script terminated by SIGTERM" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 10px;font-family:var(--mono-font);font-size:11px;cursor:pointer;">143 (SIGTERM)</button>
+          </div>
+        </div>
+
+        <button id="btn-copy" type="button" disabled style="width:100%;margin-top:20px;background:var(--green);color:#0d1117;font-family:var(--mono-font);font-weight:600;font-size:13px;padding:11px;border:none;border-radius:var(--radius);cursor:pointer;">&#x29C9; Copy Handler</button>
+        <div style="background:var(--blue-dim);border-left:3px solid var(--blue);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--muted);margin-top:16px;line-height:1.6;">
+          &#x1F4A1; <strong style="color:var(--text);">Pro tip:</strong> Exit codes 128+N mean the process was killed by signal N. For example, 137 = 128 + 9 (SIGKILL).
+        </div>
+      </div>
+
+      <div id="result-panel" style="flex:1;position:sticky;top:80px;">
+        <div id="result-empty" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:40px 24px;text-align:center;color:var(--muted);font-size:14px;">
+          &larr; Enter a code between 0 and 255
+        </div>
+
+        <div id="result-loading" aria-live="polite" aria-label="Loading exit code result">
+          <span class="skeleton-line" style="width:80px;height:32px;margin-bottom:12px;"></span>
+          <span class="skeleton-line" style="width:180px;margin-bottom:14px;"></span>
+          <span class="skeleton-line" style="width:90%;"></span>
+        </div>
+
+        <div id="result-content" style="display:none;">
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:20px 24px;margin-bottom:16px;">
+            <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Exit Code</div>
+            <div style="font-family:var(--heading-font);font-weight:700;font-size:32px;color:var(--text);margin-bottom:4px;" id="display-code">127</div>
+            <div style="font-size:15px;color:var(--amber);margin-bottom:16px;" id="display-meaning">Command not found</div>
+            <div style="font-size:13px;color:var(--muted);line-height:1.7;" id="display-causes">Common causes: typo in command name, command not installed, PATH issue</div>
+          </div>
+
+          <div id="handler-card" style="background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--border);border-radius:8px;padding:16px;">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-family:var(--mono-font);">Generated Handler</div>
+            <pre id="code-output" style="background:transparent;border:none;color:#e6edf3;font-family:var(--mono-font);font-size:13px;line-height:1.7;margin:0;overflow-x:auto;"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tool-body">
+
+      <h2>Common Bash Exit Codes Reference</h2>
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Meaning</th>
+            <th>Common Cause</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>Success</td>
+            <td>Command completed without errors</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>General error</td>
+            <td>Catchall for unspecified failures — permission denied, missing file, validation error</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Misuse of shell builtin</td>
+            <td>Missing keyword, wrong argument type, or syntax error in a builtin</td>
+          </tr>
+          <tr>
+            <td>126</td>
+            <td>Command cannot execute</td>
+            <td>File exists but lacks execute permission or is not a valid binary</td>
+          </tr>
+          <tr>
+            <td>127</td>
+            <td>Command not found</td>
+            <td>Typo in command name, binary not installed, or not in PATH</td>
+          </tr>
+          <tr>
+            <td>128</td>
+            <td>Invalid argument to exit</td>
+            <td><code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">exit</code> called with a non-integer or out-of-range value</td>
+          </tr>
+          <tr>
+            <td>130</td>
+            <td>Script terminated by Ctrl-C</td>
+            <td>User sent SIGINT — manual interrupt during execution</td>
+          </tr>
+          <tr>
+            <td>137</td>
+            <td>Script terminated by SIGKILL</td>
+            <td><code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">kill -9</code> or OOM killer — process cannot be caught or cleaned up gracefully</td>
+          </tr>
+          <tr>
+            <td>139</td>
+            <td>Segmentation fault</td>
+            <td>Invalid memory access — usually a crash in a compiled binary</td>
+          </tr>
+          <tr>
+            <td>255</td>
+            <td>Exit status out of range</td>
+            <td><code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">exit</code> called with a value above 255 or negative — wraps to 255</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>Every command sets <code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">$?</code> when it finishes. Test it in conditionals: <code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">if mycommand; then echo ok; else echo "failed with $?"; fi</code>. With <code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">set -e</code>, any non-zero exit stops the script immediately — which is what you want in production until you explicitly handle a known failure. Capture the code right after the command; the next line overwrites <code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">$?</code>.</p>
+      <p><code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">trap</code> runs cleanup when a script exits for any reason — success, error, or signal. Register <code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">trap cleanup EXIT</code> to remove temp files and release locks even after a non-zero exit. Combine with <code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">trap 'echo "failed at line $LINENO with exit $?"' ERR</code> under <code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">set -e</code> to log exactly where the script broke before cleanup runs.</p>
+
+      <h2>Frequently Asked Questions</h2>
+
+      <h3>What does exit code 1 mean in bash?</h3>
+      <p>Exit code 1 is a generic failure — the command did not succeed, but the exact reason depends on what ran. <code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">grep</code> returns 1 when nothing matches; most other tools use it for any unhandled error. Treat it as "something went wrong" and check stderr or re-run with verbose flags.</p>
+
+      <h3>How do I check the exit code of a command in bash?</h3>
+      <p>Run the command, then immediately check <code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">echo $?</code>. Capture it in a variable if you need it later: <code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">status=$?; if [ $status -ne 0 ]; then echo "failed with $status"; fi</code>. <code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">$?</code> resets after every command, so read it before running anything else.</p>
+
+      <h3>What is exit code 127 in Linux?</h3>
+      <p>Exit code 127 means command not found. Bash searched every directory in PATH and could not locate the binary. Check for typos, missing packages, or a PATH that does not include the install location.</p>
+
+    </div>
+
+    <!-- BLOCK 2 — DigitalOcean affiliate box -->
+    <div style="max-width:960px;margin:0 auto 32px;padding:0 24px;">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:8px;padding:20px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:11px;color:var(--blue);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Recommended Hosting</div>
+          <div style="font-family:var(--heading-font);font-weight:700;font-size:15px;color:var(--text);margin-bottom:4px;">Run these scripts on a $4/mo DigitalOcean Droplet</div>
+          <div style="font-size:13px;color:var(--muted);">Spin up a Linux VPS in 60 seconds. Perfect for cron jobs and running bash scripts 24/7.</div>
+        </div>
+        <a href="https://www.digitalocean.com/?refcode=7a196437764c" target="_blank" rel="noopener"
+          style="background:var(--blue);color:#0d1117;font-family:var(--mono-font);font-weight:600;font-size:13px;padding:10px 20px;border-radius:6px;text-decoration:none;white-space:nowrap;">Get $200 Free Credit →</a>
+      </div>
+    </div>
+
+    <div style="background:linear-gradient(135deg,#1a1f2e 0%,#161b27 100%);
+      border:1px solid #30363d; border-left:3px solid #e3b341;
+      border-radius:8px; padding:20px 24px; display:flex;
+      align-items:center; justify-content:space-between;
+      gap:16px; flex-wrap:wrap; margin:24px 0;">
+      <div>
+        <div style="font-size:11px;color:#e3b341;font-family:'IBM Plex Mono',monospace;
+          text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">
+          // domain registration
+        </div>
+        <strong style="color:#f0f6fc;font-size:15px;">
+          Ready to deploy your scripts? Grab a domain.
+        </strong>
+        <p style="color:#8b949e;font-size:13px;margin:6px 0 0;">
+          Namecheap domains from $1.98/yr. Free WhoisGuard privacy included.
+          Point it at your GitHub Pages or VPS in minutes.
+        </p>
+      </div>
+      <a href="https://namecheap.pxf.io/c/7260430/1632743/5618"
+        target="_blank" rel="noopener sponsored"
+        style="background:#e3b341;color:#0d1117;font-family:'IBM Plex Mono',monospace;
+          font-weight:600;font-size:13px;padding:10px 18px;border-radius:8px;
+          text-decoration:none;white-space:nowrap;transition:opacity .2s;"
+        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+        Get a Domain →
+      </a>
+    </div>
+
+    <div class="explore-snippets-cta" style="border:1px solid var(--blue);background:var(--blue-dim);border-radius:8px;padding:16px 20px;margin:24px 0;">
+      <p style="color:var(--blue);font-family:var(--mono-font);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px;">
+        📋 Copy-Paste Snippets
+      </p>
+      <p style="color:var(--text);font-size:14px;margin:0 0 12px;line-height:1.5;">
+        All snippets are free, beginner-friendly, and production-tested.
+        Find a script for your exact use case.
+      </p>
+      <a href="/snippets/" style="display:inline-block;background:var(--blue);color:#0d1117;font-family:var(--mono-font);font-size:13px;font-weight:600;padding:8px 16px;border-radius:6px;text-decoration:none;">
+        Browse All Snippets →
+      </a>
+    </div>
+
+    <!-- BLOCK 3 — Related snippets -->
+    <section style="max-width:960px;margin:0 auto;padding:0 24px 60px;">
+      <style>
+        .exit-lookup-related-card {
+          background: var(--bg2);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 16px;
+          transition: border-color 0.2s ease;
+        }
+        .exit-lookup-related-card:hover { border-color: var(--green); }
+      </style>
+      <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Learn more</div>
+      <div style="font-family:var(--heading-font);font-weight:800;font-size:1.3rem;margin-bottom:20px;">Master bash error handling</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">
+        <div class="exit-lookup-related-card">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">intermediate · best practice</div>
+          <div style="font-family:var(--heading-font);font-weight:700;font-size:14px;color:var(--text);margin:8px 0 12px;">Bash Error Handling</div>
+          <a href="/snippets/bash-error-handling.html" style="font-family:var(--mono-font);font-size:12px;color:var(--green);text-decoration:none;">Bash Error Handling →</a>
+        </div>
+        <div class="exit-lookup-related-card">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">free tool</div>
+          <div style="font-family:var(--heading-font);font-weight:700;font-size:14px;color:var(--text);margin:8px 0 12px;">Boilerplate Generator</div>
+          <a href="/tools/bash-boilerplate-generator.html" style="font-family:var(--mono-font);font-size:12px;color:var(--green);text-decoration:none;">Boilerplate Generator →</a>
+        </div>
+        <div class="exit-lookup-related-card">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">browse library</div>
+          <div style="font-family:var(--heading-font);font-weight:700;font-size:14px;color:var(--text);margin:8px 0 12px;">All Snippets</div>
+          <a href="/snippets/" style="font-family:var(--mono-font);font-size:12px;color:var(--green);text-decoration:none;">All Snippets →</a>
+        </div>
+      </div>
+    </section>
+
+    <footer style="text-align:center;padding:32px 24px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);">
+      <div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:12px;">
+        <a href="/" style="color:var(--muted);">← BashSnippets</a>
+        <a href="/tools/" style="color:var(--muted);">Tools</a>
+        <a href="/snippets/" style="color:var(--muted);">All Snippets</a>
+        <a href="/about.html" style="color:var(--muted);">About</a>
+        <a href="/privacy.html" style="color:var(--muted);">Privacy</a>
+      </div>
+      <p>© <span id="year"></span> BashSnippets · Built by a Linux user, for Linux users.</p>
+      <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+    </footer>
+
+    <div id="copy-toast" role="status" aria-live="polite">Handler copied to clipboard</div>
+
+    <script>
+      (function () {
+        var input    = document.getElementById('inp-code');
+        var select   = document.getElementById('sel-handler');
+        var btnCopy  = document.getElementById('btn-copy');
+        var empty    = document.getElementById('result-empty');
+        var content  = document.getElementById('result-content');
+        var dCode    = document.getElementById('display-code');
+        var dMeaning = document.getElementById('display-meaning');
+        var dCauses  = document.getElementById('display-causes');
+        var output   = document.getElementById('code-output');
+        var loading  = document.getElementById('result-loading');
+        var handlerCard = document.getElementById('handler-card');
+        var copyToast = document.getElementById('copy-toast');
+
+        if (!input || !select || !btnCopy || !empty || !content || !dCode || !dMeaning || !dCauses || !output || !loading || !handlerCard || !copyToast) return;
+
+        // --------------------------------------------------------
+        // Exit code reference table
+        // --------------------------------------------------------
+        var exitCodes = {
+          0:   { meaning: "Success",                          causes: "Command completed without errors",                       example: "All good" },
+          1:   { meaning: "General error",                    causes: "Catchall for unspecified errors",                        example: "Permission denied, file not found, etc." },
+          2:   { meaning: "Misuse of shell builtin",          causes: "Missing keyword, wrong argument type",                   example: "Syntax error in script" },
+          126: { meaning: "Command cannot execute",           causes: "Permission problem, not executable",                     example: "File exists but lacks +x permission" },
+          127: { meaning: "Command not found",                causes: "Typo in command, not in PATH, not installed",            example: "Tried to run nonexistent command" },
+          128: { meaning: "Invalid argument to exit",         causes: "exit called with non-integer or out-of-range value",     example: "exit 3.14 or exit -1" },
+          130: { meaning: "Script terminated by Ctrl-C",      causes: "User pressed Ctrl-C (SIGINT)",                           example: "Manual interrupt" },
+          131: { meaning: "Quit signal (SIGQUIT)",            causes: "User pressed Ctrl-\\ — terminate with core dump",        example: "Manual quit signal" },
+          134: { meaning: "Aborted (SIGABRT)",                causes: "abort() called, often from assertion failure",            example: "C program assertion failed" },
+          137: { meaning: "Script terminated by SIGKILL",     causes: "kill -9 sent to process",                                example: "OOM killer or manual kill -9" },
+          139: { meaning: "Segmentation fault",               causes: "Invalid memory access (usually C program crash)",        example: "Core dumped" },
+          141: { meaning: "Pipe closed (SIGPIPE)",            causes: "Wrote to a pipe with no readers",                        example: "cmd | head closed early" },
+          143: { meaning: "Script terminated by SIGTERM",     causes: "kill command (default signal)",                          example: "Graceful shutdown requested" },
+          255: { meaning: "Exit status out of range",         causes: "exit called with value > 255 or negative",               example: "exit -1 wraps to 255" }
+        };
+
+        function lookup(code) {
+          if (exitCodes[code]) return exitCodes[code];
+          return { meaning: "Exit code " + code, causes: "Check command documentation", example: "" };
+        }
+
+        // --------------------------------------------------------
+        // Handler generator
+        // --------------------------------------------------------
+        function buildHandler(code, style, meaning) {
+          var safeMeaning = String(meaning).replace(/"/g, '\\"');
+          if (style === 'case') {
+            return 'case $? in\n  ' + code + ') echo "Error: ' + safeMeaning + '"; exit ' + code + ';;\nesac';
+          }
+          if (style === 'inline') {
+            return 'command || { echo "Error: ' + safeMeaning + '"; exit ' + code + '; }';
+          }
+          return 'if [ $? -eq ' + code + ' ]; then\n  echo "Error: ' + safeMeaning + '"\n  exit ' + code + '\nfi';
+        }
+
+        // --------------------------------------------------------
+        // Bash syntax highlighter
+        // --------------------------------------------------------
+        function escapeHtml(s) {
+          return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function highlight(raw) {
+          return raw.split('\n').map(function (line) {
+            var esc = escapeHtml(line);
+
+            // Quoted strings (amber)
+            esc = esc.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,
+              '<span style="color:var(--amber);">$1</span>');
+
+            // Variables: ${VAR}, $VAR, $#, $@, $?, $* (green)
+            esc = esc.replace(/(\$\{[A-Za-z_][A-Za-z0-9_]*\}|\$[A-Za-z_][A-Za-z0-9_]*|\$[#@?*])/g,
+              '<span style="color:var(--green);">$1</span>');
+
+            // Keywords (blue)
+            esc = esc.replace(/\b(if|then|else|elif|fi|for|while|do|done|case|esac|in|function|return|exit|echo)\b/g,
+              '<span style="color:var(--blue);">$1</span>');
+
+            return esc;
+          }).join('\n');
+        }
+
+        // --------------------------------------------------------
+        // Render
+        // --------------------------------------------------------
+        var currentRaw = '';
+        var renderTimer = null;
+
+        function updateCodeParam(code) {
+          if (!window.history || !window.history.pushState) return;
+          try {
+            var url = new URL(window.location.href);
+            url.searchParams.set('code', String(code));
+            var next = url.pathname + url.search + url.hash;
+            var current = window.location.pathname + window.location.search + window.location.hash;
+            if (next !== current) window.history.pushState({}, '', next);
+          } catch (e) { /* no-op */ }
+        }
+
+        function showEmptyState() {
+          if (renderTimer) clearTimeout(renderTimer);
+          empty.textContent = '\u2190 Enter a code between 0 and 255';
+          empty.style.display = 'block';
+          loading.style.display = 'none';
+          content.style.display = 'none';
+          btnCopy.disabled = true;
+          currentRaw = '';
+        }
+
+        function flashHandlerCard() {
+          handlerCard.classList.remove('handler-flash');
+          void handlerCard.offsetWidth;
+          handlerCard.classList.add('handler-flash');
+        }
+
+        function renderResult(code, shouldUpdateUrl, shouldFlashHandler) {
+          var info = lookup(code);
+          dCode.textContent = String(code);
+          dMeaning.textContent = info.meaning;
+          var causesText = 'Common causes: ' + info.causes;
+          if (info.example) causesText += ' \u2014 ' + info.example;
+          dCauses.textContent = causesText;
+
+          var style = select.value || 'ifelse';
+          var raw = buildHandler(code, style, info.meaning);
+          currentRaw = raw;
+          output.innerHTML = highlight(raw);
+
+          empty.style.display = 'none';
+          loading.style.display = 'none';
+          content.style.display = 'block';
+          btnCopy.disabled = false;
+
+          if (shouldFlashHandler) flashHandlerCard();
+          if (shouldUpdateUrl) updateCodeParam(code);
+        }
+
+        function render(options) {
+          var shouldUpdateUrl = options && options.updateUrl;
+          var shouldFlashHandler = options && options.flashHandler;
+          var rawValue = (input.value || '').trim();
+          var code = parseInt(rawValue, 10);
+
+          if (rawValue === '' || isNaN(code) || code < 0 || code > 255) {
+            showEmptyState();
+            return;
+          }
+
+          if (renderTimer) clearTimeout(renderTimer);
+          empty.style.display = 'none';
+          content.style.display = 'none';
+          loading.style.display = 'block';
+          btnCopy.disabled = true;
+
+          renderTimer = setTimeout(function () {
+            renderResult(code, shouldUpdateUrl, shouldFlashHandler);
+          }, 200);
+        }
+
+        // --------------------------------------------------------
+        // Bindings
+        // --------------------------------------------------------
+        input.addEventListener('input', function () {
+          render({ updateUrl: true });
+        });
+        input.addEventListener('change', function () {
+          render({ updateUrl: true });
+        });
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            render({ updateUrl: true });
+          }
+        });
+        select.addEventListener('change', function () {
+          render({ updateUrl: true, flashHandler: true });
+        });
+
+        document.querySelectorAll('.code-pill').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            input.value = btn.getAttribute('data-code') || '';
+            render({ updateUrl: true });
+          });
+        });
+
+        // --------------------------------------------------------
+        // Copy handler
+        // --------------------------------------------------------
+        var origCopyLabel = btnCopy.innerHTML;
+        var copyResetTimer = null;
+        var copyFlashTimer = null;
+
+        function flashCopyButton() {
+          if (copyFlashTimer) clearTimeout(copyFlashTimer);
+          btnCopy.classList.add('copy-flash');
+          copyFlashTimer = setTimeout(function () {
+            btnCopy.classList.remove('copy-flash');
+          }, 150);
+        }
+
+        function showCopyToast() {
+          copyToast.classList.remove('show');
+          void copyToast.offsetWidth;
+          copyToast.classList.add('show');
+        }
+
+        btnCopy.addEventListener('click', function () {
+          if (btnCopy.disabled || !currentRaw) return;
+          if (copyResetTimer) clearTimeout(copyResetTimer);
+          flashCopyButton();
+
+          var done = function (label) {
+            btnCopy.innerHTML = label;
+            copyResetTimer = setTimeout(function () {
+              btnCopy.innerHTML = origCopyLabel;
+            }, 2000);
+          };
+
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(currentRaw).then(function () {
+              done('\u2713 Copied!');
+              showCopyToast();
+            }).catch(function () {
+              done('\u2717 Copy failed');
+            });
+          } else {
+            done('\u2717 Copy unavailable');
+          }
+        });
+
+        // --------------------------------------------------------
+        // Optional ?code=N URL parameter
+        // --------------------------------------------------------
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var initial = params.get('code');
+          if (initial !== null && /^\d+$/.test(initial)) {
+            var n = parseInt(initial, 10);
+            if (n >= 0 && n <= 255) {
+              input.value = String(n);
+              render();
+            }
+          }
+        } catch (e) { /* no-op */ }
+      })();
+    </script>
+
+  </main>

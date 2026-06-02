@@ -1,0 +1,201 @@
+import Callout from '@/components/Callout'
+
+## The Script
+
+Paste this into a file called `cleanlog.sh`. Change `LOG_DIR` and `DAYS` to match your setup. **Run with `-print` first** before using `-delete`.
+
+```bash
+#!/bin/bash
+# Delete Old Log Files
+# find /var/log -name "*.log" -mtime +30 -delete removes every log file older than 30 days in one command.
+      Always run with -print instead of -delete first — it previews exactly which files will be removed
+      without touching anything. Swap to -delete when you're satisfied with the list.
+# SAFE: swap -delete for -print to preview first.
+#
+# USAGE: ./cleanlog.sh
+# REQUIRES: bash, find (pre-installed on all Linux/macOS)
+
+LOG_DIR="/var/log/myapp"   # ← your log folder
+DAYS=30                    # ← delete logs older than this many days
+
+echo "Cleaning logs older than $DAYS days in $LOG_DIR..."
+
+find "$LOG_DIR" -type f -name "*.log" \
+  -mtime +$DAYS -delete
+
+echo "✓ Done. Cleaned logs older than $DAYS days."
+```
+
+<Callout type="success" title="What this does, line by line">
+
+`find "$LOG_DIR"` searches your log folder. `-type f` limits results to files only (skips subdirectories). `-name "*.log"` matches only log files. `-mtime +$DAYS` filters to files last modified more than DAYS days ago. `-delete` removes them. Replace `-delete` with `-print` anytime to preview without deleting.
+
+</Callout>
+
+## Step-by-Step Setup
+
+### Step 1 — Create the file
+
+```bash
+nano cleanlog.sh
+```
+
+Paste the script, then **Ctrl+X → Y → Enter** to save.
+
+### Step 2 — Set your paths and age limit
+
+| Variable | Example | What it means |
+| --- | --- | --- |
+| LOG_DIR | /var/log/nginx | The folder containing your log files |
+| LOG_DIR | /home/user/app/logs | A custom app log folder |
+| DAYS | 7 | Delete logs older than 1 week |
+| DAYS | 30 | Delete logs older than 1 month (default) |
+| DAYS | 90 | Delete logs older than 3 months |
+
+### Step 3 — ALWAYS preview before deleting
+
+Before you run the script for the first time, swap `-delete` for `-print` to see exactly which files would be removed:
+
+```bash
+# Preview mode — shows files that WOULD be deleted, removes nothing
+find "$LOG_DIR" -type f -name "*.log" -mtime +$DAYS -print
+```
+
+Review the output. If it looks right, switch back to `-delete` and run for real.
+
+### Step 4 — Make it executable and run it
+
+```bash
+chmod +x cleanlog.sh
+./cleanlog.sh
+```
+
+## Schedule with Cron
+
+Running this once manually is useful. Running it automatically every week is the goal.
+
+```bash
+crontab -e
+```
+
+```bash
+# Run every Sunday at 3am
+0 3 * * 0 /home/user/cleanlog.sh
+
+# Run every day at midnight
+0 0 * * * /home/user/cleanlog.sh
+
+# Run on the 1st of every month
+0 0 1 * * /home/user/cleanlog.sh
+```
+
+<Callout type="info" title="� Log output to a file">
+
+Add `>> /var/log/cleanlog.log 2>&1` to the end of your cron line so you have a record of every cleanup run and any errors.
+
+</Callout>
+
+## Variations
+
+### Clean multiple file types at once
+
+```bash
+#!/bin/bash
+LOG_DIR="/var/log/myapp"
+DAYS=30
+
+# Delete .log AND .gz (compressed log) files older than DAYS
+find "$LOG_DIR" -type f \( -name "*.log" -o -name "*.gz" \) \
+  -mtime +$DAYS -delete
+
+echo "✓ Cleaned .log and .gz files older than $DAYS days"
+```
+
+### Delete logs and report how much space was freed
+
+```bash
+#!/bin/bash
+LOG_DIR="/var/log/myapp"
+DAYS=30
+
+# Measure disk usage before
+BEFORE=$(du -sh "$LOG_DIR" | awk '{print $1}')
+
+find "$LOG_DIR" -type f -name "*.log" -mtime +$DAYS -delete
+
+# Measure disk usage after
+AFTER=$(du -sh "$LOG_DIR" | awk '{print $1}')
+
+echo "✓ Done. Before: $BEFORE → After: $AFTER"
+```
+
+### Clean logs across multiple directories
+
+```bash
+#!/bin/bash
+DAYS=30
+DIRS=("/var/log/nginx" "/var/log/myapp" "/home/user/app/logs")
+
+for dir in "${DIRS[@]}"; do
+  [ -d "$dir" ] || continue  # skip if folder doesn't exist
+  echo "Cleaning $dir..."
+  find "$dir" -type f -name "*.log" -mtime +$DAYS -delete
+done
+echo "✓ All directories cleaned."
+```
+
+    Get $200 Free →
+
+      View Hosting Plans →
+
+## Common Mistakes
+
+<Callout type="warning" title="Not previewing with -print first">
+
+The most common mistake. Always run with `-print` before `-delete` the first time on any new directory. One wrong path and you could delete the wrong files permanently.
+
+</Callout>
+
+<Callout type="warning" title="Deleting system logs you shouldn't touch">
+
+Avoid pointing `LOG_DIR` at `/var/log` directly — that includes system logs that your OS needs. Always target a specific subfolder like `/var/log/nginx` or `/var/log/myapp`.
+
+</Callout>
+
+<Callout type="warning" title="-mtime counts in full 24-hour periods">
+
+`-mtime +30` means strictly more than 30 full days ago, not "30 days ago today." A file from exactly 30 days ago won't match — it needs to be 31+ days old. Use `-mtime +29` if you want to catch files from day 30.
+
+</Callout>
+
+## Understanding the Commands
+
+| Command / Flag | What it does |
+| --- | --- |
+| find $LOG_DIR | Searches recursively through the specified directory |
+| -type f | Matches files only — ignores directories and symlinks |
+| -name "*.log" | Matches files ending in .log — change to *.gz, *.tmp, etc. |
+| -mtime +30 | Matches files modified more than 30 full days ago |
+| -print | Prints matching files to the terminal — safe preview mode |
+| -delete | Deletes matching files permanently — always preview first |
+
+## Frequently Asked Questions
+
+### How do I automatically delete old log files in Linux?
+
+Use the `find` command: `find /var/log/myapp -name '*.log' -mtime +30 -delete`. This removes all `.log` files older than 30 days. Add it to cron with `crontab -e` to run it automatically on a schedule.
+
+### How do I safely preview what find -delete will remove?
+
+Swap `-delete` for `-print` in your command. It prints the matching files to your terminal without touching them. Review the list, and when you're confident, switch back to `-delete`.
+
+### What does -mtime +30 mean in the find command?
+
+`-mtime +30` matches files whose last modification time was more than 30 full 24-hour periods ago. Use `+7` for a week, `+90` for three months. The `+` means strictly greater than.
+
+### How do I delete files older than 30 days in Linux?
+
+Run: `find /path/to/folder -type f -mtime +30 -delete`. This finds all files modified more than 30 days ago and deletes them. Always test with `-print` before using `-delete`.
+
+    Try the Generator →
+    Browse All Tools

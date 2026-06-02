@@ -1,0 +1,170 @@
+import Callout from '@/components/Callout'
+
+## The Template — Add This to Every Script
+
+This is the safest way to start any bash script. Copy this header and build from here.
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+# Print an error message and the line number when something fails
+trap 'echo "Error on line $LINENO — script stopped." >&2' ERR
+
+# Your script starts here
+```
+
+<Callout type="success" title="What you just added">
+
+`set -euo pipefail` combines three safety flags into one line. `trap ... ERR` tells bash what to print when something fails, including the exact line number. Without these, bash will happily run 50 more lines after an error as if nothing happened.
+
+</Callout>
+
+## What Each Flag Does
+
+      -e
+      set -o errexit
+      Stop the script immediately if any command exits with a non-zero status. Without this, bash ignores failures and keeps running.
+
+      -u
+      set -o nounset
+      Treat any unset or undefined variable as an error. Without this, $UNDEFINED_VAR silently becomes an empty string — which can cause catastrophic path errors.
+
+      -o pipefail
+      pipeline failure mode
+      Make a pipeline fail if ANY command in it fails, not just the last one. Without this, false | true succeeds because only the last command (true) is checked.
+
+## Why This Actually Matters — Real Examples
+
+### The dangerous default (no flags)
+
+```bash
+#!/bin/bash
+# No safety flags — this is dangerous
+
+cd /nonexistent/folder    # This FAILS silently
+rm -rf *                  # This runs in the WRONG directory
+echo "Done"               # Script reports success
+```
+
+<Callout type="success" title="⛔ What happens without -e">
+
+The `cd` fails. Bash ignores it and stays in the current directory. `rm -rf *` then runs in whatever directory you were already in — potentially deleting everything there. The script prints "Done." You have no idea anything went wrong.
+
+</Callout>
+
+### With set -e (safe version)
+
+```bash
+#!/bin/bash
+set -euo pipefail
+trap 'echo "Error on line $LINENO" >&2' ERR
+
+cd /nonexistent/folder    # This FAILS → script stops here
+rm -rf *                  # This NEVER runs
+```
+
+<Callout type="success" title="What happens with -e">
+
+The `cd` fails. The trap fires and prints "Error on line 5." The script stops completely. `rm -rf *` never runs. Your files are safe.
+
+</Callout>
+
+### The undefined variable trap (why -u matters)
+
+```bash
+#!/bin/bash
+# Without -u, this is a disaster waiting to happen
+
+TARGET_DIR="/home/user/backups"
+# Typo: TARGER_DIR instead of TARGET_DIR
+rm -rf "$TARGER_DIR/"*      # Expands to: rm -rf /*
+```
+
+<Callout type="success" title="⛔ Without -u, a typo can delete your entire system">
+
+`$TARGER_DIR` is undefined so bash replaces it with an empty string. The command becomes `rm -rf /*` — which attempts to delete everything from the root of your filesystem. With `set -u`, bash would immediately error: "TARGER_DIR: unbound variable" and stop.
+
+</Callout>
+
+## Allowing Commands to Fail Intentionally
+
+Sometimes you want a command to fail without stopping the script. There are two clean ways to do this:
+
+### Method 1 — Append || true
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+# These are allowed to fail — the || true catches the error
+mkdir /tmp/myfolder || true          # OK if folder already exists
+rm /tmp/oldfile.log || true          # OK if file doesn't exist
+grep "keyword" file.txt || true     # OK if no match found
+```
+
+### Method 2 — Use an if statement
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+# if/then handles the failure explicitly
+if ! mkdir /tmp/myfolder; then
+  echo "Folder already exists — continuing"
+fi
+```
+
+## The trap Command — Know Exactly What Line Failed
+
+Adding `trap` gives you a stack trace when things go wrong. Here are the most useful versions:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+# Basic — prints which line failed
+trap 'echo "Error on line $LINENO" >&2' ERR
+
+# Verbose — prints line number AND the command that failed
+trap 'echo "Failed at line $LINENO: $BASH_COMMAND" >&2' ERR
+
+# Cleanup on exit — runs whether the script succeeds or fails
+trap 'rm -f /tmp/lockfile.pid' EXIT
+```
+
+## Quick Reference — All Flags
+
+| Flag | Long form | What it does |
+| --- | --- | --- |
+| set -e | set -o errexit | Exit immediately on any error |
+| set -u | set -o nounset | Error on undefined variables |
+| set -o pipefail | — | Pipeline fails if any stage fails |
+| set -x | set -o xtrace | Print every command before running it (debug mode) |
+| set +e | — | Turn off -e temporarily for a block |
+| set +x | — | Turn off debug mode |
+
+      View Hosting Plans →
+
+    Get $200 Free →
+
+## Frequently Asked Questions
+
+### What does set -euo pipefail do in bash?
+
+`set -e` exits on any error. `set -u` treats undefined variables as errors instead of silently using empty strings. `set -o pipefail` makes pipelines fail if any stage fails rather than only checking the last command. Together they make bash scripts safe and predictable.
+
+### Why do bash scripts keep running after an error?
+
+By default, bash ignores non-zero exit codes and continues executing. This is a design decision for interactive use — a typo in a shell session shouldn't kill your terminal. But in scripts it's dangerous. `set -e` changes this behavior so scripts stop on the first failure.
+
+### What is the difference between set -e and set -o errexit?
+
+They are identical. `set -e` is shorthand for `set -o errexit`. Both cause immediate exit on command failure. The short form is more common in scripts.
+
+### How do I handle errors in a bash script properly?
+
+Add `set -euo pipefail` right after `#!/bin/bash`. Add `trap 'echo Error on line $LINENO' ERR` for visibility. For commands that are allowed to fail, append `|| true` or wrap them in `if` statements.
+
+    Try the Generator →
+    Browse All Tools

@@ -1,0 +1,236 @@
+import Callout from '@/components/Callout'
+
+## The Script
+
+Save as `disk-email-alert.sh` (or any name). Set `EMAIL` and `THRESHOLD`, install `mailutils`, then run or cron it.
+
+```bash
+#!/bin/bash
+
+CHECK="✓"
+CROSS="✗"
+
+# --- Configuration ---
+THRESHOLD=80
+EMAIL="you@example.com"
+HOSTNAME=$(hostname)
+DATE=$(date '+%Y-%m-%d %H:%M:%S')
+
+# --- Check disk usage on root partition ---
+USAGE=$(df / | awk 'NR==2{print $5}' | tr -d '%')
+
+echo "[$DATE] Disk usage: ${USAGE}%"
+
+if [ "$USAGE" -gt "$THRESHOLD" ]; then
+  echo "$CROSS Disk at ${USAGE}% — sending alert to $EMAIL"
+
+  MESSAGE="[DISK ALERT] ${HOSTNAME}
+
+Disk usage on / is at ${USAGE}% as of ${DATE}.
+Threshold: ${THRESHOLD}%
+
+Top disk consumers:
+$(du -sh /* 2>/dev/null | sort -rh | head -5)
+
+-- BashSnippets monitor"
+
+  echo "$MESSAGE" | mail -s "[ALERT] Disk Space on ${HOSTNAME}" "$EMAIL"
+  echo "$CHECK Alert sent to $EMAIL"
+else
+  echo "$CHECK Disk OK at ${USAGE}%"
+fi
+```
+
+<Callout type="success" title="When the threshold trips">
+
+The script logs the percentage, fills `MESSAGE` with host, time, and `du` output, sends one email via `mail -s …`, and prints confirmation. Below is how each piece fits together.
+
+</Callout>
+
+## How It Works
+
+**`HOSTNAME=$(hostname)`** runs the `hostname` command once and stores the machine name in `HOSTNAME`, so subject lines and the body clearly say which server had the problem (especially useful if you run the same script on several VPS hosts).
+
+**The multi-line `MESSAGE` variable** uses double quotes so Bash expands variables like `${USAGE}` and embedded command substitution (`$(du …)`) when the assignment runs. Literal newlines inside the quoted string appear as real line breaks in the email body.
+
+**`du -sh /*`** estimates size per top-level directory (human-readable sizes with `-h`). Piping through `sort -rh` and `head -5` surfaces the worst offenders inside the alert.
+
+**`echo "$MESSAGE" | mail -s "[ALERT] Disk Space on ${HOSTNAME}" "$EMAIL"`** sends standard input as the body, `-s` sets the subject, and the last argument is the recipient. That is the common `mailutils` pattern on Ubuntu when local/SMTP delivery is configured.
+
+<Callout type="warning" title="Important notes">
+
+You must have mailutils installed: `sudo apt install mailutils`
+
+</Callout>
+
+## Step-by-Step Setup
+
+### Step 1 — Install mailutils
+
+```bash
+sudo apt update && sudo apt install mailutils
+```
+
+When the installer asks, choose **Internet Site** and use your server hostname. Test delivery: `echo "test" | mail -s "test" you@example.com`
+
+### Step 2 — Create the script
+
+```bash
+nano disk-email-alert.sh
+```
+
+Paste the script, then **Ctrl+X → Y → Enter** to save.
+
+### Step 3 — Set your email and threshold
+
+Edit `EMAIL="you@example.com"` and `THRESHOLD=80` to match your inbox and risk tolerance.
+
+### Step 4 — Make it executable
+
+```bash
+chmod +x disk-email-alert.sh
+```
+
+### Step 5 — Run it once
+
+```bash
+./disk-email-alert.sh
+```
+
+## Schedule It with Cron
+
+Automation is the point: let the script run while you sleep.
+
+### Open your crontab
+
+```bash
+crontab -e
+```
+
+### Example schedules
+
+```bash
+# Hourly disk email check
+0 * * * * /home/user/disk-email-alert.sh
+
+# Daily at 6:15
+15 6 * * * /home/user/disk-email-alert.sh
+```
+
+<Callout type="info" title="� Cron errors by mail">
+
+To capture stderr from a cron line: append `2>&1 | mail -s 'Cron Error' you@example.com` so failures land in your inbox.
+
+</Callout>
+
+## Variations
+
+### Use Gmail SMTP via msmtp (config example)
+
+Install `msmtp`, then configure a relay. Example snippet for `~/.msmtprc` — use an **App Password**, not your normal Gmail password:
+
+```bash
+defaults
+auth           on
+tls            on
+tls_trust_file /etc/ssl/certs/ca-certificates.crt
+logfile        ~/.msmtp.log
+
+account gmail
+host           smtp.gmail.com
+port           587
+from           youraddress@gmail.com
+user           youraddress@gmail.com
+password       YOUR_APP_PASSWORD_HERE
+
+account default : gmail
+```
+
+Point `mail` at `msmtp` per your distro docs, or call `msmtp` directly from the script.
+
+### One email for multiple conditions (disk + RAM + CPU)
+
+Collect flags in variables, build a single `BODY`, and send once if anything is red:
+
+```bash
+#!/bin/bash
+EMAIL="you@example.com"
+DISK=$(df / | awk 'NR==2{print $5}' | tr -d '%')
+LOAD=$(awk -v OFMT='%.0f' '{print $1*100}' /proc/loadavg)
+
+WARN=
+[[ "$DISK" -gt 80 ]] && WARN+=$(printf 'Disk %s%%\n' "$DISK")
+# add free -m / top checks here…
+[[ ${#WARN} -gt 0 ]] && printf '%s' "$WARN" | mail -s "[ALERT] $(hostname)" "$EMAIL"
+```
+
+### Send at most one alert per 24 hours (lockfile)
+
+Use a sentinel file so a flapping condition does not hammer your inbox:
+
+```bash
+LOCK=/var/tmp/disk-alert.sent
+if [[ "$USAGE" -gt "$THRESHOLD" ]]; then
+  ALLOW=0
+  [[ ! -e "$LOCK" ]] && ALLOW=1
+  [[ -e "$LOCK" ]] && [[ $(date +%s) -gt $(( $(date -r "$LOCK" +%s) + 86400 )) ]] && ALLOW=1
+  [[ "$ALLOW" -eq 1 ]] && {
+    echo "$MESSAGE" | mail -s "[ALERT] Disk Space on ${HOSTNAME}" "$EMAIL"
+    touch "$LOCK"
+  }
+fi
+```
+
+    Get $200 Free →
+
+## Common Mistakes
+
+<Callout type="warning" title="Sending from cron without a full path">
+
+Cron’s `PATH` is minimal. Use absolute paths for the script on the cron line *and* optionally for `mail` inside the script (`$(command -v mail)`).
+
+</Callout>
+
+<Callout type="warning" title="Mail goes to root@hostname locally">
+
+If SMTP is not set up, `mail` may only deliver locally. Confirm with a test message and watch `/var/log/mail.log` (path varies).
+
+</Callout>
+
+## Understanding the Commands
+
+| Piece | Role |
+| --- | --- |
+| hostname | Prints the system hostname for subjects and body |
+| date '+%Y-%m-%d %H:%M:%S' | Timestamp for logs and the email body |
+| df / \| awk … \| tr -d '%' | Numeric root filesystem use % for comparisons |
+| du -sh /* \| sort -rh \| head -5 | Top-level directory sizes; helps you act on the alert |
+| mail -s "subject" user | Reads body from stdin; sends via configured MTA |
+
+## Frequently Asked Questions
+
+### How do I send an email from a bash script?
+
+Use the mail command: `echo 'Message body' | mail -s 'Subject' you@example.com`. Install mailutils first on Ubuntu: `sudo apt install mailutils`
+
+### How do I install mailutils on Ubuntu?
+
+Run: `sudo apt update && sudo apt install mailutils`. When prompted, choose **Internet Site** and use your server hostname.
+
+### Can I send email alerts automatically from a cron job?
+
+Yes. Schedule your script with `crontab -e`. When the condition is met, the script sends the email. Add `2>&1 | mail -s 'Cron Error' you@example.com` to capture cron output.
+
+### What if mail command is not found?
+
+Run: `which mail` — if it returns nothing, install with: `sudo apt install mailutils` (Ubuntu/Debian) or `sudo yum install mailx` (CentOS/RHEL).
+
+### How do I send email from bash using SMTP (Gmail)?
+
+Use ssmtp or msmtp with your Gmail SMTP credentials. Configure `/etc/ssmtp/ssmtp.conf` with your gmail address and an App Password (not your real password).
+
+    Launch your Droplet →
+
+      Find your domain →
+
+    Try the Generator →

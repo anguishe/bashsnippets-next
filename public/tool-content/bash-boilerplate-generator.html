@@ -1,0 +1,1166 @@
+<style>
+    /* ============================================================
+       BASE RESET & CSS VARIABLES
+       ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0d1117;
+      --bg2:         #161b22;
+      --bg3:         #1c2128;
+      --border:      #30363d;
+      --green:       #39d353;
+      --green-dim:   #1a4a2e;
+      --amber:       #e3b341;
+      --blue:        #58a6ff;
+      --blue-dim:    #0d2a4a;
+      --muted:       #8b949e;
+      --text:        #e6edf3;
+      --radius:      8px;
+      --mono-font:    'IBM Plex Mono', monospace;
+      --heading-font: 'Syne', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--mono-font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ============================================================
+       NAVIGATION (copied from index.html)
+       ============================================================ */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 8;
+      background: rgba(13,17,23,0.93);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+    nav.nav--hidden {
+      transform: translateY(-100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      nav { transition: none; }
+    }
+
+    .nav-logo {
+      font-family: var(--heading-font);
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--green);
+      letter-spacing: -0.5px;
+      text-decoration: none;
+    }
+    .nav-logo span { color: var(--muted); }
+
+    .nav-links { display: flex; gap: 20px; list-style: none; }
+    .nav-links a {
+      font-size: 13px;
+      color: var(--muted);
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .nav-links a.active { color: var(--green); }
+
+    /* ============================================================
+       MOBILE NAV (hamburger + drawer)
+       ============================================================ */
+    .nav-mobile-menu {
+      display: none;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 18px;
+      padding: 4px 10px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-family: var(--mono-font);
+      line-height: 1;
+    }
+    .nav-mobile-menu:hover { color: var(--text); border-color: var(--muted); }
+
+    .nav-mobile-drawer {
+      display: none;
+      flex-direction: column;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      gap: 4px;
+      position: sticky;
+      top: 53px;
+      z-index: 7;
+    }
+    .nav-mobile-drawer.open { display: flex; }
+    .nav-mobile-drawer a {
+      font-size: 14px;
+      color: var(--muted);
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      text-decoration: none;
+    }
+    .nav-mobile-drawer a:last-child { border-bottom: none; }
+    .nav-mobile-drawer a:hover { color: var(--text); }
+
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .nav-mobile-menu { display: block; }
+    }
+
+    /* ============================================================
+       MAIN LAYOUT
+       ============================================================ */
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ============================================================
+       BREADCRUMB
+       ============================================================ */
+    .breadcrumb {
+      font-family: var(--mono-font);
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .breadcrumb a {
+      color: var(--muted);
+    }
+    .breadcrumb a:hover {
+      color: var(--text);
+      text-decoration: none;
+    }
+    .breadcrumb-sep {
+      color: var(--border);
+    }
+
+    /* ============================================================
+       PAGE INTRO
+       ============================================================ */
+    .page-intro {
+      margin-bottom: 40px;
+    }
+    .page-intro .intro-label {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--green);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 12px;
+    }
+    .page-intro h1 {
+      font-family: var(--heading-font);
+      font-weight: 800;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+    .page-intro .intro-subtext {
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 640px;
+      line-height: 1.7;
+    }
+
+    /* ============================================================
+       GENERATOR LAYOUT
+       ============================================================ */
+    @media (max-width: 768px) {
+      #generator-wrap {
+        flex-direction: column !important;
+      }
+      #options-panel,
+      #preview-panel {
+        width: 100% !important;
+        position: static !important;
+      }
+    }
+
+    /* ============================================================
+       OPTION GROUPS
+       ============================================================ */
+    .opt-group {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg2);
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .opt-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      font-family: var(--mono-font);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+    }
+    .opt-group[data-collapsible="false"] .opt-group-header {
+      cursor: default;
+    }
+    .opt-group[data-collapsible="false"] .opt-group-chevron {
+      display: none;
+    }
+    .opt-group-chevron {
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .opt-group-body {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .group-body {
+      max-height: 600px;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .group-body.collapsed {
+      max-height: 0;
+    }
+
+    /* ============================================================
+       INPUTS
+       ============================================================ */
+    .opt-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .opt-label {
+      font-family: var(--mono-font);
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .opt-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--mono-font);
+      font-size: 13px;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    .opt-input:focus {
+      border-color: var(--green);
+    }
+    .opt-input::placeholder {
+      color: var(--muted);
+      opacity: 0.6;
+    }
+
+    /* ============================================================
+       CHECKBOX ROWS
+       ============================================================ */
+    .opt-check {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--mono-font);
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      padding: 2px 0;
+      line-height: 1.4;
+    }
+    .opt-check input[type="checkbox"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: var(--bg);
+      cursor: pointer;
+      position: relative;
+      flex-shrink: 0;
+      margin: 0;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .opt-check input[type="checkbox"]:checked {
+      background: var(--green);
+      border-color: var(--green);
+    }
+    .opt-check input[type="checkbox"]:checked::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 1px;
+      width: 5px;
+      height: 9px;
+      border: solid #0d1117;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+    .opt-check:hover input[type="checkbox"]:not(:checked) {
+      border-color: var(--muted);
+    }
+    .opt-check code {
+      color: var(--green);
+      font-family: var(--mono-font);
+    }
+    .opt-tooltip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--blue);
+      font-size: 12px;
+      line-height: 1;
+      margin-left: 5px;
+      cursor: help;
+      vertical-align: middle;
+    }
+    .opt-tooltip-popover {
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 8px);
+      width: max-content;
+      max-width: 220px;
+      background: #1c2128;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #8b949e;
+      line-height: 1.5;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transform: translate(-50%, 4px);
+      transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+      pointer-events: none;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .opt-tooltip:hover .opt-tooltip-popover,
+    .opt-tooltip:focus .opt-tooltip-popover,
+    .opt-tooltip.active .opt-tooltip-popover {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, 0);
+    }
+    .opt-hint {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* ============================================================
+       SNIPPET PILLS
+       ============================================================ */
+    .opt-pill-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .opt-pill {
+      flex: 1;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono-font);
+      font-size: 12px;
+      padding: 7px 12px;
+      border-radius: 100px;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .opt-pill:hover {
+      border-color: var(--muted);
+    }
+    .opt-pill.active {
+      background: var(--green-dim);
+      border-color: var(--green);
+      color: var(--green);
+    }
+    #snippet-feedback {
+      color: var(--green);
+      font-family: var(--mono-font);
+      font-size: 12px;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    #snippet-feedback.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .opt-pill-view {
+      font-size: 11px;
+      color: var(--muted);
+      text-decoration: none;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .opt-pill-view:hover {
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    /* ============================================================
+       COPY BUTTON
+       ============================================================ */
+    #btn-copy {
+      transition: background 0.15s ease, opacity 0.15s ease;
+    }
+    #btn-copy:hover {
+      opacity: 0.88;
+    }
+    .copy-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1c2128;
+      border: 1px solid #39d353;
+      color: #39d353;
+      font-family: var(--mono-font);
+      font-size: 12px;
+      padding: 10px 18px;
+      border-radius: 6px;
+      z-index: 999;
+      animation: copy-toast 2.2s ease forwards;
+    }
+    @keyframes copy-toast {
+      0% { opacity: 0; transform: translate(-50%, 12px); }
+      9% { opacity: 1; transform: translate(-50%, 0); }
+      90% { opacity: 1; transform: translate(-50%, 0); }
+      100% { opacity: 0; transform: translate(-50%, 0); }
+    }
+
+    /* ============================================================
+       PREVIEW PANEL (terminal-style)
+       ============================================================ */
+    #preview-panel {
+      border-left: 3px solid transparent;
+    }
+    #preview-panel.preview-pulse {
+      animation: preview-pulse 0.6s ease;
+    }
+    @keyframes preview-pulse {
+      0% { border-left-color: var(--green); }
+      100% { border-left-color: transparent; }
+    }
+    .term-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 10px 14px;
+    }
+    .term-dots {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .term-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    #bar-filename {
+      font-family: var(--mono-font);
+      font-size: 13px;
+      color: var(--text);
+    }
+    #bar-lines {
+      margin-left: auto;
+      font-family: var(--mono-font);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    #code-output {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 0 0 8px 8px;
+      padding: 20px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      min-height: 400px;
+      overflow-x: auto;
+      white-space: pre;
+      margin: 0;
+      color: var(--text);
+    }
+  </style>
+
+  <main>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">BashSnippets</a>
+      <span class="breadcrumb-sep">/</span>
+      <a href="/tools/">Tools</a>
+      <span class="breadcrumb-sep">/</span>
+      <span>Bash Boilerplate Generator</span>
+    </div>
+
+    <!-- Page intro -->
+    <div class="page-intro">
+      <div class="intro-label">FREE TOOL</div>
+      <h1>Bash Script Boilerplate Generator</h1>
+      <p class="intro-subtext">Stop copying the same script header from Stack Overflow. Configure your options and copy a production-ready .sh template in seconds.</p>
+    </div>
+
+    <!-- ============================================================
+         GENERATOR — two-column layout
+         ============================================================ -->
+    <div id="generator-wrap" style="display:flex;gap:24px;max-width:1100px;margin:32px auto;padding:0 24px;align-items:flex-start;">
+
+      <!-- LEFT: options panel -->
+      <div id="options-panel" style="width:340px;flex-shrink:0;">
+
+        <!-- GROUP 1: script identity (always open, not collapsible) -->
+        <div class="opt-group" data-collapsible="false">
+          <div class="opt-group-header">
+            <span>// script identity</span>
+            <span class="opt-group-chevron">&#9660;</span>
+          </div>
+          <div class="opt-group-body">
+            <div class="opt-field">
+              <label class="opt-label" for="inp-name">Script name</label>
+              <input class="opt-input" type="text" id="inp-name" placeholder="myscript.sh" autocomplete="off" spellcheck="false" />
+            </div>
+            <div class="opt-field">
+              <label class="opt-label" for="inp-desc">Description</label>
+              <input class="opt-input" type="text" id="inp-desc" placeholder="What does this script do?" autocomplete="off" />
+            </div>
+            <div class="opt-field">
+              <label class="opt-label" for="inp-author">Author</label>
+              <input class="opt-input" type="text" id="inp-author" placeholder="optional" autocomplete="off" />
+            </div>
+          </div>
+        </div>
+
+        <!-- GROUP 2: safety & shell (collapsible, default open) -->
+        <div class="opt-group" id="group-safety" data-collapsible="true">
+          <div class="opt-group-header">
+            <span>// safety &amp; shell</span>
+            <span class="opt-group-chevron">&#9660;</span>
+          </div>
+          <div class="opt-group-body group-body">
+            <label class="opt-check"><input type="checkbox" id="cb-shebang" checked /><span><code>#!/bin/bash</code><span class="opt-tooltip" tabindex="0" aria-label="Explicitly uses bash, not sh — more features, safer">&#9432;<span class="opt-tooltip-popover">Explicitly uses bash, not sh — more features, safer</span></span></span></label>
+            <label class="opt-check"><input type="checkbox" id="cb-sete" checked /><span><code>set -e</code> <span class="opt-hint">(exit on error)</span><span class="opt-tooltip" tabindex="0" aria-label="Script stops immediately if any command fails">&#9432;<span class="opt-tooltip-popover">Script stops immediately if any command fails</span></span></span></label>
+            <label class="opt-check"><input type="checkbox" id="cb-setu" checked /><span><code>set -u</code> <span class="opt-hint">(unset var = error)</span><span class="opt-tooltip" tabindex="0" aria-label="Prevents silent bugs from undefined variables">&#9432;<span class="opt-tooltip-popover">Prevents silent bugs from undefined variables</span></span></span></label>
+            <label class="opt-check"><input type="checkbox" id="cb-pipefail" checked /><span><code>set -o pipefail</code><span class="opt-tooltip" tabindex="0" aria-label="Catches failures in piped commands like cmd | grep">&#9432;<span class="opt-tooltip-popover">Catches failures in piped commands like cmd | grep</span></span></span></label>
+            <label class="opt-check"><input type="checkbox" id="cb-ifs" checked /><span><code>IFS=$'\n\t'</code><span class="opt-tooltip" tabindex="0" aria-label="Prevents word splitting on spaces in filenames">&#9432;<span class="opt-tooltip-popover">Prevents word splitting on spaces in filenames</span></span></span></label>
+            <label class="opt-check"><input type="checkbox" id="cb-setx" /><span><code>set -x</code> <span class="opt-hint">(debug)</span><span class="opt-tooltip" tabindex="0" aria-label="Prints every command before running it — useful for debugging">&#9432;<span class="opt-tooltip-popover">Prints every command before running it — useful for debugging</span></span></span></label>
+          </div>
+        </div>
+
+        <!-- GROUP 3: features (collapsible, default open) -->
+        <div class="opt-group" id="group-features" data-collapsible="true">
+          <div class="opt-group-header">
+            <span>// features</span>
+            <span class="opt-group-chevron">&#9660;</span>
+          </div>
+          <div class="opt-group-body group-body">
+            <label class="opt-check"><input type="checkbox" id="cb-log" checked /><span>Timestamped <code>log()</code> function<span class="opt-tooltip" tabindex="0" aria-label="Injects a log() function that timestamps every message">&#9432;<span class="opt-tooltip-popover">Injects a log() function that timestamps every message</span></span></span></label>
+            <label class="opt-check"><input type="checkbox" id="cb-checks" checked /><span><code>CHECK</code> / <code>CROSS</code> variables<span class="opt-tooltip" tabindex="0" aria-label="Adds CHECK=✓ and CROSS=✗ — used in all BashSnippets scripts">&#9432;<span class="opt-tooltip-popover">Adds CHECK=✓ and CROSS=✗ — used in all BashSnippets scripts</span></span></span></label>
+            <label class="opt-check"><input type="checkbox" id="cb-args" /><span>Argument parser <span class="opt-hint">(--help, --dry-run)</span><span class="opt-tooltip" tabindex="0" aria-label="Adds --help and --dry-run flag parsing via getopts">&#9432;<span class="opt-tooltip-popover">Adds --help and --dry-run flag parsing via getopts</span></span></span></label>
+            <label class="opt-check"><input type="checkbox" id="cb-lock" /><span>Lock file <span class="opt-hint">(prevent duplicate runs)</span><span class="opt-tooltip" tabindex="0" aria-label="Creates a lockfile so the script can't run twice simultaneously">&#9432;<span class="opt-tooltip-popover">Creates a lockfile so the script can't run twice simultaneously</span></span></span></label>
+            <label class="opt-check"><input type="checkbox" id="cb-root" /><span>Require root check<span class="opt-tooltip" tabindex="0" aria-label="Exits with an error if the script is not run as root">&#9432;<span class="opt-tooltip-popover">Exits with an error if the script is not run as root</span></span></span></label>
+            <label class="opt-check"><input type="checkbox" id="cb-trap" /><span>Trap on EXIT <span class="opt-hint">(cleanup handler)</span><span class="opt-tooltip" tabindex="0" aria-label="Runs a cleanup() function if the script is interrupted or exits">&#9432;<span class="opt-tooltip-popover">Runs a cleanup() function if the script is interrupted or exits</span></span></span></label>
+          </div>
+        </div>
+
+        <!-- GROUP 4: inject a snippet (collapsible, default open) -->
+        <div class="opt-group" id="group-inject" data-collapsible="true">
+          <div class="opt-group-header">
+            <span>// inject a snippet</span>
+            <span class="opt-group-chevron">&#9660;</span>
+          </div>
+          <div class="opt-group-body group-body">
+            <div class="opt-pill-row">
+              <button type="button" class="opt-pill" data-snippet="disk">Disk Space Warning</button>
+              <a class="opt-pill-view" href="/snippets/disk-space-warning.html" target="_blank" rel="noopener">view &rarr;</a>
+            </div>
+            <div class="opt-pill-row">
+              <button type="button" class="opt-pill" data-snippet="logs">Delete Old Logs</button>
+              <a class="opt-pill-view" href="/snippets/delete-old-log-files.html" target="_blank" rel="noopener">view &rarr;</a>
+            </div>
+            <div class="opt-pill-row">
+              <button type="button" class="opt-pill" data-snippet="uptime">Check Website Up</button>
+              <a class="opt-pill-view" href="/snippets/check-if-website-is-up.html" target="_blank" rel="noopener">view &rarr;</a>
+            </div>
+            <div class="opt-pill-row">
+              <button type="button" class="opt-pill" data-snippet="backup">File Backup</button>
+              <a class="opt-pill-view" href="/snippets/automated-file-backup.html" target="_blank" rel="noopener">view &rarr;</a>
+            </div>
+            <div class="opt-pill-row">
+              <button type="button" class="opt-pill" data-snippet="sysinfo">System Info Report</button>
+              <a class="opt-pill-view" href="/snippets/quick-system-info-report.html" target="_blank" rel="noopener">view &rarr;</a>
+            </div>
+            <div id="snippet-feedback" aria-live="polite">↓ snippet injected</div>
+          </div>
+        </div>
+
+        <div style="background:var(--blue-dim);border-left:3px solid var(--blue);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--muted);margin-top:16px;line-height:1.6;">
+          💡 <strong style="color:var(--text);">Pro tip:</strong> Generated scripts always include a BashSnippets.xyz source comment so your team knows where the template came from.
+        </div>
+
+        <!-- Copy button -->
+        <button id="btn-copy" type="button" style="width:100%;background:var(--green);color:#0d1117;font-family:var(--mono-font);font-weight:600;font-size:14px;padding:12px;border:none;border-radius:var(--radius);cursor:pointer;margin-top:16px;">&#x29C9; Copy Script</button>
+      </div>
+
+      <!-- RIGHT: preview panel -->
+      <div id="preview-panel" style="flex:1;position:sticky;top:80px;">
+        <div class="term-bar">
+          <div class="term-dots">
+            <span class="term-dot" style="background:#ff5f56;"></span>
+            <span class="term-dot" style="background:#ffbd2e;"></span>
+            <span class="term-dot" style="background:#27c93f;"></span>
+          </div>
+          <span id="bar-filename">myscript.sh</span>
+          <span id="bar-lines">0 lines</span>
+        </div>
+        <pre id="code-output"></pre>
+      </div>
+    </div>
+
+    <!-- BLOCK 2 — DigitalOcean affiliate box -->
+    <div style="max-width:960px;margin:0 auto 32px;padding:0 24px;">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:8px;padding:20px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:11px;color:var(--blue);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Recommended Hosting</div>
+          <div style="font-family:var(--heading-font);font-weight:700;font-size:15px;color:var(--text);margin-bottom:4px;">Run these scripts on a $4/mo DigitalOcean Droplet</div>
+          <div style="font-size:13px;color:var(--muted);">Spin up a Linux VPS in 60 seconds. Perfect for cron jobs and running bash scripts 24/7.</div>
+        </div>
+        <a href="https://www.digitalocean.com/?refcode=7a196437764c" target="_blank" rel="noopener"
+          style="background:var(--blue);color:#0d1117;font-family:var(--mono-font);font-weight:600;font-size:13px;padding:10px 20px;border-radius:6px;text-decoration:none;white-space:nowrap;">Get $200 Free Credit →</a>
+      </div>
+    </div>
+
+    <div style="background:linear-gradient(135deg,#1a1f2e 0%,#161b27 100%);
+      border:1px solid #30363d; border-left:3px solid #e3b341;
+      border-radius:8px; padding:20px 24px; display:flex;
+      align-items:center; justify-content:space-between;
+      gap:16px; flex-wrap:wrap; margin:24px 0;">
+      <div>
+        <div style="font-size:11px;color:#e3b341;font-family:'IBM Plex Mono',monospace;
+          text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">
+          // domain registration
+        </div>
+        <strong style="color:#f0f6fc;font-size:15px;">
+          Ready to deploy your scripts? Grab a domain.
+        </strong>
+        <p style="color:#8b949e;font-size:13px;margin:6px 0 0;">
+          Namecheap domains from $1.98/yr. Free WhoisGuard privacy included.
+          Point it at your GitHub Pages or VPS in minutes.
+        </p>
+      </div>
+      <a href="https://namecheap.pxf.io/c/7260430/1632743/5618"
+        target="_blank" rel="noopener sponsored"
+        style="background:#e3b341;color:#0d1117;font-family:'IBM Plex Mono',monospace;
+          font-weight:600;font-size:13px;padding:10px 18px;border-radius:8px;
+          text-decoration:none;white-space:nowrap;transition:opacity .2s;"
+        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+        Get a Domain →
+      </a>
+    </div>
+
+    <div class="explore-snippets-cta" style="border:1px solid var(--blue);background:var(--blue-dim);border-radius:8px;padding:16px 20px;margin:24px 0;">
+      <p style="color:var(--blue);font-family:var(--mono-font);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px;">
+        📋 Copy-Paste Snippets
+      </p>
+      <p style="color:var(--text);font-size:14px;margin:0 0 12px;line-height:1.5;">
+        All snippets are free, beginner-friendly, and production-tested.
+        Find a script for your exact use case.
+      </p>
+      <a href="/snippets/" style="display:inline-block;background:var(--blue);color:#0d1117;font-family:var(--mono-font);font-size:13px;font-weight:600;padding:8px 16px;border-radius:6px;text-decoration:none;">
+        Browse All Snippets →
+      </a>
+    </div>
+
+    <!-- BLOCK 3 — Related snippets -->
+    <section style="max-width:960px;margin:0 auto;padding:0 24px 60px;">
+      <style>
+        .generator-related-snippet-card {
+          background: var(--bg2);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 16px;
+          transition: border-color 0.2s ease;
+        }
+        .generator-related-snippet-card:hover { border-color: var(--green); }
+      </style>
+      <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Scripts you can inject</div>
+      <div style="font-family:var(--heading-font);font-weight:800;font-size:1.3rem;margin-bottom:20px;">Add to your boilerplate</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">
+        <div class="generator-related-snippet-card">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">beginner · monitoring</div>
+          <div style="font-family:var(--heading-font);font-weight:700;font-size:14px;color:var(--text);margin:8px 0 12px;">Disk Space Warning</div>
+          <a href="/snippets/disk-space-warning.html" style="font-family:var(--mono-font);font-size:12px;color:var(--green);text-decoration:none;">View snippet →</a>
+        </div>
+        <div class="generator-related-snippet-card">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">beginner · automation</div>
+          <div style="font-family:var(--heading-font);font-weight:700;font-size:14px;color:var(--text);margin:8px 0 12px;">Delete Old Logs</div>
+          <a href="/snippets/delete-old-log-files.html" style="font-family:var(--mono-font);font-size:12px;color:var(--green);text-decoration:none;">View snippet →</a>
+        </div>
+        <div class="generator-related-snippet-card">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">beginner · uptime</div>
+          <div style="font-family:var(--heading-font);font-weight:700;font-size:14px;color:var(--text);margin:8px 0 12px;">Check Website Up</div>
+          <a href="/snippets/check-if-website-is-up.html" style="font-family:var(--mono-font);font-size:12px;color:var(--green);text-decoration:none;">View snippet →</a>
+        </div>
+        <div class="generator-related-snippet-card">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">beginner · backup</div>
+          <div style="font-family:var(--heading-font);font-weight:700;font-size:14px;color:var(--text);margin:8px 0 12px;">File Backup</div>
+          <a href="/snippets/automated-file-backup.html" style="font-family:var(--mono-font);font-size:12px;color:var(--green);text-decoration:none;">View snippet →</a>
+        </div>
+        <div class="generator-related-snippet-card">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">beginner · sysadmin</div>
+          <div style="font-family:var(--heading-font);font-weight:700;font-size:14px;color:var(--text);margin:8px 0 12px;">System Info Report</div>
+          <a href="/snippets/quick-system-info-report.html" style="font-family:var(--mono-font);font-size:12px;color:var(--green);text-decoration:none;">View snippet →</a>
+        </div>
+        <div class="generator-related-snippet-card">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">intermediate · best practice</div>
+          <div style="font-family:var(--heading-font);font-weight:700;font-size:14px;color:var(--text);margin:8px 0 12px;">Bash Error Handling</div>
+          <a href="/snippets/bash-error-handling.html" style="font-family:var(--mono-font);font-size:12px;color:var(--green);text-decoration:none;">View snippet →</a>
+        </div>
+      </div>
+    </section>
+
+    <footer style="text-align:center;padding:32px 24px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);">
+      <div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:12px;">
+        <a href="/" style="color:var(--muted);">← BashSnippets</a>
+        <a href="/tools/" style="color:var(--muted);">Tools</a>
+        <a href="/snippets/" style="color:var(--muted);">All Snippets</a>
+        <a href="/about.html" style="color:var(--muted);">About</a>
+        <a href="/privacy.html" style="color:var(--muted);">Privacy</a>
+      </div>
+      <p>© <span id="year"></span> BashSnippets · Built by a Linux user, for Linux users.</p>
+      <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+    </footer>
+
+    <script>
+      // Collapsible group headers
+      (function () {
+        document.querySelectorAll('.opt-group[data-collapsible="true"] > .opt-group-header').forEach(function (header) {
+          var group = header.parentElement;
+          var body = group ? group.querySelector('.group-body') : null;
+          var chevron = header.querySelector('.opt-group-chevron');
+          var storageKey = group && group.id ? group.id : null;
+          if (!group || !body || !chevron || !storageKey) return;
+
+          function setCollapsed(collapsed) {
+            body.classList.toggle('collapsed', collapsed);
+            group.classList.toggle('collapsed', collapsed);
+            chevron.textContent = collapsed ? '\u25B6' : '\u25BC';
+            localStorage.setItem(storageKey, collapsed ? '1' : '0');
+          }
+
+          setCollapsed(localStorage.getItem(storageKey) === '1');
+          header.addEventListener('click', function () {
+            setCollapsed(!body.classList.contains('collapsed'));
+          });
+        });
+      })();
+
+      // Checkbox tooltips: CSS handles hover/focus; this keeps tap behavior tidy.
+      (function () {
+        document.querySelectorAll('.opt-tooltip').forEach(function (tip) {
+          tip.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.querySelectorAll('.opt-tooltip.active').forEach(function (openTip) {
+              if (openTip !== tip) openTip.classList.remove('active');
+            });
+            tip.classList.toggle('active');
+          });
+          tip.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              tip.click();
+            }
+          });
+        });
+        document.addEventListener('click', function () {
+          document.querySelectorAll('.opt-tooltip.active').forEach(function (tip) {
+            tip.classList.remove('active');
+          });
+        });
+      })();
+
+      // Snippet pills — single-select toggle (click again to deselect)
+      (function () {
+        var pills = document.querySelectorAll('.opt-pill');
+        var feedback = document.getElementById('snippet-feedback');
+        var feedbackTimer = null;
+
+        function showSnippetFeedback() {
+          if (!feedback) return;
+          if (feedbackTimer) clearTimeout(feedbackTimer);
+          feedback.classList.add('visible');
+          feedbackTimer = setTimeout(function () {
+            feedback.classList.remove('visible');
+          }, 2000);
+        }
+
+        function scrollToInjectedSnippet() {
+          setTimeout(function () {
+            var marker = document.getElementById('injected-snippet-marker');
+            if (marker && marker.scrollIntoView) {
+              marker.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 0);
+        }
+
+        pills.forEach(function (pill) {
+          pill.addEventListener('click', function () {
+            var wasActive = pill.classList.contains('active');
+            pills.forEach(function (p) { p.classList.remove('active'); });
+            if (!wasActive) {
+              pill.classList.add('active');
+              showSnippetFeedback();
+              scrollToInjectedSnippet();
+            }
+          });
+        });
+      })();
+    </script>
+
+    <script>
+      // ============================================================
+      // BASH BOILERPLATE GENERATOR
+      // ============================================================
+      (function () {
+        var SNIPPETS = {
+          disk:    'USAGE=$(df / | awk \'NR==2{print $5}\' | tr -d \'%\'); THRESHOLD=80; [ "$USAGE" -gt "$THRESHOLD" ] && echo "$CROSS Disk usage at ${USAGE}% \u2014 above threshold" || echo "$CHECK Disk OK at ${USAGE}%"',
+          logs:    'find /var/log -type f -name "*.log" -mtime +30 -exec rm -f {} \\; && echo "$CHECK Logs older than 30 days deleted"',
+          uptime:  'URL="https://example.com"; STATUS=$(curl -o /dev/null -s -w "%{http_code}" "$URL"); [ "$STATUS" -eq 200 ] && echo "$CHECK $URL is up ($STATUS)" || echo "$CROSS $URL is DOWN ($STATUS)"',
+          backup:  'DEST="/backup/$(date +%Y-%m-%d)"; mkdir -p "$DEST"; tar -czf "$DEST/backup.tar.gz" /your/source && echo "$CHECK Backup created at $DEST"',
+          sysinfo: 'echo "Hostname: $(hostname)"; echo "Uptime: $(uptime -p)"; echo "Disk: $(df -h / | awk \'NR==2{print $3"/"$2" ("$5" used")}\')"'
+        };
+
+        var SNIPPET_LABELS = {
+          disk:    'Disk Space Warning',
+          logs:    'Delete Old Logs',
+          uptime:  'Check Website Up',
+          backup:  'File Backup',
+          sysinfo: 'System Info Report'
+        };
+
+        var currentRaw = '';
+        var lastRenderedRaw = '';
+
+        function val(id) {
+          var el = document.getElementById(id);
+          return el ? el.value : '';
+        }
+        function chk(id) {
+          var el = document.getElementById(id);
+          return el ? !!el.checked : false;
+        }
+        function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+        function todayISO() {
+          var d = new Date();
+          return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+        }
+        function activeSnippet() {
+          var p = document.querySelector('.opt-pill.active');
+          return p ? p.getAttribute('data-snippet') : null;
+        }
+
+        function generateScript() {
+          var lines = [];
+          var name = (val('inp-name') || '').trim() || 'script.sh';
+          var desc = (val('inp-desc') || '').trim();
+          var author = (val('inp-author') || '').trim();
+
+          // 1. Shebang
+          if (chk('cb-shebang')) lines.push('#!/bin/bash');
+
+          // 2. Header comment block
+          lines.push('# ============================================================');
+          lines.push('# Script:      ' + name);
+          lines.push('# Description: ' + desc);
+          lines.push('# Author:      ' + author);
+          lines.push('# Generated:   ' + todayISO());
+          lines.push('# Source:      BashSnippets.xyz');
+          lines.push('# ============================================================');
+
+          // 3. Blank line
+          lines.push('');
+
+          // 4. Set flags
+          var anySet = false;
+          if (chk('cb-sete'))     { lines.push('set -e'); anySet = true; }
+          if (chk('cb-setu'))     { lines.push('set -u'); anySet = true; }
+          if (chk('cb-pipefail')) { lines.push('set -o pipefail'); anySet = true; }
+          if (chk('cb-setx'))     { lines.push('set -x'); anySet = true; }
+          if (chk('cb-ifs'))      { lines.push("IFS=$'\\n\\t'"); anySet = true; }
+
+          // 5. Blank line
+          if (anySet) lines.push('');
+
+          // 6. CHECK / CROSS
+          if (chk('cb-checks')) {
+            lines.push('CHECK="\u2713"');
+            lines.push('CROSS="\u2717"');
+          }
+
+          // 7. log() function
+          if (chk('cb-log')) {
+            lines.push('log() { echo "[$(date \'+%Y-%m-%d %H:%M:%S\')] $*"; }');
+          }
+
+          // 8. Argument parser
+          if (chk('cb-args')) {
+            lines.push('');
+            lines.push('DRY_RUN=0');
+            lines.push('usage() {');
+            lines.push('  cat <<EOF');
+            lines.push('Usage: ' + name + ' [-h] [-d]');
+            lines.push('  -h    Show this help message');
+            lines.push('  -d    Dry-run mode (no changes made)');
+            lines.push('EOF');
+            lines.push('}');
+            lines.push('while getopts "hd" opt; do');
+            lines.push('  case "$opt" in');
+            lines.push('    h) usage; exit 0 ;;');
+            lines.push('    d) DRY_RUN=1 ;;');
+            lines.push('    *) usage; exit 1 ;;');
+            lines.push('  esac');
+            lines.push('done');
+          }
+
+          // 9. Lock file
+          if (chk('cb-lock')) {
+            lines.push('');
+            var lockBase = name.replace(/\.sh$/, '') || 'script';
+            lines.push('LOCKFILE="/tmp/' + lockBase + '.lock"');
+            lines.push('if [ -e "$LOCKFILE" ] && kill -0 "$(cat "$LOCKFILE")" 2>/dev/null; then');
+            lines.push('  echo "Already running (pid $(cat "$LOCKFILE"))"; exit 1');
+            lines.push('fi');
+            lines.push('echo $$ > "$LOCKFILE"');
+            lines.push('trap \'rm -f "$LOCKFILE"\' EXIT');
+          }
+
+          // 10. Require root
+          if (chk('cb-root')) {
+            lines.push('');
+            lines.push('if [ "$EUID" -ne 0 ]; then');
+            lines.push('  echo "This script must be run as root."; exit 1');
+            lines.push('fi');
+          }
+
+          // 11. Trap on EXIT
+          if (chk('cb-trap')) {
+            lines.push('');
+            lines.push('cleanup() {');
+            lines.push('  echo "Cleaning up..."');
+            lines.push('}');
+            lines.push('trap cleanup EXIT INT TERM');
+          }
+
+          // 12. Blank line
+          lines.push('');
+
+          // 13. Active snippet
+          var snip = activeSnippet();
+          if (snip && SNIPPETS[snip]) {
+            lines.push('# --- ' + SNIPPET_LABELS[snip] + ' ---');
+            lines.push(SNIPPETS[snip]);
+            lines.push('');
+          }
+
+          // 14. Main block
+          lines.push('log "${CHECK} ' + name + ' started"');
+          lines.push('# --- your code here ---');
+          lines.push('log "${CHECK} Done."');
+          lines.push('exit 0');
+
+          var raw = lines.join('\n');
+          var outputChanged = lastRenderedRaw !== '' && lastRenderedRaw !== raw;
+          currentRaw = raw;
+
+          // Update bar
+          var fnEl = document.getElementById('bar-filename');
+          if (fnEl) {
+            fnEl.textContent = name;
+            fnEl.style.color = (val('inp-name') || '').trim() ? 'var(--text)' : 'var(--muted)';
+          }
+          var lcEl = document.getElementById('bar-lines');
+          if (lcEl) {
+            var lineCount = raw.split('\n').length;
+            lcEl.textContent = lineCount + ' line' + (lineCount === 1 ? '' : 's');
+          }
+
+          // Render highlighted HTML
+          var out = document.getElementById('code-output');
+          if (out) out.innerHTML = highlight(raw);
+          if (outputChanged) {
+            var preview = document.getElementById('preview-panel');
+            if (preview) {
+              preview.classList.remove('preview-pulse');
+              void preview.offsetWidth;
+              preview.classList.add('preview-pulse');
+              setTimeout(function () {
+                preview.classList.remove('preview-pulse');
+              }, 600);
+            }
+          }
+          lastRenderedRaw = raw;
+        }
+
+        function escapeHtml(s) {
+          return s.replace(/&/g, '&amp;')
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;');
+        }
+
+        function highlight(raw) {
+          return raw.split('\n').map(function (line) {
+            var esc = escapeHtml(line);
+
+            // Shebang line — checked first so it doesn't match comment rule
+            if (/^#!\/bin\/bash/.test(line)) {
+              return '<span style="color:var(--green);font-weight:600;">' + esc + '</span>';
+            }
+            // Comment line
+            if (/^\s*#/.test(line)) {
+              if (/^# --- .+ ---$/.test(line) && line !== '# --- your code here ---') {
+                return '<span id="injected-snippet-marker" style="color:var(--muted);font-style:italic;">' + esc + '</span>';
+              }
+              return '<span style="color:var(--muted);font-style:italic;">' + esc + '</span>';
+            }
+
+            // Quoted strings (double or single)
+            esc = esc.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,
+              '<span style="color:var(--amber);">$1</span>');
+
+            // Variables: ${VAR}, $VAR, $#, $@, $?, $*
+            esc = esc.replace(/(\$\{[A-Za-z_][A-Za-z0-9_]*\}|\$[A-Za-z_][A-Za-z0-9_]*|\$[#@?*])/g,
+              '<span style="color:var(--green);">$1</span>');
+
+            // Keywords (exact list from spec)
+            esc = esc.replace(/\b(if|then|fi|for|do|done|function|return|exit|echo|set)\b/g,
+              '<span style="color:var(--blue);">$1</span>');
+
+            // Status marks
+            esc = esc.replace(/\u2713/g, '<span style="color:#39d353;">\u2713</span>');
+            esc = esc.replace(/\u2717/g, '<span style="color:#f85149;">\u2717</span>');
+
+            return esc;
+          }).join('\n');
+        }
+
+        // ----------------------------------------------------------
+        // LIVE UPDATE BINDINGS — inputs (input), checkboxes (change),
+        // pills (click). All call generateScript() immediately.
+        // ----------------------------------------------------------
+        document.querySelectorAll('#options-panel input[type="text"]').forEach(function (el) {
+          el.addEventListener('input', generateScript);
+        });
+        document.querySelectorAll('#options-panel input[type="checkbox"]').forEach(function (el) {
+          el.addEventListener('change', generateScript);
+        });
+        document.querySelectorAll('.opt-pill').forEach(function (el) {
+          // Toggle handler attached earlier already updates .active before this runs
+          el.addEventListener('click', generateScript);
+        });
+
+        // ----------------------------------------------------------
+        // COPY BUTTON
+        // ----------------------------------------------------------
+        var btnCopy = document.getElementById('btn-copy');
+        if (btnCopy) {
+          var origLabel = btnCopy.innerHTML;
+          var resetTimer = null;
+          var flashTimer = null;
+
+          function flashCopyButton() {
+            if (flashTimer) clearTimeout(flashTimer);
+            btnCopy.style.background = 'rgba(57, 211, 83, 0.4)';
+            flashTimer = setTimeout(function () {
+              btnCopy.style.background = 'var(--green)';
+            }, 150);
+          }
+
+          function showCopyToast() {
+            var toast = document.createElement('div');
+            toast.className = 'copy-toast';
+            toast.textContent = 'Script copied to clipboard';
+            document.body.appendChild(toast);
+            toast.addEventListener('animationend', function () {
+              toast.remove();
+            });
+          }
+
+          btnCopy.addEventListener('click', function () {
+            if (!currentRaw) return;
+            flashCopyButton();
+            var resetSoon = function () {
+              if (resetTimer) clearTimeout(resetTimer);
+              resetTimer = setTimeout(function () {
+                btnCopy.innerHTML = origLabel;
+              }, 2000);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(currentRaw).then(function () {
+                btnCopy.innerHTML = '\u2713 Copied!';
+                showCopyToast();
+                resetSoon();
+              }).catch(function () {
+                btnCopy.innerHTML = '\u2717 Copy failed';
+                resetSoon();
+              });
+            } else {
+              btnCopy.innerHTML = '\u2717 Copy unavailable';
+              resetSoon();
+            }
+          });
+        }
+
+        // Populate preview on load
+        generateScript();
+      })();
+    </script>
+
+  </main>

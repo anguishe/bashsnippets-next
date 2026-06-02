@@ -1,0 +1,134 @@
+import Callout from '@/components/Callout'
+
+## The Script
+
+Save as `service-watchdog.sh`. Set `SERVICE` to any unit from `systemctl list-units --type=service`. If you use `sudo systemctl start` inside the script (as below), configure passwordless sudo for that command for your cron user, or run the watchdog as root.
+
+```bash
+#!/bin/bash
+
+CHECK="✓"
+CROSS="✗"
+
+# --- Configuration ---
+SERVICE="nginx"                              # Change to your service name
+LOG_FILE="/var/log/service-watchdog.log"
+DATE=$(date '+%Y-%m-%d %H:%M:%S')
+NOTIFY_EMAIL=""                              # Optional: you@example.com
+
+# --- Check if service is running ---
+if systemctl is-active --quiet "$SERVICE"; then
+  echo "$CHECK [$DATE] $SERVICE is running"
+else
+  echo "$CROSS [$DATE] $SERVICE is NOT running — attempting restart..."
+  echo "$CROSS [$DATE] $SERVICE DOWN — restarting" >> "$LOG_FILE"
+
+  # --- Attempt restart ---
+  if sudo systemctl start "$SERVICE"; then
+    echo "$CHECK [$DATE] $SERVICE restarted successfully" | tee -a "$LOG_FILE"
+
+    # --- Optional: send email notification ---
+    if [ -n "$NOTIFY_EMAIL" ]; then
+      echo "$SERVICE was down and has been restarted on $(hostname) at $DATE" \
+        | mail -s "[RECOVERED] $SERVICE restarted" "$NOTIFY_EMAIL"
+    fi
+  else
+    echo "$CROSS [$DATE] $SERVICE FAILED to restart — manual intervention needed" \
+      | tee -a "$LOG_FILE"
+
+    if [ -n "$NOTIFY_EMAIL" ]; then
+      echo "$SERVICE failed to restart on $(hostname) at $DATE. Check: journalctl -u $SERVICE" \
+        | mail -s "[CRITICAL] $SERVICE restart failed" "$NOTIFY_EMAIL"
+    fi
+  fi
+fi
+```
+
+<Callout type="success" title="Schedule this as a 1-minute cron job">
+
+* * * * * /home/user/service-watchdog.sh
+To suppress cron email output:
+* * * * * /home/user/service-watchdog.sh >> /var/log/watchdog-cron.log 2>&1
+
+</Callout>
+
+<Callout type="info" title="� Cron and sudo">
+
+Cron runs with a minimal environment and no TTY. If `sudo systemctl start` prompts for a password, the job fails silently. Prefer a `sudoers` rule for your cron user (NOPASSWD for `/bin/systemctl start yourservice`) or run without `sudo` when the cron user already has permission to manage the unit.
+
+</Callout>
+
+## How It Works
+
+`systemctl is-active --quiet "$SERVICE"` asks systemd whether the unit is active. With `--quiet`, there is no output—only an exit status: **0** means running (script prints the ✓ path and exits), anything else means inactive, failed, or missing (**non-zero**), so the script enters the restart branch.
+
+When the service is down, the script logs a line by appending to `LOG_FILE`. On success, `echo ... | tee -a "$LOG_FILE"` prints the recovered message *and* appends it to the log—the operator sees immediate feedback while cron still has an audit trail.
+
+Failure handling is two levels deep: first, is the unit running? Second, did `systemctl start` succeed? If the restart command fails (bad unit name, dependency error, masked service), `if sudo systemctl start` is false—you get ✓/recovery email only after a verified start; otherwise the script emits a ✗ critical message, logs via `tee -a`, and sends a **[CRITICAL]** email pointing you at `journalctl -u $SERVICE` instead of implying the service is healthy.
+
+## Quick setup
+
+### Executable and test
+
+```bash
+chmod +x /home/user/service-watchdog.sh
+/home/user/service-watchdog.sh
+```
+
+### Open crontab
+
+```bash
+crontab -e
+```
+
+Paste one of the cron lines from the callout above, using your real path instead of `/home/user/`.
+
+## Variations
+
+### Watch multiple services
+
+Use a Bash array of unit names and loop: for each element, call `systemctl is-active --quiet "$svc"` and restart on failure—the same logic as above, reused per service.
+
+### Use systemd’s own watchdog semantics
+
+For long-running apps you control, a unit drop-in can set `Restart=on-failure` (and related options) so systemd restarts the process without cron. Cron still helps when you want mail, extra logging, or cross-checks across several units.
+
+### Slack or webhook alerts
+
+Replace the `mail` pipeline with `curl -X POST -H 'Content-Type: application/json'` to your Incoming Webhook URL, sending JSON with hostname, timestamp, and service name for recover vs. failure.
+
+    Start your Droplet →
+
+      View Hosting Plans →
+
+| Command | Role here |
+| --- | --- |
+| systemctl is-active --quiet | Exit 0 only when the unit is active; gates the restart path |
+| sudo systemctl start | Attempts to bring the stopped unit back to active state |
+| tee -a | Mirror stdout to the terminal (or cron mail) while appending LOG_FILE |
+| mail | Optional notifications when optional NOTIFY_EMAIL is set (needs mail routing configured) |
+| journalctl -u SERVICE | Inspect why a restart failed (logs from systemd) |
+
+## Frequently Asked Questions
+
+### How do I check if a service is running in bash?
+
+Use `systemctl is-active`: `systemctl is-active --quiet nginx` returns exit code 0 if running, non-zero if stopped. Use in an `if` statement: `if systemctl is-active --quiet nginx; then ...`
+
+### How do I restart a service automatically in Linux?
+
+Write a bash script that checks `systemctl is-active` and runs `systemctl start` if the service is stopped. Schedule it every minute with cron: `* * * * * /home/user/watchdog.sh`
+
+### What services can I monitor with this script?
+
+Any systemd service: nginx, apache2, mysql, postgresql, redis, docker, ssh, and custom services. Change `SERVICE='nginx'` to any service name from `systemctl list-units`.
+
+### How do I run a bash script every minute with cron?
+
+Open `crontab -e` and add: `* * * * * /full/path/to/script.sh` — the five asterisks mean "every minute of every hour of every day".
+
+### What is systemctl is-active?
+
+`systemctl is-active servicename` checks whether a systemd service is currently running. It returns exit code 0 (success) if active, and 1+ (error) if inactive, failed, or not found.
+
+    Try the Generator →

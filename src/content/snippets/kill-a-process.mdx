@@ -1,0 +1,199 @@
+import Callout from '@/components/Callout'
+
+## The Wrong Way vs The Right Way
+
+      ✗ The hard way (4 commands)
+
+        # Step 1: list all processes
+ps aux
+
+# Step 2: search output manually
+ps aux | grep sleep
+
+# Step 3: copy the PID from output
+# (e.g. 379231)
+
+# Step 4: kill by PID
+kill 379231
+
+      ✓ The right way (1 command)
+
+        # Preview first (safe)
+pgrep -l sleep
+
+# Kill all matching by name
+pkill sleep
+
+# Done.
+# All sleep processes terminated.
+# No PID hunting required.
+
+## The Commands
+
+### pgrep — find processes by name (always run this first)
+
+Before you kill anything, run `pgrep` to preview what will be matched. This is your safety check.
+
+```bash
+# List matching processes with their PIDs and names
+pgrep -l sleep
+
+# Output:
+# 383050 sleep
+# 383051 sleep
+# 383052 sleep
+```
+
+<Callout type="success" title="Always pgrep before pkill">
+
+The `-l` flag shows both the PID and the process name. If the list looks right — nothing unexpected — then you're safe to run `pkill`. If you see something you didn't expect, stop and investigate before killing.
+
+</Callout>
+
+### pkill — kill by name
+
+```bash
+# Kill all processes named "sleep"
+pkill sleep
+
+# Output:
+# [1]   Terminated   sleep 9999
+# [2]-  Terminated   sleep 9999
+# [3]+  Terminated   sleep 9999
+```
+
+One command. All three processes gone. The terminal confirms each termination.
+
+### Verify it worked
+
+```bash
+# Run pgrep again — empty output = nothing running
+pgrep -l sleep
+
+# No output = all matching processes are gone
+$
+```
+
+## pkill Flags You'll Actually Use
+
+| Command | What it does | When to use it |
+| --- | --- | --- |
+| pkill sleep | Kills all processes whose name contains "sleep" | Most cases — fast and simple |
+| pkill -x sleep | Kills only processes with the exact name "sleep" — no partial matches | When you have processes with similar names (e.g. sleepd, sleepy) |
+| pkill -9 sleep | Force kills — sends SIGKILL, cannot be caught or ignored | When a normal pkill does nothing — the process is frozen or stuck |
+| pkill -u username | Kill all processes owned by a specific user | Multi-user servers — clean up a user's runaway processes |
+| pkill -f "python script.py" | Match against the full command string, not just the process name | When you have multiple python processes and need a specific one |
+
+## Step-by-Step: The Safe Kill Workflow
+
+### Step 1 — Find your process with pgrep
+
+```bash
+pgrep -l processname
+```
+
+Replace `processname` with whatever you're looking for — `nginx`, `python3`, `node`, `sleep`, etc. The output shows each matching PID and name.
+
+### Step 2 — Review the output
+
+Look at the list. Does it show what you expected? If yes, proceed. If you see something unexpected — a process you didn't know was running — investigate before killing. A rogue process is a story worth knowing.
+
+### Step 3 — Kill by name
+
+```bash
+pkill processname
+```
+
+### Step 4 — Confirm it's gone
+
+```bash
+pgrep -l processname
+# No output = terminated successfully
+```
+
+## Real-World Examples
+
+### Kill a stuck web server
+
+```bash
+pgrep -l nginx    # check first
+pkill nginx       # kill it
+```
+
+### Kill a specific Python script (not all Python)
+
+```bash
+# -f matches the full command, not just the binary name
+pgrep -f "myscript.py"
+pkill -f "myscript.py"
+```
+
+### Force kill a frozen process
+
+```bash
+# Normal kill first
+pkill processname
+
+# Still running? Force it with SIGKILL (-9)
+pkill -9 processname
+```
+
+<Callout type="warning" title="Use -9 as a last resort">
+
+SIGKILL (`-9`) forces the kernel to terminate the process immediately — no cleanup, no graceful shutdown, no flushing buffers. For databases, web servers, or anything writing to disk, always try a normal `pkill` first and only escalate to `-9` if the process won't respond.
+
+</Callout>
+
+      View Hosting Plans →
+
+    Get $200 Free →
+
+## Common Mistakes
+
+<Callout type="warning" title="pkill matches partial names by default">
+
+Running `pkill python` will also kill `python3`, `python3.11`, and anything else with "python" in the name. Use `pkill -x python` for an exact match, or use `pkill -f "script.py"` to target a specific script.
+
+</Callout>
+
+<Callout type="warning" title="pkill returns exit code 1 if nothing matched">
+
+If `pkill processname` finds nothing to kill, it exits with code 1 — which looks like an error in scripts. This is normal. Use `pgrep processname && pkill processname` in scripts to only kill if something was found.
+
+</Callout>
+
+<Callout type="success" title="� Never run pkill -9 on system processes">
+
+Avoid force-killing processes named `init`, `systemd`, `kernel`, or anything you don't recognize. When in doubt, `pgrep -l` first and Google the process name before pulling the trigger.
+
+</Callout>
+
+## Understanding the Commands
+
+| Command / Flag | What it does |
+| --- | --- |
+| pgrep name | Lists PIDs of all running processes that match the name |
+| pgrep -l name | Same as above but also shows the process name next to each PID |
+| pkill name | Sends SIGTERM (graceful stop) to all processes matching the name |
+| pkill -x name | Exact match only — won't kill partial name matches |
+| pkill -9 name | Sends SIGKILL (force terminate) — skips graceful shutdown |
+| pkill -f string | Matches against the full command line string, not just the binary name |
+| pkill -u user | Kills all processes owned by the specified user |
+
+## Frequently Asked Questions
+
+### What is the difference between kill and pkill in Linux?
+
+`kill` requires a PID — you have to find it first with `ps aux` or `pidof`. `pkill` works on the process name directly. `pkill nginx` does what used to take four commands in one.
+
+### How do I kill a process by name in Linux?
+
+Run `pgrep -l processname` to preview, then `pkill processname` to terminate. Both commands are pre-installed on every modern Linux distribution — no package manager needed.
+
+### What does pgrep do in Linux?
+
+`pgrep` searches running processes by name and returns their PIDs. The `-l` flag adds the process name to the output. It's the safe preview step you should always run before `pkill`.
+
+### How do I force kill a process in Linux?
+
+Add the `-9` flag: `pkill -9 processname`. This sends SIGKILL, which the kernel enforces directly and the process cannot ignore. Use it only after a normal `pkill` has failed.

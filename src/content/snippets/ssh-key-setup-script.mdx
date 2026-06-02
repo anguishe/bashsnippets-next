@@ -1,0 +1,133 @@
+import Callout from '@/components/Callout'
+
+## The Script
+
+Save as `ssh-key-setup.sh`. Leave `REMOTE_USER` empty to only generate and display keys; set it to `you@203.0.113.10` (for example) to run `ssh-copy-id` automatically after generation.
+
+```bash
+#!/bin/bash
+
+CHECK="✓"
+CROSS="✗"
+
+# --- Configuration ---
+KEY_TYPE="ed25519"               # Recommended: ed25519 (modern) or rsa (legacy)
+KEY_BITS="4096"                  # Only used for RSA keys
+KEY_COMMENT="$(whoami)@$(hostname)-$(date '+%Y%m%d')"
+KEY_FILE="$HOME/.ssh/id_${KEY_TYPE}"
+REMOTE_USER=""                   # Set to: user@server-ip to auto-copy key
+                                 # Leave empty to skip remote copy
+
+echo "SSH Key Setup Script"
+echo "===================="
+
+# --- Create .ssh directory with correct permissions ---
+mkdir -p "$HOME/.ssh"
+chmod 700 "$HOME/.ssh"
+echo "$CHECK .ssh directory ready (chmod 700)"
+
+# --- Check if key already exists ---
+if [ -f "$KEY_FILE" ]; then
+  echo "$CROSS Key already exists at $KEY_FILE"
+  echo "  Delete it first if you want a new key: rm $KEY_FILE ${KEY_FILE}.pub"
+  exit 0
+fi
+
+# --- Generate the key ---
+echo "Generating ${KEY_TYPE} key..."
+if ssh-keygen -t "$KEY_TYPE" -C "$KEY_COMMENT" -f "$KEY_FILE" -N ""; then
+  echo "$CHECK Key generated: $KEY_FILE"
+  chmod 600 "$KEY_FILE"
+  chmod 644 "${KEY_FILE}.pub"
+  echo "$CHECK Permissions set (private: 600, public: 644)"
+else
+  echo "$CROSS Key generation failed"
+  exit 1
+fi
+
+# --- Display public key ---
+echo ""
+echo "Your public key (copy this to your server or DigitalOcean):"
+echo "-----------------------------------------------------------"
+cat "${KEY_FILE}.pub"
+echo "-----------------------------------------------------------"
+
+# --- Optional: copy to remote server ---
+if [ -n "$REMOTE_USER" ]; then
+  echo "Copying public key to $REMOTE_USER..."
+  if ssh-copy-id -i "${KEY_FILE}.pub" "$REMOTE_USER"; then
+    echo "$CHECK Key copied to $REMOTE_USER"
+    echo "$CHECK Test with: ssh $REMOTE_USER"
+  else
+    echo "$CROSS Copy failed — check that $REMOTE_USER is reachable"
+  fi
+fi
+
+echo ""
+echo "Done. Connect with: ssh -i $KEY_FILE user@your-server"
+```
+
+<Callout type="success" title="Adding this key to DigitalOcean">
+
+Copy the public key output above → DigitalOcean Control Panel → Settings → Security → SSH Keys → Add SSH Key. Next time you create a Droplet, select this key and you'll connect without a password.
+
+</Callout>
+
+## How It Works
+
+**`mkdir -p "$HOME/.ssh"`** creates the SSH config directory if it is missing; `-p` avoids errors when the path already exists and creates parent directories when needed.
+
+**`chmod 700 ~/.ssh`** means only your user can read, write, or enter that folder — SSH expects a locked-down home for keys. **`chmod 600`** on the private key restricts read/write to you alone; **`chmod 644`** on `.pub` lets you share or paste the public half safely while keeping it world-readable (normal for public keys).
+
+**`ssh-keygen ... -N ""`** sets an empty passphrase so generation is non-interactive; remove `-N ""` (or use `-N` with a quoted passphrase) when you want the key protected at rest.
+
+**`ssh-copy-id -i "${KEY_FILE}.pub" "$REMOTE_USER"`** logs into the remote host (you'll need password auth or another working key the first time), appends your public key to `~/.ssh/authorized_keys`, and fixes remote permissions so passwordless login works on the next `ssh`.
+
+## Variations
+
+### 1. Generate RSA 4096 key
+
+Set `KEY_TYPE="rsa"` at the top of the script. For RSA, pass bit length to `ssh-keygen` with `-b "$KEY_BITS"` (your script already defines `KEY_BITS=4096` for that case).
+
+### 2. Key with passphrase
+
+Remove `-N ""` from the `ssh-keygen` line so the tool prompts for a passphrase interactively, or supply one with `-N 'your-secure-passphrase'` if you are scripting in a secure environment.
+
+### 3. Multiple servers
+
+Replace the single `REMOTE_USER` string with a bash array and loop:
+
+```bash
+REMOTE_USERS=("alice@10.0.0.1" "alice@10.0.0.2")
+for u in "${REMOTE_USERS[@]}"; do
+  ssh-copy-id -i "${KEY_FILE}.pub" "$u"
+done
+```
+
+## Frequently Asked Questions
+
+### How do I generate an SSH key in Linux?
+
+Run: `ssh-keygen -t ed25519 -C 'your@email.com'` — Ed25519 is the recommended key type in 2026. Press Enter to accept defaults or set a passphrase for extra security.
+
+### How do I copy my SSH key to a remote server?
+
+Use: `ssh-copy-id user@server-ip` — this copies your public key to `~/.ssh/authorized_keys` on the remote server.
+
+### What permissions should SSH keys have?
+
+Your private key (`~/.ssh/id_ed25519`) must be `600`. Your `.ssh` directory must be `700`. Wrong permissions will cause SSH to refuse the key.
+
+### What is the difference between RSA and Ed25519 SSH keys?
+
+Ed25519 is newer, faster, and more secure than RSA 2048. Use Ed25519 for new keys in 2026. RSA 4096 is acceptable if Ed25519 isn't supported.
+
+### How do I add an SSH key to a DigitalOcean Droplet?
+
+Generate your key with `ssh-keygen`, copy the public key content from `~/.ssh/id_ed25519.pub`, then paste it in the DigitalOcean control panel under Settings → Security → SSH Keys before creating a Droplet.
+
+    Create your Droplet →
+
+      View Hosting Plans →
+
+    Try the Generator →

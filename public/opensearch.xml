@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+  <ShortName>BashSnippets</ShortName>
+  <Description>Search free bash script examples and tools on BashSnippets.xyz</Description>
+  <Tags>bash linux shell scripting devops</Tags>
+  <Url type="text/html" template="https://bashsnippets.xyz/snippets?q={searchTerms}"/>
+  <Image height="16" width="16" type="image/x-icon">https://bashsnippets.xyz/favicon.ico</Image>
+</OpenSearchDescription>

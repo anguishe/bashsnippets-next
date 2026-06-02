@@ -1,0 +1,154 @@
+import Callout from '@/components/Callout'
+
+## The Script
+
+Copy this into `disk-if-else.sh`. It uses `if`, `elif`, and `else` to classify disk usage into three levels — the same pattern as our [disk space warning](/snippets/disk-space-warning) snippet, with an extra critical branch.
+
+```bash
+#!/bin/bash
+# Bash If / Elif / Else — disk space example
+# Three branches: critical, warning, or OK.
+#
+# USAGE: ./disk-if-else.sh
+# REQUIRES: bash, df, awk, tr (pre-installed on Linux/macOS)
+
+THRESHOLD=80   # ← warn at this %
+CRITICAL=90      # ← critical alert at this %
+PARTITION="/"  # ← partition to check
+
+USAGE=$(df "$PARTITION" | awk 'NR==2{print $5}' | tr -d '%')
+
+if [ "$USAGE" -gt "$CRITICAL" ]; then
+  echo "🔴 CRITICAL: Disk at ${USAGE}% — free space immediately"
+elif [ "$USAGE" -gt "$THRESHOLD" ]; then
+  echo "⚠ WARNING: Disk at ${USAGE}% — above ${THRESHOLD}% threshold"
+else
+  echo "✓ Disk OK: ${USAGE}% used (warn: ${THRESHOLD}%, critical: ${CRITICAL}%)"
+fi
+```
+
+<Callout type="success" title="What this does, line by line">
+
+**THRESHOLD** and **CRITICAL** set the two cutoffs. `USAGE` reads the current disk percent from `df`. The first `if` handles the worst case. `elif` runs only when the first test failed — still high, but not critical. `else` covers everything else. `fi` closes the block — always required.
+
+</Callout>
+
+## Step-by-Step Setup
+
+### Step 1 — Create the file
+
+Open a terminal and run:
+
+```bash
+nano disk-if-else.sh
+```
+
+Paste the script above, then press **Ctrl+X → Y → Enter** to save.
+
+### Step 2 — Understand the if/elif/else shape
+
+Every branch follows the same pattern — spaces matter:
+
+| Part | Syntax | Purpose |
+| --- | --- | --- |
+| if | if [ condition ]; then | First test — runs when true |
+| elif | elif [ condition ]; then | Second test — only if previous tests failed |
+| else | else | Fallback — runs when no test matched |
+| fi | fi | Closes the entire block — do not forget this |
+
+### Step 3 — Make it executable
+
+```bash
+chmod +x disk-if-else.sh
+```
+
+You only need to do this once. It gives the script permission to run.
+
+### Step 4 — Run it
+
+```bash
+./disk-if-else.sh
+```
+
+You should see one of three messages depending on how full your disk is right now.
+
+## Schedule It with Cron
+
+Disk checks only help if they run automatically. Add the script to cron so you catch problems before the drive fills.
+
+### Open your crontab
+
+```bash
+crontab -e
+```
+
+### Add one of these lines
+
+```bash
+# Check every day at 8am
+0 8 * * * /home/user/disk-if-else.sh
+
+# Check every hour
+0 * * * * /home/user/disk-if-else.sh
+
+# Log output to a file
+0 8 * * * /home/user/disk-if-else.sh >> /var/log/diskcheck.log 2>&1
+```
+
+<Callout type="info" title="� Tip: Use crontab.guru">
+
+Go to [crontab.guru](https://crontab.guru) to build and test cron time expressions for free. It explains exactly when your job will run in plain English.
+
+</Callout>
+
+## Variations
+
+### String comparison (= and !=)
+
+Use `=` and `!=` inside `[ ]` for text. Quote variables so empty values do not break the test:
+
+```bash
+#!/bin/bash
+ENV="production"
+
+if [ "$ENV" = "production" ]; then
+  echo "Running production config"
+elif [ "$ENV" = "staging" ]; then
+  echo "Running staging config"
+else
+  echo "Unknown environment: $ENV"
+fi
+```
+
+### Check if a file exists (-f)
+
+`-f` returns true only for regular files. Use `-d` for directories and `-e` for either:
+
+```bash
+#!/bin/bash
+CONFIG="/etc/myapp/config.yml"
+
+if [ -f "$CONFIG" ]; then
+  echo "Config found — loading $CONFIG"
+else
+  echo "Config missing — creating default at $CONFIG"
+  touch "$CONFIG"
+fi
+```
+
+### Integer comparison (-eq, -gt, -lt)
+
+Numbers inside `[ ]` need numeric operators, not `=`:
+
+```bash
+#!/bin/bash
+COUNT=42
+
+if [ "$COUNT" -eq 0 ]; then
+  echo "No items"
+elif [ "$COUNT" -lt 10 ]; then
+  echo "Low count: $COUNT"
+else
+  echo "Count is $COUNT"
+fi
+```

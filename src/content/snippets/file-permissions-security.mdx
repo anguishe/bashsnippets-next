@@ -1,0 +1,138 @@
+import Callout from '@/components/Callout'
+
+## The Script
+
+Paste this into a file called `permissions-audit.sh`. It scans a target directory for world-writable files and saves a report when it finds them.
+
+```bash
+#!/bin/bash
+# permissions-audit.sh — BashSnippets.xyz
+# Audit and report dangerous file permissions
+
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+SCAN_DIR="${1:-/var/www}"
+DANGEROUS_PERMS="777"
+REPORT_FILE="/tmp/perms-audit-$(date +%Y%m%d).txt"
+
+echo "Scanning: $SCAN_DIR"
+echo "Looking for world-writable files ($DANGEROUS_PERMS)..."
+echo ""
+
+FOUND=$(find "$SCAN_DIR" -perm "$DANGEROUS_PERMS" -type f 2>/dev/null)
+
+if [ -z "$FOUND" ]; then
+  echo "$CHECK No $DANGEROUS_PERMS files found in $SCAN_DIR"
+else
+  echo "$CROSS DANGER: World-writable files found:"
+  echo "$FOUND"
+  echo "$FOUND" > "$REPORT_FILE"
+  echo ""
+  echo "Report saved to: $REPORT_FILE"
+fi
+
+echo ""
+echo "--- Recommended Permissions ---"
+echo "Files:       chmod 644 (rw-r--r--)"
+echo "Directories: chmod 755 (rwxr-xr-x)"
+echo "Executables: chmod 755 (rwxr-xr-x)"
+echo "SSH keys:    chmod 600 (rw-------)"
+echo "Private dirs: chmod 700 (rwx------)"
+```
+
+<Callout type="success" title="What this script checks">
+
+`find "$SCAN_DIR" -perm "$DANGEROUS_PERMS" -type f` searches for files with exact `777` permissions. Those files are world-writable, which means any user or compromised process can overwrite them.
+
+</Callout>
+
+## How to Use It
+
+    chmod +x permissions-audit.sh
+    ./permissions-audit.sh /var/www
+    Review report at /tmp/perms-audit-[date].txt
+    Fix flagged files: chmod 644 flagged-file.txt
+
+```bash
+chmod +x permissions-audit.sh
+./permissions-audit.sh /var/www
+chmod 644 flagged-file.txt
+```
+
+## chmod Basics
+
+### Octal mode
+
+    7 = rwx (read+write+execute)
+    6 = rw- (read+write)
+    5 = r-x (read+execute)
+    4 = r-- (read only)
+    0 = --- (no permissions)
+
+Format: `chmod [owner][group][other] file`
+
+```bash
+chmod 644 file.txt   # owner rw, group r, other r
+chmod 755 script.sh  # owner rwx, group rx, other rx
+chmod 600 id_rsa     # owner rw, no one else
+```
+
+### Symbolic mode
+
+```bash
+chmod u+x script.sh   # add execute for owner
+chmod go-w file.txt   # remove write for group and other
+chmod a+r file.txt    # add read for all (a = all)
+```
+
+## Common Permission Patterns
+
+| Pattern | Octal | Use Case |
+| --- | --- | --- |
+| rw-r--r-- | 644 | Regular files, configs, web assets |
+| rwxr-xr-x | 755 | Directories, executables, scripts |
+| rw------- | 600 | SSH private keys, secrets |
+| rwx------ | 700 | Private directories |
+| rw-rw-r-- | 664 | Shared group files |
+
+## Recursive Changes
+
+Recursive permission changes are where people usually break deploys. Directories need the execute bit so users and processes can enter them.
+
+```bash
+chmod -R 755 /var/www/html    # Fix entire web root
+chmod -R 644 /var/www/html    # DON'T DO THIS — breaks directories
+find /var/www/html -type f -exec chmod 644 {} \;   # Files only
+find /var/www/html -type d -exec chmod 755 {} \;   # Dirs only
+```
+
+<Callout type="warning" title="Never use chmod -R 777">
+
+`chmod -R 777` makes everything world-writable. On a shared server or web host, that means anyone who can run code as another user can overwrite your files, plant backdoors, or break your app.
+
+</Callout>
+
+## Auditing with find
+
+`find` is the permission audit tool you already have installed. These searches help you spot dangerous files before they become incidents.
+
+```bash
+find / -perm 777 -type f 2>/dev/null       # All 777 files on system
+find /var/www -perm -o+w -type f           # World-writable web files
+find /home -perm 600 -name "*.key"         # Find SSH keys with correct perms
+find / -perm -4000 -type f 2>/dev/null     # Find SUID files (security audit)
+```
+
+## chown — Changing Ownership
+
+Permissions decide what the owner, group, and everyone else can do. `chown` changes who the owner and group are.
+
+```bash
+chown user file.txt                 # change owner
+chown user:group file.txt           # change owner and group
+chown -R www-data:www-data /var/www # Fix web server ownership
+chown --reference=ref.txt target.txt # Copy perms from another file
+```

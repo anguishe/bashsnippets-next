@@ -1,0 +1,195 @@
+import Callout from '@/components/Callout'
+
+## The Script
+
+Paste this into `monitor.sh`. Adjust `THRESHOLD` and `LOG_FILE` if you want a different cutoff or log path.
+
+```bash
+#!/bin/bash
+
+CHECK="✓"
+CROSS="✗"
+
+# --- Configuration ---
+THRESHOLD=80                    # Alert when usage exceeds this %
+LOG_FILE="/var/log/resource-monitor.log"
+DATE=$(date '+%Y-%m-%d %H:%M:%S')
+
+# --- CPU Usage ---
+CPU=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1 | cut -d',' -f1 | xargs printf "%.0f")
+
+# --- RAM Usage ---
+RAM=$(free | awk '/Mem:/ {printf "%.0f", $3/$2*100}')
+
+echo "[$DATE] CPU: ${CPU}% | RAM: ${RAM}%"
+
+# --- CPU Alert ---
+if [ "$CPU" -gt "$THRESHOLD" ]; then
+  echo "$CROSS [$DATE] WARNING: CPU at ${CPU}% (threshold: ${THRESHOLD}%)" | tee -a "$LOG_FILE"
+else
+  echo "$CHECK CPU OK: ${CPU}%"
+fi
+
+# --- RAM Alert ---
+if [ "$RAM" -gt "$THRESHOLD" ]; then
+  echo "$CROSS [$DATE] WARNING: RAM at ${RAM}% (threshold: ${THRESHOLD}%)" | tee -a "$LOG_FILE"
+else
+  echo "$CHECK RAM OK: ${RAM}%"
+fi
+```
+
+## How It Works
+
+| Line / piece | What it does |
+| --- | --- |
+| THRESHOLD=80 | The percentage at which a warning fires. |
+| top -bn1 | Runs top in batch mode for one iteration (non-interactive). |
+| `awk '{print $2}'` | Extracts the CPU usage column from top output. |
+| free \| awk '/Mem:/ ...' | Parses free output to calculate RAM used / total × 100. |
+| tee -a "$LOG_FILE" | Prints to stdout and appends to the log file. |
+| $DATE | Timestamp so every log entry is traceable. |
+
+## How to Run
+
+    nano monitor.sh
+    Paste the script. Ctrl+X → Y → Enter to save.
+    chmod +x monitor.sh
+    Test: ./monitor.sh
+    Schedule: crontab -e → add: 0 * * * * /home/user/monitor.sh
+
+<Callout type="info" title="� Log cron output">
+
+To match the HowTo schema and keep a paper trail, append: `>> /var/log/monitor.log 2>&1` to your cron line (use a path you can write to, or run the job as a user that owns the log).
+
+</Callout>
+
+## Variations
+
+### Send an email when CPU or RAM spikes
+
+Same CPU/RAM probes as above, plus a single email whenever either crosses your threshold — useful instead of silently appending log lines. Requires the `mail` command (typically `mailutils` on Debian/Ubuntu); see our [bash email alert snippet](/snippets/bash-send-email-alert) for install tips, SMTP, and Gmail.
+
+```bash
+#!/bin/bash
+
+# --- Configuration ---
+THRESHOLD=80
+EMAIL="you@example.com"   # ← recipient
+
+CPU=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1 | cut -d',' -f1 | xargs printf "%.0f")
+RAM=$(free | awk '/Mem:/ {printf "%.0f", $3/$2*100}')
+HOST=$(hostname)
+
+if [ "$CPU" -gt "$THRESHOLD" ] || [ "$RAM" -gt "$THRESHOLD" ]; then
+  TOP5=$(ps aux --sort=-"%cpu" | head -n 6)
+{
+  echo "Hostname: $HOST"
+  echo ""
+  echo "CPU usage (approx.): ${CPU}%"
+  echo "RAM usage (approx.): ${RAM}%"
+  echo ""
+  echo "Threshold: ${THRESHOLD}% — at least one metric exceeded."
+  echo ""
+  echo "Top 5 processes by CPU (includes ps header row):"
+  echo "${TOP5}"
+} | mail -s "⚠ Resource alert on $HOST — CPU ${CPU}% | RAM ${RAM}%" "$EMAIL"
+fi
+```
+
+### Monitor a specific process by name
+
+Pass a substring that appears in `ps aux` COMMAND column (same idea as grepping logs). Matches every PID whose line contains that substring, sums aggregate `%CPU` and `%MEM`, and warns when either crosses a per-watch threshold.
+
+```bash
+#!/bin/bash
+# Usage: ./monitor-process.sh nginx 50
+# Sums ps %CPU/%MEM for rows whose COMMAND matches $NAME; excludes grep.
+
+NAME="$1"
+PROC_THRESHOLD="${2:-50}"
+
+if [ -z "$NAME" ]; then
+  echo "Usage: $0  [threshold-percent]"
+  exit 1
+fi
+
+MATCHES=$(ps aux | grep "$NAME" | grep -v grep)
+if [ -z "$MATCHES" ]; then
+  echo "No process matched '$NAME'."
+  exit 0
+fi
+
+CPU_SUM=$(echo "$MATCHES" | awk '{s += $3} END { printf "%.0f", s+0 }')
+RAM_SUM=$(echo "$MATCHES" | awk '{s += $4} END { printf "%.0f", s+0 }')
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] $NAME: CPU agg ${CPU_SUM}% | MEM agg ${RAM_SUM}% (threshold ${PROC_THRESHOLD}%)"
+
+if [ "${CPU_SUM:-0}" -gt "$PROC_THRESHOLD" ] || [ "${RAM_SUM:-0}" -gt "$PROC_THRESHOLD" ]; then
+  echo "⚠ WARNING: aggregate CPU or MEM above threshold for '$NAME'"
+fi
+```
+
+### Append JSON log lines for graphing
+
+Every run prints one newline-delimited JSON object and appends it to `.jsonl` — one record per cron tick — so ingestion tools, log aggregators, or a tiny Python/awk script can build charts.
+
+```bash
+#!/bin/bash
+
+LOG_FILE="/var/log/resource-metrics.jsonl"
+
+CPU=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1 | cut -d',' -f1 | xargs printf "%.0f")
+RAM=$(free | awk '/Mem:/ {printf "%.0f", $3/$2*100}')
+TS=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+LINE=$(printf '{"timestamp":"%s","cpu":%s,"ram":%s}\n' "$TS" "$CPU" "$RAM")
+echo "$LINE" >> "$LOG_FILE"
+```
+
+    Get $200 Free →
+
+## Common Mistakes
+
+<Callout type="warning" title="top output format differs between distros">
+
+The awk column for CPU usage is $2 on Ubuntu but may be different on CentOS/RHEL or Alpine. Always test your parsing command on the actual target system before scheduling with cron. Run: `top -bn1 | grep "Cpu(s)"` and count the columns manually.
+
+</Callout>
+
+<Callout type="warning" title="The script logs warnings but nobody reads the log">
+
+Writing to a log file is pointless if nobody checks it. Combine this with the [Send Email Alerts from Bash](/snippets/bash-send-email-alert) snippet to get notified when thresholds trip. Or pipe cron output to your inbox.
+
+</Callout>
+
+<Callout type="warning" title="RAM percentage includes cache/buffers on older systems">
+
+On older kernels, `free` may not show "available" memory correctly. The $3/$2 calculation can overstate usage because Linux aggressively caches disk reads in RAM. On modern Ubuntu (18.04+), this is handled correctly.
+
+</Callout>
+
+    Start your Droplet →
+
+      View Hosting Plans →
+
+## Frequently Asked Questions
+
+### How do I check CPU usage in bash?
+
+Use `top` in batch mode: `top -bn1 | grep 'Cpu(s)'`. For idle as a number, pipe through awk: `top -bn1 | grep 'Cpu(s)' | awk '{print $8}'`
+
+### How do I check RAM usage in Linux?
+
+Use `free`: `free -h` is human-readable. In a script: `free | awk '/Mem:/ {printf "%.0f", $3/$2*100}'` gives RAM usage as a percentage.
+
+### How do I get an alert when CPU is too high?
+
+Capture CPU use in a script, compare to a threshold with an `if`, then schedule the script with `cron` every minute or hour (or use email from the variations above).
+
+### What is a normal CPU usage percentage on a Linux server?
+
+Under 70% is generally healthy for production. Sustained 80–90%+ usually means something worth inspecting with `top` or `htop`.
+
+### How do I find which process is using the most CPU?
+
+Run: `ps aux --sort=-%cpu | head -10` for the top 10. Or run `top` interactively and press **P** to sort by CPU.

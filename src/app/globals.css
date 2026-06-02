@@ -2,26 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
+@import 'highlight.js/styles/github-dark.css';
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #0d1117;
+  --bg2: #161b22;
+  --bg3: #1c2128;
+  --border: #30363d;
+  --green: #39d353;
+  --green-dim: #1a4a2e;
+  --amber: #e3b341;
+  --amber-dim: #3d2f0d;
+  --blue: #58a6ff;
+  --blue-dim: #0d2a4a;
+  --muted: #8b949e;
+  --text: #e6edf3;
+  --radius: 8px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html {
+  scroll-behavior: smooth;
+}
+
+.fade-in {
+  opacity: 1;
+}
+
+.fade-in.js-animate {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.fade-in.js-animate.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+.tool-embed-content {
+  all: initial;
+  display: block;
+  color: #e6edf3;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 15px;
+  line-height: 1.7;
 }

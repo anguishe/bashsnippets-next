@@ -1,0 +1,196 @@
+import Callout from '@/components/Callout'
+
+## The Script
+
+Paste this into `syscheck.sh`. It runs instantly and requires no additional tools — everything used here is pre-installed on Linux and macOS.
+
+```bash
+#!/bin/bash
+# Quick System Info Report
+# Prints key stats at a glance.
+# Alias to 'syscheck' in your .bashrc for fast access.
+#
+# USAGE: ./syscheck.sh
+# REQUIRES: bash, hostname, uptime, free, df (pre-installed everywhere)
+
+echo "=== Quick System Check ==="
+echo "Host    : $(hostname)"
+echo "Uptime  : $(uptime -p)"
+echo "RAM     : $(free -h | awk '/Mem/{print $3"/"$2}')"
+echo "Disk /  : $(df -h / | awk 'NR==2{print $3"/"$2}')"
+echo "IP      : $(hostname -I | awk '{print $1}')"
+echo "========================="
+```
+
+<Callout type="success" title="Sample output">
+
+`=== Quick System Check ===`
+
+      `Host    : my-server`
+
+      `Uptime  : up 3 days, 4 hours`
+
+      `RAM     : 1.2G/2.0G`
+
+      `Disk /  : 8.3G/25G`
+
+      `IP      : 192.168.1.42`
+
+      `=========================`
+
+</Callout>
+
+## Step-by-Step Setup
+
+### Step 1 — Create the file
+
+```bash
+nano syscheck.sh
+```
+
+Paste the script, then **Ctrl+X → Y → Enter** to save.
+
+### Step 2 — Make it executable
+
+```bash
+chmod +x syscheck.sh
+```
+
+### Step 3 — Run it once to confirm it works
+
+```bash
+./syscheck.sh
+```
+
+You should see your system stats printed cleanly. If `uptime -p` fails on older systems, see the macOS/compatibility note below.
+
+### Step 4 — Alias it for instant access anywhere
+
+This is the step that makes it actually useful. Open your `.bashrc` (or `.zshrc` if you use zsh):
+
+```bash
+nano ~/.bashrc
+```
+
+Add this line at the bottom:
+
+```bash
+alias syscheck='/home/user/syscheck.sh'   # ← use your actual path
+```
+
+Save, then reload your shell config:
+
+```bash
+source ~/.bashrc
+```
+
+Now you can type `syscheck` from anywhere in any terminal session and get your system snapshot instantly.
+
+<Callout type="info" title="� Using zsh instead of bash?">
+
+Add the alias to `~/.zshrc` instead of `~/.bashrc`, then run `source ~/.zshrc`. Everything else stays the same.
+
+</Callout>
+
+## Variations
+
+### Add CPU load average
+
+```bash
+#!/bin/bash
+echo "=== Quick System Check ==="
+echo "Host    : $(hostname)"
+echo "Uptime  : $(uptime -p)"
+echo "Load    : $(uptime | awk -F'load average:' '{print $2}' | xargs)"
+echo "RAM     : $(free -h | awk '/Mem/{print $3"/"$2}')"
+echo "Disk /  : $(df -h / | awk 'NR==2{print $3"/"$2}')"
+echo "IP      : $(hostname -I | awk '{print $1}')"
+echo "========================="
+```
+
+### Check multiple disks at once
+
+```bash
+#!/bin/bash
+echo "=== System Check ==="
+echo "Host    : $(hostname)"
+echo "Uptime  : $(uptime -p)"
+echo "RAM     : $(free -h | awk '/Mem/{print $3"/"$2}')"
+echo ""
+echo "-- Disk Usage --"
+df -h --output=target,used,avail,pcent | grep -v tmpfs | grep -v udev
+echo "==================="
+```
+
+### macOS compatible version
+
+The `uptime -p` flag and `hostname -I` aren't available on macOS. Use this version instead:
+
+```bash
+#!/bin/bash
+echo "=== Quick System Check ==="
+echo "Host    : $(hostname)"
+echo "Uptime  : $(uptime | awk '{print $3, $4}' | tr -d ',')"
+echo "RAM     : $(vm_stat | awk '/Pages active/{print $3}') pages active"
+echo "Disk /  : $(df -h / | awk 'NR==2{print $3"/"$2}')"
+echo "IP      : $(ipconfig getifaddr en0)"
+echo "========================="
+```
+
+## Common Mistakes
+
+<Callout type="warning" title="uptime -p doesn't exist on macOS or older Linux">
+
+The `-p` flag was added in coreutils 8.24 (2015). On macOS and some minimal containers, it fails silently or errors. Use the macOS variation shown above, or fall back to: `uptime | awk '{print $3,$4}' | tr -d ','`
+
+</Callout>
+
+<Callout type="warning" title="hostname -I returns nothing inside Docker containers">
+
+Minimal containers often don't have a proper network config for `hostname -I`. Use: `ip route get 1.1.1.1 | awk '{print $7}'` as a more reliable fallback for containers and VMs.
+
+</Callout>
+
+<Callout type="warning" title="Aliasing to .bashrc but using zsh">
+
+If your default shell is zsh (common on macOS), aliases in `~/.bashrc` won't load. Add the alias to `~/.zshrc` instead and run `source ~/.zshrc`.
+
+</Callout>
+
+    Get $200 Free →
+
+      View Hosting Plans →
+
+## Understanding the Commands
+
+| Command | What it outputs |
+| --- | --- |
+| hostname | The machine's hostname — the name it goes by on the network |
+| uptime -p | Human-readable uptime: "up 3 days, 4 hours, 12 minutes" |
+| free -h | RAM stats in human-readable format (GB/MB) |
+| `awk '/Mem/{print $3"/"$2}'` | Extracts used/total from the Mem row of free output |
+| df -h / | Disk usage for the root partition in human-readable format |
+| `awk 'NR==2{print $3"/"$2}'` | Extracts used/total from the second row of df output |
+| hostname -I | All IP addresses for the machine (Linux only) |
+| `awk '{print $1}'` | Grabs just the first IP from hostname -I output |
+
+## Frequently Asked Questions
+
+### How do I check system info in Linux with one command?
+
+Create a bash script that runs `hostname`, `uptime -p`, `free -h`, `df -h /`, and `hostname -I` together and formats them cleanly. Save it, make it executable with `chmod +x`, then alias it in `~/.bashrc` so you can call it from anywhere.
+
+### How do I check RAM usage in Linux from the terminal?
+
+Run `free -h` to see total, used, free, and available RAM in human-readable format. To extract just used/total in a script: `free -h | awk '/Mem/{print $3"/"$2}'`
+
+### How do I create a bash alias for a script?
+
+Add `alias syscheck='/home/user/syscheck.sh'` to your `~/.bashrc` file, then run `source ~/.bashrc` to activate it. After that, typing `syscheck` in any terminal runs your script instantly.
+
+### What command shows uptime in Linux?
+
+Run `uptime -p` for a clean, human-readable result like "up 3 days, 4 hours, 12 minutes." Running plain `uptime` shows the same info plus load averages in a slightly different format.
+
+    Try the Generator →
+    Browse All Tools

@@ -1,0 +1,210 @@
+import Callout from '@/components/Callout'
+
+## The Script
+
+This covers the most useful grep patterns. Paste the one you need and change the search term and path.
+
+```bash
+#!/bin/bash
+# Search files for text — grep reference
+# Replace KEYWORD and SEARCH_DIR with your values
+#
+# USAGE: ./grep-search.sh
+# REQUIRES: grep (pre-installed on Linux/macOS)
+
+KEYWORD="TODO"          # ← what to search for
+SEARCH_DIR="$HOME"    # ← where to search
+FILE_TYPE="*.txt"     # ← file types to include
+
+echo "Searching for '$KEYWORD' in $SEARCH_DIR..."
+echo "────────────────────────────────────────"
+
+grep -rn "$KEYWORD" "$SEARCH_DIR" \
+  --include="$FILE_TYPE" \
+  --color=auto
+
+COUNT=$(grep -rc "$KEYWORD" "$SEARCH_DIR" \
+  --include="$FILE_TYPE" 2>/dev/null \
+  | grep -v ":0$" | wc -l)
+
+echo "────────────────────────────────────────"
+echo "Found in $COUNT file(s)"
+```
+
+<Callout type="success" title="What this does">
+
+`grep -rn` searches recursively (`-r`) through all subdirectories and shows line numbers (`-n`) for each match. `--include` filters to a specific file type. `--color=auto` highlights your keyword in the output so it's easy to scan.
+
+</Callout>
+
+## Step-by-Step: The Commands You'll Use Daily
+
+### Step 1 — Search a single file
+
+The simplest form: search one file for one term.
+
+```bash
+grep "ERROR" /var/log/app.log
+```
+
+Every line containing "ERROR" prints to your terminal. Nothing else. Fast.
+
+### Step 2 — Add line numbers (-n)
+
+```bash
+grep -n "ERROR" /var/log/app.log
+
+# Output:
+# 42: ERROR: connection refused
+# 87: ERROR: disk write failed
+```
+
+Now you know exactly which line to jump to in your editor.
+
+### Step 3 — Search recursively across a whole folder (-r)
+
+```bash
+grep -rn "TODO" ~/projects/
+
+# Output includes filename, line number, and the matching line:
+# ~/projects/api/routes.py:14:  # TODO: add auth check
+# ~/projects/api/models.py:88:  # TODO: validate input
+```
+
+<Callout type="success" title="-rn is your default combination">
+
+You'll type `grep -rn "keyword" /path` more than almost any other command. The `r` searches all subdirectories, the `n` gives you line numbers. Memorise this one first.
+
+</Callout>
+
+### Step 4 — Filter by file type (--include)
+
+```bash
+# Search only .log files
+grep -rn "CRITICAL" /var/log --include="*.log"
+
+# Search only Python files
+grep -rn "import os" ~/projects --include="*.py"
+
+# Search multiple file types
+grep -rn "api_key" . --include="*.py" --include="*.env"
+```
+
+### Step 5 — Case insensitive search (-i)
+
+```bash
+# Matches: error, ERROR, Error, eRrOr
+grep -rni "error" /var/log --include="*.log"
+```
+
+## grep Flags Reference
+
+| Flag | What it does | Example |
+| --- | --- | --- |
+| -r | Recursive — search all subdirectories | grep -r "term" /folder |
+| -n | Show line numbers in output | grep -n "term" file.txt |
+| -i | Case insensitive match | grep -i "error" file.log |
+| -l | Show only filenames, not the matching lines | grep -rl "TODO" ~/projects |
+| -c | Count of matching lines per file | grep -rc "error" /var/log |
+| -v | Invert — show lines that do NOT match | grep -v "DEBUG" app.log |
+| -w | Match whole words only | grep -w "log" file.txt |
+| -A 3 | Show 3 lines after each match (context) | grep -A 3 "ERROR" app.log |
+| -B 3 | Show 3 lines before each match | grep -B 3 "ERROR" app.log |
+| --include | Limit search to matching filenames | grep -r "term" . --include="*.py" |
+| --exclude | Skip files matching pattern | grep -r "term" . --exclude="*.min.js" |
+
+## Real-World Examples
+
+### Find all TODO comments across a codebase
+
+```bash
+grep -rn "TODO\|FIXME\|HACK" ~/projects --include="*.py"
+```
+
+### Scan logs for errors in the last hour
+
+```bash
+# Find ERROR lines and show 2 lines of context around each
+grep -n -A 2 -B 2 "ERROR" /var/log/app.log
+```
+
+### Check if a config file contains a specific setting
+
+```bash
+# Returns the line if found, nothing if not
+grep "PermitRootLogin" /etc/ssh/sshd_config
+```
+
+### Count how many files in a project contain a term
+
+```bash
+# -l lists filenames only, wc -l counts them
+grep -rl "api_key" . | wc -l
+```
+
+### Search and exclude a directory (e.g. node_modules)
+
+```bash
+grep -rn "password" . \
+  --include="*.js" \
+  --exclude-dir="node_modules" \
+  --exclude-dir=".git"
+```
+
+<Callout type="warning" title="Always exclude node_modules and .git">
+
+Searching a project without excluding `node_modules` or `.git` will flood your results with thousands of irrelevant matches and run significantly slower. Add `--exclude-dir=node_modules --exclude-dir=.git` to every recursive grep on a project folder.
+
+</Callout>
+
+    Get $200 Free →
+
+      View Hosting Plans →
+
+## Common Mistakes
+
+<Callout type="warning" title="Forgetting -r on a folder">
+
+Running `grep "term" /var/log` without `-r` will error with "Is a directory." You need `grep -r "term" /var/log` to search inside a folder recursively.
+
+</Callout>
+
+<Callout type="warning" title="Special characters in your search term">
+
+Characters like `.`, `*`, `[`, and `(` are regex special characters. If you're searching for them literally, either escape them with a backslash (`\.`) or use `grep -F` (fixed string mode) to treat the term as plain text, not a regex pattern.
+
+</Callout>
+
+## Understanding the Commands
+
+| Command | What it does |
+| --- | --- |
+| grep "term" file | Prints every line in file containing "term" |
+| grep -r "term" dir | Recursively searches all files in dir and subdirectories |
+| grep -n "term" file | Adds line numbers to each matching line in output |
+| grep -l "term" dir | Lists only filenames that contain a match — no line content |
+| grep -c "term" file | Counts the number of matching lines in file |
+| grep -v "term" file | Prints every line that does NOT contain "term" (invert match) |
+| --include="*.ext" | Restricts search to files matching the glob pattern |
+| --exclude-dir=name | Skips a directory entirely during recursive search |
+
+## Frequently Asked Questions
+
+### How do I search for text inside files in Linux?
+
+Use `grep "search term" filename` for a single file, or `grep -rn "search term" /folder` to search every file in a folder recursively. The `-n` flag adds line numbers so you can jump straight to each match.
+
+### How do I search multiple files with grep?
+
+Use `grep -r "term" /folder` — the `-r` flag makes grep recurse into all subdirectories automatically. Add `--include="*.py"` to restrict results to a specific file type.
+
+### How do I make grep case insensitive?
+
+Add the `-i` flag: `grep -i "error" logfile.txt`. This matches ERROR, error, Error, and any mixed-case variant.
+
+### How do I search for a word in a specific file type?
+
+Use `grep -rn "term" /folder --include="*.py"`. You can stack multiple `--include` flags to search several file types at once.
+
+    Try the Generator →
+    Browse All Tools

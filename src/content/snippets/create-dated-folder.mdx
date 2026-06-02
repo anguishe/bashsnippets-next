@@ -1,0 +1,161 @@
+import Callout from '@/components/Callout'
+
+## The One-Liner
+
+Run this directly in your terminal — no script file needed.
+
+```bash
+mkdir "$(date +%Y-%m-%d)_project"
+```
+
+<Callout type="success" title="What this creates">
+
+Running this today creates a folder called `2026-05-03_project`. The `$()` syntax runs the `date` command and drops the result directly into the folder name. The `+%Y-%m-%d` format gives you year-month-day — which sorts correctly in every file manager.
+
+</Callout>
+
+## Date Format Options
+
+      date +%Y-%m-%d
+      2026-05-03
+      Best for general use — sorts correctly
+
+      date +%Y-%m-%d_%H-%M
+      2026-05-03_14-32
+      Includes time — good for multiple per day
+
+      date +%Y%m%d
+      20260503
+      Compact — good for short names
+
+      date +%b-%d-%Y
+      May-03-2026
+      Human readable — does not sort well
+
+## Variations
+
+### Create and immediately cd into it
+
+```bash
+DIR="$(date +%Y-%m-%d)_project"
+mkdir "$DIR" && cd "$DIR"
+```
+
+### Create with a custom name after the date
+
+```bash
+mkdir "$(date +%Y-%m-%d)_client-meeting"
+mkdir "$(date +%Y-%m-%d)_deployment"
+mkdir "$(date +%Y-%m-%d)_backup"
+```
+
+### Create a dated folder inside a target directory
+
+```bash
+mkdir -p ~/projects/"$(date +%Y-%m-%d)_new-feature"
+```
+
+The `-p` flag creates any missing parent directories. If `~/projects/` doesn't exist yet, it gets created automatically.
+
+### Script version — reusable with a custom name argument
+
+```bash
+#!/bin/bash
+# Create a dated folder with an optional name
+# USAGE: ./mkdate.sh [optional-name]
+# EXAMPLE: ./mkdate.sh deployment → creates 2026-05-03_deployment
+
+DATE=$(date +%Y-%m-%d)
+NAME="${1:-folder}"       # ← uses "folder" if no argument given
+FULL="${DATE}_${NAME}"
+
+mkdir -p "$FULL"
+echo "✓ Created: $FULL"
+cd "$FULL"
+```
+
+<Callout type="info" title="� Add it as an alias">
+
+Add this to your `~/.bashrc` to create dated folders from anywhere with one command:
+
+    `alias mkdate='mkdir "$(date +%Y-%m-%d)_project" && cd "$(date +%Y-%m-%d)_project"'`
+
+    Then run `source ~/.bashrc` and type `mkdate` whenever you need a new timestamped working folder.
+
+</Callout>
+
+### Organize daily backups automatically
+
+Combine dated folders with your backup script to organize every backup into its own timestamped directory:
+
+```bash
+#!/bin/bash
+SOURCE="/home/user/documents"
+BACKUP_ROOT="/backup"
+DATE=$(date +%Y-%m-%d_%H-%M)
+DEST="$BACKUP_ROOT/$DATE"
+
+mkdir -p "$DEST"
+cp -r "$SOURCE" "$DEST"
+echo "✓ Backed up to: $DEST"
+```
+
+## Understanding the date Command
+
+| Format code | What it produces | Example |
+| --- | --- | --- |
+| %Y | 4-digit year | 2026 |
+| %m | 2-digit month (01–12) | 05 |
+| %d | 2-digit day (01–31) | 03 |
+| %H | Hour in 24h format (00–23) | 14 |
+| %M | Minutes (00–59) | 32 |
+| %S | Seconds (00–59) | 07 |
+| %b | Abbreviated month name | May |
+| %A | Full weekday name | Sunday |
+
+<Callout type="warning" title="Always quote your folder names">
+
+Always wrap dated folder names in quotes: `mkdir "$(date +%Y-%m-%d)_my project"`. Without quotes, spaces in the name break the command into multiple arguments. The `"$()"` pattern handles this correctly.
+
+</Callout>
+
+## Common Mistakes
+
+<Callout type="warning" title="Spaces in folder names break without quotes">
+
+`mkdir $(date +%Y-%m-%d)_my project` creates TWO items: a folder and a broken argument. Always wrap in double quotes: `mkdir "$(date +%Y-%m-%d)_my project"`
+
+</Callout>
+
+<Callout type="warning" title="Date format that doesn't sort correctly">
+
+Using MM-DD-YYYY (like 05-13-2026) means folders sort by month, not chronologically. Always use YYYY-MM-DD (ISO 8601) — it sorts correctly in every file manager and `ls` output.
+
+</Callout>
+
+<Callout type="warning" title="The alias doesn't persist after reboot">
+
+Adding an alias in the terminal only lasts for that session. You must add it to `~/.bashrc` (or `~/.zshrc`) AND run `source ~/.bashrc` for it to survive a reboot.
+
+</Callout>
+
+    Get $200 Free →
+
+      View Hosting Plans →
+
+## Frequently Asked Questions
+
+### How do I create a folder with today's date in bash?
+
+Run: `mkdir "$(date +%Y-%m-%d)_project"` — this creates a folder like `2026-05-03_project`. The `$(date +%Y-%m-%d)` part runs the date command and inserts the result directly into the folder name.
+
+### How do I add a timestamp to a folder name in Linux?
+
+Use `date +%Y-%m-%d_%H-%M` inside `$()`: `mkdir "folder_$(date +%Y-%m-%d_%H-%M)"`. This gives you both the date and time in the name, useful when creating multiple folders on the same day.
+
+### What date format is best for folder names?
+
+Use ISO 8601 format: `YYYY-MM-DD`. This sorts correctly in every file manager because the most significant unit (year) comes first. Formats like `MM-DD-YYYY` sort incorrectly by month rather than year.
+
+    Try the Generator →
+    Browse All Tools

@@ -1,0 +1,1801 @@
+<style>
+    /* ============================================================
+       BASE RESET & CSS VARIABLES
+       ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0d1117;
+      --bg2:         #161b22;
+      --bg3:         #1c2128;
+      --border:      #30363d;
+      --green:       #39d353;
+      --green-dim:   #1a4a2e;
+      --amber:       #e3b341;
+      --blue:        #58a6ff;
+      --blue-dim:    #0d2a4a;
+      --muted:       #8b949e;
+      --text:        #e6edf3;
+      --radius:      8px;
+      --mono-font:    'IBM Plex Mono', monospace;
+      --heading-font: 'Syne', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--mono-font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ============================================================
+       NAVIGATION (copied from index.html)
+       ============================================================ */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 8;
+      background: rgba(13,17,23,0.93);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+    nav.nav--hidden {
+      transform: translateY(-100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      nav { transition: none; }
+    }
+
+    .nav-logo {
+      font-family: var(--heading-font);
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--green);
+      letter-spacing: -0.5px;
+      text-decoration: none;
+    }
+    .nav-logo span { color: var(--muted); }
+
+    .nav-links { display: flex; gap: 20px; list-style: none; }
+    .nav-links a {
+      font-size: 13px;
+      color: var(--muted);
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .nav-links a.active { color: var(--green); }
+
+    /* ============================================================
+       MOBILE NAV (hamburger + drawer)
+       ============================================================ */
+    .nav-mobile-menu {
+      display: none;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 18px;
+      padding: 4px 10px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-family: var(--mono-font);
+      line-height: 1;
+    }
+    .nav-mobile-menu:hover { color: var(--text); border-color: var(--muted); }
+
+    .nav-mobile-drawer {
+      display: none;
+      flex-direction: column;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      gap: 4px;
+      position: sticky;
+      top: 53px;
+      z-index: 7;
+    }
+    .nav-mobile-drawer.open { display: flex; }
+    .nav-mobile-drawer a {
+      font-size: 14px;
+      color: var(--muted);
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      text-decoration: none;
+    }
+    .nav-mobile-drawer a:last-child { border-bottom: none; }
+    .nav-mobile-drawer a:hover { color: var(--text); }
+    .nav-mobile-drawer a.active { color: var(--green); }
+
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .nav-mobile-menu { display: block; }
+    }
+
+    /* ============================================================
+       MAIN LAYOUT
+       ============================================================ */
+    main {
+      max-width: none;
+      margin: 0;
+      padding: 40px 0 80px;
+    }
+
+    /* ============================================================
+       BREADCRUMB
+       ============================================================ */
+    .breadcrumb {
+      font-family: var(--mono-font);
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 32px;
+      max-width: 960px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .breadcrumb a {
+      color: var(--muted);
+    }
+    .breadcrumb a:hover {
+      color: var(--text);
+      text-decoration: none;
+    }
+    .breadcrumb-sep {
+      color: var(--border);
+    }
+
+    /* ============================================================
+       PAGE INTRO
+       ============================================================ */
+    .page-intro {
+      margin-bottom: 40px;
+      max-width: 960px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 0 24px;
+    }
+    .page-intro .intro-label {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--green);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 12px;
+    }
+    .page-intro h1 {
+      font-family: var(--heading-font);
+      font-weight: 800;
+      font-size: 2rem;
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+    .page-intro .intro-subtext {
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 640px;
+      line-height: 1.7;
+    }
+
+    /* ============================================================
+       DECODER LAYOUT
+       ============================================================ */
+    .sc-section-label {
+      display: block;
+      font-family: var(--mono-font);
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .sc-section-label--spaced { margin-top: 20px; }
+
+    #sc-input {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-family: var(--mono-font);
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+    #sc-input::placeholder { color: var(--muted); }
+    #sc-input:focus { border-color: var(--green); }
+
+    .sc-input-helper {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    .sc-pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .sc-pill {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 6px 14px;
+      font-family: var(--mono-font);
+      font-size: 12px;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+    .sc-pill:hover { border-color: var(--muted); }
+    .sc-pill.active {
+      background: var(--green-dim);
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .sc-code-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .sc-code-btn {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 4px;
+      font-family: var(--mono-font);
+      font-size: 12px;
+      text-align: center;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.2s ease, color 0.2s ease;
+    }
+    .sc-code-btn:hover {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .sc-severity-legend {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 12px;
+      font-family: var(--mono-font);
+      font-size: 12px;
+    }
+    .sc-severity-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .sc-severity-label--error { color: #f85149; }
+    .sc-severity-label--warning { color: var(--amber); }
+    .sc-severity-label--info { color: var(--blue); }
+    .sc-severity-label--style { color: var(--muted); }
+    .sc-severity-sep { color: var(--border); }
+
+    .sc-input-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .sc-input-wrap {
+      position: relative;
+      flex: 1;
+    }
+    .sc-input-wrap #sc-input {
+      width: 100%;
+      padding-right: 36px;
+    }
+    #sc-input-clear {
+      display: none;
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1;
+      padding: 4px 6px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-family: var(--mono-font);
+    }
+    #sc-input-clear:hover { color: var(--text); }
+    #sc-input-clear.visible { display: block; }
+
+    .intro-stat {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 12px;
+    }
+
+    .sc-code-btn[hidden] { display: none !important; }
+
+    /* ============================================================
+       RESULT PANEL
+       ============================================================ */
+    #result-empty,
+    #result-not-found {
+      text-align: center;
+      padding: 48px 24px;
+      min-height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #result-empty[hidden],
+    #result-not-found[hidden],
+    #result-card[hidden] { display: none !important; }
+
+    .result-empty-msg {
+      font-family: var(--mono-font);
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    @keyframes cursor-blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+    .cursor-blink {
+      display: inline-block;
+      animation: cursor-blink 1s step-end infinite;
+      color: var(--green);
+    }
+
+    #result-not-found p {
+      font-family: var(--mono-font);
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    #result-not-found a { color: var(--blue); }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    #result-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+    #result-card.result-card--enter {
+      animation: slideUp 0.25s ease-out;
+    }
+
+    .compare-blocks pre mark {
+      padding: 0 2px;
+    }
+    mark.hl-before {
+      background: rgba(248, 81, 73, 0.15);
+      border-radius: 3px;
+    }
+    mark.hl-after {
+      background: rgba(57, 211, 83, 0.15);
+      border-radius: 3px;
+    }
+
+    .not-found-secondary {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 12px;
+    }
+
+    .result-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    #result-code {
+      font-family: var(--mono-font);
+      font-weight: 700;
+      font-size: 20px;
+      color: var(--green);
+    }
+
+    .severity-badge {
+      display: inline-block;
+      font-family: var(--mono-font);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-radius: 12px;
+      padding: 3px 10px;
+      border: 1px solid transparent;
+      flex-shrink: 0;
+    }
+    .severity-badge--error {
+      color: #f85149;
+      background: rgba(248, 81, 73, 0.15);
+      border-color: rgba(248, 81, 73, 0.35);
+    }
+    .severity-badge--warning {
+      color: var(--amber);
+      background: rgba(227, 179, 65, 0.15);
+      border-color: rgba(227, 179, 65, 0.35);
+    }
+    .severity-badge--info {
+      color: var(--blue);
+      background: rgba(88, 166, 255, 0.15);
+      border-color: rgba(88, 166, 255, 0.35);
+    }
+    .severity-badge--style {
+      color: var(--muted);
+      background: rgba(139, 148, 158, 0.15);
+      border-color: rgba(139, 148, 158, 0.35);
+    }
+
+    #result-category {
+      font-family: var(--mono-font);
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 8px;
+    }
+
+    #result-title {
+      font-family: var(--heading-font);
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text);
+      margin-top: 4px;
+    }
+
+    #result-explanation {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text);
+      margin-top: 12px;
+    }
+
+    .compare-blocks {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .compare-label {
+      font-family: var(--mono-font);
+      font-size: 11px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .compare-label--before { color: #f85149; }
+    .compare-label--after { color: var(--green); }
+
+    .compare-blocks pre {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      font-family: var(--mono-font);
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text);
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+    }
+
+    .hl-comment { color: var(--muted); font-style: italic; }
+    .hl-string { color: var(--amber); }
+    .hl-var { color: var(--green); }
+    .hl-kw { color: var(--blue); }
+
+    .suppress-section { margin-top: 24px; }
+    .suppress-row {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .suppress-row pre {
+      flex: 1;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      font-family: var(--mono-font);
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text);
+      margin: 0;
+      overflow-x: auto;
+    }
+    .suppress-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    #result-wiki {
+      display: inline-block;
+      margin-top: 20px;
+      font-family: var(--mono-font);
+      font-size: 13px;
+      color: var(--blue);
+    }
+    #result-wiki:hover { text-decoration: underline; }
+
+    .result-copy-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .sc-copy-btn {
+      flex: 1;
+      min-width: 200px;
+      background: var(--green);
+      color: var(--bg);
+      border: none;
+      border-radius: 6px;
+      padding: 12px 24px;
+      font: 700 14px var(--heading-font);
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
+    }
+    .sc-copy-btn:hover {
+      background: var(--green-dim);
+      transform: translateY(-1px);
+    }
+    .sc-copy-btn:active { transform: translateY(0); }
+    .sc-copy-btn:focus-visible {
+      outline: 2px solid var(--green);
+      outline-offset: 2px;
+    }
+
+    #decoder-wrap {
+      display: flex;
+      gap: 24px;
+      max-width: 1100px;
+      margin: 32px auto;
+      padding: 0 24px;
+      align-items: flex-start;
+    }
+    #search-panel {
+      width: 340px;
+      flex-shrink: 0;
+    }
+    #result-panel {
+      flex: 1;
+      position: sticky;
+      top: 80px;
+    }
+
+    @media (max-width: 768px) {
+      #decoder-wrap { flex-direction: column; }
+      #search-panel { width: 100%; }
+      #result-panel { position: static; }
+      .compare-blocks { grid-template-columns: 1fr; }
+      .result-copy-row { flex-direction: column; }
+      .sc-copy-btn { width: 100%; min-width: 0; }
+      .suppress-row { flex-direction: column; }
+    }
+
+    @media (max-width: 480px) {
+      .sc-code-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .cursor-blink { animation: none; }
+      .sc-copy-btn { transition: none; }
+      .sc-copy-btn:hover { transform: none; }
+      #result-card.result-card--enter { animation: none; }
+    }
+
+    /* ============================================================
+       FAQ SECTION
+       ============================================================ */
+    .faq-section {
+      max-width: 960px;
+      margin: 0 auto 32px;
+      padding: 0 24px;
+    }
+    .faq-section h2 {
+      font-family: var(--heading-font);
+      font-weight: 800;
+      font-size: 1.3rem;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+    .faq-list {
+      display: grid;
+      gap: 4px;
+    }
+    .faq-list details {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .faq-list summary {
+      font-family: var(--mono-font);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      padding: 16px 20px;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .faq-list summary::-webkit-details-marker { display: none; }
+    .faq-list summary::marker { display: none; }
+    .faq-list summary:hover { background: var(--bg3); }
+    .faq-list summary .faq-icon {
+      color: var(--muted);
+      font-size: 18px;
+      flex-shrink: 0;
+      font-weight: 400;
+    }
+    .faq-list details p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin: 0;
+      padding: 0 20px 16px;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+    .faq-list details p code {
+      background: var(--bg3);
+      color: var(--green);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    /* ============================================================
+       SEO PROSE & CODES GLANCE GRID
+       ============================================================ */
+    .sc-prose-section p {
+      margin-bottom: 16px;
+    }
+    .sc-prose-section p:last-child {
+      margin-bottom: 0;
+    }
+    .sc-prose-section code {
+      background: var(--bg3);
+      color: var(--green);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .sc-codes-glance {
+      display: grid;
+      gap: 4px;
+      margin-top: 8px;
+    }
+    .sc-codes-glance-header,
+    .sc-codes-row {
+      display: grid;
+      grid-template-columns: 100px 90px 1fr;
+      gap: 4px;
+    }
+    .sc-codes-glance-header span {
+      font-family: var(--mono-font);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      padding: 8px 14px;
+    }
+    .sc-codes-row {
+      border: none;
+      background: none;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
+      text-align: left;
+      font-family: var(--mono-font);
+      font-size: 13px;
+      color: var(--text);
+      width: 100%;
+    }
+    .sc-codes-row span {
+      background: var(--bg2);
+      padding: 12px 14px;
+      line-height: 1.5;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    .sc-codes-row:hover span,
+    .sc-codes-row:focus-visible span {
+      background: var(--bg3);
+    }
+    .sc-codes-row:hover span:first-child,
+    .sc-codes-row:focus-visible span:first-child {
+      color: var(--green);
+    }
+    .sc-codes-row:focus-visible {
+      outline: none;
+    }
+    .sc-codes-row:focus-visible span:first-child {
+      box-shadow: inset 0 0 0 2px var(--green);
+    }
+    .sc-codes-sev--info { color: var(--blue); }
+    .sc-codes-sev--warning { color: var(--amber); }
+    .sc-codes-sev--style { color: var(--muted); }
+
+    @media (max-width: 560px) {
+      .sc-codes-glance-header,
+      .sc-codes-row {
+        grid-template-columns: 80px 72px 1fr;
+      }
+      .sc-codes-glance-header span,
+      .sc-codes-row span {
+        padding: 10px 10px;
+        font-size: 12px;
+      }
+    }
+  </style>
+
+  <main>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">BashSnippets</a>
+      <span class="breadcrumb-sep">/</span>
+      <a href="/tools/">Tools</a>
+      <span class="breadcrumb-sep">/</span>
+      <span>ShellCheck Error Decoder</span>
+    </div>
+
+    <!-- Page intro -->
+    <div class="page-intro">
+      <div class="intro-label">FREE TOOL</div>
+      <h1>ShellCheck Error Decoder & Fixer</h1>
+      <p class="intro-subtext">See SC2086 in your editor and don't know what it means? Type the code, get the fix. No wiki deep-dives required.</p>
+      <p class="intro-stat"><span id="code-count" style="color:var(--green);font-weight:600;">30</span> error codes decoded • Updated May 2026</p>
+    </div>
+
+    <div id="decoder-wrap">
+      <div id="search-panel">
+
+        <!-- Section 1: Search input -->
+        <label class="sc-section-label" for="sc-input">// search by code or paste output</label>
+        <div class="sc-input-row">
+          <div class="sc-input-wrap">
+            <input type="text" id="sc-input" placeholder="SC2086 or paste ShellCheck output" autocomplete="off">
+            <button type="button" id="sc-input-clear" aria-label="Clear input" title="Clear">×</button>
+          </div>
+          <kbd style="font-size:10px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;color:var(--muted);margin-left:8px;">/</kbd>
+        </div>
+        <p class="sc-input-helper">Accepts SC codes, numbers, or pasted ShellCheck messages</p>
+
+        <div id="multi-detect" style="display:none;margin-top:8px;">
+          <div style="font-size:11px;color:var(--amber);margin-bottom:6px;">⚡ Multiple codes detected — click one to decode:</div>
+          <div id="multi-pills" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        </div>
+
+        <!-- Section 2: Category filter pills -->
+        <div class="sc-section-label sc-section-label--spaced">// filter by category</div>
+        <div class="sc-pill-row" id="category-pills" role="group" aria-label="Filter by category">
+          <button type="button" class="sc-pill active" data-category="All">All</button>
+          <button type="button" class="sc-pill" data-category="Quoting">Quoting</button>
+          <button type="button" class="sc-pill" data-category="Variables">Variables</button>
+          <button type="button" class="sc-pill" data-category="Logic">Logic</button>
+          <button type="button" class="sc-pill" data-category="Style">Style</button>
+          <button type="button" class="sc-pill" data-category="Portability">Portability</button>
+        </div>
+
+        <!-- Section 3: Quick-access code grid -->
+        <div class="sc-section-label sc-section-label--spaced">// most common codes</div>
+        <div class="sc-code-grid" id="quick-codes">
+          <button type="button" class="sc-code-btn" data-code="SC2086" data-category="Quoting">SC2086</button>
+          <button type="button" class="sc-code-btn" data-code="SC2034" data-category="Variables">SC2034</button>
+          <button type="button" class="sc-code-btn" data-code="SC2046" data-category="Quoting">SC2046</button>
+          <button type="button" class="sc-code-btn" data-code="SC2155" data-category="Variables">SC2155</button>
+          <button type="button" class="sc-code-btn" data-code="SC2154" data-category="Variables">SC2154</button>
+          <button type="button" class="sc-code-btn" data-code="SC2164" data-category="Logic">SC2164</button>
+          <button type="button" class="sc-code-btn" data-code="SC2006" data-category="Style">SC2006</button>
+          <button type="button" class="sc-code-btn" data-code="SC2115" data-category="Logic">SC2115</button>
+          <button type="button" class="sc-code-btn" data-code="SC2162" data-category="Style">SC2162</button>
+          <button type="button" class="sc-code-btn" data-code="SC2016" data-category="Quoting">SC2016</button>
+          <button type="button" class="sc-code-btn" data-code="SC2035" data-category="Quoting">SC2035</button>
+          <button type="button" class="sc-code-btn" data-code="SC2044" data-category="Logic">SC2044</button>
+          <button type="button" class="sc-code-btn" data-code="SC2236" data-category="Style">SC2236</button>
+          <button type="button" class="sc-code-btn" data-code="SC2181" data-category="Style">SC2181</button>
+          <button type="button" class="sc-code-btn" data-code="SC2002" data-category="Style">SC2002</button>
+        </div>
+
+        <!-- Section 4: Severity legend -->
+        <div class="sc-section-label sc-section-label--spaced">// severity levels</div>
+        <div class="sc-severity-legend">
+          <span class="sc-severity-item">
+            <span aria-hidden="true">🔴</span>
+            <span class="sc-severity-label--error">error</span>
+          </span>
+          <span class="sc-severity-sep" aria-hidden="true">·</span>
+          <span class="sc-severity-item">
+            <span aria-hidden="true">🟡</span>
+            <span class="sc-severity-label--warning">warning</span>
+          </span>
+          <span class="sc-severity-sep" aria-hidden="true">·</span>
+          <span class="sc-severity-item">
+            <span aria-hidden="true">🔵</span>
+            <span class="sc-severity-label--info">info</span>
+          </span>
+          <span class="sc-severity-sep" aria-hidden="true">·</span>
+          <span class="sc-severity-item">
+            <span aria-hidden="true">⚪</span>
+            <span class="sc-severity-label--style">style</span>
+          </span>
+        </div>
+
+      </div>
+      <div id="result-panel">
+
+        <div id="result-empty">
+          <p class="result-empty-msg">← Type an SC code or click one from the list<span class="cursor-blink">_</span></p>
+        </div>
+
+        <div id="result-not-found" hidden>
+          <p id="not-found-msg"></p>
+          <p><a id="not-found-wiki" href="https://www.shellcheck.net/wiki/" target="_blank" rel="noopener">Check the ShellCheck wiki →</a></p>
+          <p class="not-found-secondary">We add new codes regularly. Got one you need? <a href="/contact.html">Email us.</a></p>
+        </div>
+        <div id="result-card" hidden>
+          <div class="result-topbar">
+            <span id="result-code"></span>
+            <span id="result-severity" class="severity-badge"></span>
+          </div>
+          <div id="result-category"></div>
+          <div id="result-title"></div>
+          <p id="result-explanation"></p>
+
+          <div class="compare-blocks">
+            <div class="compare-col">
+              <div class="compare-label compare-label--before">❌ Before</div>
+              <pre id="result-before"></pre>
+            </div>
+            <div class="compare-col">
+              <div class="compare-label compare-label--after">✅ After</div>
+              <pre id="result-after"></pre>
+            </div>
+          </div>
+
+          <div class="suppress-section">
+            <div class="sc-section-label">// suppress this warning</div>
+            <div class="suppress-row">
+              <pre id="result-disable"></pre>
+            </div>
+            <p class="suppress-note">Add this comment on the line above the flagged command</p>
+          </div>
+
+          <a id="result-wiki" href="#" target="_blank" rel="noopener">Read full wiki entry →</a>
+          <div class="result-copy-row">
+            <button type="button" id="copy-fix-btn" class="sc-copy-btn">⧉ Copy Fixed Code</button>
+            <button type="button" id="copy-disable-btn" class="sc-copy-btn">⧉ Copy Disable Directive</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- BLOCK 0 — Pro tip callout -->
+    <div style="max-width:960px;margin:24px auto;padding:0 24px;">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:8px;padding:16px 20px;font-size:13px;line-height:1.7;">
+        💡 <strong>Pro tip:</strong> Run <code style="background:var(--bg3);padding:2px 6px;border-radius:4px;">shellcheck --severity=warning myscript.sh</code> to skip style/info checks and focus on real bugs first. Add <code style="background:var(--bg3);padding:2px 6px;border-radius:4px;"># shellcheck disable=SC2086</code> above a line to suppress that specific check only.
+      </div>
+    </div>
+
+    <!-- BLOCK 1 — AdSense ad slot -->
+    <div style="max-width:960px;margin:40px auto;padding:0 24px;">
+      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5399156622542127"
+        data-ad-slot="AUTO" data-ad-format="auto" data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+
+    <!-- BLOCK 2 — DigitalOcean affiliate box -->
+    <div style="max-width:960px;margin:0 auto 32px;padding:0 24px;">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:8px;padding:20px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:11px;color:var(--blue);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Recommended Hosting</div>
+          <div style="font-family:var(--heading-font);font-weight:700;font-size:15px;color:var(--text);margin-bottom:4px;">Run ShellCheck in CI on a $4/mo DigitalOcean Droplet</div>
+          <div style="font-size:13px;color:var(--muted);">Spin up a Linux VPS and add shellcheck to your deployment pipeline. Catch script bugs before they hit production.</div>
+        </div>
+        <a href="https://www.digitalocean.com/?refcode=7a196437764c" target="_blank" rel="noopener sponsored"
+          style="background:var(--blue);color:#0d1117;font-family:var(--mono-font);font-weight:600;font-size:13px;padding:10px 20px;border-radius:6px;text-decoration:none;white-space:nowrap;">Get $200 Free Credit →</a>
+      </div>
+    </div>
+
+    <!-- BLOCK 3 — Namecheap affiliate box -->
+    <div style="max-width:960px;margin:0 auto 32px;padding:0 24px;">
+      <div class="affiliate-box" style="background:var(--bg2);border:1px solid #d85121;border-radius:8px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div class="affiliate-box-text" style="font-size:13px;color:var(--muted);">
+          <strong style="color:var(--text);display:block;margin-bottom:4px;font-size:14px;">Deploying scripts to production? Get a domain.</strong>
+          Namecheap domains from $1.98/yr. Free WhoisGuard privacy included. Point it at your GitHub Pages or VPS in minutes.
+        </div>
+        <a class="btn-affiliate"
+           href="https://namecheap.pxf.io/c/7260430/1632743/5618"
+           target="_blank"
+           rel="noopener sponsored"
+           style="display:inline-block;background:#d85121;color:#fff;font-family:var(--mono-font);font-weight:600;font-size:13px;padding:10px 18px;border-radius:6px;text-decoration:none;white-space:nowrap;">
+          View Hosting Plans →
+        </a>
+      </div>
+    </div>
+
+    <!-- SEO PROSE — Understanding ShellCheck Error Codes -->
+    <section class="sc-prose-section" style="max-width:960px;margin:0 auto;padding:0 24px 40px;">
+      <h2 style="font-family:var(--heading-font);font-weight:800;font-size:1.3rem;margin-bottom:16px;">Understanding ShellCheck Error Codes</h2>
+      <div style="font-size:14px;color:var(--text);line-height:1.8;">
+        <p>Every ShellCheck finding follows the same format: <strong>SC</strong> plus a <strong>four-digit number</strong>. The prefix tells you what category you are in — <code>SC1xxx</code> for parser errors and sourcing issues, <code>SC2xxx</code> for runtime warnings and semantic problems, and <code>SC3xxx</code> for shell-specific quirks. <strong>Severity</strong> runs from <strong>error</strong> (will break at runtime) through <strong>warning</strong> and <strong>info</strong> down to <strong>style</strong> (correct but could be cleaner). An error on line 42 means fix it before shipping; a style note means your script works but reads like it was written in 2004.</p>
+        <p>The single most common code is <code>SC2086</code> — unquoted variables. It accounts for more ShellCheck output than the next four codes combined. Most <code>SC2xxx</code> warnings trace back to one pattern: bash does something unexpected with unquoted strings — word-splitting filenames, expanding globs, or turning empty paths into <code>/</code>. That is how a blank <code>DIR</code> variable becomes <code>rm -rf /</code> and deletes your server. Quote your variables, quote your command substitutions (<code>$()</code>), and half your ShellCheck output disappears overnight.</p>
+      </div>
+    </section>
+
+    <!-- SEO PROSE — Common ShellCheck Codes at a Glance -->
+    <section class="sc-prose-section" style="max-width:960px;margin:0 auto;padding:0 24px 40px;">
+      <h2 style="font-family:var(--heading-font);font-weight:800;font-size:1.3rem;margin-bottom:16px;">Common ShellCheck Codes at a Glance</h2>
+      <p style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:12px;">Click any code to jump to the decoder and see the full fix.</p>
+      <div class="sc-codes-glance" role="table" aria-label="Top 10 ShellCheck error codes">
+        <div class="sc-codes-glance-header" role="row">
+          <span role="columnheader">Code</span>
+          <span role="columnheader">Severity</span>
+          <span role="columnheader">Meaning</span>
+        </div>
+        <button type="button" class="sc-codes-row" data-code="SC2086" role="row" aria-label="SC2086 info — Double quote to prevent globbing">
+          <span role="cell">SC2086</span>
+          <span class="sc-codes-sev--info" role="cell">info</span>
+          <span role="cell">Double quote to prevent globbing</span>
+        </button>
+        <button type="button" class="sc-codes-row" data-code="SC2034" role="row" aria-label="SC2034 warning — Variable appears unused">
+          <span role="cell">SC2034</span>
+          <span class="sc-codes-sev--warning" role="cell">warning</span>
+          <span role="cell">Variable appears unused</span>
+        </button>
+        <button type="button" class="sc-codes-row" data-code="SC2046" role="row" aria-label="SC2046 warning — Quote this to prevent word splitting">
+          <span role="cell">SC2046</span>
+          <span class="sc-codes-sev--warning" role="cell">warning</span>
+          <span role="cell">Quote this to prevent word splitting</span>
+        </button>
+        <button type="button" class="sc-codes-row" data-code="SC2155" role="row" aria-label="SC2155 warning — Declare and assign separately">
+          <span role="cell">SC2155</span>
+          <span class="sc-codes-sev--warning" role="cell">warning</span>
+          <span role="cell">Declare and assign separately</span>
+        </button>
+        <button type="button" class="sc-codes-row" data-code="SC2154" role="row" aria-label="SC2154 warning — Variable referenced but not assigned">
+          <span role="cell">SC2154</span>
+          <span class="sc-codes-sev--warning" role="cell">warning</span>
+          <span role="cell">Variable referenced but not assigned</span>
+        </button>
+        <button type="button" class="sc-codes-row" data-code="SC2164" role="row" aria-label="SC2164 warning — Use cd ... || exit in case cd fails">
+          <span role="cell">SC2164</span>
+          <span class="sc-codes-sev--warning" role="cell">warning</span>
+          <span role="cell">Use cd ... || exit in case cd fails</span>
+        </button>
+        <button type="button" class="sc-codes-row" data-code="SC2006" role="row" aria-label="SC2006 style — Use $() instead of backticks">
+          <span role="cell">SC2006</span>
+          <span class="sc-codes-sev--style" role="cell">style</span>
+          <span role="cell">Use $() instead of backticks</span>
+        </button>
+        <button type="button" class="sc-codes-row" data-code="SC2115" role="row" aria-label="SC2115 warning — Ensure this never expands to /*">
+          <span role="cell">SC2115</span>
+          <span class="sc-codes-sev--warning" role="cell">warning</span>
+          <span role="cell">Ensure this never expands to /*</span>
+        </button>
+        <button type="button" class="sc-codes-row" data-code="SC2162" role="row" aria-label="SC2162 info — read without -r mangles backslashes">
+          <span role="cell">SC2162</span>
+          <span class="sc-codes-sev--info" role="cell">info</span>
+          <span role="cell">read without -r mangles backslashes</span>
+        </button>
+        <button type="button" class="sc-codes-row" data-code="SC2016" role="row" aria-label="SC2016 info — Expressions don't expand in single quotes">
+          <span role="cell">SC2016</span>
+          <span class="sc-codes-sev--info" role="cell">info</span>
+          <span role="cell">Expressions don't expand in single quotes</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- FAQ SECTION -->
+    <section class="faq-section" id="faq">
+      <h2>Frequently Asked Questions</h2>
+      <div class="faq-list">
+
+        <details>
+          <summary>What does ShellCheck SC2086 mean?<span class="faq-icon" aria-hidden="true">+</span></summary>
+          <p>SC2086 means "Double quote to prevent globbing and word splitting." When you use an unquoted variable like <code>$file</code>, bash splits it on spaces and expands globs. Fix it by wrapping in double quotes: <code>"$file"</code>.</p>
+        </details>
+
+        <details>
+          <summary>How do I fix ShellCheck SC2046?<span class="faq-icon" aria-hidden="true">+</span></summary>
+          <p>SC2046 fires when a command substitution is unquoted. Wrap it in double quotes: instead of <code>rm $(find . -name '*.tmp')</code>, use a while read loop with <code>find -print0</code> to safely handle filenames with spaces.</p>
+        </details>
+
+        <details>
+          <summary>How do I disable a ShellCheck warning?<span class="faq-icon" aria-hidden="true">+</span></summary>
+          <p>Add a comment directive above the flagged line: <code># shellcheck disable=SC2086</code>. This suppresses that specific check for the next command only. You can also pass <code>--exclude=SC2086</code> on the command line to skip it globally.</p>
+        </details>
+
+        <details>
+          <summary>What is the difference between ShellCheck error, warning, info, and style?<span class="faq-icon" aria-hidden="true">+</span></summary>
+          <p>Error means the code will definitely fail or produce wrong results. Warning means it will likely cause problems in certain cases. Info highlights potential issues worth reviewing. Style suggests cleaner alternatives that don't affect correctness.</p>
+        </details>
+
+        <details>
+          <summary>How do I install ShellCheck on Linux?<span class="faq-icon" aria-hidden="true">+</span></summary>
+          <p>On Ubuntu/Debian: <code>sudo apt install shellcheck</code>. On Fedora: <code>sudo dnf install shellcheck</code>. On macOS: <code>brew install shellcheck</code>. You can also use it online at shellcheck.net or integrate it into VS Code, Vim, and most CI systems.</p>
+        </details>
+
+        <details>
+          <summary>What are the most common ShellCheck warnings?<span class="faq-icon" aria-hidden="true">+</span></summary>
+          <p>The top 5 most frequent ShellCheck codes are SC2086 (unquoted variable), SC2034 (unused variable), SC2046 (unquoted command substitution), SC2155 (declare and assign separately), and SC2154 (referenced but unassigned variable). SC2086 alone accounts for more warnings than the next four combined.</p>
+        </details>
+
+      </div>
+    </section>
+
+    <!-- BLOCK 4 — Explore More Snippets CTA -->
+    <div style="max-width:960px;margin:0 auto;padding:0 24px;">
+      <div class="explore-snippets-cta" style="border:1px solid var(--blue);background:var(--blue-dim);border-radius:8px;padding:16px 20px;margin:24px 0;">
+        <p style="color:var(--blue);font-family:var(--mono-font);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px;">
+          📋 Copy-Paste Snippets
+        </p>
+        <p style="color:var(--text);font-size:14px;margin:0 0 12px;line-height:1.5;">
+          All snippets are free, beginner-friendly, and production-tested.
+          Find a script for your exact use case.
+        </p>
+        <a href="/snippets/" style="display:inline-block;background:var(--blue);color:#0d1117;font-family:var(--mono-font);font-size:13px;font-weight:600;padding:8px 16px;border-radius:6px;text-decoration:none;">
+          Browse All Snippets →
+        </a>
+      </div>
+    </div>
+
+    <!-- BLOCK 5 — Related content section -->
+    <section style="max-width:960px;margin:0 auto;padding:0 24px 60px;">
+      <style>
+        .sc-related-card {
+          display: block;
+          background: var(--bg2);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 16px;
+          text-decoration: none;
+          transition: border-color 0.2s ease;
+        }
+        .sc-related-card:hover { border-color: var(--green); text-decoration: none; }
+      </style>
+      <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Related tools &amp; scripts</div>
+      <div style="font-family:var(--heading-font);font-weight:800;font-size:1.3rem;margin-bottom:20px;">Fix more script issues</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">
+        <a href="/snippets/bash-error-handling.html" class="sc-related-card">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">intermediate · best practice</div>
+          <div style="font-family:var(--heading-font);font-weight:700;font-size:14px;color:var(--text);margin-top:8px;">Bash Error Handling</div>
+        </a>
+        <a href="/tools/bash-exit-code-lookup.html" class="sc-related-card">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">free tool</div>
+          <div style="font-family:var(--heading-font);font-weight:700;font-size:14px;color:var(--text);margin-top:8px;">Bash Exit Code Lookup</div>
+        </a>
+        <a href="/tools/bash-boilerplate-generator.html" class="sc-related-card">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;">free tool</div>
+          <div style="font-family:var(--heading-font);font-weight:700;font-size:14px;color:var(--text);margin-top:8px;">Bash Boilerplate Generator</div>
+        </a>
+      </div>
+    </section>
+
+    <script>
+    (function () {
+      var SC_DATABASE = {
+        SC2086: {
+          code: 'SC2086', severity: 'info', category: 'Quoting',
+          title: 'Double quote to prevent globbing and word splitting',
+          explanation: 'Unquoted variables are word-split and glob-expanded by the shell. Wrap them in double quotes so spaces and wildcards in the value are preserved.',
+          before: 'rm $file',
+          after: 'rm "$file"'
+        },
+        SC2034: {
+          code: 'SC2034', severity: 'warning', category: 'Variables',
+          title: 'Variable appears unused',
+          explanation: 'ShellCheck sees a variable assignment that is never read. Export it, use it later, or remove it if it is dead code.',
+          before: 'MY_VAR="hello"',
+          after: 'export MY_VAR\necho "$MY_VAR"'
+        },
+        SC2046: {
+          code: 'SC2046', severity: 'warning', category: 'Quoting',
+          title: 'Quote this to prevent word splitting',
+          explanation: 'Command substitution output is split into separate words when unquoted. Quote it or use a safer pattern like find or a loop with read.',
+          before: 'files=$(ls *.txt)\nrm $files',
+          after: 'rm -- *.txt  # or use find'
+        },
+        SC2155: {
+          code: 'SC2155', severity: 'warning', category: 'Variables',
+          title: 'Declare and assign separately to avoid masking return values',
+          explanation: 'Combining local/var declaration with command substitution hides the exit status of the command. Declare first, then assign on the next line.',
+          before: 'local var=$(command)',
+          after: 'local var\nvar=$(command)'
+        },
+        SC2154: {
+          code: 'SC2154', severity: 'warning', category: 'Variables',
+          title: 'Variable is referenced but not assigned',
+          explanation: 'The script uses a variable that was never set in this scope. Assign a default value or ensure it is exported from a parent shell.',
+          before: 'echo "$UNSET_VAR"',
+          after: 'UNSET_VAR="default"\necho "$UNSET_VAR"'
+        },
+        SC2164: {
+          code: 'SC2164', severity: 'warning', category: 'Logic',
+          title: 'Use cd ... || exit in case cd fails',
+          explanation: 'If cd fails, the script keeps running in the wrong directory. Add || exit so a failed cd stops execution immediately.',
+          before: 'cd /some/dir',
+          after: 'cd /some/dir || exit 1'
+        },
+        SC2006: {
+          code: 'SC2006', severity: 'style', category: 'Style',
+          title: 'Use $(...) notation instead of legacy backticks',
+          explanation: 'Backticks are hard to nest and easy to misread. Modern $(...) command substitution is clearer and safer to compose.',
+          before: 'files=`ls`',
+          after: 'files=$(ls)'
+        },
+        SC2115: {
+          code: 'SC2115', severity: 'warning', category: 'Logic',
+          title: 'Use "${var:?}" to ensure this never expands to /*',
+          explanation: 'An empty variable in a path like "/$DIR/" becomes "/" and can wipe the whole filesystem. Use ${var:?} to abort if the variable is unset or empty.',
+          before: 'rm -rf "/$DIR/"',
+          after: 'rm -rf "/${DIR:?}/"'
+        },
+        SC2162: {
+          code: 'SC2162', severity: 'info', category: 'Style',
+          title: 'read without -r will mangle backslashes',
+          explanation: 'Plain read treats backslashes as escape characters. Use read -r when you need the line exactly as typed, especially for paths and regex.',
+          before: 'read line',
+          after: 'read -r line'
+        },
+        SC2016: {
+          code: 'SC2016', severity: 'info', category: 'Quoting',
+          title: 'Expressions don\'t expand in single quotes',
+          explanation: 'Single quotes preserve every character literally, so $USER stays as the text "$USER". Use double quotes when you want variable expansion.',
+          before: 'echo \'Hello $USER\'',
+          after: 'echo "Hello $USER"'
+        },
+        SC2035: {
+          code: 'SC2035', severity: 'info', category: 'Quoting',
+          title: 'Use ./*glob* or -- *glob* so names with dashes won\'t become options',
+          explanation: 'A filename starting with - can be parsed as a command option. Prefix with ./ or pass -- before the glob so rm treats names as operands.',
+          before: 'rm *.txt',
+          after: 'rm ./*.txt'
+        },
+        SC2044: {
+          code: 'SC2044', severity: 'warning', category: 'Logic',
+          title: 'For loops over find output are fragile',
+          explanation: 'Word splitting and globbing break filenames with spaces or special characters. Pipe find -print0 into a while read loop instead.',
+          before: 'for f in $(find . -name "*.log"); do',
+          after: 'find . -name "*.log" -print0 | while IFS= read -r -d "" f; do'
+        },
+        SC2236: {
+          code: 'SC2236', severity: 'style', category: 'Style',
+          title: 'Use -n instead of ! -z',
+          explanation: 'Testing for a non-empty string with [ -n "$var" ] is clearer and more idiomatic than the double-negative [ ! -z "$var" ].',
+          before: 'if [ ! -z "$var" ]; then',
+          after: 'if [ -n "$var" ]; then'
+        },
+        SC2181: {
+          code: 'SC2181', severity: 'style', category: 'Style',
+          title: 'Check exit code directly with if mycmd, not through $?',
+          explanation: '$? reflects the last command, which may not be the one you checked if anything ran in between. Test the command directly in the if condition.',
+          before: 'mycmd\nif [ $? -eq 0 ]; then',
+          after: 'if mycmd; then'
+        },
+        SC2002: {
+          code: 'SC2002', severity: 'style', category: 'Style',
+          title: 'Useless cat',
+          explanation: 'Piping a file through cat adds a process for no benefit. Pass the filename directly to grep, awk, sed, or whatever tool you are using.',
+          before: 'cat file.txt | grep pattern',
+          after: 'grep pattern file.txt'
+        },
+        SC1091: {
+          code: 'SC1091', severity: 'info', category: 'Portability',
+          title: 'Not following: source was not found',
+          explanation: 'ShellCheck cannot read the sourced file, so it skips analysis inside it. Point ShellCheck at the file with a source= directive or ignore if intentional.',
+          before: 'source somefile',
+          after: '# shellcheck source=somefile\nsource somefile'
+        },
+        SC2001: {
+          code: 'SC2001', severity: 'style', category: 'Style',
+          title: 'See if you can use ${variable//search/replace} instead',
+          explanation: 'Simple sed substitutions in a pipeline can be replaced with bash parameter expansion, avoiding a subshell and extra process.',
+          before: 'echo "$var" | sed "s/foo/bar/g"',
+          after: 'echo "${var//foo/bar}"'
+        },
+        SC2004: {
+          code: 'SC2004', severity: 'style', category: 'Style',
+          title: '$/${} is unnecessary on arithmetic variables',
+          explanation: 'Inside $(( )), variable names do not need $. Using $ can change how the expression is parsed and cause subtle bugs.',
+          before: 'echo $(($n + ${arr[i]}))',
+          after: 'echo $((n + arr[i]))'
+        },
+        SC2009: {
+          code: 'SC2009', severity: 'info', category: 'Style',
+          title: 'Consider using pgrep instead of grepping ps output',
+          explanation: 'Parsing ps with grep is brittle and can match unrelated fields. pgrep finds PIDs by process name in one step when available.',
+          before: 'ps ax | grep -v grep | grep "$service" > /dev/null',
+          after: 'pgrep -f "$service" > /dev/null'
+        },
+        SC2012: {
+          code: 'SC2012', severity: 'info', category: 'Style',
+          title: 'Use find instead of ls to better handle non-alphanumeric filenames',
+          explanation: 'ls output is meant for humans, not scripts, and can mangle or hide odd filenames. Use find or a shell array for reliable file lists.',
+          before: 'NUMGZ="$(ls -l *.gz | wc -l)"',
+          after: 'gz_files=(*.gz)\nnumgz=${#gz_files[@]}'
+        },
+        SC2013: {
+          code: 'SC2013', severity: 'info', category: 'Logic',
+          title: 'To read lines rather than words, pipe/redirect to a while read loop',
+          explanation: 'for x in $(...) splits on words and expands globs, breaking lines with spaces. while IFS= read -r reads one line at a time.',
+          before: 'for line in $(cat file | grep -v \'^ *#\')',
+          after: 'grep -v \'^ *#\' file | while IFS= read -r line'
+        },
+        SC2015: {
+          code: 'SC2015', severity: 'info', category: 'Logic',
+          title: 'Note that A && B || C is not if-then-else. C may run when A is true',
+          explanation: 'If A succeeds but B fails, C still runs. That is not the same as if A then B else C — use a proper if statement for branching.',
+          before: '[[ $dryrun ]] && echo "Would delete file" || rm file',
+          after: 'if [[ $dryrun ]]; then\n  echo "Would delete file"\nelse\n  rm file\nfi'
+        },
+        SC2029: {
+          code: 'SC2029', severity: 'info', category: 'Quoting',
+          title: 'Note that, unescaped, this expands on the client side',
+          explanation: 'Variables inside double-quoted ssh arguments expand locally before the remote shell sees them. Escape $ or use single quotes for remote expansion.',
+          before: 'ssh host "echo $HOSTNAME"',
+          after: 'ssh host \'echo $HOSTNAME\''
+        },
+        SC2043: {
+          code: 'SC2043', severity: 'warning', category: 'Logic',
+          title: 'This loop will only ever run once for a constant value',
+          explanation: 'for var in value iterates over one word, not a directory or command output. Expand a glob, variable, or use while read for multiple items.',
+          before: 'for var in value',
+          after: 'for var in /my/dir/*'
+        },
+        SC2048: {
+          code: 'SC2048', severity: 'warning', category: 'Quoting',
+          title: 'Use "$@" (with quotes) to prevent whitespace problems',
+          explanation: 'Unquoted $* or ${array[*]} word-splits and globs every argument. "$@" and "${array[@]}" preserve each argument as a separate word.',
+          before: 'cp $* ~/dir',
+          after: 'cp "$@" ~/dir'
+        },
+        SC2053: {
+          code: 'SC2053', severity: 'warning', category: 'Quoting',
+          title: 'Quote the rhs of = in [[ ]] to prevent glob matching',
+          explanation: 'An unquoted right-hand side in [[ ]] is treated as a glob pattern, not a literal string. Quote "$b" when comparing two variables.',
+          before: '[[ $a = $b ]]',
+          after: '[[ $a = "$b" ]]'
+        },
+        SC2061: {
+          code: 'SC2061', severity: 'warning', category: 'Quoting',
+          title: 'Quote the parameter to -name so the shell won\'t interpret it',
+          explanation: 'The shell expands *.txt before find runs, so find may only search for one filename. Quote the pattern so find receives the glob itself.',
+          before: 'find . -name *.txt',
+          after: 'find . -name \'*.txt\''
+        },
+        SC2071: {
+          code: 'SC2071', severity: 'error', category: 'Logic',
+          title: '> is for string comparisons. Use -gt instead',
+          explanation: '[[ $var > 10 ]] compares strings lexicographically, so "5" can be "greater" than "10". Use -gt, -ge, -lt, or -le for numeric tests.',
+          before: 'if [[ $var > 10 ]]; then',
+          after: 'if [[ $var -gt 10 ]]; then'
+        },
+        SC2087: {
+          code: 'SC2087', severity: 'info', category: 'Quoting',
+          title: 'Quote EOF to make here document expansions happen on the server side',
+          explanation: 'An unquoted heredoc delimiter expands variables locally before ssh sends the script. Quote EOF so remote commands expand on the server.',
+          before: 'ssh host << EOF\necho "Logged in on $HOSTNAME"\nEOF',
+          after: 'ssh host << "EOF"\necho "Logged in on $HOSTNAME"\nEOF'
+        },
+        SC2088: {
+          code: 'SC2088', severity: 'info', category: 'Quoting',
+          title: 'Tilde does not expand in quotes. Use $HOME',
+          explanation: 'Tilde only expands to your home directory when unquoted. Inside quotes use $HOME or leave ~/ outside the quoted segment.',
+          before: 'rm "~/Desktop/$filename"',
+          after: 'rm "$HOME/Desktop/$filename"'
+        }
+      };
+
+      var codeCount = document.getElementById('code-count');
+      if (codeCount) {
+        codeCount.textContent = Object.keys(SC_DATABASE).length;
+      }
+
+      var KEYWORDS = {
+        if: 1, then: 1, else: 1, elif: 1, fi: 1, for: 1, do: 1, done: 1,
+        while: 1, until: 1, case: 1, esac: 1, in: 1, local: 1, echo: 1,
+        read: 1, return: 1, exit: 1, export: 1, set: 1, shift: 1, function: 1,
+        printf: 1, grep: 1, find: 1, rm: 1, cd: 1, source: 1, cat: 1, test: 1,
+        pgrep: 1, ssh: 1, cp: 1
+      };
+
+      var input = document.getElementById('sc-input');
+      var inputClear = document.getElementById('sc-input-clear');
+      var multiDetect = document.getElementById('multi-detect');
+      var multiPills = document.getElementById('multi-pills');
+      var pills = document.querySelectorAll('#category-pills .sc-pill');
+      var codeBtns = document.querySelectorAll('#quick-codes .sc-code-btn');
+      var resultEmpty = document.getElementById('result-empty');
+      var resultNotFound = document.getElementById('result-not-found');
+      var resultCard = document.getElementById('result-card');
+      var notFoundMsg = document.getElementById('not-found-msg');
+      var notFoundWiki = document.getElementById('not-found-wiki');
+      var resultCode = document.getElementById('result-code');
+      var resultSeverity = document.getElementById('result-severity');
+      var resultCategory = document.getElementById('result-category');
+      var resultTitle = document.getElementById('result-title');
+      var resultExplanation = document.getElementById('result-explanation');
+      var resultBefore = document.getElementById('result-before');
+      var resultAfter = document.getElementById('result-after');
+      var resultDisable = document.getElementById('result-disable');
+      var resultWiki = document.getElementById('result-wiki');
+      var copyFixBtn = document.getElementById('copy-fix-btn');
+      var copyDisableBtn = document.getElementById('copy-disable-btn');
+
+      var currentAfterRaw = '';
+      var currentDisableRaw = '';
+      var suppressHashUpdate = false;
+
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+
+      function highlightBash(code) {
+        var out = '';
+        var i = 0;
+        while (i < code.length) {
+          var ch = code[i];
+
+          if (ch === '#') {
+            var lineEnd = code.indexOf('\n', i);
+            var comment = lineEnd === -1 ? code.slice(i) : code.slice(i, lineEnd);
+            out += '<span class="hl-comment">' + escapeHtml(comment) + '</span>';
+            i += comment.length;
+            continue;
+          }
+
+          if (ch === '"' || ch === "'") {
+            var quote = ch;
+            var j = i + 1;
+            while (j < code.length) {
+              if (code[j] === '\\' && quote === '"') { j += 2; continue; }
+              if (code[j] === quote) { j++; break; }
+              j++;
+            }
+            out += '<span class="hl-string">' + escapeHtml(code.slice(i, j)) + '</span>';
+            i = j;
+            continue;
+          }
+
+          if (ch === '$') {
+            var k = i + 1;
+            if (code[k] === '{') {
+              while (k < code.length && code[k] !== '}') k++;
+              if (k < code.length) k++;
+            } else if (code[k] === '(') {
+              var depth = 1;
+              k++;
+              while (k < code.length && depth > 0) {
+                if (code[k] === '(') depth++;
+                else if (code[k] === ')') depth--;
+                k++;
+              }
+            } else {
+              while (k < code.length && /[A-Za-z0-9_#?*@!-]/.test(code[k])) k++;
+            }
+            out += '<span class="hl-var">' + escapeHtml(code.slice(i, k)) + '</span>';
+            i = k;
+            continue;
+          }
+
+          if (/[A-Za-z_]/.test(ch)) {
+            var w = i;
+            while (w < code.length && /[A-Za-z0-9_]/.test(code[w])) w++;
+            var word = code.slice(i, w);
+            if (KEYWORDS[word]) {
+              out += '<span class="hl-kw">' + escapeHtml(word) + '</span>';
+            } else {
+              out += escapeHtml(word);
+            }
+            i = w;
+            continue;
+          }
+
+          out += escapeHtml(ch);
+          i++;
+        }
+        return out;
+      }
+
+      function highlightLineDiff(line, otherLine, markClass) {
+        if (line === otherLine) return highlightBash(line);
+
+        var pre = 0;
+        while (pre < line.length && pre < otherLine.length && line[pre] === otherLine[pre]) pre++;
+        var endLine = line.length;
+        var endOther = otherLine.length;
+        while (endLine > pre && endOther > pre && line[endLine - 1] === otherLine[endOther - 1]) {
+          endLine--;
+          endOther--;
+        }
+
+        var html = highlightBash(line.slice(0, pre));
+        if (pre < endLine) {
+          html += '<mark class="' + markClass + '">' + highlightBash(line.slice(pre, endLine)) + '</mark>';
+        }
+        html += highlightBash(line.slice(endLine));
+        return html;
+      }
+
+      function renderComparedBlock(code, otherCode, isBefore) {
+        var lines = code.split('\n');
+        var otherLines = otherCode.split('\n');
+        var markClass = isBefore ? 'hl-before' : 'hl-after';
+        return lines.map(function (line, i) {
+          var other = otherLines[i];
+          if (other === undefined) {
+            return '<mark class="' + markClass + '">' + highlightBash(line) + '</mark>';
+          }
+          return highlightLineDiff(line, other, markClass);
+        }).join('\n');
+      }
+
+      function triggerResultAnimation() {
+        resultCard.classList.remove('result-card--enter');
+        void resultCard.offsetWidth;
+        resultCard.classList.add('result-card--enter');
+      }
+
+      function normalizeCode(raw) {
+        if (!raw) return null;
+        var match = String(raw).match(/SC(\d{4})/i);
+        if (match) return 'SC' + match[1];
+        return null;
+      }
+
+      function extractCodes(text) {
+        var found = [];
+        var seen = {};
+        var re = /SC(\d{4})/gi;
+        var m;
+        while ((m = re.exec(text)) !== null) {
+          var code = 'SC' + m[1];
+          if (!seen[code]) {
+            seen[code] = true;
+            found.push(code);
+          }
+        }
+        if (!found.length) {
+          var trimmed = text.trim();
+          if (/^\d{4}$/.test(trimmed)) {
+            found.push('SC' + trimmed);
+          }
+        }
+        return found;
+      }
+
+      function hideMultiDetect() {
+        multiDetect.style.display = 'none';
+        multiPills.innerHTML = '';
+      }
+
+      function showMultiDetect(codes) {
+        multiPills.innerHTML = '';
+        codes.forEach(function (code) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'sc-code-btn';
+          btn.textContent = code;
+          btn.addEventListener('click', function () {
+            input.value = code;
+            displayCode(code);
+          });
+          multiPills.appendChild(btn);
+        });
+        multiDetect.style.display = 'block';
+      }
+
+      function showDefault() {
+        resultEmpty.hidden = false;
+        resultNotFound.hidden = true;
+        resultCard.hidden = true;
+        hideMultiDetect();
+      }
+
+      function showNotFound(code) {
+        resultEmpty.hidden = true;
+        resultNotFound.hidden = false;
+        resultCard.hidden = true;
+        var normalized = code.toUpperCase();
+        notFoundMsg.textContent = normalized + " isn't in our database yet.";
+        notFoundWiki.href = 'https://www.shellcheck.net/wiki/' + normalized;
+      }
+
+      function updateHash(code) {
+        if (suppressHashUpdate) return;
+        var hash = '#' + code;
+        if (window.location.hash !== hash) {
+          if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, '', hash);
+          } else {
+            window.location.hash = hash;
+          }
+        }
+      }
+
+      function showResult(entry) {
+        resultEmpty.hidden = true;
+        resultNotFound.hidden = true;
+        resultCard.hidden = false;
+        triggerResultAnimation();
+
+        resultCode.textContent = entry.code;
+        resultSeverity.textContent = entry.severity;
+        resultSeverity.className = 'severity-badge severity-badge--' + entry.severity;
+        resultCategory.textContent = entry.category.toUpperCase();
+        resultTitle.textContent = entry.title;
+        resultExplanation.textContent = entry.explanation;
+
+        resultBefore.innerHTML = renderComparedBlock(entry.before, entry.after, true);
+        resultAfter.innerHTML = renderComparedBlock(entry.after, entry.before, false);
+
+        currentAfterRaw = entry.after;
+        currentDisableRaw = '# shellcheck disable=' + entry.code;
+        resultDisable.textContent = currentDisableRaw;
+
+        resultWiki.href = 'https://www.shellcheck.net/wiki/' + entry.code;
+        updateHash(entry.code);
+      }
+
+      function displayCode(code) {
+        var entry = SC_DATABASE[code];
+        if (entry) {
+          showResult(entry);
+          hideMultiDetect();
+        } else if (/^SC\d{4}$/i.test(code)) {
+          showNotFound(code);
+        } else {
+          showDefault();
+        }
+      }
+
+      function shellcheckLookup() {
+        var text = input.value.trim();
+        if (!text) {
+          showDefault();
+          if (window.location.hash) {
+            suppressHashUpdate = true;
+            if (window.history && window.history.replaceState) {
+              window.history.replaceState(null, '', window.location.pathname + window.location.search);
+            } else {
+              window.location.hash = '';
+            }
+            suppressHashUpdate = false;
+          }
+          return;
+        }
+
+        var codes = extractCodes(text);
+        if (codes.length === 1) {
+          hideMultiDetect();
+          displayCode(codes[0]);
+          return;
+        }
+
+        if (codes.length > 1) {
+          resultEmpty.hidden = false;
+          resultNotFound.hidden = true;
+          resultCard.hidden = true;
+          showMultiDetect(codes);
+          return;
+        }
+
+        var loneCode = normalizeCode(text);
+        if (loneCode && /^SC\d{4}$/i.test(loneCode) && !SC_DATABASE[loneCode]) {
+          showNotFound(loneCode);
+          hideMultiDetect();
+          return;
+        }
+
+        showDefault();
+        hideMultiDetect();
+      }
+
+      function updateInputClear() {
+        if (inputClear) {
+          inputClear.classList.toggle('visible', input.value.length > 0);
+        }
+      }
+
+      function clearInput() {
+        input.value = '';
+        updateInputClear();
+        shellcheckLookup();
+        input.focus();
+      }
+
+      window.shellcheckLookup = shellcheckLookup;
+
+      function copyText(text, btn) {
+        var originalText = btn.textContent;
+        var originalBg = btn.style.background;
+        var originalColor = btn.style.color;
+
+        function revert() {
+          btn.textContent = originalText;
+          btn.style.background = originalBg;
+          btn.style.color = originalColor;
+        }
+
+        function showSuccess() {
+          btn.textContent = '✓ Copied!';
+          btn.style.background = 'var(--green-dim)';
+          btn.style.color = '';
+          setTimeout(revert, 2000);
+        }
+
+        function showFail() {
+          btn.textContent = 'Copy failed';
+          btn.style.background = '';
+          btn.style.color = '#f85149';
+          setTimeout(revert, 2000);
+        }
+
+        function fallbackCopy() {
+          try {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            var ok = document.execCommand('copy');
+            document.body.removeChild(ta);
+            if (ok) showSuccess();
+            else showFail();
+          } catch (err) {
+            showFail();
+          }
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(showSuccess).catch(fallbackCopy);
+        } else {
+          fallbackCopy();
+        }
+      }
+
+      input.addEventListener('input', function () {
+        updateInputClear();
+        shellcheckLookup();
+      });
+
+      if (inputClear) {
+        inputClear.addEventListener('click', clearInput);
+      }
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key !== '/') return;
+        var tag = document.activeElement && document.activeElement.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement.isContentEditable) return;
+        e.preventDefault();
+        input.focus();
+      });
+
+      pills.forEach(function (pill) {
+        pill.addEventListener('click', function () {
+          pills.forEach(function (p) { p.classList.remove('active'); });
+          pill.classList.add('active');
+          var category = pill.getAttribute('data-category');
+          codeBtns.forEach(function (btn) {
+            if (category === 'All') {
+              btn.hidden = false;
+            } else {
+              btn.hidden = btn.getAttribute('data-category') !== category;
+            }
+          });
+        });
+      });
+
+      function selectCode(code) {
+        var panel = document.getElementById('search-panel');
+        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        input.value = code;
+        updateInputClear();
+        input.focus();
+        shellcheckLookup();
+      }
+
+      codeBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          selectCode(btn.getAttribute('data-code'));
+        });
+      });
+
+      document.querySelectorAll('.sc-codes-row').forEach(function (row) {
+        row.addEventListener('click', function () {
+          selectCode(row.getAttribute('data-code'));
+        });
+      });
+
+      copyFixBtn.addEventListener('click', function () {
+        copyText(currentAfterRaw, copyFixBtn);
+      });
+
+      copyDisableBtn.addEventListener('click', function () {
+        copyText(currentDisableRaw, copyDisableBtn);
+      });
+
+      window.addEventListener('hashchange', function () {
+        var m = window.location.hash.match(/^#SC(\d{4})$/i);
+        if (m) {
+          var code = 'SC' + m[1];
+          input.value = code;
+          updateInputClear();
+          displayCode(code);
+        }
+      });
+
+      (function initFromHash() {
+        var m = window.location.hash.match(/^#SC(\d{4})$/i);
+        if (m) {
+          var code = 'SC' + m[1];
+          input.value = code;
+          updateInputClear();
+          displayCode(code);
+        } else {
+          showDefault();
+        }
+        updateInputClear();
+      })();
+    })();
+    </script>
+
+    <footer style="text-align:center;padding:32px 24px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);">
+      <div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:12px;">
+        <a href="/" style="color:var(--muted);">← BashSnippets</a>
+        <a href="/tools/" style="color:var(--muted);">Tools</a>
+        <a href="/snippets/" style="color:var(--muted);">All Snippets</a>
+        <a href="/about.html" style="color:var(--muted);">About</a>
+        <a href="/privacy.html" style="color:var(--muted);">Privacy</a>
+      </div>
+      <p>© <span id="year"></span> BashSnippets · Built by a Linux user, for Linux users.</p>
+      <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+    </footer>
+
+  </main>

@@ -1,0 +1,734 @@
+<style>
+    /* ============================================================
+       BASE RESET & CSS VARIABLES
+       ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0d1117;
+      --bg2:          #161b22;
+      --bg3:          #21262d;
+      --green:        #39d353;
+      --green-dim:    #1a4a2e;
+      --amber:        #e3b341;
+      --blue:         #58a6ff;
+      --muted:        #8b949e;
+      --text:         #e6edf3;
+      --border:       #30363d;
+      --radius:       8px;
+      --mono-font:    'IBM Plex Mono', monospace;
+      --heading-font: 'Syne', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--mono-font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ============================================================
+       NAVIGATION
+       ============================================================ */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 8;
+      background: rgba(13,17,23,0.93);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+    nav.nav--hidden {
+      transform: translateY(-100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      nav { transition: none; }
+    }
+
+    .nav-logo {
+      font-family: var(--heading-font);
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--green);
+      letter-spacing: -0.5px;
+      text-decoration: none;
+    }
+    .nav-logo span { color: var(--muted); }
+
+    .nav-links { display: flex; gap: 20px; list-style: none; }
+    .nav-links a {
+      font-size: 13px;
+      color: var(--muted);
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .nav-links a.active { color: var(--green); }
+
+    /* ============================================================
+       MOBILE NAV (hamburger + drawer)
+       ============================================================ */
+    .nav-mobile-menu {
+      display: none;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 18px;
+      padding: 4px 10px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-family: var(--mono-font);
+      line-height: 1;
+    }
+    .nav-mobile-menu:hover { color: var(--text); border-color: var(--muted); }
+
+    .nav-mobile-drawer {
+      display: none;
+      flex-direction: column;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      gap: 4px;
+      position: sticky;
+      top: 53px;
+      z-index: 7;
+    }
+    .nav-mobile-drawer.open { display: flex; }
+    .nav-mobile-drawer a {
+      font-size: 14px;
+      color: var(--muted);
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      text-decoration: none;
+    }
+    .nav-mobile-drawer a:last-child { border-bottom: none; }
+    .nav-mobile-drawer a:hover { color: var(--text); }
+
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .nav-mobile-menu { display: block; }
+    }
+
+    /* ============================================================
+       MAIN LAYOUT
+       ============================================================ */
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ============================================================
+       BREADCRUMB
+       ============================================================ */
+    .breadcrumb {
+      font-family: var(--mono-font);
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .breadcrumb a {
+      color: var(--muted);
+    }
+    .breadcrumb a:hover {
+      color: var(--text);
+      text-decoration: none;
+    }
+    .breadcrumb-sep {
+      color: var(--border);
+    }
+
+    /* ============================================================
+       PAGE INTRO
+       ============================================================ */
+    .page-intro {
+      margin-bottom: 40px;
+    }
+    .page-intro .intro-label {
+      display: inline-block;
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid var(--green);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 4px 12px;
+      border-radius: 100px;
+      margin-bottom: 16px;
+    }
+    .page-intro h1 {
+      font-family: var(--heading-font);
+      font-weight: 700;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+    .page-intro .intro-subtext {
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 640px;
+      line-height: 1.7;
+    }
+
+    /* ============================================================
+       TOOL LAYOUT — responsive stacking below 768px
+       ============================================================ */
+    .tool-panels {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+    .tool-input-panel {
+      flex: 0 0 45%;
+      min-width: 280px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+    .tool-output-panel {
+      flex: 1 1 0;
+      min-width: 280px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    @media (max-width: 768px) {
+      .tool-panels { flex-direction: column; }
+      .tool-input-panel,
+      .tool-output-panel { flex: 1 1 100%; min-width: 0; }
+    }
+
+    #path-input:focus {
+      border-color: var(--green) !important;
+      outline: none;
+    }
+  </style>
+
+  <main>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">BashSnippets</a>
+      <span class="breadcrumb-sep">/</span>
+      <a href="/tools/">Tools</a>
+      <span class="breadcrumb-sep">/</span>
+      <span>Bash $PATH Debugger</span>
+    </div>
+
+    <!-- Page intro -->
+    <div class="page-intro">
+      <div class="intro-label">FREE TOOL</div>
+      <h1>Bash $PATH Debugger</h1>
+      <p class="intro-subtext">Paste your $PATH below. Instantly see what's broken, what's duplicated, and get a clean export line.</p>
+    </div>
+
+    <!-- ============================================================
+         TOOL PANELS — input (left) + output (right)
+         ============================================================ -->
+    <div class="tool-panels">
+
+      <!-- INPUT PANEL -->
+      <div class="tool-input-panel">
+
+        <div style="font-family:var(--mono-font);font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">
+          Your $PATH value
+        </div>
+        <div style="font-family:var(--mono-font);font-size:12px;color:var(--muted);margin-bottom:10px;">
+          Run: <code style="color:var(--text);">echo $PATH</code> — then paste the output here
+        </div>
+
+        <textarea
+          id="path-input"
+          placeholder="/usr/local/bin:/usr/bin:/bin:..."
+          style="background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono-font);font-size:13px;border-radius:6px;padding:12px;width:100%;min-height:120px;resize:vertical;outline:none;line-height:1.6;"
+        ></textarea>
+
+        <div style="font-family:var(--mono-font);font-size:12px;color:var(--amber);margin:10px 0 8px;line-height:1.5;">
+          ⚠ "Load My PATH" only works when this page is opened locally in a terminal browser — it cannot read your actual system PATH from a web browser.
+        </div>
+
+        <div style="display:flex;align-items:center;gap:0;flex-wrap:wrap;">
+          <button
+            id="analyze-btn"
+            type="button"
+            style="background:var(--green);color:#0d1117;font-family:var(--mono-font);font-size:13px;font-weight:600;padding:10px 20px;border-radius:6px;border:none;cursor:pointer;transition:opacity 0.2s;"
+            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'"
+          >Analyze PATH →</button>
+          <button
+            id="load-btn"
+            type="button"
+            style="background:var(--bg3);color:var(--text);font-family:var(--mono-font);font-size:13px;padding:10px 20px;border-radius:6px;border:1px solid var(--border);cursor:pointer;margin-left:8px;transition:border-color 0.2s;"
+            onmouseover="this.style.borderColor='var(--muted)'" onmouseout="this.style.borderColor='var(--border)'"
+          >Load My PATH</button>
+        </div>
+
+        <div style="margin-top:14px;font-family:var(--mono-font);font-size:12px;color:var(--muted);">
+          Or try an example:
+          <a
+            href="#"
+            id="example-link"
+            style="color:var(--muted);text-decoration:underline;"
+            onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'"
+          >load example $PATH</a>
+        </div>
+
+      </div>
+      <!-- /INPUT PANEL -->
+
+      <!-- OUTPUT PANEL -->
+      <div class="tool-output-panel" id="output-panel">
+
+        <!-- Placeholder (shown before first analysis) -->
+        <div id="output-placeholder" style="padding:40px 20px;text-align:center;color:var(--muted);font-family:var(--mono-font);font-size:14px;">
+          &larr; Paste your $PATH and click Analyze
+        </div>
+
+        <!-- Results (hidden until analysis runs) -->
+        <div id="output-results" style="display:none;padding:20px;">
+
+          <!-- Inline error -->
+          <div id="path-error" style="display:none;background:#2d1515;border:1px solid #f85149;border-radius:6px;padding:10px 14px;font-family:var(--mono-font);font-size:13px;color:#f85149;margin-bottom:16px;"></div>
+
+          <!-- Summary pills -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+            <span id="stat-total"   style="background:var(--bg3);color:var(--blue);border:1px solid var(--blue);font-family:var(--mono-font);font-size:11px;font-weight:600;padding:4px 12px;border-radius:100px;letter-spacing:.04em;">0 directories</span>
+            <span id="stat-exist"   style="background:#1a4a2e;color:var(--green);border:1px solid var(--green);font-family:var(--mono-font);font-size:11px;font-weight:600;padding:4px 12px;border-radius:100px;letter-spacing:.04em;">0 exist</span>
+            <span id="stat-missing" style="background:#3d2f0d;color:var(--amber);border:1px solid var(--amber);font-family:var(--mono-font);font-size:11px;font-weight:600;padding:4px 12px;border-radius:100px;letter-spacing:.04em;">0 missing</span>
+            <span id="stat-dupes"   style="background:var(--bg3);color:var(--muted);border:1px solid var(--border);font-family:var(--mono-font);font-size:11px;font-weight:600;padding:4px 12px;border-radius:100px;letter-spacing:.04em;">0 duplicates</span>
+          </div>
+
+          <!-- Results table -->
+          <div style="overflow-x:auto;margin-bottom:24px;border:1px solid var(--border);border-radius:var(--radius);">
+            <table style="width:100%;border-collapse:collapse;">
+              <thead>
+                <tr style="border-bottom:1px solid var(--border);background:var(--bg3);">
+                  <th style="text-align:left;padding:10px 14px;font-family:var(--mono-font);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Directory</th>
+                  <th style="text-align:left;padding:10px 14px;font-family:var(--mono-font);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;width:120px;">Status</th>
+                  <th style="text-align:left;padding:10px 14px;font-family:var(--mono-font);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Notes</th>
+                </tr>
+              </thead>
+              <tbody id="results-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- Cleaned PATH -->
+          <div id="cleaned-section">
+            <div style="font-family:var(--mono-font);font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">
+              Cleaned export PATH= (duplicates + missing removed)
+            </div>
+            <div style="position:relative;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:14px;">
+              <pre id="cleaned-output" style="font-family:var(--mono-font);font-size:12px;color:var(--text);white-space:pre-wrap;word-break:break-all;margin:0;padding-right:72px;line-height:1.6;"></pre>
+              <button id="copy-cleaned-btn" type="button"
+                style="position:absolute;top:10px;right:10px;background:var(--bg2);border:1px solid var(--border);color:var(--muted);font-family:var(--mono-font);font-size:11px;padding:5px 10px;border-radius:4px;cursor:pointer;transition:color .2s,border-color .2s;">
+                Copy
+              </button>
+            </div>
+          </div>
+
+        </div>
+        <!-- /output-results -->
+
+      </div>
+      <!-- /OUTPUT PANEL -->
+
+    </div>
+    <!-- /TOOL PANELS -->
+
+  <!-- Copy toast -->
+  <div id="copy-toast" role="status" aria-live="polite" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(12px);background:#1c2128;border:1px solid var(--green);border-radius:8px;color:var(--text);font-family:var(--mono-font);font-size:12px;padding:10px 14px;opacity:0;pointer-events:none;z-index:20;">
+    Copied to clipboard
+  </div>
+
+  <style>
+    #copy-toast.show {
+      animation: toast-slide-fade 1.8s ease forwards;
+    }
+    @keyframes toast-slide-fade {
+      0%   { opacity: 0; transform: translateX(-50%) translateY(12px); }
+      12%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+      82%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(0); }
+    }
+  </style>
+
+  <script>
+    (function () {
+      var EXAMPLE_PATH = '/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/usr/bin:/usr/games:/usr/local/games:/snap/bin:/home/user/.local/bin:/nonexistent/dir';
+
+      var textarea    = document.getElementById('path-input');
+      var analyzeBtn  = document.getElementById('analyze-btn');
+      var loadBtn     = document.getElementById('load-btn');
+      var exampleLink = document.getElementById('example-link');
+      var placeholder = document.getElementById('output-placeholder');
+      var resultsDiv  = document.getElementById('output-results');
+      var pathError   = document.getElementById('path-error');
+      var statTotal   = document.getElementById('stat-total');
+      var statExist   = document.getElementById('stat-exist');
+      var statMissing = document.getElementById('stat-missing');
+      var statDupes   = document.getElementById('stat-dupes');
+      var tbody       = document.getElementById('results-tbody');
+      var cleanedOut  = document.getElementById('cleaned-output');
+      var copyBtn     = document.getElementById('copy-cleaned-btn');
+      var copyToast   = document.getElementById('copy-toast');
+
+      if (!textarea || !analyzeBtn) return;
+
+      var VALID_PREFIXES = ['/usr', '/bin', '/sbin', '/home', '/opt', '/snap', '/var', '/etc', '/tmp'];
+
+      function classifyEntry(entry) {
+        if (entry === '') return 'empty';
+        if (entry.charAt(0) !== '/') return 'missing';
+        if (entry.indexOf('nonexistent') !== -1 || entry.indexOf('..') !== -1) return 'missing';
+        for (var i = 0; i < VALID_PREFIXES.length; i++) {
+          if (entry.indexOf(VALID_PREFIXES[i]) === 0) return 'exists';
+        }
+        return 'unknown';
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+
+      function makeBadge(type) {
+        var map = {
+          exists:    { bg:'#1a4a2e', color:'#39d353', border:'#39d353', label:'EXISTS'    },
+          missing:   { bg:'#3d2f0d', color:'#e3b341', border:'#e3b341', label:'MISSING'   },
+          duplicate: { bg:'#21262d', color:'#8b949e', border:'#30363d', label:'DUPLICATE' },
+          empty:     { bg:'#21262d', color:'#8b949e', border:'#30363d', label:'EMPTY'     },
+          unknown:   { bg:'#0d2a4a', color:'#58a6ff', border:'#58a6ff', label:'UNKNOWN'   }
+        };
+        var m = map[type] || map.unknown;
+        return '<span style="background:' + m.bg + ';color:' + m.color + ';border:1px solid ' + m.border + ';'
+          + 'font-family:var(--mono-font);font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;letter-spacing:.06em;white-space:nowrap;">'
+          + m.label + '</span>';
+      }
+
+      function showError(msg) {
+        pathError.textContent = msg;
+        pathError.style.display = 'block';
+        placeholder.style.display = 'none';
+        resultsDiv.style.display = 'block';
+      }
+
+      function hideError() {
+        pathError.style.display = 'none';
+        pathError.textContent = '';
+      }
+
+      function analyzePath() {
+        var raw = textarea.value.trim();
+        hideError();
+
+        if (!raw) {
+          showError('Paste your $PATH value above');
+          tbody.innerHTML = '';
+          if (cleanedOut) cleanedOut.textContent = '';
+          statTotal.textContent   = '0 directories';
+          statExist.textContent   = '0 exist';
+          statMissing.textContent = '0 missing';
+          statDupes.textContent   = '0 duplicates';
+          return;
+        }
+
+        var entries = raw.split(':');
+        var seen    = {};   // entry → 1-based position of first occurrence
+        var rows    = [];
+        var countExist = 0, countMissing = 0, countDupes = 0;
+        var cleanedEntries = [];
+
+        for (var i = 0; i < entries.length; i++) {
+          var entry  = entries[i];
+          var status, note;
+
+          if (entry !== '' && seen.hasOwnProperty(entry)) {
+            status = 'duplicate';
+            note   = 'Duplicate of entry #' + seen[entry];
+            countDupes++;
+          } else {
+            if (entry !== '') seen[entry] = i + 1;
+            var cls = classifyEntry(entry);
+
+            if (cls === 'empty') {
+              status = 'empty';
+              note   = 'Empty entry (bare colon in PATH)';
+              countMissing++;
+            } else if (cls === 'missing') {
+              status = 'missing';
+              note   = 'Likely invalid — verify on your system';
+              countMissing++;
+            } else if (cls === 'exists') {
+              status = 'exists';
+              note   = 'Likely valid';
+              countExist++;
+              cleanedEntries.push(entry);
+            } else {
+              status = 'unknown';
+              note   = 'Unknown — verify manually';
+              countExist++;
+              cleanedEntries.push(entry);
+            }
+          }
+
+          rows.push({ entry: entry || '(empty)', status: status, note: note });
+        }
+
+        // Update summary pills
+        statTotal.textContent   = entries.length + ' director' + (entries.length === 1 ? 'y' : 'ies');
+        statExist.textContent   = countExist   + ' exist';
+        statMissing.textContent = countMissing + ' missing';
+        statDupes.textContent   = countDupes   + ' duplicate' + (countDupes === 1 ? '' : 's');
+
+        // Render table rows
+        var html = '';
+        for (var j = 0; j < rows.length; j++) {
+          var r   = rows[j];
+          var bg  = j % 2 !== 0 ? 'background:rgba(13,17,23,0.5);' : '';
+          html += '<tr style="border-bottom:1px solid var(--border);' + bg + '">';
+          html += '<td style="padding:9px 14px;font-family:var(--mono-font);font-size:12px;color:var(--text);word-break:break-all;">' + escapeHtml(r.entry) + '</td>';
+          html += '<td style="padding:9px 14px;">' + makeBadge(r.status) + '</td>';
+          html += '<td style="padding:9px 14px;font-family:var(--mono-font);font-size:12px;color:var(--muted);">' + escapeHtml(r.note) + '</td>';
+          html += '</tr>';
+        }
+        tbody.innerHTML = html;
+
+        // Cleaned PATH
+        if (cleanedOut) {
+          cleanedOut.textContent = 'export PATH=' + cleanedEntries.join(':');
+        }
+
+        // Show results panel
+        placeholder.style.display = 'none';
+        resultsDiv.style.display  = 'block';
+      }
+
+      // ── Copy cleaned PATH ──────────────────────────────────────────
+      var copyResetTimer = null;
+
+      function resetCopyBtn() {
+        copyBtn.textContent          = 'Copy';
+        copyBtn.style.color          = 'var(--muted)';
+        copyBtn.style.borderColor    = 'var(--border)';
+      }
+
+      function showToast() {
+        if (!copyToast) return;
+        copyToast.classList.remove('show');
+        void copyToast.offsetWidth;
+        copyToast.classList.add('show');
+      }
+
+      if (copyBtn) {
+        copyBtn.addEventListener('click', function () {
+          var text = cleanedOut ? cleanedOut.textContent : '';
+          if (!text) return;
+          if (copyResetTimer) clearTimeout(copyResetTimer);
+
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () {
+              copyBtn.textContent       = '\u2713 Copied!';
+              copyBtn.style.color       = 'var(--green)';
+              copyBtn.style.borderColor = 'var(--green)';
+              showToast();
+              copyResetTimer = setTimeout(resetCopyBtn, 2000);
+            }).catch(function () {
+              copyBtn.textContent = '\u2717 Failed';
+              copyResetTimer = setTimeout(resetCopyBtn, 2000);
+            });
+          } else {
+            copyBtn.textContent = '\u2717 Unavailable';
+            copyResetTimer = setTimeout(resetCopyBtn, 2000);
+          }
+        });
+      }
+
+      // ── Button / input event wiring ────────────────────────────────
+      analyzeBtn.addEventListener('click', analyzePath);
+
+      loadBtn.addEventListener('click', function () {
+        textarea.value = EXAMPLE_PATH;
+        analyzePath();
+      });
+
+      exampleLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        textarea.value = EXAMPLE_PATH;
+        analyzePath();
+      });
+
+      var debounceTimer = null;
+      textarea.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(analyzePath, 600);
+      });
+
+    })();
+  </script>
+
+  <!-- ============================================================
+       ADSENSE SLOT
+       ============================================================ -->
+  <div style="margin:40px 0;">
+    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5399156622542127" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
+  <!-- ============================================================
+       DIGITALOCEAN AFFILIATE BOX
+       ============================================================ -->
+  <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:8px;padding:20px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:40px;">
+    <div style="flex:1;min-width:200px;">
+      <div style="font-family:var(--mono-font);font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">// recommended hosting</div>
+      <div style="font-family:var(--heading-font);font-weight:700;font-size:15px;color:var(--text);margin-bottom:6px;">Test your PATH fixes on a clean Linux server</div>
+      <div style="font-family:var(--mono-font);font-size:13px;color:var(--muted);">Spin up a fresh Ubuntu 24.04 droplet and test your PATH configuration without touching your local machine.</div>
+    </div>
+    <a href="https://m.do.co/c/7a196437764c" target="_blank" rel="noopener sponsored"
+      style="background:var(--green);color:#0d1117;font-family:var(--mono-font);font-weight:600;font-size:13px;padding:10px 20px;border-radius:6px;text-decoration:none;white-space:nowrap;transition:opacity .2s;"
+      onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Get $200 Free Credit →</a>
+  </div>
+   <!-- Namecheap Affiliate -->
+  <div class="affiliate-box" style="border-color:#d85121;">
+    <div class="affiliate-box-text">
+      <strong>If your site keeps going down, your hosting might be the problem.</strong>
+      Namecheap shared hosting starts at $1.58/mo. Free domain, free SSL,
+      99.9% uptime guarantee. Switch before the next outage finds you first.
+    </div>
+    <a class="btn-affiliate"
+       href="https://namecheap.pxf.io/c/7260430/1632743/5618"
+       target="_blank"
+       rel="noopener sponsored"
+       style="background:#d85121;color:#fff;">
+      View Hosting Plans →
+    </a>
+  </div>
+
+  <!-- ============================================================
+       HOW TO USE THIS TOOL
+       ============================================================ -->
+  <div style="margin-bottom:48px;">
+    <div style="font-family:var(--mono-font);font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">// guide</div>
+    <h2 style="font-family:var(--heading-font);font-weight:700;font-size:clamp(1.3rem,3vw,1.8rem);color:var(--text);margin-bottom:20px;">How to Use This Tool</h2>
+    <div style="display:grid;gap:16px;max-width:680px;">
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <span style="font-family:var(--mono-font);font-size:11px;color:var(--green);background:#1a4a2e;border:1px solid var(--green);border-radius:100px;padding:2px 9px;white-space:nowrap;flex-shrink:0;margin-top:2px;">01</span>
+        <p style="font-family:var(--mono-font);font-size:14px;color:var(--text);line-height:1.7;margin:0;">Open a terminal and run: <code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">echo $PATH</code></p>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <span style="font-family:var(--mono-font);font-size:11px;color:var(--green);background:#1a4a2e;border:1px solid var(--green);border-radius:100px;padding:2px 9px;white-space:nowrap;flex-shrink:0;margin-top:2px;">02</span>
+        <p style="font-family:var(--mono-font);font-size:14px;color:var(--text);line-height:1.7;margin:0;">Copy the output and paste it into the input box above.</p>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <span style="font-family:var(--mono-font);font-size:11px;color:var(--green);background:#1a4a2e;border:1px solid var(--green);border-radius:100px;padding:2px 9px;white-space:nowrap;flex-shrink:0;margin-top:2px;">03</span>
+        <p style="font-family:var(--mono-font);font-size:14px;color:var(--text);line-height:1.7;margin:0;">Click <strong style="color:var(--text);">Analyze PATH</strong> to see which directories exist, are missing, or appear more than once.</p>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <span style="font-family:var(--mono-font);font-size:11px;color:var(--green);background:#1a4a2e;border:1px solid var(--green);border-radius:100px;padding:2px 9px;white-space:nowrap;flex-shrink:0;margin-top:2px;">04</span>
+        <p style="font-family:var(--mono-font);font-size:14px;color:var(--text);line-height:1.7;margin:0;">Copy the cleaned <code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">export PATH=</code> line and add it to your <code style="background:var(--bg3);color:var(--text);padding:2px 6px;border-radius:4px;">~/.bashrc</code> or <code style="background:var(--bg3);color:var(--text);padding:2px 6px;border-radius:4px;">~/.zshrc</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       FAQ SECTION
+       ============================================================ -->
+  <div style="margin-bottom:48px;">
+    <div style="font-family:var(--mono-font);font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">// faq</div>
+    <h2 style="font-family:var(--heading-font);font-weight:700;font-size:clamp(1.3rem,3vw,1.8rem);color:var(--text);margin-bottom:20px;">Frequently Asked Questions</h2>
+    <div style="display:grid;gap:4px;max-width:720px;">
+
+      <details style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+        <summary style="font-family:var(--mono-font);font-size:14px;color:var(--text);padding:16px 20px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+          Why does "command not found" happen even when a program is installed?
+          <span style="color:var(--muted);font-size:18px;flex-shrink:0;">+</span>
+        </summary>
+        <div style="padding:0 20px 16px;font-family:var(--mono-font);font-size:13px;color:var(--muted);line-height:1.7;border-top:1px solid var(--border);">
+          <p style="margin:12px 0 0;">Usually because the directory containing the binary isn't in your PATH. Use this tool to find missing or mistyped directories.</p>
+        </div>
+      </details>
+
+      <details style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+        <summary style="font-family:var(--mono-font);font-size:14px;color:var(--text);padding:16px 20px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+          What does exit code 127 mean in bash?
+          <span style="color:var(--muted);font-size:18px;flex-shrink:0;">+</span>
+        </summary>
+        <div style="padding:0 20px 16px;font-family:var(--mono-font);font-size:13px;color:var(--muted);line-height:1.7;border-top:1px solid var(--border);">
+          <p style="margin:12px 0 0;">Exit code 127 means "command not found" — bash searched your entire PATH and couldn't locate the binary. Check our <a href="/tools/bash-exit-code-lookup.html" style="color:var(--blue);">Exit Code Lookup tool</a> for a full reference.</p>
+        </div>
+      </details>
+
+      <details style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+        <summary style="font-family:var(--mono-font);font-size:14px;color:var(--text);padding:16px 20px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+          Can I use this tool on macOS?
+          <span style="color:var(--muted);font-size:18px;flex-shrink:0;">+</span>
+        </summary>
+        <div style="padding:0 20px 16px;font-family:var(--mono-font);font-size:13px;color:var(--muted);line-height:1.7;border-top:1px solid var(--border);">
+          <p style="margin:12px 0 0;">Yes. macOS uses the same colon-separated PATH format as Linux. Paste your $PATH and the analysis works identically.</p>
+        </div>
+      </details>
+
+      <details style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+        <summary style="font-family:var(--mono-font);font-size:14px;color:var(--text);padding:16px 20px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+          How do I permanently fix my PATH?
+          <span style="color:var(--muted);font-size:18px;flex-shrink:0;">+</span>
+        </summary>
+        <div style="padding:0 20px 16px;font-family:var(--mono-font);font-size:13px;color:var(--muted);line-height:1.7;border-top:1px solid var(--border);">
+          <p style="margin:12px 0 0;">Add the corrected <code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">export PATH=</code> line to <code style="background:var(--bg3);color:var(--text);padding:2px 6px;border-radius:4px;">~/.bashrc</code> (bash) or <code style="background:var(--bg3);color:var(--text);padding:2px 6px;border-radius:4px;">~/.zshrc</code> (zsh), then run <code style="background:var(--bg3);color:var(--green);padding:2px 6px;border-radius:4px;">source ~/.bashrc</code> to apply it immediately.</p>
+        </div>
+      </details>
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+       RELATED SNIPPETS GRID
+       ============================================================ -->
+  <div style="margin-bottom:48px;">
+    <div style="font-family:var(--mono-font);font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">// learn more</div>
+    <h2 style="font-family:var(--heading-font);font-weight:700;font-size:clamp(1.3rem,3vw,1.8rem);color:var(--text);margin-bottom:20px;">Related Snippets</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">
+
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-family:var(--mono-font);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">beginner · scripting</div>
+        <div style="font-family:var(--heading-font);font-weight:700;font-size:14px;color:var(--text);margin-bottom:12px;">Bash Error Handling</div>
+        <a href="/snippets/bash-error-handling.html" style="font-family:var(--mono-font);font-size:12px;color:var(--green);text-decoration:none;">View snippet →</a>
+      </div>
+
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-family:var(--mono-font);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">beginner · monitoring</div>
+        <div style="font-family:var(--heading-font);font-weight:700;font-size:14px;color:var(--text);margin-bottom:12px;">Check if Website Is Up</div>
+        <a href="/snippets/check-if-website-is-up.html" style="font-family:var(--mono-font);font-size:12px;color:var(--green);text-decoration:none;">View snippet →</a>
+      </div>
+
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-family:var(--mono-font);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">tool · debugging</div>
+        <div style="font-family:var(--heading-font);font-weight:700;font-size:14px;color:var(--text);margin-bottom:12px;">Exit Code Lookup</div>
+        <a href="/tools/bash-exit-code-lookup.html" style="font-family:var(--mono-font);font-size:12px;color:var(--blue);text-decoration:none;">Open tool →</a>
+      </div>
+
+    </div>
+  </div>
+
+  </main>

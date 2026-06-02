@@ -1,0 +1,148 @@
+import Callout from '@/components/Callout'
+
+## The Script
+
+Copy this, paste it into a file called `backup.sh`, and you're 90% done.
+
+```bash
+#!/bin/bash
+# Automated File Backup
+# Copies a folder to /backup with today's timestamp.
+# Run manually or schedule with cron — works either way.
+#
+# USAGE: ./backup.sh
+# REQUIRES: bash, cp (pre-installed on all Linux/macOS)
+
+SOURCE="/home/user/documents"   # ← change this to your folder
+DEST="/backup"                   # ← change this to your backup location
+DATE=$(date +%Y-%m-%d_%H-%M)
+
+mkdir -p "$DEST"
+cp -r "$SOURCE" "$DEST/backup_$DATE"
+echo "✓ Done. Saved to: $DEST/backup_$DATE"
+```
+
+<Callout type="success" title="What this does, line by line">
+
+**SOURCE** is the folder you want to back up. **DEST** is where backups are saved. **DATE** grabs the current timestamp. `mkdir -p` creates the destination folder if it doesn't exist. `cp -r` copies everything recursively. The last line confirms it worked.
+
+</Callout>
+
+## Step-by-Step Setup
+
+### Step 1 — Create the file
+
+Open a terminal and run:
+
+```bash
+nano backup.sh
+```
+
+Paste the script above, then press **Ctrl+X → Y → Enter** to save.
+
+### Step 2 — Edit your paths
+
+Change `SOURCE` to the folder you want to back up and `DEST` to where you want backups saved. Examples:
+
+| Variable | Example value | What it means |
+| --- | --- | --- |
+| SOURCE | /home/alice/projects | The folder being backed up |
+| SOURCE | /var/www/html | A web server's files |
+| DEST | /backup | A local backup directory |
+| DEST | /mnt/external-drive | An external drive mount point |
+
+### Step 3 — Make it executable
+
+```bash
+chmod +x backup.sh
+```
+
+You only need to do this once. It gives the script permission to run.
+
+### Step 4 — Run it
+
+```bash
+./backup.sh
+```
+
+You should see: `✓ Done. Saved to: /backup/backup_2026-05-02_14-30`
+
+## Schedule It with Cron
+
+Running this manually defeats the purpose. Here's how to make it run automatically every day.
+
+### Open your crontab
+
+```bash
+crontab -e
+```
+
+### Add one of these lines
+
+```bash
+# Run every day at 2am
+0 2 * * * /home/user/backup.sh
+
+# Run every Sunday at midnight
+0 0 * * 0 /home/user/backup.sh
+
+# Run every hour
+0 * * * * /home/user/backup.sh
+```
+
+<Callout type="info" title="� Tip: Use crontab.guru">
+
+Go to [crontab.guru](https://crontab.guru) to build and test cron time expressions for free. It explains exactly when your job will run in plain English.
+
+</Callout>
+
+## Variations
+
+### Faster backups with rsync (recommended for large folders)
+
+Swap `cp -r` for `rsync` to only copy files that have changed. Much faster on big directories:
+
+```bash
+#!/bin/bash
+SOURCE="/home/user/documents"
+DEST="/backup/latest"
+
+rsync -av --delete "$SOURCE/" "$DEST/"
+echo "✓ Sync complete: $(date)"
+```
+
+### Log every backup to a file
+
+Know exactly when each backup ran and whether it succeeded:
+
+```bash
+#!/bin/bash
+SOURCE="/home/user/documents"
+DEST="/backup"
+DATE=$(date +%Y-%m-%d_%H-%M)
+LOG="/var/log/mybackup.log"
+
+mkdir -p "$DEST"
+cp -r "$SOURCE" "$DEST/backup_$DATE" && \
+  echo "[$DATE] SUCCESS: backup_$DATE" >> "$LOG" || \
+  echo "[$DATE] FAILED" >> "$LOG"
+```
+
+### Keep only the last 7 backups
+
+Prevent your backup folder from filling up your disk:
+
+```bash
+#!/bin/bash
+SOURCE="/home/user/documents"
+DEST="/backup"
+DATE=$(date +%Y-%m-%d_%H-%M)
+KEEP=7
+
+mkdir -p "$DEST"
+cp -r "$SOURCE" "$DEST/backup_$DATE"
+
+# Delete oldest backups, keep only the last $KEEP
+ls -dt "$DEST"/backup_* | tail -n +$(( KEEP + 1 )) | xargs rm -rf
+echo "✓ Backed up. Keeping last $KEEP snapshots."
+```

@@ -1,0 +1,60 @@
+# BashSnippets
+
+> Free bash script examples for Linux, DevOps, and sysadmin automation. Copy-paste ready scripts with plain-English explanations. Written by Anguishe — a Linux self-taught user who built this site after learning bash from scratch.
+
+## Author
+
+Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu 22.04 LTS and macOS Ventura. Contact: Anguisheh1@gmail.com
+
+## What This Site Contains
+
+- 20+ ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
+- Interactive Script Builder tool at /tools/ that generates custom bash scripts
+- Bash Boilerplate Generator tool
+- Beginner FAQ section covering the most common bash questions
+
+## Script Categories
+
+- Automation & File Management: backup scripts, file renaming, log cleanup, dated folders
+- Monitoring & Alerts: disk space, CPU/RAM, website uptime, service watchdog
+- Database: MySQL backup with retention
+- Process Management: kill by name, service restart
+- Best Practices: error handling templates (set -euo pipefail), safe script boilerplate
+- Search & Text: grep patterns, file content search
+
+## All Snippet Pages
+
+- [Automated File Backup](https://bashsnippets.xyz/snippets/automated-file-backup) — cp -r with timestamps and cron scheduling
+- [Disk Space Warning](https://bashsnippets.xyz/snippets/disk-space-warning) — df threshold check with cron
+- [Delete Old Log Files](https://bashsnippets.xyz/snippets/delete-old-log-files) — find -mtime -delete with retention control
+- [Find Duplicate Files](https://bashsnippets.xyz/snippets/find-duplicate-files) — md5sum hash pipeline to list byte-for-byte duplicate files
+- [Quick System Info Report](https://bashsnippets.xyz/snippets/quick-system-info-report) — hostname, uptime, RAM, disk, IP in one command
+- [Search Files for Text (grep)](https://bashsnippets.xyz/snippets/search-files-for-text-grep) — recursive grep with filename and line number
+- [Bash Error Handling](https://bashsnippets.xyz/snippets/bash-error-handling) — set -euo pipefail template
+- [MySQL Database Backup](https://bashsnippets.xyz/snippets/mysql-database-backup) — mysqldump with gzip and 7-day retention
+- [Check If Website Is Up](https://bashsnippets.xyz/snippets/check-if-website-is-up) — curl HTTP status check for cron monitoring
+- [Monitor CPU and RAM Usage](https://bashsnippets.xyz/snippets/monitor-cpu-ram-usage) — top + free threshold alerts
+- [Restart Service If Stopped](https://bashsnippets.xyz/snippets/restart-service-if-stopped) — systemctl watchdog pattern
+- [Kill a Process](https://bashsnippets.xyz/snippets/kill-a-process) — pgrep preview then pkill with confirmation
+- [Create Dated Work Folder](https://bashsnippets.xyz/snippets/create-dated-folder) — mkdir with date variable
+- [Bash If Else — Complete Examples for Beginners](https://bashsnippets.xyz/snippets/bash-if-else-examples) — if / elif / else syntax with practical examples — number comparison, string check, file exists
+- [Send Email Alerts from Bash](https://bashsnippets.xyz/snippets/bash-send-email-alert) — sends an email notification from a bash script using sendmail or msmtp
+- [Linux File Permissions & Security](https://bashsnippets.xyz/snippets/file-permissions-security) — chmod and chown patterns for setting correct file permissions on Linux
+- [SSH Key Setup Script](https://bashsnippets.xyz/snippets/ssh-key-setup-script) — generates an SSH key pair and appends the public key to authorized_keys
+
+## Interactive Tools
+
+- [Script Builder](https://bashsnippets.xyz/tools/) — pick a task and generate a working starter script
+- [Bash Boilerplate Generator](https://bashsnippets.xyz/tools/bash-boilerplate-generator) — generates production-ready .sh templates with error handling and logging
+
+## Most important pages
+
+- [Bash Exit Code Lookup](https://bashsnippets.xyz/tools/bash-exit-code-lookup): Interactive lookup for bash exit codes 0-255 with plain-English meanings and copy-paste error handlers.
+- [Cron Job Builder](https://bashsnippets.xyz/tools/cron-job-builder): Visual cron expression builder. Enter a schedule, get a crontab line.
+- [Chmod Permissions Builder](https://bashsnippets.xyz/tools/chmod-permissions-builder): Build chmod commands visually with a permission matrix showing octal and symbolic output.
+- [ShellCheck Error Decoder](https://bashsnippets.xyz/tools/shellcheck-error-decoder): Paste a ShellCheck error code, get the plain-English explanation and a before/after fix.
+- [Bash Boilerplate Generator](https://bashsnippets.xyz/tools/bash-boilerplate-generator): Generate a production-ready bash script template with error handling and argument parsing.
+
+## License
+
+All scripts: MIT License. Free to use and modify.
