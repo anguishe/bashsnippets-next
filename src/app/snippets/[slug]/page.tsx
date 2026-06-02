@@ -1,3 +1,4 @@
+import AdSlot from '@/components/AdSlot';
 import AffiliateBox from '@/components/AffiliateBox';
 import { mdxComponents } from '@/components/MDXComponents';
 import {
@@ -10,8 +11,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-const AD_CLIENT = 'ca-pub-5399156622542127';
-const AD_SLOT = '7586966692';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 type PageProps = {
@@ -30,26 +29,6 @@ function difficultyBadgeClass(difficulty: SnippetMeta['difficulty']): string {
   }
 }
 
-function AdSlot() {
-  return (
-    <div className="my-8 flex min-h-[90px] items-center justify-center overflow-hidden rounded-lg border border-border bg-bg2">
-      <ins
-        className="adsbygoogle"
-        style={{ display: 'block' }}
-        data-ad-client={AD_CLIENT}
-        data-ad-slot={AD_SLOT}
-        data-ad-format="auto"
-        data-full-width-responsive="true"
-      />
-      <script
-        dangerouslySetInnerHTML={{
-          __html: '(adsbygoogle = window.adsbygoogle || []).push({});',
-        }}
-      />
-    </div>
-  );
-}
-
 function relatedDifficultyBadgeClass(
   difficulty: SnippetMeta['difficulty'],
 ): string {
@@ -65,27 +44,85 @@ function relatedDifficultyBadgeClass(
   }
 }
 
-function buildSchemas(snippet: SnippetMeta, slug: string) {
+const OG_IMAGE = {
+  url: `${SITE_URL}/og-image.png`,
+  width: 1200,
+  height: 630,
+  alt: 'BashSnippets — bash scripts for Linux and DevOps',
+} as const;
+
+function generateSnippetSchema(snippet: SnippetMeta, slug: string): string[] {
+  const pageTitle = `${snippet.title} – BashSnippets.xyz`;
   const canonical = `${SITE_URL}/snippets/${slug}`;
+  const published = snippet.publishedTime ?? '2026-05-01';
+  const modified = snippet.modifiedTime ?? '2026-05-22';
 
   const techArticle = {
     '@context': 'https://schema.org',
     '@type': 'TechArticle',
-    headline: snippet.title,
+    headline: pageTitle,
     description: snippet.description,
     url: canonical,
-    datePublished: snippet.datePublished,
-    dateModified: snippet.dateModified,
     author: {
       '@type': 'Organization',
       name: 'BashSnippets',
       url: SITE_URL,
     },
-    programmingLanguage: {
-      '@type': 'ComputerLanguage',
-      name: 'Bash',
+    publisher: {
+      '@type': 'Organization',
+      name: 'BashSnippets',
+      url: SITE_URL,
     },
-    operatingSystem: 'Linux, macOS',
+    image: OG_IMAGE.url,
+    datePublished: published,
+    dateModified: modified,
+  };
+
+  const howTo = {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: `How to use the ${snippet.title} bash script`,
+    description: snippet.description,
+    step: [
+      {
+        '@type': 'HowToStep',
+        name: 'Download the script',
+        text: 'Copy the script from BashSnippets.xyz and save it as a .sh file.',
+      },
+      {
+        '@type': 'HowToStep',
+        name: 'Make it executable',
+        text: 'Run: chmod +x script.sh',
+      },
+      {
+        '@type': 'HowToStep',
+        name: 'Run the script',
+        text: 'Execute with: bash script.sh or ./script.sh',
+      },
+    ],
+  };
+
+  const faqPage = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'How do I run a bash script on Linux?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Make it executable with chmod +x script.sh, then run ./script.sh or bash script.sh',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'What does set -euo pipefail do?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'It makes bash exit on any error (-e), treats unset variables as errors (-u), and catches pipe failures (-o pipefail). Add it near the top of every script.',
+        },
+      },
+    ],
   };
 
   const breadcrumb = {
@@ -95,8 +132,8 @@ function buildSchemas(snippet: SnippetMeta, slug: string) {
       {
         '@type': 'ListItem',
         position: 1,
-        name: 'Home',
-        item: `${SITE_URL}/`,
+        name: 'BashSnippets',
+        item: SITE_URL,
       },
       {
         '@type': 'ListItem',
@@ -113,30 +150,9 @@ function buildSchemas(snippet: SnippetMeta, slug: string) {
     ],
   };
 
-  const faqPage = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-      {
-        '@type': 'Question',
-        name: `How do I use the ${snippet.title} bash script?`,
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: `Copy the script from this page, save it as a .sh file, run chmod +x filename.sh to make it executable, then run ./filename.sh. ${snippet.description}`,
-        },
-      },
-      {
-        '@type': 'Question',
-        name: `Does the ${snippet.title} script work on Ubuntu?`,
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: `Yes. This script is tested on Ubuntu 22.04 LTS and macOS Ventura. It requires only standard bash tools (${snippet.tags.join(', ')}) that ship with every Linux distribution.`,
-        },
-      },
-    ],
-  };
-
-  return [techArticle, breadcrumb, faqPage];
+  return [techArticle, howTo, faqPage, breadcrumb].map((schema) =>
+    JSON.stringify(schema),
+  );
 }
 
 export function generateStaticParams() {
@@ -152,6 +168,8 @@ export async function generateMetadata({
     return {};
   }
 
+  const ogTitle = `${snippet.title} – BashSnippets.xyz`;
+
   return {
     title: snippet.title,
     description: snippet.description,
@@ -159,9 +177,19 @@ export async function generateMetadata({
       canonical: `${SITE_URL}/snippets/${slug}`,
     },
     openGraph: {
+      title: ogTitle,
+      description: snippet.description,
       type: 'article',
-      publishedTime: snippet.datePublished,
-      modifiedTime: snippet.dateModified,
+      url: `${SITE_URL}/snippets/${slug}`,
+      images: [OG_IMAGE],
+      publishedTime: snippet.publishedTime ?? '2026-05-01',
+      modifiedTime: snippet.modifiedTime ?? '2026-05-22',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: ogTitle,
+      description: snippet.description,
+      images: [OG_IMAGE.url],
     },
   };
 }
@@ -185,15 +213,15 @@ export default async function SnippetPage({ params }: PageProps) {
   }
 
   const related = getRelatedSnippets(slug, 3);
-  const schemas = buildSchemas(snippet, slug);
+  const schemaJson = generateSnippetSchema(snippet, slug);
 
   return (
     <>
-      {schemas.map((schema) => (
+      {schemaJson.map((json, index) => (
         <script
-          key={schema['@type'] as string}
+          key={index}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          dangerouslySetInnerHTML={{ __html: json }}
         />
       ))}
 
@@ -232,8 +260,6 @@ export default async function SnippetPage({ params }: PageProps) {
           By BashSnippets · Tested on Ubuntu 22.04 LTS
         </p>
 
-        <AdSlot />
-
         <div className="mb-6 rounded-r border-l-4 border-green bg-green-dim/40 px-4 py-3">
           <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-green">
             Quick answer
@@ -250,7 +276,7 @@ export default async function SnippetPage({ params }: PageProps) {
           <Content components={mdxComponents} />
         </article>
 
-        <AdSlot />
+        <AdSlot slot="AUTO" format="auto" />
 
         <AffiliateBox partner="digitalocean" />
         <AffiliateBox partner="namecheap" />

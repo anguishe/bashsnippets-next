@@ -1,3 +1,6 @@
+const DEFAULT_PUBLISHED_TIME = '2026-05-01';
+const DEFAULT_MODIFIED_TIME = '2026-05-22';
+
 export interface SnippetMeta {
   slug: string;
   title: string;
@@ -6,6 +9,8 @@ export interface SnippetMeta {
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   datePublished: string;
   dateModified: string;
+  publishedTime?: string;
+  modifiedTime?: string;
   youtubeShortId?: string;
 }
 
@@ -174,7 +179,20 @@ export const snippets: SnippetMeta[] = [
 ];
 
 export function getSnippetBySlug(slug: string): SnippetMeta | undefined {
-  return snippets.find((snippet) => snippet.slug === slug);
+  const snippet = snippets.find((s) => s.slug === slug);
+  if (!snippet) {
+    return undefined;
+  }
+
+  return {
+    ...snippet,
+    publishedTime:
+      snippet.publishedTime ??
+      snippet.datePublished ??
+      DEFAULT_PUBLISHED_TIME,
+    modifiedTime:
+      snippet.modifiedTime ?? snippet.dateModified ?? DEFAULT_MODIFIED_TIME,
+  };
 }
 
 export function getAllSlugs(): string[] {

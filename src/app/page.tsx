@@ -1,3 +1,4 @@
+import AdSlot from '@/components/AdSlot';
 import AffiliateBox from '@/components/AffiliateBox';
 import HeroCanvasLoader from '@/components/HeroCanvasLoader';
 import ScrollReveal from '@/components/ScrollReveal';
@@ -15,18 +16,6 @@ export const metadata: Metadata = {
     'Browse free bash script examples for backups, cron, monitoring, grep, chmod, and Linux automation.',
   alternates: {
     canonical: `${SITE_URL}/`,
-  },
-};
-
-const websiteSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: 'BashSnippets',
-  url: SITE_URL,
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: `${SITE_URL}/snippets?q={search_term_string}`,
-    'query-input': 'required name=search_term_string',
   },
 };
 
@@ -155,7 +144,39 @@ export default function Home() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([
+            {
+              '@context': 'https://schema.org',
+              '@type': 'WebSite',
+              name: 'BashSnippets',
+              url: 'https://bashsnippets.xyz',
+              description:
+                'Free bash script examples for Linux, DevOps, and sysadmin automation.',
+              potentialAction: {
+                '@type': 'SearchAction',
+                target: {
+                  '@type': 'EntryPoint',
+                  urlTemplate:
+                    'https://bashsnippets.xyz/snippets?q={search_term_string}',
+                },
+                'query-input': 'required name=search_term_string',
+              },
+            },
+            {
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: 'BashSnippets',
+              url: 'https://bashsnippets.xyz',
+              logo: 'https://bashsnippets.xyz/favicon-512x512.png',
+              sameAs: [
+                'https://www.youtube.com/@BashSnippets',
+                'https://www.tiktok.com/@BashSnippets',
+                'https://dev.to/bashsnippets',
+              ],
+            },
+          ]),
+        }}
       />
       <script
         type="application/ld+json"
@@ -290,6 +311,8 @@ export default function Home() {
             ))}
           </div>
         </ScrollReveal>
+
+        <AdSlot slot="AUTO" format="auto" />
 
         <div className="mt-10 flex flex-wrap gap-3">
           <Link
