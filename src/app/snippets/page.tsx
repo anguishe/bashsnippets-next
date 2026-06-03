@@ -5,7 +5,7 @@ import Link from 'next/link';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: 'Bash Script Examples – BashSnippets.xyz',
+  title: 'Bash Script Examples',
   description:
     '16 copy-paste bash scripts with plain-English explanations. Tested on Ubuntu 22.04 LTS and macOS Ventura.',
   alternates: {

@@ -6,7 +6,7 @@ import Link from 'next/link';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: 'Bash Tools – BashSnippets.xyz',
+  title: 'Bash Tools',
   description:
     'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, and ShellCheck decoder.',
   alternates: {

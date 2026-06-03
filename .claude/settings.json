@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://bashsnippets.xyz/llms.txt\")",
+      "Bash(curl -s \"https://bashsnippets.xyz/ads.txt\")",
+      "Bash(curl -s \"https://bashsnippets.xyz/opensearch.xml\")",
+      "Bash(python3)",
+      "Bash(curl -sI \"https://bashsnippets.xyz/og-image.png\")",
+      "Bash(python3 -c ' *)",
+      "Bash(mkdir -p /home/angsec/Projects/bashsnippets-next/seo-audit)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Read(//home/angsec/Downloads/**)",
+      "Bash(cp ~/Downloads/Hero-section-bs.png /home/angsec/Projects/bashsnippets-next/public/hero-section-bs.png)",
+      "Bash(identify /home/angsec/Projects/bashsnippets-next/public/hero-section-bs.png)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(chromium-cli screenshot *)",
+      "Bash(chromium --headless --disable-gpu --screenshot=/tmp/hero-check.png --window-size=1440,900 http://localhost:3001)",
+      "Bash(chromium --headless --disable-gpu --screenshot=/tmp/hero-check2.png --window-size=1440,900 http://localhost:3001)",
+      "Bash(chromium --headless --disable-gpu --screenshot=/tmp/hero-mobile.png --window-size=390,844 http://localhost:3001)",
+      "Bash(kill %1)"
+    ],
+    "additionalDirectories": [
+      "/home/angsec/Projects/bashsnippets-next"
+    ]
+  }
+}

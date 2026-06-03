@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { IBM_Plex_Mono, Syne } from 'next/font/google';
+import { IBM_Plex_Mono, JetBrains_Mono } from 'next/font/google';
 import Script from 'next/script';
 import Footer from '@/components/Footer';
 import Nav from '@/components/Nav';
@@ -12,9 +12,9 @@ const ibmPlexMono = IBM_Plex_Mono({
   display: 'swap',
 });
 
-const syne = Syne({
+const headingFont = JetBrains_Mono({
   subsets: ['latin'],
-  weight: ['400', '700', '800'],
+  weight: ['600', '700', '800'],
   variable: '--font-heading',
   display: 'swap',
 });
@@ -73,7 +73,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${ibmPlexMono.variable} ${syne.variable}`}
+      className={`${ibmPlexMono.variable} ${headingFont.variable}`}
     >
       <head>
         <link

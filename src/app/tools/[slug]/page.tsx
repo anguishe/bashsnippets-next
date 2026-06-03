@@ -34,7 +34,7 @@ function AdSlot() {
 }
 
 function buildSchemas(
-  tool: { title: string; description: string },
+  tool: { title: string; description: string; faqs: { question: string; answer: string }[] },
   slug: string,
 ) {
   const canonical = `${SITE_URL}/tools/${slug}`;
@@ -79,7 +79,20 @@ function buildSchemas(
     ],
   };
 
-  return [webApplication, breadcrumb];
+  const faqPage = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: tool.faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.answer,
+      },
+    })),
+  };
+
+  return [webApplication, breadcrumb, faqPage];
 }
 
 export function generateStaticParams() {
@@ -95,11 +108,32 @@ export async function generateMetadata({
     return {};
   }
 
+  const ogTitle = `${tool.title} – BashSnippets.xyz`;
+
   return {
     title: tool.title,
     description: tool.description,
     alternates: {
       canonical: `${SITE_URL}/tools/${slug}`,
+    },
+    openGraph: {
+      title: ogTitle,
+      description: tool.description,
+      url: `${SITE_URL}/tools/${slug}`,
+      siteName: 'BashSnippets',
+      type: 'website',
+      images: [{
+        url: `${SITE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: ogTitle,
+      }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: ogTitle,
+      description: tool.description,
+      images: [`${SITE_URL}/og-image.png`],
     },
   };
 }
@@ -164,6 +198,40 @@ export default async function ToolPage({ params }: PageProps) {
         <ToolEmbed slug={slug} />
 
         <AdSlot />
+
+        <section className="mt-12">
+          <h2 className="font-heading text-2xl font-bold text-text">
+            How to use the {tool.title}
+          </h2>
+          <ol className="mt-4 space-y-3">
+            {tool.howToUse.map((step, i) => (
+              <li key={i} className="flex gap-3 text-sm leading-relaxed text-muted">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-green bg-green-dim font-mono text-[10px] font-semibold text-green">
+                  {i + 1}
+                </span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="mt-12">
+          <h2 className="font-heading text-2xl font-bold text-text">
+            Frequently Asked Questions
+          </h2>
+          <div className="mt-4 space-y-6">
+            {tool.faqs.map((faq, i) => (
+              <div key={i} className="rounded-lg border border-border bg-bg2 p-5">
+                <h3 className="font-mono text-sm font-semibold text-text">
+                  {faq.question}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  {faq.answer}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <AffiliateBox partner="digitalocean" className="mt-10" />
       </main>

@@ -5,6 +5,7 @@ export interface SnippetMeta {
   slug: string;
   title: string;
   description: string;
+  quickAnswer?: string;
   tags: string[];
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   datePublished: string;
@@ -20,10 +21,12 @@ export const snippets: SnippetMeta[] = [
     title: 'Disk Space Warning Script',
     description:
       'Copy a disk space warning bash script using df, thresholds, cron, and email alerts. Monitor Linux servers and prevent full drives.',
+    quickAnswer:
+      'The df command reports disk space usage for every mounted filesystem as a percentage. This script reads the percentage for a configurable partition (default: /), compares it against a threshold you set, and prints a warning to stdout — plus exits with code 1 — when that threshold is crossed. A full disk stops your web server from writing access logs, prevents your database from flushing transactions, and can corrupt in-progress writes. Without monitoring, the first sign of a full disk is often a crashed service, not an alert. The default threshold of 80% on a 25 GB VPS means you have roughly 5 GB remaining before trouble starts. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, CentOS 9, and macOS Ventura — any system with bash and df. Run manually or schedule with cron every hour: 0 * * * * /home/user/diskcheck.sh.',
     tags: ['monitor', 'cron-ready', 'df'],
     difficulty: 'beginner',
     datePublished: '2026-05-01',
-    dateModified: '2026-05-22',
+    dateModified: '2026-06-03',
     youtubeShortId: 'lj1CKKCbXpI',
   },
   {
@@ -31,10 +34,12 @@ export const snippets: SnippetMeta[] = [
     title: 'Automated File Backup',
     description:
       'Bash script to automatically backup files with timestamps using cp or rsync. Schedule with cron.',
+    quickAnswer:
+      'The cp command copies files and directories from one location to another. This script wraps cp -r with a date-stamped destination path, creating a new backup folder — like backup_2026-06-03_14-30 — each time it runs, so no backup overwrites a previous one. Without scheduled backups, a single accidental rm -rf or disk failure can permanently destroy days or weeks of work. There is no recycle bin on Linux servers. The script lets you set SOURCE (the folder to back up) and DEST (where backups are stored) at the top, then call it manually or schedule it with cron. A typical hourly backup of a 1 GB project folder completes in under five seconds. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, and macOS Ventura — any system with bash and cp. Schedule with cron: 0 * * * * /home/user/backup.sh.',
     tags: ['backup', 'cron-ready', 'rsync'],
     difficulty: 'beginner',
-    datePublished: '2026-04-15',
-    dateModified: '2026-05-22',
+    datePublished: '2026-05-01',
+    dateModified: '2026-06-03',
   },
   {
     slug: 'delete-old-log-files',
@@ -61,10 +66,12 @@ export const snippets: SnippetMeta[] = [
     title: 'Search Files for Text with grep',
     description:
       'Find any string across files and directories using grep, egrep, and common flags explained.',
+    quickAnswer:
+      'The grep command searches files for a pattern and prints every matching line with its filename. This script wraps grep -rn — recursive search with line numbers — so you can locate any string across an entire directory tree in a single command. Without grep, tracking down a hardcoded credential, a renamed function, or a specific log message across hundreds of files means opening each file manually. Running grep -rn "TODO" /var/www/html --include="*.php" scans every PHP file under /var/www/html and returns the filename, line number, and the matched line for every result. The -i flag makes the search case-insensitive; --color=auto highlights each match in the terminal output. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, CentOS 9, and macOS Ventura — grep is pre-installed on every POSIX-compliant system. No packages needed. Run directly in your terminal.',
     tags: ['grep', 'search', 'text'],
     difficulty: 'beginner',
-    datePublished: '2026-04-28',
-    dateModified: '2026-05-22',
+    datePublished: '2026-05-01',
+    dateModified: '2026-06-03',
   },
   {
     slug: 'check-if-website-is-up',

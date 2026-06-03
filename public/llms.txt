@@ -27,7 +27,6 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [Automated File Backup](https://bashsnippets.xyz/snippets/automated-file-backup) — cp -r with timestamps and cron scheduling
 - [Disk Space Warning](https://bashsnippets.xyz/snippets/disk-space-warning) — df threshold check with cron
 - [Delete Old Log Files](https://bashsnippets.xyz/snippets/delete-old-log-files) — find -mtime -delete with retention control
-- [Find Duplicate Files](https://bashsnippets.xyz/snippets/find-duplicate-files) — md5sum hash pipeline to list byte-for-byte duplicate files
 - [Quick System Info Report](https://bashsnippets.xyz/snippets/quick-system-info-report) — hostname, uptime, RAM, disk, IP in one command
 - [Search Files for Text (grep)](https://bashsnippets.xyz/snippets/search-files-for-text-grep) — recursive grep with filename and line number
 - [Bash Error Handling](https://bashsnippets.xyz/snippets/bash-error-handling) — set -euo pipefail template

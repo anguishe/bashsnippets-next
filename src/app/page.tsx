@@ -1,9 +1,9 @@
 import AdSlot from '@/components/AdSlot';
 import AffiliateBox from '@/components/AffiliateBox';
-import HeroCanvasLoader from '@/components/HeroCanvasLoader';
 import ScrollReveal from '@/components/ScrollReveal';
-import { snippets, type SnippetMeta } from '@/lib/snippets';
+import { snippets } from '@/lib/snippets';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 
 const SITE_URL = 'https://bashsnippets.xyz';
@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     'Browse free bash script examples for backups, cron, monitoring, grep, chmod, and Linux automation.',
   alternates: {
     canonical: `${SITE_URL}/`,
+  },
+  openGraph: {
+    type: 'website',
   },
 };
 
@@ -99,43 +102,6 @@ const previewTools = [
   },
 ] as const;
 
-function difficultyBadgeClass(difficulty: SnippetMeta['difficulty']): string {
-  const base = 'shrink-0 rounded border px-2 py-0.5 text-[10px] font-semibold uppercase';
-  switch (difficulty) {
-    case 'beginner':
-      return `${base} border-green bg-green-dim text-green`;
-    case 'intermediate':
-      return `${base} border-amber bg-amber-dim text-amber`;
-    case 'advanced':
-      return `${base} border-blue bg-blue-dim text-blue`;
-  }
-}
-
-function truncateDescription(text: string, max = 80): string {
-  if (text.length <= max) {
-    return text;
-  }
-  return `${text.slice(0, max).trimEnd()}...`;
-}
-
-function tagIcon(tag: string): string {
-  const icons: Record<string, string> = {
-    monitor: '📊',
-    backup: '💾',
-    cleanup: '🧹',
-    grep: '🔍',
-    'error-handling': '🛡️',
-    conditionals: '🔀',
-    files: '📁',
-    process: '⚡',
-    chmod: '🔒',
-    email: '📧',
-    mysql: '🗄️',
-    ssh: '🔑',
-    systemd: '♻️',
-  };
-  return icons[tag] ?? '📜';
-}
 
 export default function Home() {
   const featuredSnippets = snippets.slice(0, 9);
@@ -183,75 +149,68 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
 
-      {/* Section 1 — Hero */}
-      <section className="relative mx-auto min-h-screen max-w-[860px] overflow-hidden px-6 py-20 text-center">
-        <HeroCanvasLoader />
-        <div className="relative z-10">
-          <span className="mb-6 inline-block rounded-full border border-green bg-green-dim px-3 py-1 text-xs uppercase tracking-widest text-green">
-            free · no login · no fluff
-          </span>
+      {/* Hero */}
+      <section className="w-full border-b border-border relative overflow-hidden min-h-[420px] md:min-h-[500px]">
+        {/* Full-width background image — terminal graphic visible on right */}
+        <Image
+          src="/hero-section-bs.png"
+          alt=""
+          fill
+          className="object-cover object-right"
+          priority
+        />
+        {/* Gradient overlay — solid bg on left fading to transparent, hides image's baked-in text */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0d1117] from-40% via-[#0d1117]/80 to-transparent" />
 
-          <h1 className="mb-5 font-heading text-4xl font-extrabold leading-tight tracking-tight md:text-5xl lg:text-6xl">
-            Stop Googling the Same{' '}
-            <em className="not-italic text-green">Bash Commands</em>
-          </h1>
+        {/* Content — sits above overlay */}
+        <div className="relative z-10 mx-auto max-w-6xl px-6 py-16 md:py-24">
+          <div className="max-w-lg">
+            <p className="mb-6 flex items-center gap-2 font-mono text-sm text-muted">
+              <span className="text-green">$</span>
+              <span>bashsnippets.xyz</span>
+              <span className="h-4 w-2 animate-pulse bg-green" aria-hidden="true" />
+            </p>
 
-          <div
-            className="mb-4 flex items-center justify-center gap-2"
-            aria-hidden="true"
-          >
-            <span className="font-mono text-sm text-green opacity-70">$</span>
-            <span
-              className="inline-block h-4 w-2 bg-green"
-              style={{ animation: 'blink 1s step-end infinite' }}
-            />
-          </div>
+            <h1 className="font-heading text-4xl font-black leading-[1.05] tracking-tight text-text md:text-6xl">
+              Stop Googling the Same{' '}
+              <em className="not-italic text-green">Bash Commands</em>
+            </h1>
 
-          <p className="mx-auto mb-9 max-w-xl text-lg leading-relaxed text-muted">
-            I got tired of re-searching the same bash one-liners every time I sat
-            down at a terminal. So I started collecting them. This is that
-            collection — real scripts, explained like a human wrote them.
-          </p>
+            <p className="mt-6 leading-relaxed text-muted">
+              I got tired of re-searching the same bash one-liners every time I sat
+              down at a terminal. So I started collecting them. This is that
+              collection — real scripts, explained like a human wrote them.
+            </p>
 
-          <div className="flex flex-wrap justify-center gap-3">
-            <Link
-              href="/snippets"
-              className="rounded bg-green px-5 py-3 font-mono font-semibold text-bg transition-opacity hover:opacity-90"
-            >
-              Browse All Snippets
-            </Link>
-            <Link
-              href="#tools"
-              className="rounded border border-border px-5 py-3 font-mono text-muted transition-colors hover:border-muted hover:text-text"
-            >
-              Try the Builder
-            </Link>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/snippets"
+                className="rounded-[6px] bg-green px-5 py-2.5 font-mono text-sm text-bg transition-opacity hover:opacity-90"
+              >
+                Browse All Snippets
+              </Link>
+              <Link
+                href="#tools"
+                className="rounded-[6px] border border-border px-5 py-2.5 font-mono text-sm text-text transition-colors hover:border-green"
+              >
+                Try the Builder
+              </Link>
+            </div>
+
+            <div className="mt-10 flex flex-wrap gap-8">
+              {[
+                { value: '20+', label: 'Working Scripts' },
+                { value: '100%', label: 'Tested on Linux' },
+                { value: '0', label: 'Logins Required' },
+                { value: 'Free', label: 'Always' },
+              ].map((stat) => (
+                <p key={stat.label} className="font-mono text-xs uppercase tracking-widest text-muted">
+                  {stat.value} {stat.label}
+                </p>
+              ))}
+            </div>
           </div>
         </div>
-      </section>
-
-      {/* Section 2 — Stats Bar */}
-      <section className="border-y border-border bg-bg2 px-6 py-5">
-        <ScrollReveal>
-          <div className="mx-auto flex max-w-4xl flex-wrap justify-center md:flex-nowrap">
-            {[
-              { value: '20+', label: 'Working Scripts' },
-              { value: '100%', label: 'Tested on Linux' },
-              { value: '0', label: 'Logins Required' },
-              { value: 'Free', label: 'Always' },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="px-6 text-center md:border-r md:border-border md:px-10 last:md:border-r-0"
-              >
-                <p className="font-heading text-2xl font-extrabold tabular-nums text-green">
-                  {stat.value}
-                </p>
-                <p className="mt-1 text-xs text-muted">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </ScrollReveal>
       </section>
 
       {/* Section 3 — Snippets Grid */}
@@ -260,10 +219,7 @@ export default function Home() {
         className="mx-auto max-w-4xl border-t border-border px-6 py-20"
       >
         <ScrollReveal>
-          <p className="mb-2 text-xs uppercase tracking-widest text-green">
-            {'// the good stuff'}
-          </p>
-          <h2 className="mb-4 font-heading text-3xl font-extrabold text-text">
+          <h2 className="mb-4 font-heading text-2xl font-bold text-text">
             Copy-Paste Scripts That Work
           </h2>
           <p className="mb-10 text-muted">
@@ -277,32 +233,23 @@ export default function Home() {
                 key={snippet.slug}
                 style={{ transitionDelay: `${index * 0.07}s` }}
               >
-                <article className="flex flex-col rounded-lg border border-border bg-bg2 p-4">
-                  <div className="flex items-start gap-2">
-                    <h3 className="flex-1 text-sm font-semibold text-text">
-                      <span aria-hidden="true">{tagIcon(snippet.tags[0])} </span>
-                      {snippet.title}
-                    </h3>
-                    <span className={difficultyBadgeClass(snippet.difficulty)}>
-                      {snippet.difficulty}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-xs leading-relaxed text-muted">
-                    {truncateDescription(snippet.description)}
+                <article className="bg-bg2 border border-border rounded-[8px] p-5 hover:border-green transition-colors duration-150 group relative overflow-hidden">
+                  <div className="absolute top-0 left-0 h-0.5 w-0 bg-green group-hover:w-full transition-all duration-300" />
+                  <span className="font-mono text-xs text-muted uppercase tracking-widest">
+                    {snippet.difficulty} · {snippet.tags[0]}
+                  </span>
+                  <h3 className="font-heading text-base font-bold text-text mt-1.5 leading-snug">
+                    {snippet.title}
+                  </h3>
+                  <p className="text-muted text-sm mt-2 leading-relaxed line-clamp-2">
+                    {snippet.description}
                   </p>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {snippet.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+                  <p className="font-mono text-xs text-muted mt-3 truncate">
+                    {snippet.tags.join(' · ')}
+                  </p>
                   <Link
                     href={`/snippets/${snippet.slug}`}
-                    className="mt-3 text-xs text-blue transition-colors hover:text-text"
+                    className="font-mono text-xs text-green mt-4 inline-block hover:underline underline-offset-2"
                   >
                     Full guide →
                   </Link>
@@ -336,10 +283,7 @@ export default function Home() {
         className="border-y border-border bg-bg2 px-6 py-20"
       >
         <ScrollReveal className="mx-auto max-w-4xl">
-          <p className="mb-2 text-xs uppercase tracking-widest text-green">
-            {'// interactive tools'}
-          </p>
-          <h2 className="mb-4 font-heading text-3xl font-extrabold text-text">
+          <h2 className="mb-4 font-heading text-2xl font-bold text-text">
             Free Browser Tools for Bash
           </h2>
           <p className="mb-10 text-muted">
@@ -378,10 +322,7 @@ export default function Home() {
         className="mx-auto max-w-3xl border-t border-border px-6 py-20"
       >
         <ScrollReveal>
-          <p className="mb-2 text-xs uppercase tracking-widest text-green">
-            {'// faq'}
-          </p>
-          <h2 className="mb-6 font-heading text-3xl font-extrabold text-text">
+          <h2 className="mb-6 font-heading text-2xl font-bold text-text">
             Common Questions
           </h2>
 

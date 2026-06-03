@@ -20,7 +20,7 @@ const config: Config = {
       },
       fontFamily: {
         mono: ['var(--font-mono)', 'IBM Plex Mono', 'monospace'],
-        heading: ['var(--font-heading)', 'Syne', 'sans-serif'],
+        heading: ['var(--font-heading)', 'JetBrains Mono', 'monospace'],
       },
       borderRadius: {
         DEFAULT: '8px',

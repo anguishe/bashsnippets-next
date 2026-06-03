@@ -76,30 +76,8 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string): string[] {
     image: OG_IMAGE.url,
     datePublished: published,
     dateModified: modified,
-  };
-
-  const howTo = {
-    '@context': 'https://schema.org',
-    '@type': 'HowTo',
-    name: `How to use the ${snippet.title} bash script`,
-    description: snippet.description,
-    step: [
-      {
-        '@type': 'HowToStep',
-        name: 'Download the script',
-        text: 'Copy the script from BashSnippets.xyz and save it as a .sh file.',
-      },
-      {
-        '@type': 'HowToStep',
-        name: 'Make it executable',
-        text: 'Run: chmod +x script.sh',
-      },
-      {
-        '@type': 'HowToStep',
-        name: 'Run the script',
-        text: 'Execute with: bash script.sh or ./script.sh',
-      },
-    ],
+    proficiencyLevel: snippet.difficulty.charAt(0).toUpperCase() + snippet.difficulty.slice(1),
+    programmingLanguage: 'Bash',
   };
 
   const faqPage = {
@@ -150,7 +128,7 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string): string[] {
     ],
   };
 
-  return [techArticle, howTo, faqPage, breadcrumb].map((schema) =>
+  return [techArticle, faqPage, breadcrumb].map((schema) =>
     JSON.stringify(schema),
   );
 }
@@ -260,17 +238,12 @@ export default async function SnippetPage({ params }: PageProps) {
           By BashSnippets · Tested on Ubuntu 22.04 LTS
         </p>
 
-        <div className="mb-6 rounded-r border-l-4 border-green bg-green-dim/40 px-4 py-3">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-green">
-            Quick answer
-          </p>
-          <p className="text-sm leading-relaxed text-text">
-            {snippet.description}
-          </p>
-          <p className="mt-2 text-xs text-muted">
-            Tested on: Ubuntu 22.04 LTS · macOS Ventura
-          </p>
-        </div>
+        {snippet.quickAnswer && (
+          <div className="bg-bg2 border-l-4 border-green rounded-r-[8px] pl-5 pr-5 py-4 mb-8">
+            <p className="font-mono text-xs text-green uppercase tracking-widest mb-2">Quick Answer</p>
+            <p className="text-text leading-relaxed text-sm">{snippet.quickAnswer}</p>
+          </div>
+        )}
 
         <article className="prose-snippet">
           <Content components={mdxComponents} />
