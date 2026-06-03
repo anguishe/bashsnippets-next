@@ -1,5 +1,14 @@
+import {
+  loadSnippetFrontmatter,
+  type FaqItem,
+  type HowToStep,
+} from '@/lib/mdx-frontmatter';
+
 const DEFAULT_PUBLISHED_TIME = '2026-05-01';
 const DEFAULT_MODIFIED_TIME = '2026-05-22';
+const DEFAULT_AUTHOR = 'Anguishe';
+
+export type { FaqItem, HowToStep };
 
 export interface SnippetMeta {
   slug: string;
@@ -13,9 +22,26 @@ export interface SnippetMeta {
   publishedTime?: string;
   modifiedTime?: string;
   youtubeShortId?: string;
+  faq: FaqItem[];
+  howToSteps: HowToStep[];
+  author: string;
 }
 
-export const snippets: SnippetMeta[] = [
+export interface SnippetRegistryEntry {
+  slug: string;
+  title: string;
+  description: string;
+  quickAnswer?: string;
+  tags: string[];
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  datePublished: string;
+  dateModified: string;
+  publishedTime?: string;
+  modifiedTime?: string;
+  youtubeShortId?: string;
+}
+
+export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'disk-space-warning',
     title: 'Disk Space Warning Script',
@@ -46,10 +72,12 @@ export const snippets: SnippetMeta[] = [
     title: 'Delete Old Log Files',
     description:
       'Use find and mtime to automatically delete log files older than N days. Prevent disk bloat.',
+    quickAnswer:
+      'The find command with -mtime locates files by age. Running find /var/log -name "*.log" -mtime +30 -delete removes every .log file in /var/log that has not been modified in more than 30 days. Without periodic cleanup, log files accumulate silently until a disk fills and your web server can no longer write access logs, your database stops accepting writes, or your application crashes mid-transaction. On a busy server generating 50 MB of logs per day, a 30-day window means 1.5 GB consumed before any file gets touched. Before running the delete, swap -delete for -print to preview exactly what will be removed — an essential safety step when running on production directories. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, and CentOS 9. No extra packages required. Schedule with cron: 0 3 * * 0 find /var/log -name "*.log" -mtime +30 -delete to run weekly at 3am.',
     tags: ['cleanup', 'find', 'cron-ready'],
     difficulty: 'intermediate',
     datePublished: '2026-04-20',
-    dateModified: '2026-05-22',
+    dateModified: '2026-06-03',
   },
   {
     slug: 'quick-system-info-report',
@@ -78,112 +106,172 @@ export const snippets: SnippetMeta[] = [
     title: 'Check If Website Is Up',
     description:
       'curl-based uptime checker that returns HTTP status codes and alerts on non-200 responses.',
+    quickAnswer:
+      'The curl command with -o /dev/null -s -w "%{http_code}" fetches a URL silently and returns only the HTTP status code. This script stores that code in STATUS and compares it to 200 — the only code that means the server responded successfully. A site can be technically reachable but returning 500 (server error) or 404 (not found), both of which mean users cannot access your content. Without monitoring, you find out your site is down when a user tells you — often hours or days after the outage started. The --max-time 10 flag prevents the script from hanging indefinitely when a server is completely unreachable. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, and macOS Ventura — curl is pre-installed on all of them. Schedule with cron every 5 minutes: */5 * * * * /home/user/uptimecheck.sh.',
     tags: ['monitor', 'curl', 'uptime'],
     difficulty: 'beginner',
     datePublished: '2026-05-05',
-    dateModified: '2026-05-22',
+    dateModified: '2026-06-03',
   },
   {
     slug: 'bash-error-handling',
     title: 'Bash Error Handling with set -euo pipefail',
     description:
       'Proper bash error handling using set -euo pipefail — stop scripts on errors, catch undefined variables, handle pipes.',
+    quickAnswer:
+      'By default bash ignores failed commands and keeps running, which lets a single typo cascade into data loss. Adding set -euo pipefail on the second line of any script changes three behaviours: -e exits immediately when any command returns a non-zero exit code, -u treats unset variables as errors instead of silently substituting an empty string, and -o pipefail makes the whole pipeline fail if any stage fails rather than only checking the last command. The classic disaster this prevents: a script that runs cd /nonexistent (fails, ignored), then rm -rf * (now runs in the wrong directory). With set -e the script stops at the failed cd and rm never executes. Adding trap \'echo "Error on line $LINENO" >&2\' ERR gives you the exact line number on failure. Works in bash 4.0 and newer — the default on Ubuntu 22.04 LTS, Debian 12, Fedora 39, and macOS Ventura (via homebrew bash).',
     tags: ['error-handling', 'best-practices', 'set'],
     difficulty: 'intermediate',
     datePublished: '2026-05-10',
-    dateModified: '2026-05-22',
+    dateModified: '2026-06-03',
   },
   {
     slug: 'bash-if-else-examples',
     title: 'Bash If/Else Examples',
     description:
       'Comprehensive bash if/else, elif, test operators, string comparison, and file condition checks.',
+    quickAnswer:
+      'A bash if statement tests whether a command exits with code 0 (success) or non-zero (failure). The test command — written as [ condition ] — evaluates comparisons and file checks. The full structure is: if [ condition ]; then ... elif [ condition ]; then ... else ... fi. Spaces inside the brackets are mandatory. For integers use -eq (equal), -gt (greater than), -lt (less than). For strings use = and !=. For files use -f (regular file exists), -d (directory exists), -e (either exists). A common mistake is using = for numbers — [ 5 = 10 ] does string comparison and gives unpredictable results with numbers. Always quote variables: [ "$VAR" = "value" ] handles empty strings safely where [ $VAR = "value" ] would cause a syntax error. Works in bash on Ubuntu 22.04 LTS, Debian 12, Fedora 39, CentOS 9, and macOS Ventura.',
     tags: ['conditionals', 'basics', 'if'],
     difficulty: 'beginner',
     datePublished: '2026-05-12',
-    dateModified: '2026-05-22',
+    dateModified: '2026-06-03',
   },
   {
     slug: 'create-dated-folder',
     title: 'Create a Dated Folder',
     description:
       'Use date +%Y-%m-%d to auto-name folders for backups, logs, and organized archives.',
+    quickAnswer:
+      'The date +%Y-%m-%d command outputs the current date in ISO 8601 format — for example 2026-06-03. Using this as a folder name means directories sort in chronological order automatically when you run ls, since lexicographic order matches date order for YYYY-MM-DD. The two-command workflow is: DATE=$(date +%Y-%m-%d) to capture the date string, then mkdir "$DATE" to create the folder. In a backup context, this creates a new unique folder every day without overwriting previous backups. Adding the hour and minute with date +%Y-%m-%d_%H-%M creates folders like 2026-06-03_14-30 for multiple runs per day. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, CentOS 9, and macOS Ventura. The date command and mkdir are pre-installed on every POSIX-compliant system — no packages required.',
     tags: ['files', 'date', 'mkdir'],
     difficulty: 'beginner',
     datePublished: '2026-05-14',
-    dateModified: '2026-05-22',
+    dateModified: '2026-06-03',
   },
   {
     slug: 'kill-a-process',
     title: 'Kill a Process with pkill and pgrep',
     description:
       'Use pkill, pgrep, and kill to find and stop processes by name, PID, or pattern.',
+    quickAnswer:
+      'The pkill command terminates processes by name, skipping the four-step workflow of ps aux, grep, copying a PID, and running kill. Before killing anything, run pgrep -l processname to preview exactly which processes match — the -l flag shows both the PID and the process name so you can verify you are targeting the right ones. pkill processname then sends SIGTERM (graceful shutdown) to all matching processes. When a process refuses to stop, pkill -9 processname sends SIGKILL — the kernel terminates it immediately with no cleanup. Use -9 only after a normal pkill has failed, since force-killing databases or web servers can corrupt open files. The -f flag matches the full command string rather than just the binary name, which is how you kill a specific Python script without affecting all Python processes. Both pgrep and pkill are pre-installed on Ubuntu 22.04 LTS, Debian 12, Fedora 39, CentOS 9, and macOS Ventura.',
     tags: ['process', 'pkill', 'pgrep'],
     difficulty: 'intermediate',
     datePublished: '2026-05-16',
-    dateModified: '2026-05-22',
+    dateModified: '2026-06-03',
   },
   {
     slug: 'file-permissions-security',
     title: 'File Permissions Security Audit',
     description:
       'Scan for world-writable files, SUID/SGID bits, and permission issues using find.',
+    quickAnswer:
+      'Linux file permissions control who can read, write, or execute a file. Each file has three permission groups — owner, group, and other — each with read (4), write (2), and execute (1) bits. The permission 644 means the owner can read and write (6), while group and others can only read (4). The permission 755 adds execute for all, which directories need so users can enter them. World-writable files with permission 777 let any user or process overwrite the file — on a web server this means a compromised PHP script can replace your application files. The audit script uses find with -perm 777 to locate these dangerous files and saves a report. The safe recursive pattern is two find commands: one sets files to 644, another sets directories to 755 — never chmod -R 644 because that removes execute bits from directories and breaks navigation. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, and CentOS 9.',
     tags: ['chmod', 'security', 'find'],
     difficulty: 'intermediate',
     datePublished: '2026-05-18',
-    dateModified: '2026-05-22',
+    dateModified: '2026-06-03',
   },
   {
     slug: 'monitor-cpu-ram-usage',
     title: 'Monitor CPU and RAM Usage',
     description:
       'Shell scripts to log and alert on CPU and memory usage using top, free, and awk.',
+    quickAnswer:
+      'The top command in batch mode outputs system metrics non-interactively. Running top -bn1 produces a one-shot snapshot: -b enables batch mode (no terminal control codes), -n1 takes a single sample. The CPU idle percentage on the third line of output reveals load. The free command reports memory in bytes; free -m outputs megabytes. Piping both through awk extracts the specific fields needed for comparison. Without resource monitoring, a runaway process can consume 100% CPU or fill RAM with no warning until the server becomes unresponsive or the OOM killer starts terminating processes. Knowing when CPU stays above 90% for sustained periods distinguishes a traffic spike from a runaway process or a background job that never finished. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, and CentOS 9. Schedule with cron every 5 minutes to catch problems before users notice: */5 * * * * /home/user/cpucheck.sh.',
     tags: ['monitor', 'system', 'awk'],
     difficulty: 'intermediate',
     datePublished: '2026-05-19',
-    dateModified: '2026-05-22',
+    dateModified: '2026-06-03',
   },
   {
     slug: 'bash-send-email-alert',
     title: 'Send Email Alerts from Bash',
     description:
       'Send email alerts from bash scripts using mailx, sendmail, or curl with SMTP.',
+    quickAnswer:
+      'The mail command sends email from the command line when a mail transfer agent (MTA) is configured on the system. The pattern is: echo "message body" | mail -s "Subject line" recipient@example.com. This works with any monitoring script — disk checks, uptime monitors, backup confirmations — by piping the alert text into mail and specifying the subject and recipient. On Ubuntu and Debian, install the tools with sudo apt install mailutils. For servers that block outbound SMTP (most cloud VPS providers do), configure msmtp to relay through an external SMTP service like Gmail or SendGrid using an app password. The rate-limiting pattern — a lockfile that prevents duplicate alerts within a cooldown window — stops your inbox from filling up when a problem persists across multiple cron runs. Works on Ubuntu 22.04 LTS, Debian 12, and Fedora 39 after installing the required mail utilities.',
     tags: ['email', 'alert', 'mailx'],
     difficulty: 'intermediate',
     datePublished: '2026-05-20',
-    dateModified: '2026-05-22',
+    dateModified: '2026-06-03',
   },
   {
     slug: 'mysql-database-backup',
     title: 'MySQL Database Backup Script',
     description:
       'Automated mysqldump backup with timestamps, compression, and cron scheduling.',
+    quickAnswer:
+      'The mysqldump command exports a MySQL database as SQL statements. Piping the output through gzip compresses the dump by 80 to 90 percent before writing it to disk, so a 500 MB database becomes a 50 to 100 MB file. This script combines mysqldump with a timestamp in the filename so each backup is unique and old ones never get overwritten. The find command with -mtime +7 -delete then removes backup files older than seven days, keeping disk usage bounded. Without automated backups, a single mistaken DROP TABLE or a storage failure permanently destroys your data — there is no undo. Running mysqldump every night at 2am via cron and keeping seven daily backups means you can restore to any point within the past week. Never hardcode the database password in the script file — use ~/.my.cnf so the password is not visible in process listings. Works with MySQL 8.0 and MariaDB 10.6 on Ubuntu 22.04 LTS, Debian 12, and CentOS 9.',
     tags: ['mysql', 'backup', 'cron-ready'],
     difficulty: 'intermediate',
     datePublished: '2026-05-21',
-    dateModified: '2026-05-22',
+    dateModified: '2026-06-03',
   },
   {
     slug: 'ssh-key-setup-script',
     title: 'SSH Key Setup Script',
     description:
       'Generate, deploy, and configure SSH keys with ssh-keygen and ssh-copy-id.',
+    quickAnswer:
+      'SSH key authentication replaces password login with a cryptographic key pair. The private key stays on your machine; the public key goes to the server. The ssh-keygen command generates both: ssh-keygen -t ed25519 -C "your@email.com" creates an Ed25519 key pair, the recommended type in 2026 because it is faster and more secure than RSA 2048. The -N "" flag skips the passphrase prompt for non-interactive generation. Once generated, ssh-copy-id user@server-ip appends your public key to ~/.ssh/authorized_keys on the remote host, enabling passwordless login. The .ssh directory must be chmod 700, the private key must be chmod 600, and the public key must be chmod 644 — SSH refuses to use keys with looser permissions as a security measure. Without key-based auth, every login requires a password that can be brute-forced or leaked. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, CentOS 9, and macOS Ventura — ssh-keygen and ssh-copy-id are pre-installed on all of them.',
     tags: ['ssh', 'security', 'keys'],
     difficulty: 'intermediate',
     datePublished: '2026-05-22',
-    dateModified: '2026-05-22',
+    dateModified: '2026-06-03',
+  },
+  {
+    slug: 'find-duplicate-files',
+    title: 'Find Duplicate Files in Linux',
+    description:
+      'Use md5sum and awk to find byte-for-byte duplicate files across directories. Recover disk space without guessing.',
+    quickAnswer:
+      'The md5sum command generates a 32-character hash that uniquely identifies a file by its content. Two files with the same hash are byte-for-byte identical regardless of their names or locations. This script pipes find output through md5sum to hash every file in a directory, sorts the results so identical hashes group together, then uses awk to print only the lines whose hash has been seen before — those are the duplicates. The original copy is never printed, only the redundant ones. Without this workflow, finding duplicates means comparing files manually or relying on GUI tools that may not scan server directories. On a Downloads folder or photo archive that has grown for years, duplicate detection commonly finds gigabytes of recoverable space. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, CentOS 9, and macOS Ventura — md5sum (or md5 on macOS), find, sort, and awk are pre-installed on all POSIX systems.',
+    tags: ['files', 'disk', 'find', 'awk'],
+    difficulty: 'intermediate',
+    datePublished: '2026-06-03',
+    dateModified: '2026-06-03',
   },
   {
     slug: 'restart-service-if-stopped',
     title: 'Restart a Service If It Stopped',
     description:
       'Use systemctl and bash to automatically restart stopped services and log the event.',
+    quickAnswer:
+      'The systemctl is-active command returns exit code 0 when a service is running and non-zero when it is stopped, failed, or not found. This makes it usable directly in a bash if statement without any output parsing. When the service is down, the script calls systemctl start and checks whether that command succeeded — two levels of verification rather than just attempting a restart and assuming it worked. The log file built with tee -a gives you an audit trail of every outage and recovery. The optional email alert sends different messages for recovery versus critical failure so you know whether the service came back up on its own. Without this watchdog, a crashed nginx or postgresql can stay down for hours until someone notices. Running the script every minute via cron — * * * * * /home/user/service-watchdog.sh — means maximum downtime before auto-recovery is under 60 seconds. Works with any systemd service on Ubuntu 22.04 LTS, Debian 12, Fedora 39, and CentOS 9.',
     tags: ['systemd', 'monitor', 'cron-ready'],
     difficulty: 'intermediate',
     datePublished: '2026-05-22',
-    dateModified: '2026-05-22',
+    dateModified: '2026-06-03',
   },
 ];
+
+function mergeWithFrontmatter(snippet: SnippetRegistryEntry): SnippetMeta {
+  const frontmatter = loadSnippetFrontmatter(snippet.slug);
+
+  const datePublished =
+    frontmatter.datePublished ?? snippet.datePublished ?? DEFAULT_PUBLISHED_TIME;
+  const dateModified =
+    frontmatter.dateModified ?? snippet.dateModified ?? DEFAULT_MODIFIED_TIME;
+
+  return {
+    ...snippet,
+    title: snippet.title,
+    description: snippet.description,
+    quickAnswer: snippet.quickAnswer ?? frontmatter.quickAnswer,
+    tags: frontmatter.tags ?? snippet.tags,
+    datePublished,
+    dateModified,
+    publishedTime:
+      snippet.publishedTime ?? datePublished ?? DEFAULT_PUBLISHED_TIME,
+    modifiedTime:
+      snippet.modifiedTime ?? dateModified ?? DEFAULT_MODIFIED_TIME,
+    faq: frontmatter.faq ?? [],
+    howToSteps: frontmatter.howToSteps ?? [],
+    author: frontmatter.author ?? DEFAULT_AUTHOR,
+  };
+}
 
 export function getSnippetBySlug(slug: string): SnippetMeta | undefined {
   const snippet = snippets.find((s) => s.slug === slug);
@@ -191,15 +279,7 @@ export function getSnippetBySlug(slug: string): SnippetMeta | undefined {
     return undefined;
   }
 
-  return {
-    ...snippet,
-    publishedTime:
-      snippet.publishedTime ??
-      snippet.datePublished ??
-      DEFAULT_PUBLISHED_TIME,
-    modifiedTime:
-      snippet.modifiedTime ?? snippet.dateModified ?? DEFAULT_MODIFIED_TIME,
-  };
+  return mergeWithFrontmatter(snippet);
 }
 
 export function getAllSlugs(): string[] {
@@ -208,18 +288,18 @@ export function getAllSlugs(): string[] {
 
 export function getSnippetsByDifficulty(
   level: SnippetMeta['difficulty'],
-): SnippetMeta[] {
+): SnippetRegistryEntry[] {
   return snippets.filter((snippet) => snippet.difficulty === level);
 }
 
-export function getSnippetsByTag(tag: string): SnippetMeta[] {
+export function getSnippetsByTag(tag: string): SnippetRegistryEntry[] {
   return snippets.filter((snippet) => snippet.tags.includes(tag));
 }
 
 export function getRelatedSnippets(
   currentSlug: string,
   count: number,
-): SnippetMeta[] {
+): SnippetRegistryEntry[] {
   const current = getSnippetBySlug(currentSlug);
   if (!current) {
     return [];
@@ -234,7 +314,7 @@ export function getRelatedSnippets(
     (snippet) => snippet.difficulty !== current.difficulty,
   );
 
-  const result: SnippetMeta[] = [];
+  const result: SnippetRegistryEntry[] = [];
 
   for (const snippet of sameDifficulty) {
     if (result.length >= targetCount) {

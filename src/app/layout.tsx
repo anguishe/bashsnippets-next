@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { IBM_Plex_Mono, JetBrains_Mono } from 'next/font/google';
+import { IBM_Plex_Mono, Syne } from 'next/font/google';
 import Script from 'next/script';
 import Footer from '@/components/Footer';
 import Nav from '@/components/Nav';
@@ -7,14 +7,14 @@ import './globals.css';
 
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
-  weight: ['400', '600'],
+  weight: ['400', '500', '600'],
   variable: '--font-mono',
   display: 'swap',
 });
 
-const headingFont = JetBrains_Mono({
+const syne = Syne({
   subsets: ['latin'],
-  weight: ['600', '700', '800'],
+  weight: ['400', '600', '700', '800'],
   variable: '--font-heading',
   display: 'swap',
 });
@@ -22,24 +22,38 @@ const headingFont = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL('https://bashsnippets.xyz'),
   title: {
-    template: '%s – BashSnippets.xyz',
-    default: 'Bash Script Examples and Tools Hub – BashSnippets.xyz',
+    default: 'BashSnippets.xyz — Free Bash Scripts for Linux & DevOps',
+    template: '%s | BashSnippets.xyz',
   },
   description:
-    'Browse free bash script examples for backups, cron, monitoring, grep, chmod, and Linux automation. Copy-paste ready scripts with plain-English explanations.',
+    'Free copy-paste bash scripts for developers, sysadmins, and Linux users. Disk monitoring, backups, process management, and more.',
+  keywords: [
+    'bash scripts',
+    'linux scripts',
+    'bash automation',
+    'shell scripts',
+    'sysadmin scripts',
+  ],
+  authors: [{ name: 'Anguishe', url: 'https://bashsnippets.xyz/about' }],
+  creator: 'Anguishe',
   openGraph: {
-    siteName: 'BashSnippets',
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://bashsnippets.xyz',
+    siteName: 'BashSnippets.xyz',
     images: [
       {
-        url: '/og-image.png',
+        url: '/ogimage.png',
         width: 1200,
         height: 630,
-        alt: 'BashSnippets — bash scripts for Linux and DevOps',
+        alt: 'BashSnippets.xyz — Free Bash Scripts',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
+    site: '@BashSnippets',
+    creator: '@BashSnippets',
   },
   icons: {
     icon: [
@@ -62,6 +76,13 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 };
 
@@ -71,10 +92,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${ibmPlexMono.variable} ${headingFont.variable}`}
-    >
+    <html lang="en">
       <head>
         <link
           rel="search"
@@ -83,7 +101,9 @@ export default function RootLayout({
           href="/opensearch.xml"
         />
       </head>
-      <body className="flex min-h-screen flex-col bg-bg text-text">
+      <body
+        className={`${ibmPlexMono.variable} ${syne.variable} flex min-h-screen flex-col bg-bg text-text`}
+      >
         <Nav />
         <div className="flex-1">{children}</div>
         <Footer />

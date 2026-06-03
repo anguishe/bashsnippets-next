@@ -1,32 +1,48 @@
-import Callout from '@/components/Callout'
+---
+title: "Kill a Process with pkill and pgrep — Bash Script"
+description: "Use pkill, pgrep, and kill to find and stop processes by name, PID, or pattern."
+slug: "kill-a-process"
+tags: ["process", "pkill", "pgrep"]
+quickAnswer: "The pkill command terminates processes by name, skipping the four-step workflow of ps aux, grep, copying a PID, and running kill."
+faq:
+  - question: "How do I run this script?"
+    answer: "Use pgrep -l processname to preview matches first, then pkill processname to terminate. Save examples as kill-process.sh if you want a reusable script."
+  - question: "Does this work on macOS?"
+    answer: "Yes. pgrep and pkill are pre-installed on macOS. Use pkill -9 only after a normal pkill fails."
+  - question: "How do I kill a process by name in Linux?"
+    answer: "Run pgrep -l name to verify targets, then pkill name to send SIGTERM. Use pkill -9 name for force kill after graceful shutdown fails."
+  - question: "What is the difference between kill and pkill in Linux?"
+    answer: "kill requires a PID number. pkill matches processes by name and sends the signal to all matches automatically."
+howToSteps:
+  - name: "Find the process"
+    text: "Run pgrep -l processname to preview which processes match before killing"
+  - name: "Kill by name"
+    text: "Run pkill processname to send SIGTERM, or pkill -9 processname for force kill"
+  - name: "Verify it worked"
+    text: "Run pgrep -l processname again — no output means the process is gone"
+author: "Anguishe"
+datePublished: "2026-05-16"
+dateModified: "2026-06-03"
+---
+
 
 ## The Wrong Way vs The Right Way
 
-      ✗ The hard way (4 commands)
+**The hard way — 4 commands:**
 
-        # Step 1: list all processes
-ps aux
+```bash
+ps aux               # list everything
+ps aux | grep sleep  # search manually
+# copy the PID (e.g. 379231) from output
+kill 379231          # kill by PID
+```
 
-# Step 2: search output manually
-ps aux | grep sleep
+**The right way — 2 commands:**
 
-# Step 3: copy the PID from output
-# (e.g. 379231)
-
-# Step 4: kill by PID
-kill 379231
-
-      ✓ The right way (1 command)
-
-        # Preview first (safe)
-pgrep -l sleep
-
-# Kill all matching by name
-pkill sleep
-
-# Done.
-# All sleep processes terminated.
-# No PID hunting required.
+```bash
+pgrep -l sleep  # preview what matches (safe)
+pkill sleep     # kill all matching by name
+```
 
 ## The Commands
 
@@ -144,10 +160,6 @@ SIGKILL (`-9`) forces the kernel to terminate the process immediately — no cle
 
 </Callout>
 
-      View Hosting Plans →
-
-    Get $200 Free →
-
 ## Common Mistakes
 
 <Callout type="warning" title="pkill matches partial names by default">
@@ -162,7 +174,7 @@ If `pkill processname` finds nothing to kill, it exits with code 1 — which loo
 
 </Callout>
 
-<Callout type="success" title="� Never run pkill -9 on system processes">
+<Callout type="warning" title="Never run pkill -9 on system processes">
 
 Avoid force-killing processes named `init`, `systemd`, `kernel`, or anything you don't recognize. When in doubt, `pgrep -l` first and Google the process name before pulling the trigger.
 

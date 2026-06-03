@@ -4,11 +4,18 @@ import { useEffect, useRef } from 'react';
 
 export default function HeroCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const prefersReduced =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const skipCanvas =
-    typeof navigator !== 'undefined' && navigator.hardwareConcurrency <= 2;
+    prefersReduced ||
+    (typeof navigator !== 'undefined' && navigator.hardwareConcurrency <= 2);
 
   useEffect(() => {
-    if (navigator.hardwareConcurrency <= 2) {
+    if (
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      navigator.hardwareConcurrency <= 2
+    ) {
       return;
     }
 

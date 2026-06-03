@@ -1,4 +1,30 @@
-import Callout from '@/components/Callout'
+---
+title: "Monitor CPU and RAM Usage — Bash Script"
+description: "Shell scripts to log and alert on CPU and memory usage using top, free, and awk."
+slug: "monitor-cpu-ram-usage"
+tags: ["monitor", "system", "awk"]
+quickAnswer: "The top command in batch mode outputs system metrics non-interactively. Running top -bn1 produces a one-shot snapshot of CPU and memory usage for threshold comparison."
+faq:
+  - question: "How do I run this script?"
+    answer: "Save as cpucheck.sh, set CPU_THRESHOLD and RAM_THRESHOLD, run chmod +x cpucheck.sh, then execute ./cpucheck.sh."
+  - question: "Does this work on macOS?"
+    answer: "Partially. top works on macOS but output format differs. Use vm_stat instead of free for RAM on macOS."
+  - question: "How do I check CPU usage in bash?"
+    answer: "Run top -bn1 and pipe through awk to extract the idle percentage. Subtract from 100 to get CPU usage."
+  - question: "How do I get an alert when CPU is too high?"
+    answer: "Compare extracted CPU percentage against a threshold in an if statement, then pipe the alert to mail or a webhook."
+howToSteps:
+  - name: "Create the script file"
+    text: "Copy the CPU/RAM monitor script below and save it as cpucheck.sh"
+  - name: "Set your thresholds"
+    text: "Edit CPU_THRESHOLD and RAM_THRESHOLD at the top of the script"
+  - name: "Make it executable and run"
+    text: "Run: chmod +x cpucheck.sh then ./cpucheck.sh"
+author: "Anguishe"
+datePublished: "2026-05-19"
+dateModified: "2026-06-03"
+---
+
 
 ## The Script
 
@@ -49,17 +75,71 @@ fi
 | tee -a "$LOG_FILE" | Prints to stdout and appends to the log file. |
 | $DATE | Timestamp so every log entry is traceable. |
 
-## How to Run
+## Step-by-Step Setup
 
-    nano monitor.sh
-    Paste the script. Ctrl+X → Y → Enter to save.
-    chmod +x monitor.sh
-    Test: ./monitor.sh
-    Schedule: crontab -e → add: 0 * * * * /home/user/monitor.sh
+### Step 1 — Create the file
 
-<Callout type="info" title="� Log cron output">
+```bash
+nano monitor.sh
+```
 
-To match the HowTo schema and keep a paper trail, append: `>> /var/log/monitor.log 2>&1` to your cron line (use a path you can write to, or run the job as a user that owns the log).
+Paste the script above, then press **Ctrl+X → Y → Enter** to save.
+
+### Step 2 — Set your threshold
+
+| Threshold | Best for |
+| --- | --- |
+| **70%** | Early warning on production — gives time to investigate before impact |
+| **80%** | General-purpose default — recommended for most VPS and cloud instances |
+| **90%** | Last-chance alert — for workloads with legitimate sustained high usage |
+
+Edit `THRESHOLD=80` at the top of the script to match your environment.
+
+### Step 3 — Make it executable and test it
+
+```bash
+chmod +x monitor.sh
+./monitor.sh
+```
+
+You should see output like:
+
+```text
+[2026-06-03 14:22:01] CPU: 12% | RAM: 54%
+✓ CPU OK: 12%
+✓ RAM OK: 54%
+```
+
+If CPU or RAM is above the threshold, the warning line fires and appends to `LOG_FILE`. Check the log after a test run:
+
+```bash
+cat /var/log/resource-monitor.log
+```
+
+### Step 4 — Schedule with cron
+
+The script only helps if it runs automatically. Open your crontab:
+
+```bash
+crontab -e
+```
+
+Add one of these lines:
+
+```bash
+# Check every 5 minutes
+*/5 * * * * /home/user/monitor.sh >> /var/log/monitor-cron.log 2>&1
+
+# Check every hour
+0 * * * * /home/user/monitor.sh >> /var/log/monitor-cron.log 2>&1
+
+# Check every minute (high-stakes production)
+* * * * * /home/user/monitor.sh >> /var/log/monitor-cron.log 2>&1
+```
+
+<Callout type="info" title="Always redirect cron output to a log">
+
+Cron runs silently. Without `>> /var/log/monitor-cron.log 2>&1` on your cron line, you will never see warnings from a threshold breach. Redirect both stdout and stderr so every run leaves a trace.
 
 </Callout>
 

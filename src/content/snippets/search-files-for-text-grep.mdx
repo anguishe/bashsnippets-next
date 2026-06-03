@@ -1,4 +1,30 @@
-import Callout from '@/components/Callout'
+---
+title: "Search Files for Text with grep — Bash Script"
+description: "Find any string across files and directories using grep, egrep, and common flags explained."
+slug: "search-files-for-text-grep"
+tags: ["grep", "search", "text"]
+quickAnswer: "The grep command searches files for a pattern and prints every matching line with its filename. This script wraps grep -rn for recursive search with line numbers across an entire directory tree."
+faq:
+  - question: "How do I run this script?"
+    answer: "Save the grep examples as search.sh, chmod +x search.sh, then run ./search.sh or use the grep commands directly in your terminal."
+  - question: "Does this work on macOS?"
+    answer: "Yes. grep is pre-installed on macOS. Use grep -r instead of grep -R on older macOS versions if needed."
+  - question: "How do I search for text inside files in Linux?"
+    answer: "Use grep -rn \"pattern\" /path/to/dir to search recursively with line numbers. Add --include=\"*.ext\" to filter by file type."
+  - question: "How do I make grep case insensitive?"
+    answer: "Add the -i flag: grep -ri \"pattern\" /path/to/dir searches without case sensitivity."
+howToSteps:
+  - name: "Create the script file"
+    text: "Copy the grep search script below and save it as search.sh"
+  - name: "Set your search pattern"
+    text: "Edit the PATTERN and SEARCH_DIR variables at the top of the script"
+  - name: "Run the script"
+    text: "Run: chmod +x search.sh then ./search.sh"
+author: "Anguishe"
+datePublished: "2026-05-01"
+dateModified: "2026-06-03"
+---
+
 
 ## The Script
 

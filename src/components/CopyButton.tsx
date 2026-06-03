@@ -1,64 +1,35 @@
 'use client';
 
-import { useState } from 'react';
-
 interface CopyButtonProps {
-  code: string;
+  copied: boolean;
+  onClick: () => void;
 }
 
-export default function CopyButton({ code }: CopyButtonProps) {
-  const [state, setState] = useState<'idle' | 'copied' | 'error'>('idle');
-
-  async function handleCopy() {
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(code);
-      } else {
-        const ta = document.createElement('textarea');
-        ta.value = code;
-        ta.style.position = 'absolute';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-      }
-      setState('copied');
-      setTimeout(() => setState('idle'), 2000);
-    } catch {
-      setState('error');
-      setTimeout(() => setState('idle'), 2000);
-    }
-  }
-
+export default function CopyButton({ copied, onClick }: CopyButtonProps) {
   return (
     <button
       type="button"
-      onClick={handleCopy}
+      onClick={onClick}
       style={{
-        background: '#1c2128',
-        color:
-          state === 'copied'
-            ? '#39d353'
-            : state === 'error'
-              ? '#e3b341'
-              : '#8b949e',
-        border: `1px solid ${
-          state === 'copied'
-            ? '#39d353'
-            : state === 'error'
-              ? '#e3b341'
-              : '#30363d'
-        }`,
-        borderRadius: '4px',
+        background: 'transparent',
+        border: 'none',
+        color: copied ? '#39d353' : '#8b949e',
         fontFamily: "'IBM Plex Mono', monospace",
-        fontSize: '11px',
-        padding: '3px 10px',
+        fontSize: '12px',
+        padding: 0,
         cursor: 'pointer',
-        transition: 'color 0.15s, border-color 0.15s',
+        transition: 'color 0.15s',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+      }}
+      onMouseEnter={(e) => {
+        if (!copied) e.currentTarget.style.color = '#e6edf3';
+      }}
+      onMouseLeave={(e) => {
+        if (!copied) e.currentTarget.style.color = '#8b949e';
       }}
     >
-      {state === 'copied' ? 'copied!' : state === 'error' ? 'failed' : 'copy'}
+      {copied ? '✓ Copied' : 'Copy'}
     </button>
   );
 }

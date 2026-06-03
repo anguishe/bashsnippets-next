@@ -1,37 +1,15 @@
 import AffiliateBox from '@/components/AffiliateBox';
-import ToolEmbed from '@/components/ToolEmbed';
+import ToolRenderer from '@/components/tools/ToolRenderer';
 import { getAllToolSlugs, getToolBySlug } from '@/lib/tools';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-const AD_CLIENT = 'ca-pub-5399156622542127';
-const AD_SLOT = '7586966692';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
-
-function AdSlot() {
-  return (
-    <div className="my-8 flex min-h-[90px] items-center justify-center overflow-hidden rounded-lg border border-border bg-bg2">
-      <ins
-        className="adsbygoogle"
-        style={{ display: 'block' }}
-        data-ad-client={AD_CLIENT}
-        data-ad-slot={AD_SLOT}
-        data-ad-format="auto"
-        data-full-width-responsive="true"
-      />
-      <script
-        dangerouslySetInnerHTML={{
-          __html: '(adsbygoogle = window.adsbygoogle || []).push({});',
-        }}
-      />
-    </div>
-  );
-}
 
 function buildSchemas(
   tool: { title: string; description: string; faqs: { question: string; answer: string }[] },
@@ -39,19 +17,19 @@ function buildSchemas(
 ) {
   const canonical = `${SITE_URL}/tools/${slug}`;
 
-  const webApplication = {
+  const softwareApplication = {
     '@context': 'https://schema.org',
-    '@type': 'WebApplication',
+    '@type': 'SoftwareApplication',
     name: tool.title,
-    url: canonical,
     description: tool.description,
     applicationCategory: 'DeveloperApplication',
-    operatingSystem: 'Any',
+    operatingSystem: 'Linux, macOS',
     offers: {
       '@type': 'Offer',
       price: '0',
       priceCurrency: 'USD',
     },
+    url: canonical,
   };
 
   const breadcrumb = {
@@ -92,7 +70,7 @@ function buildSchemas(
     })),
   };
 
-  return [webApplication, breadcrumb, faqPage];
+  return [softwareApplication, breadcrumb, faqPage];
 }
 
 export function generateStaticParams() {
@@ -108,32 +86,17 @@ export async function generateMetadata({
     return {};
   }
 
-  const ogTitle = `${tool.title} – BashSnippets.xyz`;
-
   return {
     title: tool.title,
     description: tool.description,
     alternates: {
-      canonical: `${SITE_URL}/tools/${slug}`,
+      canonical: `${SITE_URL}/tools/${tool.slug}`,
     },
     openGraph: {
-      title: ogTitle,
+      title: tool.title,
       description: tool.description,
-      url: `${SITE_URL}/tools/${slug}`,
-      siteName: 'BashSnippets',
-      type: 'website',
-      images: [{
-        url: `${SITE_URL}/og-image.png`,
-        width: 1200,
-        height: 630,
-        alt: ogTitle,
-      }],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: ogTitle,
-      description: tool.description,
-      images: [`${SITE_URL}/og-image.png`],
+      url: `${SITE_URL}/tools/${tool.slug}`,
+      images: [{ url: '/ogimage.png', width: 1200, height: 630 }],
     },
   };
 }
@@ -159,81 +122,83 @@ export default async function ToolPage({ params }: PageProps) {
       ))}
 
       <main className="mx-auto max-w-4xl px-6 py-12">
+        {/* Section 1: Page header */}
         <nav className="mb-6 text-xs text-muted" aria-label="Breadcrumb">
-          <Link href="/" className="hover:text-text transition-colors">
-            BashSnippets
+          <Link href="/" className="transition-colors hover:text-text">
+            Home
           </Link>
           <span className="mx-2">›</span>
-          <Link href="/tools" className="hover:text-text transition-colors">
+          <Link href="/tools" className="transition-colors hover:text-text">
             Tools
           </Link>
           <span className="mx-2">›</span>
           <span className="text-text">{tool.title}</span>
         </nav>
 
-        <div className="mb-4 flex items-center gap-2">
-          <span className="rounded-full border border-blue bg-blue-dim px-3 py-1 text-xs uppercase tracking-widest text-blue">
-            {tool.category}
-          </span>
-          <span className="text-xs text-muted">
-            Free · No login required · Browser-based
-          </span>
-        </div>
-
-        <h1 className="font-heading text-3xl font-extrabold leading-tight md:text-4xl">
+        <h1 className="font-heading text-3xl font-extrabold leading-tight text-text md:text-4xl">
           {tool.title}
         </h1>
 
-        <p className="mb-8 mt-3 text-base leading-relaxed text-muted">
+        <p className="mb-8 mt-3 text-base text-muted">
           {tool.description}
         </p>
 
-        <div className="mb-8 flex items-center gap-2 rounded border border-border bg-bg2 px-4 py-3 text-xs text-muted">
-          <span className="text-green">💡</span>
-          <span>
-            This tool runs entirely in your browser. Nothing is sent to a server.
-          </span>
+        {/* Section 2: Tool component */}
+        <div className="rounded-lg border border-border bg-bg2 p-6">
+          <ToolRenderer slug={slug} />
         </div>
 
-        <ToolEmbed slug={slug} />
-
-        <AdSlot />
-
+        {/* Section 3: How to use */}
         <section className="mt-12">
           <h2 className="font-heading text-2xl font-bold text-text">
             How to use the {tool.title}
           </h2>
-          <ol className="mt-4 space-y-3">
+          <ol className="mt-4 flex flex-col gap-4">
             {tool.howToUse.map((step, i) => (
-              <li key={i} className="flex gap-3 text-sm leading-relaxed text-muted">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-green bg-green-dim font-mono text-[10px] font-semibold text-green">
+              <li key={i} className="flex items-start gap-4">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green font-heading text-sm font-bold text-bg">
                   {i + 1}
                 </span>
-                <span>{step}</span>
+                <span className="pt-0.5 text-sm leading-relaxed text-muted">
+                  {step}
+                </span>
               </li>
             ))}
           </ol>
         </section>
 
-        <section className="mt-12">
-          <h2 className="font-heading text-2xl font-bold text-text">
-            Frequently Asked Questions
-          </h2>
-          <div className="mt-4 space-y-6">
-            {tool.faqs.map((faq, i) => (
-              <div key={i} className="rounded-lg border border-border bg-bg2 p-5">
-                <h3 className="font-mono text-sm font-semibold text-text">
-                  {faq.question}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">
-                  {faq.answer}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-
+        {/* Section 4: Affiliate box */}
         <AffiliateBox partner="digitalocean" className="mt-10" />
+
+        {/* Section 5: FAQ accordion */}
+        {tool.faqs.length > 0 && (
+          <section className="mt-12">
+            <h2 className="mb-6 font-heading text-xl font-bold text-text">
+              Frequently Asked Questions
+            </h2>
+            <div className="space-y-3">
+              {tool.faqs.map((faq) => (
+                <details
+                  key={faq.question}
+                  className="snippet-faq overflow-hidden rounded-lg border border-border bg-bg2"
+                >
+                  <summary className="flex cursor-pointer items-center justify-between gap-4 px-5 py-4 font-heading font-semibold text-text">
+                    <span>{faq.question}</span>
+                    <span
+                      className="faq-chevron shrink-0 text-xs text-muted"
+                      aria-hidden
+                    >
+                      ▼
+                    </span>
+                  </summary>
+                  <p className="px-5 pb-4 text-sm leading-relaxed text-muted">
+                    {faq.answer}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </>
   );

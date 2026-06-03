@@ -1,6 +1,7 @@
 import AdSlot from '@/components/AdSlot';
 import AffiliateBox from '@/components/AffiliateBox';
 import { mdxComponents } from '@/components/MDXComponents';
+import { getSnippetWordCount } from '@/lib/mdx-frontmatter';
 import {
   getAllSlugs,
   getRelatedSnippets,
@@ -8,6 +9,7 @@ import {
   type SnippetMeta,
 } from '@/lib/snippets';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -17,90 +19,62 @@ type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-function difficultyBadgeClass(difficulty: SnippetMeta['difficulty']): string {
-  const base = 'inline-block rounded px-2 py-0.5 text-xs font-semibold border';
-  switch (difficulty) {
-    case 'beginner':
-      return `${base} bg-green-dim text-green border-green`;
-    case 'intermediate':
-      return `${base} bg-amber-dim text-amber border-amber`;
-    case 'advanced':
-      return `${base} bg-blue-dim text-blue border-blue`;
-  }
-}
-
-function relatedDifficultyBadgeClass(
-  difficulty: SnippetMeta['difficulty'],
-): string {
-  const base =
-    'inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest';
-  switch (difficulty) {
-    case 'beginner':
-      return `${base} border-green bg-green-dim text-green`;
-    case 'intermediate':
-      return `${base} border-amber bg-amber-dim text-amber`;
-    case 'advanced':
-      return `${base} border-blue bg-blue-dim text-blue`;
-  }
-}
-
 const OG_IMAGE = {
-  url: `${SITE_URL}/og-image.png`,
+  url: '/ogimage.png',
   width: 1200,
   height: 630,
-  alt: 'BashSnippets — bash scripts for Linux and DevOps',
 } as const;
 
 function generateSnippetSchema(snippet: SnippetMeta, slug: string): string[] {
-  const pageTitle = `${snippet.title} – BashSnippets.xyz`;
   const canonical = `${SITE_URL}/snippets/${slug}`;
-  const published = snippet.publishedTime ?? '2026-05-01';
-  const modified = snippet.modifiedTime ?? '2026-05-22';
 
-  const techArticle = {
+  const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'TechArticle',
-    headline: pageTitle,
+    headline: snippet.title,
     description: snippet.description,
-    url: canonical,
     author: {
-      '@type': 'Organization',
-      name: 'BashSnippets',
-      url: SITE_URL,
+      '@type': 'Person',
+      name: snippet.author,
+      '@id': `${SITE_URL}/about`,
     },
     publisher: {
       '@type': 'Organization',
-      name: 'BashSnippets',
+      name: 'BashSnippets.xyz',
       url: SITE_URL,
     },
-    image: OG_IMAGE.url,
-    datePublished: published,
-    dateModified: modified,
+    datePublished: snippet.datePublished,
+    dateModified: snippet.dateModified,
+    mainEntityOfPage: canonical,
+    image: `${SITE_URL}/ogimage.png`,
     proficiencyLevel: snippet.difficulty.charAt(0).toUpperCase() + snippet.difficulty.slice(1),
     programmingLanguage: 'Bash',
   };
 
-  const faqPage = {
+  const faqSchema = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: [
-      {
-        '@type': 'Question',
-        name: 'How do I run a bash script on Linux?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Make it executable with chmod +x script.sh, then run ./script.sh or bash script.sh',
-        },
+    mainEntity: snippet.faq.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
       },
-      {
-        '@type': 'Question',
-        name: 'What does set -euo pipefail do?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'It makes bash exit on any error (-e), treats unset variables as errors (-u), and catches pipe failures (-o pipefail). Add it near the top of every script.',
-        },
-      },
-    ],
+    })),
+  };
+
+  const howToSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: snippet.title,
+    description: snippet.description,
+    step: snippet.howToSteps.map((step, i) => ({
+      '@type': 'HowToStep',
+      position: i + 1,
+      name: step.name,
+      text: step.text,
+    })),
   };
 
   const breadcrumb = {
@@ -110,7 +84,7 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string): string[] {
       {
         '@type': 'ListItem',
         position: 1,
-        name: 'BashSnippets',
+        name: 'Home',
         item: SITE_URL,
       },
       {
@@ -128,7 +102,7 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string): string[] {
     ],
   };
 
-  return [techArticle, faqPage, breadcrumb].map((schema) =>
+  return [articleSchema, faqSchema, howToSchema, breadcrumb].map((schema) =>
     JSON.stringify(schema),
   );
 }
@@ -146,28 +120,17 @@ export async function generateMetadata({
     return {};
   }
 
-  const ogTitle = `${snippet.title} – BashSnippets.xyz`;
-
   return {
     title: snippet.title,
     description: snippet.description,
     alternates: {
-      canonical: `${SITE_URL}/snippets/${slug}`,
+      canonical: `${SITE_URL}/snippets/${snippet.slug}`,
     },
     openGraph: {
-      title: ogTitle,
+      title: snippet.title,
       description: snippet.description,
-      type: 'article',
-      url: `${SITE_URL}/snippets/${slug}`,
+      url: `${SITE_URL}/snippets/${snippet.slug}`,
       images: [OG_IMAGE],
-      publishedTime: snippet.publishedTime ?? '2026-05-01',
-      modifiedTime: snippet.modifiedTime ?? '2026-05-22',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: ogTitle,
-      description: snippet.description,
-      images: [OG_IMAGE.url],
     },
   };
 }
@@ -180,18 +143,22 @@ export default async function SnippetPage({ params }: PageProps) {
     notFound();
   }
 
-  let Content: React.ComponentType<{
-    components?: typeof mdxComponents;
-  }> = () => null;
-  try {
-    const mod = await import(`@/content/snippets/${slug}.mdx`);
-    Content = mod.default;
-  } catch {
-    // content file not found — page still renders with layout
-  }
+  const getContent = async (slug: string) => {
+    try {
+      const mod = await import(`@/content/snippets/${slug}.mdx`);
+      return mod.default;
+    } catch (error) {
+      console.error(`[MDX] Failed to load snippet: ${slug}`, error);
+      return null;
+    }
+  };
+
+  const Content = await getContent(slug);
 
   const related = getRelatedSnippets(slug, 3);
   const schemaJson = generateSnippetSchema(snippet, slug);
+  const wordCount = getSnippetWordCount(slug);
+  const readTime = Math.max(1, Math.ceil(wordCount / 200));
 
   return (
     <>
@@ -205,51 +172,81 @@ export default async function SnippetPage({ params }: PageProps) {
 
       <main className="mx-auto max-w-3xl px-6 py-16">
         <nav className="mb-6 text-xs text-muted" aria-label="Breadcrumb">
-          <Link href="/" className="hover:text-text transition-colors">
-            BashSnippets
+          <Link href="/" className="transition-colors hover:text-text">
+            Home
           </Link>
           <span className="mx-2">›</span>
-          <Link href="/snippets" className="hover:text-text transition-colors">
+          <Link href="/snippets" className="transition-colors hover:text-text">
             Snippets
           </Link>
           <span className="mx-2">›</span>
           <span className="text-text">{snippet.title}</span>
         </nav>
 
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className={difficultyBadgeClass(snippet.difficulty)}>
-            {snippet.difficulty}
-          </span>
-          {snippet.tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded border border-border bg-bg3 px-2 py-0.5 text-xs text-muted"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-
-        <h1 className="font-heading text-3xl font-extrabold leading-tight md:text-4xl">
+        <h1 className="font-heading text-3xl font-extrabold leading-tight text-text md:text-4xl">
           {snippet.title}
         </h1>
 
-        <p className="mt-2 text-sm text-muted">
-          By BashSnippets · Tested on Ubuntu 22.04 LTS
-        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap gap-2">
+            {snippet.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-[4px] border border-border bg-bg2 px-2 py-0.5 font-mono text-xs text-blue"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+          <span className="text-sm text-muted">{readTime} min read</span>
+        </div>
 
         {snippet.quickAnswer && (
-          <div className="bg-bg2 border-l-4 border-green rounded-r-[8px] pl-5 pr-5 py-4 mb-8">
-            <p className="font-mono text-xs text-green uppercase tracking-widest mb-2">Quick Answer</p>
-            <p className="text-text leading-relaxed text-sm">{snippet.quickAnswer}</p>
+          <div className="mb-8 mt-8 rounded-r-lg border-l-[3px] border-green bg-bg2 px-5 py-4">
+            <p className="mb-2 font-heading text-sm font-bold text-green">
+              Quick Answer
+            </p>
+            <p className="text-sm leading-relaxed text-text">
+              {snippet.quickAnswer}
+            </p>
           </div>
         )}
 
-        <article className="prose-snippet">
-          <Content components={mdxComponents} />
+        <AdSlot slot="SLOT_ABOVE_CONTENT" />
+
+        <article className="prose-snippet mx-auto max-w-3xl">
+          {Content ? (
+            <Content components={mdxComponents} />
+          ) : (
+            <p className="text-muted">Content temporarily unavailable.</p>
+          )}
         </article>
 
-        <AdSlot slot="AUTO" format="auto" />
+        <AdSlot slot="SLOT_MID_CONTENT" />
+
+        <div className="my-10 flex items-start gap-4 rounded-lg border border-border bg-bg2 p-5">
+          <Image
+            src="/favicon-512x512.png"
+            alt="BashSnippets logo"
+            width={48}
+            height={48}
+            className="shrink-0 rounded-lg"
+          />
+          <div>
+            <p className="font-heading font-bold text-text">
+              Written by {snippet.author}
+            </p>
+            <p className="mt-0.5 text-sm text-muted">
+              Creator of BashSnippets.xyz
+            </p>
+            <Link
+              href="/about"
+              className="mt-1 inline-block text-sm text-blue transition-colors hover:text-green"
+            >
+              bashsnippets.xyz/about
+            </Link>
+          </div>
+        </div>
 
         <AffiliateBox partner="digitalocean" />
         <AffiliateBox partner="namecheap" />
@@ -258,26 +255,59 @@ export default async function SnippetPage({ params }: PageProps) {
           <h2 className="mb-6 font-heading text-xl font-bold text-text">
             Related Snippets
           </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {related.map((item) => (
               <Link
                 key={item.slug}
                 href={`/snippets/${item.slug}`}
-                className="block cursor-pointer rounded-lg border border-border bg-bg2 p-4 no-underline transition-colors hover:border-green"
+                className="block rounded-lg border border-border bg-bg2 p-4 no-underline transition-colors duration-150 hover:border-green"
               >
-                <p className="text-sm font-semibold text-text">{item.title}</p>
-                <span
-                  className={`mt-2 ${relatedDifficultyBadgeClass(item.difficulty)}`}
-                >
-                  {item.difficulty}
-                </span>
+                <p className="font-heading text-sm font-bold text-text">
+                  {item.title}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  {item.description}
+                </p>
               </Link>
             ))}
           </div>
         </section>
 
+        {snippet.faq.length > 0 && (
+          <section className="mt-12">
+            <h2 className="mb-6 font-heading text-xl font-bold text-text">
+              Frequently Asked Questions
+            </h2>
+            <div className="space-y-3">
+              {snippet.faq.map((faq) => (
+                <details
+                  key={faq.question}
+                  className="snippet-faq overflow-hidden rounded-lg border border-border bg-bg2"
+                >
+                  <summary className="flex cursor-pointer items-center justify-between gap-4 px-5 py-4 font-heading font-semibold text-text">
+                    <span>{faq.question}</span>
+                    <span
+                      className="faq-chevron shrink-0 text-xs text-muted"
+                      aria-hidden
+                    >
+                      ▼
+                    </span>
+                  </summary>
+                  <p className="px-5 pb-4 text-sm leading-relaxed text-muted">
+                    {faq.answer}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <AdSlot slot="SLOT_BELOW_CONTENT" />
+
         <div className="mt-12 flex items-center justify-between border-t border-border pt-8 text-xs text-muted">
-          <Link href="/snippets">← All Snippets</Link>
+          <Link href="/snippets" className="transition-colors hover:text-text">
+            ← All Snippets
+          </Link>
           <a href="#" className="transition-colors hover:text-text">
             ↑ Back to top
           </a>

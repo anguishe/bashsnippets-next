@@ -63,9 +63,11 @@ export default function ToolsPage() {
       />
 
       <main className="mx-auto max-w-4xl px-6 py-16">
-        <p className="mb-2 text-xs uppercase tracking-widest text-green">
-          {'// free tools'}
-        </p>
+        <div className="mb-6 flex items-center gap-2 font-mono text-sm text-muted">
+          <span className="text-green">$</span>
+          <span>bash-tools</span>
+          <span className="inline-block h-4 w-2 animate-pulse bg-green" aria-hidden />
+        </div>
 
         <h1 className="font-heading text-4xl font-extrabold text-text">
           Interactive Bash Tools
@@ -80,9 +82,10 @@ export default function ToolsPage() {
             <Link
               key={tool.slug}
               href={`/tools/${tool.slug}`}
-              className="block rounded-lg border border-border bg-bg2 p-5 no-underline transition-all duration-200 hover:border-green"
+              className="group relative block overflow-hidden rounded-lg border border-border bg-bg2 p-5 no-underline transition-colors duration-150 hover:border-green"
             >
-              <p className="mb-2 text-xs uppercase tracking-widest text-muted">
+              <div className="absolute left-0 top-0 h-0.5 w-0 bg-green transition-all duration-300 group-hover:w-full" aria-hidden />
+              <p className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">
                 {tool.category}
               </p>
               <p className="mb-1 font-heading font-bold text-text">

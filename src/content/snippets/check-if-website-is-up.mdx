@@ -1,4 +1,30 @@
-import Callout from '@/components/Callout'
+---
+title: "Check If Website Is Up — Bash Script"
+description: "curl-based uptime checker that returns HTTP status codes and alerts on non-200 responses."
+slug: "check-if-website-is-up"
+tags: ["monitor", "curl", "uptime"]
+quickAnswer: "The curl command with -o /dev/null -s -w \"%{http_code}\" fetches a URL silently and returns only the HTTP status code. This script compares it to 200 and alerts on failure."
+faq:
+  - question: "How do I run this script?"
+    answer: "Save as uptimecheck.sh, set your URL, run chmod +x uptimecheck.sh, then execute ./uptimecheck.sh."
+  - question: "Does this work on macOS?"
+    answer: "Yes. curl is pre-installed on macOS. The --max-time flag works identically on BSD curl."
+  - question: "How do I check if a website is up using bash?"
+    answer: "Use curl -o /dev/null -s -w \"%{http_code}\" URL and compare the result to 200. Non-200 means the site is down or returning an error."
+  - question: "How do I get notified when my website goes down?"
+    answer: "Schedule this script with cron every 5 minutes and pipe failures to mail or a Slack webhook."
+howToSteps:
+  - name: "Create the script file"
+    text: "Copy the uptime check script below and save it as uptimecheck.sh"
+  - name: "Set your URL"
+    text: "Edit the URL variable at the top of the script to your target website"
+  - name: "Make it executable and run"
+    text: "Run: chmod +x uptimecheck.sh then ./uptimecheck.sh"
+author: "Anguishe"
+datePublished: "2026-05-05"
+dateModified: "2026-06-03"
+---
+
 
 ## The Script
 
@@ -6,36 +32,40 @@ Paste this into `uptimecheck.sh`. Change `URL` to your site. Schedule with cron 
 
 ```bash
 #!/bin/bash
-# Check If Website Is Up
-# Pings your site and warns if it's not returning HTTP 200.
-# Schedule with cron every 5 minutes for continuous monitoring.
-#
-# USAGE: ./uptimecheck.sh
-# REQUIRES: bash, curl (pre-installed on most Linux/macOS systems)
+# Script: uptimecheck.sh
+# Purpose: Alert when a site stops returning HTTP 200 — silent outages cost real traffic
+# Usage: ./uptimecheck.sh
+set -euo pipefail
 
-URL="https://bashsnippets.xyz"   # ← your site URL
+CHECK="✓"
+CROSS="✗"
+
+URL="https://bashsnippets.xyz"
 
 STATUS=$(curl -o /dev/null -s -w "%{http_code}" --max-time 10 "$URL")
 
 if [ "$STATUS" -eq 200 ]; then
-  echo "✓ $URL is up (HTTP $STATUS)"
+  echo "$CHECK $URL is up (HTTP $STATUS)"
 else
-  echo "⚠ WARNING: $URL returned HTTP $STATUS"
+  echo "$CROSS WARNING: $URL returned HTTP $STATUS"
 fi
 ```
 
 <Callout type="success" title="What this does, line by line">
 
-`curl -o /dev/null` throws away the page content — we don't need it. `-s` runs silently with no progress bar. `-w "%{http_code}"` prints just the status code. `--max-time 10` gives up after 10 seconds so the script doesn't hang forever if the server is unreachable. The `if` block checks whether the code is 200 and prints accordingly.
+`curl -o /dev/null` throws away the page content — we don't need it. `-s` runs silently with no progress bar. `-w "%\{http_code\}"` prints just the status code. `--max-time 10` gives up after 10 seconds so the script doesn't hang forever if the server is unreachable. The `if` block checks whether the code is 200 and prints accordingly.
 
 </Callout>
 
 ## HTTP Status Codes — What They Mean
 
-    200 — Site is up ✓
-    404 — Page not found
-    500 — Server error
-    000 — No response / timeout
+| Code | Meaning | Script behaviour |
+| --- | --- | --- |
+| `200` | OK — site is up | Prints check message, exits 0 |
+| `301` / `302` | Redirect — common with HTTP → HTTPS | Fires the warning; add `-L` to follow redirects |
+| `404` | Page not found | Fires the warning |
+| `500` | Server error | Fires the warning |
+| `000` | No response / timeout | Fires the warning — server completely unreachable |
 
 Your script will trigger the warning for anything that is not 200. A 301 redirect, 404, 500, or complete timeout — all will fire the alert. If your site normally redirects (e.g. HTTP → HTTPS), see the variation below to follow redirects before checking the code.
 
@@ -134,10 +164,6 @@ TIMESTAMP=$(date "+%Y-%m-%d %H:%M")
 echo "[$TIMESTAMP] $URL — HTTP $STATUS" >> "$LOG"
 ```
 
-      View Hosting Plans →
-
-    Get $200 Free →
-
 ## Common Mistakes
 
 <Callout type="warning" title="Missing --max-time causes scripts to hang">
@@ -176,5 +202,3 @@ HTTP 200 means OK — the server responded successfully. 301 is a redirect, 404 
 
 Put your URLs in a bash array and loop through them. See the "Monitor multiple sites" variation above — each URL gets checked independently and you get a separate status line for each one.
 
-    Try the Generator →
-    Browse All Tools

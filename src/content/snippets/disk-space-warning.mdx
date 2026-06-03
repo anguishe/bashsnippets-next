@@ -1,4 +1,30 @@
-import Callout from '@/components/Callout'
+---
+title: "Disk Space Warning Script — Bash Script"
+description: "Copy a disk space warning bash script using df, thresholds, cron, and email alerts. Monitor Linux servers and prevent full drives."
+slug: "disk-space-warning"
+tags: ["monitor", "cron-ready", "df"]
+quickAnswer: "The df command reports disk space usage for every mounted filesystem as a percentage. This script reads the percentage for a configurable partition (default: /), compares it against a threshold you set, and prints a warning to stdout — plus exits with code 1 — when that threshold is crossed."
+faq:
+  - question: "How do I run this script?"
+    answer: "Save as diskcheck.sh, run chmod +x diskcheck.sh, then execute ./diskcheck.sh. Exit code 1 means usage exceeded your THRESHOLD."
+  - question: "Does this work on macOS?"
+    answer: "Yes. Use df -P for POSIX output — macOS df wraps columns differently without the -P flag."
+  - question: "How do I check disk space in Linux with bash?"
+    answer: "Use df / and awk to extract the Use% column. This script compares it against THRESHOLD and exits 1 on breach."
+  - question: "How do I get an email when my disk is full?"
+    answer: "Install mailutils with sudo apt install mailutils, set EMAIL in the email variation script, and schedule with cron hourly."
+howToSteps:
+  - name: "Create the script file"
+    text: "Copy the diskcheck.sh script below and save it as diskcheck.sh"
+  - name: "Set your threshold"
+    text: "Edit THRESHOLD (default 80) and PARTITION (default /) at the top of the script"
+  - name: "Make it executable and run"
+    text: "Run: chmod +x diskcheck.sh then ./diskcheck.sh"
+author: "Anguishe"
+datePublished: "2026-05-01"
+dateModified: "2026-06-03"
+---
+
 
 ## The Script
 

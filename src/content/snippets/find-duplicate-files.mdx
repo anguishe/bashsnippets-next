@@ -1,0 +1,215 @@
+---
+title: "Find Duplicate Files in Linux — Bash Script"
+description: "Use md5sum and awk to find byte-for-byte duplicate files across directories. Recover disk space without guessing."
+slug: "find-duplicate-files"
+tags: ["files", "disk", "find", "awk"]
+quickAnswer: "The md5sum command generates a 32-character hash that uniquely identifies a file by its content. Two files with the same hash are byte-for-byte identical regardless of name or location."
+faq:
+  - question: "How do I run this script?"
+    answer: "Save as find-dupes.sh, run chmod +x find-dupes.sh, then execute ./find-dupes.sh or ./find-dupes.sh /path/to/scan."
+  - question: "Does this work on macOS?"
+    answer: "Yes. Use md5 instead of md5sum on macOS, or install coreutils via Homebrew for GNU md5sum."
+  - question: "How do I find duplicate files in Linux with bash?"
+    answer: "Pipe find through md5sum, sort by hash, then use awk to print only the second occurrence of each hash — those are duplicates."
+  - question: "Is MD5 safe for finding duplicate files?"
+    answer: "Yes for duplicate detection. MD5 collisions are theoretically possible but practically irrelevant for finding identical personal files."
+howToSteps:
+  - name: "Create the script file"
+    text: "Copy the find-dupes.sh script below and save it as find-dupes.sh"
+  - name: "Make it executable"
+    text: "Run: chmod +x find-dupes.sh"
+  - name: "Run against a directory"
+    text: "Execute with: ./find-dupes.sh or ./find-dupes.sh /path/to/scan"
+author: "Anguishe"
+datePublished: "2026-06-03"
+dateModified: "2026-06-03"
+---
+
+
+## The Script
+
+Save as `find-dupes.sh`. Set `TARGET` to the directory you want to scan — `$HOME/Downloads` is the default. The script prints only duplicate files (second copy onward), one per line.
+
+```bash
+#!/bin/bash
+# Script: find-dupes.sh
+# Purpose: Recover disk space lost to byte-for-byte duplicate files across directories
+# Usage: ./find-dupes.sh [directory]
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+TARGET="${1:-$HOME/Downloads}"
+
+if [[ ! -d "$TARGET" ]]; then
+  echo "$CROSS Directory not found: $TARGET" >&2
+  exit 1
+fi
+
+echo "Scanning for duplicates in $TARGET..."
+echo ""
+
+find "$TARGET" -type f \
+  | xargs -r md5sum 2>/dev/null \
+  | sort \
+  | awk 'seen[$1]++'
+
+echo ""
+echo "$CHECK Scan complete — lines above are duplicate copies (review before deleting)"
+```
+
+<Callout type="warning" title="Review before deleting">
+
+This script only **prints** duplicates — it never deletes anything. Pipe the output to a file, review it, then delete manually. Never run `find-dupes.sh | xargs rm` without inspecting what you are removing first.
+
+</Callout>
+
+## How It Works
+
+**`find "$TARGET" -type f`** lists every regular file in the target directory recursively. `-type f` skips symlinks, directories, and device files — only real files get checksummed.
+
+**`xargs -r md5sum`** reads the file list from stdin and runs `md5sum` on each one. `-r` prevents `md5sum` from running with empty input (which would hang waiting for stdin). Each output line is a 32-character hex hash followed by two spaces and the file path.
+
+**`sort`** groups lines by their hash. All files with the same content end up adjacent in the output — a 32-character prefix means identical files sort together.
+
+**`awk 'seen[$1]++'`** builds an associative array keyed on the hash (field 1). The first time a hash appears, `seen[$1]` is 0 (falsy) — awk does not print. On the second occurrence it becomes 1 (truthy) — awk prints. Every duplicate beyond the first is printed. The original is never output.
+
+## Step-by-Step Setup
+
+### Step 1 — Create the file
+
+```bash
+nano find-dupes.sh
+```
+
+Paste the script, save with **Ctrl+X → Y → Enter**.
+
+### Step 2 — Make it executable
+
+```bash
+chmod +x find-dupes.sh
+```
+
+### Step 3 — Run against a directory
+
+```bash
+# Scan your Downloads folder (default)
+./find-dupes.sh
+
+# Scan a specific directory
+./find-dupes.sh /home/user/photos
+```
+
+### Step 4 — Save the results for review
+
+```bash
+./find-dupes.sh /home/user/photos > dupes_$(date +%Y%m%d).txt
+cat dupes_$(date +%Y%m%d).txt
+```
+
+Review the list, then delete files you are sure are safe to remove.
+
+## Variations
+
+### Accept a directory as an argument
+
+The script already supports this — pass the path as the first argument:
+
+```bash
+./find-dupes.sh /var/backups
+./find-dupes.sh /home/user/projects
+```
+
+If no argument is given, `$HOME/Downloads` is the default.
+
+### Limit scan depth to avoid deep recursion
+
+```bash
+find "$TARGET" -maxdepth 3 -type f \
+  | xargs -r md5sum 2>/dev/null \
+  | sort \
+  | awk 'seen[$1]++'
+```
+
+`-maxdepth 3` stops at three directory levels deep — useful for large project folders where you know duplicates are shallow.
+
+### Save results with a datestamp
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+TARGET="${1:-$HOME/Downloads}"
+REPORT="/tmp/dupes_$(date +%Y%m%d_%H%M).txt"
+
+find "$TARGET" -type f \
+  | xargs -r md5sum 2>/dev/null \
+  | sort \
+  | awk 'seen[$1]++' > "$REPORT"
+
+echo "Report saved: $REPORT ($(wc -l < "$REPORT") duplicates found)"
+```
+
+### Schedule a weekly scan
+
+```bash
+crontab -e
+```
+
+```bash
+# Every Sunday at 3am — scan Downloads and save report
+0 3 * * 0 /home/user/find-dupes.sh >> /var/log/find-dupes.log 2>&1
+```
+
+<Callout type="info" title="MD5 is appropriate for deduplication">
+
+MD5 is not cryptographically secure, but for finding byte-for-byte duplicate files it is reliable and fast. Two different files that happen to share an MD5 hash (a collision) are extraordinarily rare and would require deliberate construction. For deduplication on personal or server storage, MD5 is the right tool.
+
+</Callout>
+
+## Common Mistakes
+
+<Callout type="warning" title="xargs without -r hangs on empty input">
+
+Without `-r`, `xargs md5sum` waits for stdin when `find` returns no files. The `-r` (or `--no-run-if-empty`) flag tells xargs to exit immediately when the input list is empty. Always use `xargs -r` in scripts.
+
+</Callout>
+
+<Callout type="warning" title="Filenames with spaces break basic xargs">
+
+If your files have spaces in their names, use `find ... -print0 | xargs -r0 md5sum` to handle them safely. The `-print0` flag separates filenames with null bytes instead of newlines, and `-0` tells xargs to read them the same way.
+
+</Callout>
+
+## Understanding the Commands
+
+| Command | What it does here |
+| --- | --- |
+| `find -type f` | Lists every regular file recursively under the target directory |
+| `xargs -r md5sum` | Generates an MD5 hash for each file; skips run on empty input |
+| `sort` | Groups lines by hash so identical files are adjacent |
+| `awk 'seen[$1]++'` | Prints only lines whose hash has been seen before — the duplicates |
+| `-maxdepth 3` | Optional limit on how deep find recurses into subdirectories |
+
+## Frequently Asked Questions
+
+### How do I find duplicate files in Linux with bash?
+
+Use `find` to list files, `md5sum` to hash each one, `sort` to group identical hashes, and `awk` to print only the duplicates. The one-liner: `find . -type f | xargs -r md5sum | sort | awk 'seen[$1]++'`. This script wraps that in error handling and a configurable target directory.
+
+### Is MD5 safe for finding duplicate files?
+
+Yes. MD5 collisions require deliberate construction and are not a practical concern for files on your own storage. MD5 is fast and reliably identifies byte-for-byte identical files — the exact use case here. For cryptographic verification of downloaded software, use SHA-256 instead.
+
+### How do I find and delete duplicate files in Linux?
+
+Run the script first and save the output: `./find-dupes.sh /path > dupes.txt`. Review the list manually, delete each file you confirm is a duplicate, then run the script again to verify the list is empty. Never pipe directly to `rm` without inspecting what will be deleted.
+
+### How long does a duplicate file scan take?
+
+Speed depends on total data volume, not file count. Hashing 10 GB of files takes roughly 1 to 3 minutes on a spinning disk, under 30 seconds on an SSD. The `find` pass itself is fast — most time is spent on `md5sum` I/O.
+
+### How do I find duplicate files in a specific folder only?
+
+Pass the folder as an argument: `./find-dupes.sh /home/user/photos`. To limit scan depth and avoid recursing into subdirectories: add `-maxdepth 1` to the `find` command inside the script.

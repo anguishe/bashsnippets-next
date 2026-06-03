@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import CopyButton from './CopyButton';
 
 interface CodeBlockProps {
@@ -34,80 +34,86 @@ function getClassName(
   return '';
 }
 
-function getFilename(className: string): string {
-  if (className.includes('language-bash')) return 'script.sh';
-  if (className.includes('language-sh')) return 'script.sh';
-  if (className.includes('language-')) {
-    const match = className.match(/language-(\w+)/);
-    if (match) return `snippet.${match[1]}`;
-  }
-  return 'terminal';
+function getLanguage(className: string): string {
+  const match = className.match(/language-([\w-]+)/);
+  return match ? match[1] : 'shell';
 }
 
 export default function CodeBlock({
   children,
   className,
 }: CodeBlockProps) {
+  const [copied, setCopied] = useState(false);
   const mergedClassName = getClassName(children, className);
-  const filename = getFilename(mergedClassName);
+  const language = getLanguage(mergedClassName);
   const extractedCode = extractCode(children);
+
+  async function handleCopy() {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(extractedCode);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = extractedCode;
+        ta.style.position = 'absolute';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard unavailable — no state change
+    }
+  }
 
   return (
     <div
-      className="my-6 overflow-hidden"
       style={{
-        background: 'var(--bg3)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius)',
+        border: '1px solid #30363d',
+        borderRadius: '8px',
+        marginBottom: '24px',
+        overflow: 'hidden',
       }}
     >
       <div
-        className="flex items-center justify-between"
         style={{
-          background: '#0d1117',
-          padding: '8px 14px',
-          borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: '#161b22',
+          borderBottom: '1px solid #30363d',
+          padding: '8px 16px',
+          gap: '12px',
         }}
       >
-        <div className="flex min-w-0 flex-1 items-center">
-          <div className="flex shrink-0 gap-1.5" aria-hidden>
-            <span
-              className="inline-block h-2.5 w-2.5 rounded-full"
-              style={{ background: '#ff5f56' }}
-            />
-            <span
-              className="inline-block h-2.5 w-2.5 rounded-full"
-              style={{ background: '#ffbd2e' }}
-            />
-            <span
-              className="inline-block h-2.5 w-2.5 rounded-full"
-              style={{ background: '#27c93f' }}
-            />
-          </div>
-          <span
-            className="filename truncate"
-            style={{
-              marginLeft: '10px',
-              fontSize: '12px',
-              color: 'var(--muted)',
-            }}
-          >
-            {filename}
-          </span>
-        </div>
-        <CopyButton code={extractedCode} />
+        <span
+          style={{
+            color: '#8b949e',
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: '12px',
+            flexShrink: 0,
+          }}
+        >
+          {language}
+        </span>
+        <CopyButton copied={copied} onClick={handleCopy} />
       </div>
-      <pre
-        className="overflow-x-auto text-text"
+      <div
         style={{
-          padding: '20px',
-          fontSize: '13px',
+          padding: '20px 24px',
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontSize: '14px',
           lineHeight: 1.6,
-          margin: 0,
+          color: '#e6edf3',
+          background: 'transparent',
+          overflowX: 'auto',
         }}
       >
         {children}
-      </pre>
+      </div>
     </div>
   );
 }

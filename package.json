@@ -15,8 +15,9 @@
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",
     "@mdx-js/react": "^3.1.1",
-    "@next/mdx": "^16.2.7",
+    "@next/mdx": "^15.0.0",
     "@types/mdx": "^2.0.13",
+    "gray-matter": "^4.0.3",
     "highlight.js": "^11.11.1",
     "next": "^15.5.19",
     "next-sitemap": "^4.2.3",
@@ -24,6 +25,7 @@
     "react-dom": "^18",
     "rehype-highlight": "^7.0.2",
     "rehype-slug": "^6.0.0",
+    "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "three": "^0.184.0"
   },

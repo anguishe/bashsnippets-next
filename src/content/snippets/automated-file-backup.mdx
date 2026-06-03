@@ -1,4 +1,30 @@
-import Callout from '@/components/Callout'
+---
+title: "Automated File Backup — Bash Script"
+description: "Bash script to automatically backup files with timestamps using cp or rsync. Schedule with cron."
+slug: "automated-file-backup"
+tags: ["backup", "cron-ready", "rsync"]
+quickAnswer: "The cp command copies files and directories from one location to another. This script wraps cp -r with a date-stamped destination path, creating a new backup folder each time it runs, so no backup overwrites a previous one."
+faq:
+  - question: "How do I run this script?"
+    answer: "Save as backup.sh, set SOURCE and DEST paths, run chmod +x backup.sh, then execute ./backup.sh."
+  - question: "Does this work on macOS?"
+    answer: "Yes. cp and rsync work on macOS. Use rsync for faster incremental backups on large folders."
+  - question: "How do I automatically back up files in Linux?"
+    answer: "Use a bash script with cp -r or rsync and append a date variable to the destination path so each backup gets a unique name."
+  - question: "How do I schedule a backup to run every day?"
+    answer: "Open cron with crontab -e and add: 0 2 * * * /home/user/backup.sh — this runs at 2am daily."
+howToSteps:
+  - name: "Create the script file"
+    text: "Copy the backup script below and save it as backup.sh"
+  - name: "Set your paths"
+    text: "Edit SOURCE (folder to back up) and DEST (backup destination) at the top of the script"
+  - name: "Make it executable and run"
+    text: "Run: chmod +x backup.sh then ./backup.sh"
+author: "Anguishe"
+datePublished: "2026-05-01"
+dateModified: "2026-06-03"
+---
+
 
 ## The Script
 
@@ -6,20 +32,26 @@ Copy this, paste it into a file called `backup.sh`, and you're 90% done.
 
 ```bash
 #!/bin/bash
-# Automated File Backup
-# Copies a folder to /backup with today's timestamp.
-# Run manually or schedule with cron — works either way.
-#
-# USAGE: ./backup.sh
-# REQUIRES: bash, cp (pre-installed on all Linux/macOS)
+# Script: backup.sh
+# Purpose: Prevent data loss from disk failure or accidental deletion with timestamped backups
+# Usage: ./backup.sh
+set -euo pipefail
 
-SOURCE="/home/user/documents"   # ← change this to your folder
-DEST="/backup"                   # ← change this to your backup location
+CHECK="✓"
+CROSS="✗"
+
+SOURCE="/home/user/documents"
+DEST="/backup"
 DATE=$(date +%Y-%m-%d_%H-%M)
 
 mkdir -p "$DEST"
-cp -r "$SOURCE" "$DEST/backup_$DATE"
-echo "✓ Done. Saved to: $DEST/backup_$DATE"
+
+if cp -r "$SOURCE" "$DEST/backup_$DATE"; then
+  echo "$CHECK Done. Saved to: $DEST/backup_$DATE"
+else
+  echo "$CROSS Backup failed — check that $SOURCE exists and $DEST is writable"
+  exit 1
+fi
 ```
 
 <Callout type="success" title="What this does, line by line">
@@ -90,7 +122,7 @@ crontab -e
 0 * * * * /home/user/backup.sh
 ```
 
-<Callout type="info" title="� Tip: Use crontab.guru">
+<Callout type="info" title="Tip: Use crontab.guru">
 
 Go to [crontab.guru](https://crontab.guru) to build and test cron time expressions for free. It explains exactly when your job will run in plain English.
 
@@ -146,3 +178,41 @@ cp -r "$SOURCE" "$DEST/backup_$DATE"
 ls -dt "$DEST"/backup_* | tail -n +$(( KEEP + 1 )) | xargs rm -rf
 echo "✓ Backed up. Keeping last $KEEP snapshots."
 ```
+
+## Common Mistakes
+
+<Callout type="warning" title="Missing trailing slash on rsync SOURCE">
+
+With rsync, `rsync -av /source /dest/` copies the folder itself. `rsync -av /source/ /dest/` copies the folder's contents. That trailing slash distinction matters significantly. When in doubt, test with `--dry-run` first.
+
+</Callout>
+
+<Callout type="warning" title="Cron uses a different PATH">
+
+When scripts run manually but fail via cron, add `PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin` as the first line of your crontab, since cron doesn't load your shell's PATH.
+
+</Callout>
+
+<Callout type="warning" title="Backing up to the same disk">
+
+A backup on the same physical disk as your source files won't save you from a drive failure. Use an external drive, a second machine, or a cloud location for real protection.
+
+</Callout>
+
+## Frequently Asked Questions
+
+### How do I automatically back up files in Linux?
+
+Use a bash script with `cp -r` or `rsync` to copy your folder to a backup location. Append a date variable like `DATE=$(date +%Y-%m-%d_%H-%M)` to the destination path so each backup gets a unique name, then add the script to cron to run it automatically.
+
+### How do I schedule a backup to run every day?
+
+Open cron with `crontab -e` and add: `0 2 * * * /home/user/backup.sh` — this runs at 2am daily. Use [crontab.guru](https://crontab.guru) to build any cron expression you need.
+
+### What's the difference between cp and rsync for backups?
+
+`cp` copies everything every time — simple but slow on large folders. `rsync` only transfers files that have changed, making it significantly faster for repeated backups of large directories. For daily backups of large directories, rsync is the right choice. For small folders or one-time copies, `cp` is fine.
+
+### How do I verify my backup script is working?
+
+Add `set -x` right after `#!/bin/bash`. This enables debug mode and prints every command as it runs, so you can see exactly what happened. Remove it once you're satisfied the script works correctly.

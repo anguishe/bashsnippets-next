@@ -9,16 +9,8 @@ import Link from 'next/link';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: {
-    absolute: 'Bash Script Examples and Tools Hub – BashSnippets.xyz',
-  },
-  description:
-    'Browse free bash script examples for backups, cron, monitoring, grep, chmod, and Linux automation.',
   alternates: {
     canonical: `${SITE_URL}/`,
-  },
-  openGraph: {
-    type: 'website',
   },
 };
 
@@ -115,16 +107,14 @@ export default function Home() {
             {
               '@context': 'https://schema.org',
               '@type': 'WebSite',
-              name: 'BashSnippets',
+              name: 'BashSnippets.xyz',
               url: 'https://bashsnippets.xyz',
-              description:
-                'Free bash script examples for Linux, DevOps, and sysadmin automation.',
               potentialAction: {
                 '@type': 'SearchAction',
                 target: {
                   '@type': 'EntryPoint',
                   urlTemplate:
-                    'https://bashsnippets.xyz/snippets?q={search_term_string}',
+                    'https://bashsnippets.xyz/snippets/?q={search_term_string}',
                 },
                 'query-input': 'required name=search_term_string',
               },
@@ -295,8 +285,9 @@ export default function Home() {
               <Link
                 key={tool.slug}
                 href={`/tools/${tool.slug}`}
-                className="block rounded-lg border border-border bg-bg3 p-4 no-underline transition-colors hover:border-green"
+                className="group relative block overflow-hidden rounded-lg border border-border bg-bg3 p-4 no-underline transition-colors duration-150 hover:border-green"
               >
+                <div className="absolute left-0 top-0 h-0.5 w-0 bg-green transition-all duration-300 group-hover:w-full" aria-hidden />
                 <p className="mb-1 font-heading font-bold text-text">
                   {tool.title}
                 </p>

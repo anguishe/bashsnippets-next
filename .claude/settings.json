@@ -19,10 +19,16 @@
       "Bash(chromium --headless --disable-gpu --screenshot=/tmp/hero-check.png --window-size=1440,900 http://localhost:3001)",
       "Bash(chromium --headless --disable-gpu --screenshot=/tmp/hero-check2.png --window-size=1440,900 http://localhost:3001)",
       "Bash(chromium --headless --disable-gpu --screenshot=/tmp/hero-mobile.png --window-size=390,844 http://localhost:3001)",
-      "Bash(kill %1)"
+      "Bash(kill %1)",
+      "WebFetch(domain:anguishe.github.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(xargs ls -la)"
     ],
     "additionalDirectories": [
-      "/home/angsec/Projects/bashsnippets-next"
+      "/home/angsec/Projects/bashsnippets-next",
+      "/tmp"
     ]
   }
 }

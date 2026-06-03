@@ -1,4 +1,30 @@
-import Callout from '@/components/Callout'
+---
+title: "Bash If/Else Examples — Bash Script"
+description: "Comprehensive bash if/else, elif, test operators, string comparison, and file condition checks."
+slug: "bash-if-else-examples"
+tags: ["conditionals", "basics", "if"]
+quickAnswer: "A bash if statement tests whether a command exits with code 0 (success) or non-zero (failure). The test command — written as [ condition ] — evaluates comparisons and file checks."
+faq:
+  - question: "How do I run this script?"
+    answer: "Save the if/else examples as conditionals.sh, run chmod +x conditionals.sh, then execute ./conditionals.sh."
+  - question: "Does this work on macOS?"
+    answer: "Yes. [ ] and [[ ]] test syntax works on macOS bash and zsh. Quote all variables inside brackets."
+  - question: "How do I write an if/else statement in bash?"
+    answer: "Use if [ condition ]; then ... elif [ condition ]; then ... else ... fi. Spaces inside brackets are mandatory."
+  - question: "How do I compare numbers in a bash if statement?"
+    answer: "Use -eq, -gt, -lt for integers inside [ ]. Never use = for numeric comparison — that does string comparison."
+howToSteps:
+  - name: "Create the script file"
+    text: "Copy the if/else examples below and save them as conditionals.sh"
+  - name: "Understand the if/elif/else shape"
+    text: "Review the template: if [ condition ]; then ... elif ... else ... fi"
+  - name: "Make it executable and run"
+    text: "Run: chmod +x conditionals.sh then ./conditionals.sh"
+author: "Anguishe"
+datePublished: "2026-05-12"
+dateModified: "2026-06-03"
+---
+
 
 ## The Script
 
@@ -6,24 +32,26 @@ Copy this into `disk-if-else.sh`. It uses `if`, `elif`, and `else` to classify d
 
 ```bash
 #!/bin/bash
-# Bash If / Elif / Else — disk space example
-# Three branches: critical, warning, or OK.
-#
-# USAGE: ./disk-if-else.sh
-# REQUIRES: bash, df, awk, tr (pre-installed on Linux/macOS)
+# Script: disk-if-else.sh
+# Purpose: Classify disk usage into critical, warning, or OK — three-branch if/elif/else
+# Usage: ./disk-if-else.sh
+set -euo pipefail
 
-THRESHOLD=80   # ← warn at this %
-CRITICAL=90      # ← critical alert at this %
-PARTITION="/"  # ← partition to check
+CHECK="✓"
+CROSS="✗"
+
+THRESHOLD=80
+CRITICAL=90
+PARTITION="/"
 
 USAGE=$(df "$PARTITION" | awk 'NR==2{print $5}' | tr -d '%')
 
 if [ "$USAGE" -gt "$CRITICAL" ]; then
-  echo "🔴 CRITICAL: Disk at ${USAGE}% — free space immediately"
+  echo "$CROSS CRITICAL: Disk at ${USAGE}% — free space immediately"
 elif [ "$USAGE" -gt "$THRESHOLD" ]; then
-  echo "⚠ WARNING: Disk at ${USAGE}% — above ${THRESHOLD}% threshold"
+  echo "$CROSS WARNING: Disk at ${USAGE}% — above ${THRESHOLD}% threshold"
 else
-  echo "✓ Disk OK: ${USAGE}% used (warn: ${THRESHOLD}%, critical: ${CRITICAL}%)"
+  echo "$CHECK OK: Disk at ${USAGE}% (warn: ${THRESHOLD}%, critical: ${CRITICAL}%)"
 fi
 ```
 
@@ -95,7 +123,7 @@ crontab -e
 0 8 * * * /home/user/disk-if-else.sh >> /var/log/diskcheck.log 2>&1
 ```
 
-<Callout type="info" title="� Tip: Use crontab.guru">
+<Callout type="info" title="Tip: Use crontab.guru">
 
 Go to [crontab.guru](https://crontab.guru) to build and test cron time expressions for free. It explains exactly when your job will run in plain English.
 
@@ -152,3 +180,63 @@ else
   echo "Count is $COUNT"
 fi
 ```
+
+## Bash Comparison Operator Quick Reference
+
+| Type | Operator | Meaning |
+| --- | --- | --- |
+| Integer | `-eq` | Equal |
+| Integer | `-ne` | Not equal |
+| Integer | `-gt` | Greater than |
+| Integer | `-lt` | Less than |
+| Integer | `-ge` | Greater than or equal |
+| Integer | `-le` | Less than or equal |
+| String | `=` | Equal |
+| String | `!=` | Not equal |
+| String | `-z` | Empty string |
+| String | `-n` | Non-empty string |
+| File | `-f` | Regular file exists |
+| File | `-d` | Directory exists |
+| File | `-e` | File or directory exists |
+
+## Common Mistakes
+
+<Callout type="warning" title="Forgetting spaces inside [ ]">
+
+Bash requires spaces around brackets and operators. `if [ "$x" -eq 5 ]` works. `if ["$x"-eq 5]` fails with a syntax error. The `[` command needs each piece as a separate argument.
+
+</Callout>
+
+<Callout type="warning" title="Using = instead of -eq for numbers">
+
+Use `=` for string comparisons. For integers use `-eq`, `-ne`, `-gt`, `-lt`. Writing `if [ "$USAGE" = 80 ]` can behave unexpectedly — use `-gt` for greater-than checks like disk percentages.
+
+</Callout>
+
+<Callout type="warning" title="Missing fi at the end">
+
+Every `if` block must end with `fi` (if spelled backwards). Without it, bash reports `syntax error: unexpected end of file`. Nested ifs need a `fi` for each level.
+
+</Callout>
+
+## Frequently Asked Questions
+
+### How do I write an if/else statement in bash?
+
+The basic structure is: `if [ condition ]; then ... else ... fi`. The spaces around the condition inside `[ ]` are mandatory — `[ "$x" = "y" ]` works, `["$x" = "y"]` does not.
+
+### What is the difference between [ ] and [[ ]] in bash?
+
+`[ ]` is POSIX-compliant and works in all shells. `[[ ]]` is a bash extension with additional features: regex matching with `=~`, no word splitting on unquoted variables, and `&&`/`||` instead of `-a`/`-o`. Use `[[ ]]` in bash-only scripts when you need those features.
+
+### How do I compare numbers in a bash if statement?
+
+Use integer comparison operators inside `[ ]`: `-eq` (equal), `-ne` (not equal), `-gt` (greater than), `-lt` (less than). Do not use `=` for numbers — `[ 5 = 10 ]` does string comparison and can give wrong results.
+
+### How do I check if a variable is empty in bash?
+
+Use `[ -z "$VAR" ]` to test for empty, or `[ -n "$VAR" ]` for non-empty. Always quote the variable — without quotes, an empty string causes a syntax error in the test.
+
+### Why does bash say "command not found" inside an if statement?
+
+The most common cause is a missing `then` keyword or unquoted variable. Every `if` line must end with `; then`. Check for: missing spaces inside `[ ]`, missing `fi` at the end, and unquoted variables that contain spaces.

@@ -3,46 +3,91 @@ interface AffiliateBoxProps {
   className?: string;
 }
 
+function CloudIcon() {
+  return (
+    <svg
+      width="28"
+      height="28"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#58a6ff"
+      strokeWidth="1.5"
+      aria-hidden
+    >
+      <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+    </svg>
+  );
+}
+
+function GlobeIcon() {
+  return (
+    <svg
+      width="28"
+      height="28"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#58a6ff"
+      strokeWidth="1.5"
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
+}
+
 const partners = {
   digitalocean: {
-    border: 'border-amber',
-    heading: 'Need a VPS to run these scripts?',
-    body: 'DigitalOcean gives new accounts $200 free credit — enough to run a server for 4 months.',
+    Icon: CloudIcon,
+    headline: 'Run this script on a real Linux server',
+    subline: 'Get $200 free credit — DigitalOcean',
     href: 'https://m.do.co/c/7a196437764c',
     label: 'Get $200 Free →',
-    buttonClass: 'bg-amber text-bg',
   },
   namecheap: {
-    border: 'border-blue',
-    heading: 'Need a domain for your project?',
-    body: 'Register with Namecheap — free WHOIS privacy included on all domains.',
+    Icon: GlobeIcon,
+    headline: 'Need a domain for your next project?',
+    subline: 'Register with Namecheap — free WHOIS privacy included',
     href: 'https://namecheap.pxf.io/c/7260430/1632743/5618',
     label: 'Check Domain Prices →',
-    buttonClass: 'bg-blue text-bg',
   },
 } as const;
 
 export default function AffiliateBox({ partner, className = '' }: AffiliateBoxProps) {
   const config = partners[partner];
+  const Icon = config.Icon;
 
   return (
     <div
-      className={`my-10 flex flex-wrap items-center justify-between gap-4 rounded-lg bg-bg2 p-5 ${config.border} border ${className}`.trim()}
+      className={`my-10 rounded-lg border border-border bg-bg2 ${className}`.trim()}
+      style={{
+        borderLeftWidth: '3px',
+        borderLeftColor: '#58a6ff',
+        padding: '20px 24px',
+      }}
     >
-      <div className="min-w-0 flex-1">
-        <p className="mb-1 font-heading text-sm font-bold text-text">
-          {config.heading}
-        </p>
-        <p className="text-xs leading-relaxed text-muted">{config.body}</p>
+      <div className="flex flex-wrap items-start gap-4">
+        <span className="shrink-0">
+          <Icon />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-heading text-base font-bold text-text">
+            {config.headline}
+          </p>
+          <p className="mt-1 text-sm text-muted">{config.subline}</p>
+          <a
+            href={config.href}
+            target="_blank"
+            rel="noopener sponsored"
+            className="mt-4 inline-block rounded-md bg-green px-4 py-2 font-heading text-sm font-bold text-bg no-underline transition-colors hover:bg-[#2ea043]"
+          >
+            {config.label}
+          </a>
+          <p className="mt-3 text-[11px] italic text-muted">
+            Affiliate link · we earn a commission
+          </p>
+        </div>
       </div>
-      <a
-        href={config.href}
-        target="_blank"
-        rel="noopener sponsored"
-        className={`${config.buttonClass} rounded px-4 py-2 font-mono text-sm font-semibold no-underline transition-opacity hover:opacity-90`}
-      >
-        {config.label}
-      </a>
     </div>
   );
 }

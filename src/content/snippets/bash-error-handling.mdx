@@ -1,4 +1,30 @@
-import Callout from '@/components/Callout'
+---
+title: "Bash Error Handling with set -euo pipefail — Bash Script"
+description: "Proper bash error handling using set -euo pipefail — stop scripts on errors, catch undefined variables, handle pipes."
+slug: "bash-error-handling"
+tags: ["error-handling", "best-practices", "set"]
+quickAnswer: "By default bash ignores failed commands and keeps running. Adding set -euo pipefail on the second line changes three behaviours: exit on error, treat unset variables as errors, and catch pipe failures."
+faq:
+  - question: "How do I run this script?"
+    answer: "Add set -euo pipefail and a trap line immediately after #!/bin/bash in any existing script, or save the template as safe-script.sh and chmod +x it."
+  - question: "Does this work on macOS?"
+    answer: "Yes with bash 4.0+. macOS ships bash 3.2 by default — install newer bash via Homebrew for full pipefail support."
+  - question: "What does set -euo pipefail do in bash?"
+    answer: "set -e exits on any error. set -u treats undefined variables as errors. set -o pipefail makes pipelines fail if any stage fails."
+  - question: "How do I handle errors in a bash script properly?"
+    answer: "Add set -euo pipefail after #!/bin/bash, add trap for line numbers on failure, and use || true for commands allowed to fail."
+howToSteps:
+  - name: "Create or open your script"
+    text: "Create safe-script.sh or open any existing bash script"
+  - name: "Add error handling header"
+    text: "Paste set -euo pipefail and trap line immediately after #!/bin/bash"
+  - name: "Make it executable and test"
+    text: "Run: chmod +x safe-script.sh then ./safe-script.sh — deliberately trigger an error to verify the trap fires"
+author: "Anguishe"
+datePublished: "2026-05-10"
+dateModified: "2026-06-03"
+---
+
 
 ## The Template — Add This to Every Script
 
@@ -20,19 +46,68 @@ trap 'echo "Error on line $LINENO — script stopped." >&2' ERR
 
 </Callout>
 
+## Step-by-Step Setup
+
+### Step 1 — Create a new script file
+
+```bash
+nano safe-script.sh
+```
+
+Paste the template above, then press **Ctrl+X → Y → Enter** to save.
+
+### Step 2 — Add it to an existing script
+
+Open any script you already have and paste `set -euo pipefail` and the trap line immediately after `#!/bin/bash`:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+trap 'echo "Error on line $LINENO — script stopped." >&2' ERR
+
+# ... rest of your existing script unchanged
+```
+
+That is all you need. Two lines change every script from "silently broken" to "stops and tells you where it failed."
+
+### Step 3 — Make it executable and run it
+
+```bash
+chmod +x safe-script.sh
+./safe-script.sh
+```
+
+The script exits immediately on the first failed command and prints the line number. Without an error, it completes normally — you will not see any extra output from the trap.
+
+### Step 4 — Test the error trap deliberately
+
+Add a failing command to verify the trap fires:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+trap 'echo "Error on line $LINENO — script stopped." >&2' ERR
+
+ls /this/path/does/not/exist   # will fail
+echo "This line should never print"
+```
+
+Run it. You should see:
+
+```text
+ls: cannot access '/this/path/does/not/exist': No such file or directory
+Error on line 5 — script stopped.
+```
+
+The second `echo` never executes. That is `set -e` working correctly. Remove the test line and build from there.
+
 ## What Each Flag Does
 
-      -e
-      set -o errexit
-      Stop the script immediately if any command exits with a non-zero status. Without this, bash ignores failures and keeps running.
-
-      -u
-      set -o nounset
-      Treat any unset or undefined variable as an error. Without this, $UNDEFINED_VAR silently becomes an empty string — which can cause catastrophic path errors.
-
-      -o pipefail
-      pipeline failure mode
-      Make a pipeline fail if ANY command in it fails, not just the last one. Without this, false | true succeeds because only the last command (true) is checked.
+| Flag | Long form | What it does |
+| --- | --- | --- |
+| `-e` | `set -o errexit` | Stop immediately if any command exits non-zero. Without this, bash ignores failures and keeps running. |
+| `-u` | `set -o nounset` | Treat any unset variable as an error. Without this, `$UNDEFINED_VAR` silently becomes an empty string — which can cause catastrophic path errors. |
+| `-o pipefail` | pipeline failure | A pipeline fails if ANY command in it fails, not just the last one. Without this, `false \| true` succeeds because only `true` is checked. |
 
 ## Why This Actually Matters — Real Examples
 
@@ -47,7 +122,7 @@ rm -rf *                  # This runs in the WRONG directory
 echo "Done"               # Script reports success
 ```
 
-<Callout type="success" title="⛔ What happens without -e">
+<Callout type="warning" title="What happens without -e">
 
 The `cd` fails. Bash ignores it and stays in the current directory. `rm -rf *` then runs in whatever directory you were already in — potentially deleting everything there. The script prints "Done." You have no idea anything went wrong.
 
@@ -81,7 +156,7 @@ TARGET_DIR="/home/user/backups"
 rm -rf "$TARGER_DIR/"*      # Expands to: rm -rf /*
 ```
 
-<Callout type="success" title="⛔ Without -u, a typo can delete your entire system">
+<Callout type="warning" title="Without -u, a typo can delete your entire system">
 
 `$TARGER_DIR` is undefined so bash replaces it with an empty string. The command becomes `rm -rf /*` — which attempts to delete everything from the root of your filesystem. With `set -u`, bash would immediately error: "TARGER_DIR: unbound variable" and stop.
 
@@ -144,10 +219,6 @@ trap 'rm -f /tmp/lockfile.pid' EXIT
 | set +e | — | Turn off -e temporarily for a block |
 | set +x | — | Turn off debug mode |
 
-      View Hosting Plans →
-
-    Get $200 Free →
-
 ## Frequently Asked Questions
 
 ### What does set -euo pipefail do in bash?
@@ -166,5 +237,3 @@ They are identical. `set -e` is shorthand for `set -o errexit`. Both cause immed
 
 Add `set -euo pipefail` right after `#!/bin/bash`. Add `trap 'echo Error on line $LINENO' ERR` for visibility. For commands that are allowed to fail, append `|| true` or wrap them in `if` statements.
 
-    Try the Generator →
-    Browse All Tools

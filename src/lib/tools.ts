@@ -5,6 +5,7 @@ export interface ToolFaq {
 
 export interface ToolMeta {
   slug: string;
+  component: string;
   title: string;
   description: string;
   category: string;
@@ -15,6 +16,7 @@ export interface ToolMeta {
 export const tools: ToolMeta[] = [
   {
     slug: 'bash-exit-code-lookup',
+    component: 'BashExitCodeLookup',
     title: 'Bash Exit Code Lookup',
     description:
       'Look up any bash exit code 0-255 and get the plain-English meaning, common causes, and generated error handler.',
@@ -50,6 +52,7 @@ export const tools: ToolMeta[] = [
   },
   {
     slug: 'cron-job-builder',
+    component: 'CronJobBuilder',
     title: 'Cron Job Builder',
     description:
       'Visual cron expression builder with human-readable schedule output and copy-paste crontab line.',
@@ -85,6 +88,7 @@ export const tools: ToolMeta[] = [
   },
   {
     slug: 'chmod-permissions-builder',
+    component: 'ChmodPermissionsBuilder',
     title: 'Chmod Permissions Builder',
     description:
       'Build chmod commands visually with a permission matrix. Shows octal, symbolic, and command output.',
@@ -120,6 +124,7 @@ export const tools: ToolMeta[] = [
   },
   {
     slug: 'path-debugger',
+    component: 'PathDebugger',
     title: 'Bash $PATH Debugger',
     description:
       'Debug your $PATH variable, find duplicate entries, missing directories, and fix ordering issues.',
@@ -155,6 +160,7 @@ export const tools: ToolMeta[] = [
   },
   {
     slug: 'bash-boilerplate-generator',
+    component: 'BashBoilerplateGenerator',
     title: 'Bash Boilerplate Generator',
     description:
       'Generate a production-ready bash script template with error handling, logging, and argument parsing.',
@@ -190,6 +196,7 @@ export const tools: ToolMeta[] = [
   },
   {
     slug: 'shellcheck-error-decoder',
+    component: 'ShellcheckErrorDecoder',
     title: 'ShellCheck Error Decoder',
     description:
       'Decode ShellCheck error codes SC1xxx-SC3xxx into plain-English explanations with before/after fix examples.',

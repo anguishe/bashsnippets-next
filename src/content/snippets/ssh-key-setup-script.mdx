@@ -1,4 +1,30 @@
-import Callout from '@/components/Callout'
+---
+title: "SSH Key Setup Script — Bash Script"
+description: "Generate, deploy, and configure SSH keys with ssh-keygen and ssh-copy-id."
+slug: "ssh-key-setup-script"
+tags: ["ssh", "security", "keys"]
+quickAnswer: "SSH key authentication replaces password login with a cryptographic key pair. ssh-keygen -t ed25519 creates an Ed25519 key pair, the recommended type in 2026."
+faq:
+  - question: "How do I run this script?"
+    answer: "Save as ssh-setup.sh, run chmod +x ssh-setup.sh, then execute ./ssh-setup.sh with your server IP and username."
+  - question: "Does this work on macOS?"
+    answer: "Yes. ssh-keygen and ssh-copy-id are pre-installed on macOS. Ed25519 keys work on all modern SSH servers."
+  - question: "How do I generate an SSH key in Linux?"
+    answer: "Run ssh-keygen -t ed25519 -C \"your@email.com\". Use -N \"\" for non-interactive generation in scripts."
+  - question: "What permissions should SSH keys have?"
+    answer: "chmod 700 ~/.ssh, chmod 600 private key, chmod 644 public key. SSH refuses keys with looser permissions."
+howToSteps:
+  - name: "Save the script"
+    text: "Copy the SSH key setup script below and save it as ssh-setup.sh"
+  - name: "Set server details"
+    text: "Edit SERVER and USER variables at the top of the script"
+  - name: "Make it executable and run"
+    text: "Run: chmod +x ssh-setup.sh then ./ssh-setup.sh"
+author: "Anguishe"
+datePublished: "2026-05-22"
+dateModified: "2026-06-03"
+---
+
 
 ## The Script
 
@@ -73,6 +99,89 @@ Copy the public key output above → DigitalOcean Control Panel → Settings →
 
 </Callout>
 
+## Step-by-Step Setup
+
+### Step 1 — Save the script
+
+```bash
+nano ssh-key-setup.sh
+```
+
+Paste the script above, then press **Ctrl+X → Y → Enter** to save.
+
+### Step 2 — Choose your setup mode
+
+The script has two modes controlled by the `REMOTE_USER` variable at the top:
+
+| Goal | What to set |
+| --- | --- |
+| Generate a key locally only | Leave `REMOTE_USER=""` empty |
+| Generate and copy to a server | Set `REMOTE_USER="user@server-ip"` — e.g. `root@203.0.113.10` |
+
+For local-only key generation, no server is needed. To deploy to a server automatically, set `REMOTE_USER` before running.
+
+### Step 3 — Make it executable and run it
+
+```bash
+chmod +x ssh-key-setup.sh
+./ssh-key-setup.sh
+```
+
+A successful run shows:
+
+```text
+SSH Key Setup Script
+====================
+✓ .ssh directory ready (chmod 700)
+Generating ed25519 key...
+✓ Key generated: /home/user/.ssh/id_ed25519
+✓ Permissions set (private: 600, public: 644)
+
+Your public key (copy this to your server or DigitalOcean):
+-----------------------------------------------------------
+ssh-ed25519 AAAA...your-key...== user@hostname-20260603
+-----------------------------------------------------------
+```
+
+### Step 4 — Test the connection
+
+If you set `REMOTE_USER` and the copy succeeded:
+
+```bash
+ssh user@server-ip
+```
+
+You should connect without being prompted for a password. If it asks for a password, the key copy did not work — check that `~/.ssh/authorized_keys` exists on the remote server and contains your public key.
+
+### Step 5 — Disable password login on the server (recommended)
+
+Once key-based login works, remove the password attack surface entirely. On the remote server:
+
+```bash
+sudo nano /etc/ssh/sshd_config
+```
+
+Set these two lines:
+
+```text
+PasswordAuthentication no
+PubkeyAuthentication yes
+```
+
+Restart SSH to apply:
+
+```bash
+sudo systemctl restart sshd
+```
+
+Test your key login in a second terminal before closing the current session — if anything is wrong you still have an open connection to fix it.
+
+<Callout type="warning" title="Test in a second terminal before closing">
+
+Always verify key-based login works in a new terminal before disabling password auth. If your key is not working and you close your current session, you are locked out.
+
+</Callout>
+
 ## How It Works
 
 **`mkdir -p "$HOME/.ssh"`** creates the SSH config directory if it is missing; `-p` avoids errors when the path already exists and creates parent directories when needed.
@@ -126,8 +235,3 @@ Ed25519 is newer, faster, and more secure than RSA 2048. Use Ed25519 for new key
 
 Generate your key with `ssh-keygen`, copy the public key content from `~/.ssh/id_ed25519.pub`, then paste it in the DigitalOcean control panel under Settings → Security → SSH Keys before creating a Droplet.
 
-    Create your Droplet →
-
-      View Hosting Plans →
-
-    Try the Generator →

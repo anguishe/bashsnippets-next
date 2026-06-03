@@ -1,0 +1,175 @@
+---
+# Page title shown in browser tab, H1, and search results. Include the primary keyword + "Bash Script".
+title: "Your Snippet Title — Bash Script"
+
+# Meta description: 150–160 characters. Start with a verb or the consequence avoided. Used in Google snippets and og:description.
+description: "Copy a bash script that does X using Y and Z. Prevent [specific failure] on Linux servers."
+
+# URL slug — must match the filename (your-snippet-slug.mdx) and the entry in src/lib/snippets.ts.
+slug: "your-snippet-slug"
+
+# ISO date when the page first went live (YYYY-MM-DD).
+datePublished: "2026-06-03"
+
+# ISO date of the last meaningful edit (YYYY-MM-DD). Update whenever content changes.
+dateModified: "2026-06-03"
+
+# Skill level: beginner | intermediate | advanced. Must match the registry entry in src/lib/snippets.ts.
+difficulty: "beginner"
+
+# Lowercase, hyphenated tags (max 5). Used for filtering on /snippets and internal linking.
+tags: ["monitor", "cron-ready", "example-tag"]
+
+# Distros you actually tested on (minimum 2). Reference in a "Tested on" section in the body.
+testedOn: ["Ubuntu 22.04 LTS", "Debian 12", "macOS Ventura"]
+
+# Quick Answer: 134–167 words, self-contained, above the fold on the rendered page. Lead with the command/concept, then what breaks without it, then how to run or schedule it.
+quickAnswer: "The example-command reads or changes something on your system. This script wraps that command with a configurable threshold or path at the top, compares the result against your limit, and exits with code 1 when the limit is crossed — so cron jobs and monitoring hooks can detect failure. Without this check, the first sign of trouble is often a crashed service or corrupted write, not an alert. Set THRESHOLD and TARGET at the top of the script, run chmod +x, then execute manually or schedule with cron. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, and macOS Ventura when the listed commands are pre-installed. No extra packages required for the base version."
+
+# Three related snippet slugs for manual cross-linking in the body (getRelatedSnippets() also surfaces related pages automatically).
+relatedSlugs: ["disk-space-warning", "automated-file-backup", "delete-old-log-files"]
+
+# FAQ for JSON-LD schema — must match visible FAQ headings in the body. Real questions people search for; answers must stand alone without reading the script.
+faq:
+  - question: "How do I run this script?"
+    answer: "Save as your-script.sh, run chmod +x your-script.sh, then execute ./your-script.sh. Exit code 1 means the check failed; exit code 0 means everything is within limits."
+  - question: "Does this work on macOS?"
+    answer: "Yes, with the same commands on macOS Ventura and later. If a flag differs (for example df -P on macOS), note it in the Tested on section and adjust the script accordingly."
+  - question: "How do I schedule this with cron?"
+    answer: "Add a line to crontab -e using the full path to the script, for example 0 * * * * /home/user/your-script.sh. Redirect output to a log file if you need an audit trail."
+
+# HowTo steps for JSON-LD schema — mirror your numbered setup steps in the body.
+howToSteps:
+  - name: "Create the script file"
+    text: "Copy the script below and save it as your-script.sh"
+  - name: "Configure variables"
+    text: "Edit THRESHOLD and TARGET at the top of the script to match your environment"
+  - name: "Make it executable and run"
+    text: "Run chmod +x your-script.sh then ./your-script.sh"
+
+# Author name for TechArticle schema. Default on the site is Anguishe.
+author: "Anguishe"
+---
+
+
+## What Breaks Without This Script
+
+When `/var/log` fills silently, nginx stops writing access logs, MySQL cannot flush transactions, and your next deploy fails mid-write — with no alert until users report errors. A full disk does not send a polite warning; it corrupts in-progress work and takes down every service that still needs to write bytes. This script reads usage with `df`, compares it against a threshold you control, and exits non-zero when you are running out of room — so cron or your monitoring stack can act before the crash.
+
+## The Script
+
+Save as `your-script.sh`. Change `THRESHOLD` and `TARGET` at the top before running on production.
+
+```bash
+#!/bin/bash
+# Script: your-script.sh
+# Purpose: Alert when disk usage exceeds a threshold — prevent full-disk service crashes
+# Usage: ./your-script.sh [THRESHOLD_%]  (default: 80)
+# Tested: Ubuntu 22.04 LTS, Debian 12, macOS Ventura
+set -euo pipefail
+
+# ── CONFIGURATION ──────────────────────────────────────────────
+THRESHOLD="${1:-80}"            # Usage % that triggers the alert (override via arg)
+TARGET="/"                      # Mount point to check — use /var on web servers with large logs
+
+# ── CONSTANTS ──────────────────────────────────────────────────
+CHECK="✓"
+CROSS="✗"
+
+# ── MAIN ───────────────────────────────────────────────────────
+USAGE=$(df "$TARGET" | awk 'NR==2 {print $5}' | tr -d '%')
+
+if [ "$USAGE" -ge "$THRESHOLD" ]; then
+  echo "$CROSS Disk at ${USAGE}% on $TARGET — threshold is ${THRESHOLD}%"
+  exit 1
+fi
+
+echo "$CHECK Disk at ${USAGE}% on $TARGET — within ${THRESHOLD}% threshold"
+```
+
+<Callout type="success" title="What this does, line by line">
+
+- **`THRESHOLD="${1:-80}"`** — Default 80%; pass a number as the first argument to override without editing the file.
+- **`TARGET="/"`** — Which mount point `df` inspects. Match this to where data actually grows.
+- **`awk 'NR==2 {print $5}'`** — Skips the header row and reads the Use% column.
+- **`tr -d '%'`** — Strips `%` so bash can compare integers in `[ "$USAGE" -ge "$THRESHOLD" ]`.
+- **`exit 1` on breach** — Non-zero exit lets cron mail you or triggers downstream alerting.
+
+</Callout>
+
+## Step-by-Step Setup
+
+### Step 1: Create the script file
+
+```bash
+nano your-script.sh
+```
+
+Paste the script above. Save with **Ctrl+X → Y → Enter**.
+
+### Step 2: Set your threshold and target
+
+Edit `THRESHOLD=` and `TARGET=` at the top. On a web server, `TARGET="/var"` often catches log growth before root fills.
+
+### Step 3: Make it executable
+
+```bash
+chmod +x your-script.sh
+```
+
+### Step 4: Run it manually
+
+```bash
+./your-script.sh
+```
+
+**When usage is below the threshold:**
+
+```text
+✓ Disk at 42% on / — within 80% threshold
+```
+
+**When usage is above the threshold:**
+
+```text
+✗ Disk at 87% on / — threshold is 80%
+```
+
+## Schedule It with Cron
+
+Open your crontab:
+
+```bash
+crontab -e
+```
+
+Add a line with the **full path** to your script:
+
+```bash
+# Every hour
+0 * * * * /home/you/your-script.sh >> /var/log/diskcheck.log 2>&1
+```
+
+## Tested On
+
+- Ubuntu 22.04 LTS
+- Debian 12
+- macOS Ventura (use `df -P` if column wrapping breaks `awk` parsing)
+
+## Frequently Asked Questions
+
+### How do I run this script?
+
+Save as `your-script.sh`, run `chmod +x your-script.sh`, then `./your-script.sh`. Exit code 1 means the check failed.
+
+### Does this work on macOS?
+
+Yes. Use `df -P "$TARGET"` for POSIX output if `awk` reads the wrong column on macOS.
+
+### How do I schedule this with cron?
+
+Run `crontab -e` and add `0 * * * * /full/path/to/your-script.sh`. Always use absolute paths in cron.
+
+<AffiliateBox partner="digitalocean" />
+
+<AffiliateBox partner="namecheap" />

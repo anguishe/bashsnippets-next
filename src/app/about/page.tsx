@@ -1,3 +1,4 @@
+import AffiliateBox from '@/components/AffiliateBox';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -58,6 +59,14 @@ export default function AboutPage() {
           Static HTML migrated to Next.js. Hosted on Vercel. Scripts tested on
           Ubuntu 22.04 LTS and macOS Ventura.
         </p>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="mb-4 font-heading text-xl font-bold text-text">
+          Recommended hosting &amp; domains
+        </h2>
+        <AffiliateBox partner="digitalocean" className="!my-6" />
+        <AffiliateBox partner="namecheap" className="!my-6" />
       </section>
 
       <section className="mt-8">

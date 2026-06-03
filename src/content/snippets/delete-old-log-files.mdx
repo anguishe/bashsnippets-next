@@ -1,4 +1,30 @@
-import Callout from '@/components/Callout'
+---
+title: "Delete Old Log Files — Bash Script"
+description: "Use find and mtime to automatically delete log files older than N days. Prevent disk bloat."
+slug: "delete-old-log-files"
+tags: ["cleanup", "find", "cron-ready"]
+quickAnswer: "The find command with -mtime locates files by age. Running find /var/log -name \"*.log\" -mtime +30 -delete removes every .log file in /var/log that has not been modified in more than 30 days."
+faq:
+  - question: "How do I run this script?"
+    answer: "Save the script, set LOG_DIR and DAYS, preview with -print instead of -delete first, then chmod +x and run."
+  - question: "Does this work on macOS?"
+    answer: "Yes. find -mtime works on macOS. Use -print before -delete to preview matches on BSD find."
+  - question: "How do I safely preview what find -delete will remove?"
+    answer: "Replace -delete with -print in your find command. Review the output, then swap back to -delete when satisfied."
+  - question: "What does -mtime +30 mean in the find command?"
+    answer: "Files last modified more than 30 days ago. +30 means strictly older than 30 days; -mtime 30 means exactly 30 days."
+howToSteps:
+  - name: "Create the script file"
+    text: "Copy the log cleanup script below and save it as clean-logs.sh"
+  - name: "Set paths and age limit"
+    text: "Edit LOG_DIR and DAYS variables, then preview with find ... -print before using -delete"
+  - name: "Make it executable and run"
+    text: "Run: chmod +x clean-logs.sh then ./clean-logs.sh"
+author: "Anguishe"
+datePublished: "2026-04-20"
+dateModified: "2026-06-03"
+---
+
 
 ## The Script
 

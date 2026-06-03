@@ -1,4 +1,30 @@
-import Callout from '@/components/Callout'
+---
+title: "Send Email Alerts from Bash — Bash Script"
+description: "Send email alerts from bash scripts using mailx, sendmail, or curl with SMTP."
+slug: "bash-send-email-alert"
+tags: ["email", "alert", "mailx"]
+quickAnswer: "The mail command sends email from the command line when a mail transfer agent is configured. The pattern is: echo \"message body\" | mail -s \"Subject line\" recipient@example.com."
+faq:
+  - question: "How do I run this script?"
+    answer: "Install mailutils first, save as mail-alert.sh, set your email address, run chmod +x mail-alert.sh, then execute ./mail-alert.sh."
+  - question: "Does this work on macOS?"
+    answer: "Not out of the box. macOS does not ship a mail transfer agent. Install msmtp or use curl with an SMTP API instead."
+  - question: "How do I send an email from a bash script?"
+    answer: "Run echo \"body\" | mail -s \"Subject\" user@example.com after installing mailutils on Ubuntu or Debian."
+  - question: "Can I send email alerts automatically from a cron job?"
+    answer: "Yes. Schedule any monitoring script with cron and pipe alert output to mail. Set MAILTO in crontab as an alternative."
+howToSteps:
+  - name: "Install mailutils"
+    text: "Run: sudo apt install mailutils on Ubuntu or Debian"
+  - name: "Create the script file"
+    text: "Copy the email alert script below and save it as mail-alert.sh"
+  - name: "Make it executable and run"
+    text: "Run: chmod +x mail-alert.sh then ./mail-alert.sh"
+author: "Anguishe"
+datePublished: "2026-05-20"
+dateModified: "2026-06-03"
+---
+
 
 ## The Script
 

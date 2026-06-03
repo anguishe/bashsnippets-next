@@ -1,24 +1,23 @@
 'use client';
 import { useEffect } from 'react';
 
-interface AdSlotProps {
+export default function AdSlot({
+  slot,
+  format = 'auto',
+}: {
   slot: string;
-  format?: 'auto' | 'rectangle' | 'horizontal';
-  className?: string;
-}
-
-export default function AdSlot({ slot, format = 'auto', className = '' }: AdSlotProps) {
+  format?: string;
+}) {
   useEffect(() => {
     try {
-      ((window as Window & { adsbygoogle?: unknown[] }).adsbygoogle =
-        (window as Window & { adsbygoogle?: unknown[] }).adsbygoogle || []).push({});
-    } catch {
-      // AdSense may be blocked or not loaded yet
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch (e) {
+      console.warn('[AdSense] Push failed:', e);
     }
   }, []);
 
   return (
-    <div className={className} style={{ minHeight: '90px', textAlign: 'center', margin: '24px 0' }}>
+    <div className="my-6" style={{ minHeight: '90px', textAlign: 'center' }}>
       <ins
         className="adsbygoogle"
         style={{ display: 'block' }}

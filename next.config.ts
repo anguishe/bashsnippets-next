@@ -3,6 +3,11 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   pageExtensions: ['ts', 'tsx', 'mdx'],
+  compress: true,
+  poweredByHeader: false,
+  images: {
+    formats: ['image/avif', 'image/webp'],
+  },
   async redirects() {
     return [
       {
@@ -141,7 +146,7 @@ const nextConfig: NextConfig = {
 
 const withMDX = createMDX({
   options: {
-    remarkPlugins: [['remark-gfm']],
+    remarkPlugins: [['remark-gfm'], 'remark-frontmatter'],
     rehypePlugins: [
       ['rehype-slug'],
       ['rehype-highlight', { ignoreMissing: true }],

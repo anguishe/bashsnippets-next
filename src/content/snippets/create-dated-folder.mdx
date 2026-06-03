@@ -1,4 +1,30 @@
-import Callout from '@/components/Callout'
+---
+title: "Create a Dated Folder — Bash Script"
+description: "Use date +%Y-%m-%d to auto-name folders for backups, logs, and organized archives."
+slug: "create-dated-folder"
+tags: ["files", "date", "mkdir"]
+quickAnswer: "The date +%Y-%m-%d command outputs the current date in ISO 8601 format. Using this as a folder name means directories sort in chronological order automatically when you run ls."
+faq:
+  - question: "How do I run this script?"
+    answer: "Run DATE=$(date +%Y-%m-%d) && mkdir \"$DATE\" directly in terminal, or save the script version and chmod +x it."
+  - question: "Does this work on macOS?"
+    answer: "Yes. date and mkdir are pre-installed on macOS with identical syntax for +%Y-%m-%d format."
+  - question: "How do I create a folder with today's date in bash?"
+    answer: "Run mkdir \"$(date +%Y-%m-%d)\" to create a folder named like 2026-06-03 in the current directory."
+  - question: "What date format is best for folder names?"
+    answer: "YYYY-MM-DD (ISO 8601) sorts chronologically in ls output. Add _%H-%M for multiple runs per day."
+howToSteps:
+  - name: "Run the one-liner"
+    text: "Run: DATE=$(date +%Y-%m-%d) && mkdir \"$DATE\" in your terminal"
+  - name: "Or save the script version"
+    text: "Copy the dated-folder script below and save it as dated-folder.sh"
+  - name: "Make it executable and run"
+    text: "Run: chmod +x dated-folder.sh then ./dated-folder.sh"
+author: "Anguishe"
+datePublished: "2026-05-14"
+dateModified: "2026-06-03"
+---
+
 
 ## The One-Liner
 
@@ -11,6 +37,78 @@ mkdir "$(date +%Y-%m-%d)_project"
 <Callout type="success" title="What this creates">
 
 Running this today creates a folder called `2026-05-03_project`. The `$()` syntax runs the `date` command and drops the result directly into the folder name. The `+%Y-%m-%d` format gives you year-month-day — which sorts correctly in every file manager.
+
+</Callout>
+
+## Step-by-Step Setup
+
+### Step 1 — Run the one-liner directly in your terminal
+
+No script file required. Open any terminal and run:
+
+```bash
+mkdir "$(date +%Y-%m-%d)_project"
+```
+
+Replace `_project` with any label you want — `_backup`, `_deployment`, `_client-meeting`. The date prefix is added automatically.
+
+### Step 2 — Verify the folder was created
+
+```bash
+ls -d $(date +%Y-%m-%d)*
+```
+
+You should see the new folder listed. It sorts immediately to the correct chronological position alongside any other dated folders in the same directory.
+
+### Step 3 — Use the script version for repeat runs
+
+When you need dated folders regularly (daily backups, weekly deploys, client deliverables), save the script version so you can add a custom label each time:
+
+```bash
+nano mkdate.sh
+```
+
+Paste the script variation from the **Variations** section below. Save with **Ctrl+X → Y → Enter**, then make it executable:
+
+```bash
+chmod +x mkdate.sh
+```
+
+Run it with any label:
+
+```bash
+./mkdate.sh deployment
+# Creates: 2026-06-03_deployment
+
+./mkdate.sh client-report
+# Creates: 2026-06-03_client-report
+```
+
+### Step 4 — Add it as a permanent alias
+
+This is what turns a one-liner into a daily habit. Add the alias to your shell config:
+
+```bash
+nano ~/.bashrc
+```
+
+Paste at the bottom:
+
+```bash
+alias mkdate='mkdir "$(date +%Y-%m-%d)_folder" && cd "$(date +%Y-%m-%d)_folder"'
+```
+
+Save, then activate immediately without reopening the terminal:
+
+```bash
+source ~/.bashrc
+```
+
+Now type `mkdate` from anywhere to create and enter a new dated folder in seconds.
+
+<Callout type="info" title="Using zsh?">
+
+Add the alias to `~/.zshrc` instead, then run `source ~/.zshrc`. The alias syntax is identical — only the file changes.
 
 </Callout>
 

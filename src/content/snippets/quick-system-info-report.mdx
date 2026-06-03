@@ -1,4 +1,30 @@
-import Callout from '@/components/Callout'
+---
+title: "Quick System Info Report — Bash Script"
+description: "One-script snapshot of hostname, uptime, CPU, RAM, disk, and IP. No installs required."
+slug: "quick-system-info-report"
+tags: ["monitor", "reporting", "system"]
+quickAnswer: "This script runs hostname, uptime -p, free -h, df -h /, and hostname -I in one command and formats the output as a readable system snapshot. No extra packages required."
+faq:
+  - question: "How do I run this script?"
+    answer: "Save as syscheck.sh, run chmod +x syscheck.sh, then execute ./syscheck.sh for an instant system snapshot."
+  - question: "Does this work on macOS?"
+    answer: "Mostly. Replace free -h with vm_stat and hostname -I with ipconfig getifaddr en0 for macOS compatibility."
+  - question: "How do I check system info in Linux with one command?"
+    answer: "Create a bash script that runs hostname, uptime -p, free -h, df -h /, and hostname -I together, then alias it in ~/.bashrc."
+  - question: "How do I create a bash alias for a script?"
+    answer: "Add alias syscheck=/home/user/syscheck.sh to ~/.bashrc, then run source ~/.bashrc to activate it."
+howToSteps:
+  - name: "Create the script file"
+    text: "Copy the syscheck.sh script below and save it as syscheck.sh"
+  - name: "Make it executable"
+    text: "Run: chmod +x syscheck.sh"
+  - name: "Run the script"
+    text: "Execute with: ./syscheck.sh — add an alias in ~/.bashrc for instant access"
+author: "Anguishe"
+datePublished: "2026-04-25"
+dateModified: "2026-06-03"
+---
+
 
 ## The Script
 

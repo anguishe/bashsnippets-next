@@ -1,4 +1,4 @@
-import { snippets, type SnippetMeta } from '@/lib/snippets';
+import { snippets, type SnippetRegistryEntry } from '@/lib/snippets';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -47,10 +47,12 @@ const breadcrumbSchema = {
   ],
 };
 
+// difficultyBadgeClass removed — design skill: no pill badges, use inline dot-separated text
+
 const difficultyGroups: {
   id: 'beginner' | 'intermediate' | 'advanced';
   label: string;
-  level: SnippetMeta['difficulty'];
+  level: SnippetRegistryEntry['difficulty'];
 }[] = [
   { id: 'beginner', label: 'Beginner Scripts', level: 'beginner' },
   { id: 'intermediate', label: 'Intermediate Scripts', level: 'intermediate' },
@@ -64,52 +66,29 @@ const filterLinks = [
   { href: '#advanced', label: 'Advanced' },
 ] as const;
 
-function difficultyBadgeClass(difficulty: SnippetMeta['difficulty']): string {
-  const base = 'shrink-0 rounded border px-2 py-0.5 text-[10px] font-semibold uppercase';
-  switch (difficulty) {
-    case 'beginner':
-      return `${base} border-green bg-green-dim text-green`;
-    case 'intermediate':
-      return `${base} border-amber bg-amber-dim text-amber`;
-    case 'advanced':
-      return `${base} border-blue bg-blue-dim text-blue`;
-  }
-}
-
-function truncateDescription(text: string, max = 80): string {
+function truncateDescription(text: string, max = 100): string {
   if (text.length <= max) {
     return text;
   }
   return `${text.slice(0, max).trimEnd()}...`;
 }
 
-function SnippetCard({ snippet }: { snippet: SnippetMeta }) {
+function SnippetCard({ snippet }: { snippet: SnippetRegistryEntry }) {
   return (
-    <article className="flex min-h-[120px] flex-col rounded-lg border border-border bg-bg2 p-4">
-      <div className="flex items-start gap-2">
-        <h3 className="flex-1 text-sm font-semibold text-text">
-          {snippet.title}
-        </h3>
-        <span className={difficultyBadgeClass(snippet.difficulty)}>
-          {snippet.difficulty}
-        </span>
-      </div>
+    <article className="group relative flex min-h-[148px] flex-col overflow-hidden rounded-lg border border-border bg-bg2 p-5 transition-colors duration-150 hover:border-green">
+      <div className="absolute left-0 top-0 h-0.5 w-0 bg-green transition-all duration-300 group-hover:w-full" aria-hidden />
+      <span className="mb-2 font-mono text-xs uppercase tracking-widest text-muted">
+        {snippet.difficulty} · {snippet.tags.join(' · ')}
+      </span>
+      <h3 className="flex-1 font-heading text-base font-bold leading-snug text-text">
+        {snippet.title}
+      </h3>
       <p className="mt-2 text-xs leading-relaxed text-muted">
         {truncateDescription(snippet.description)}
       </p>
-      <div className="mt-2 flex flex-wrap gap-1">
-        {snippet.tags.map((tag) => (
-          <span
-            key={tag}
-            className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted"
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
       <Link
         href={`/snippets/${snippet.slug}`}
-        className="mt-3 text-xs text-blue transition-colors hover:text-text"
+        className="mt-4 font-mono text-xs text-green transition-colors hover:text-text"
       >
         Full guide →
       </Link>
@@ -132,9 +111,11 @@ export default function SnippetsPage() {
       />
 
       <main className="mx-auto max-w-4xl px-6 py-16">
-        <p className="mb-2 text-xs uppercase tracking-widest text-green">
-          {'// the library'}
-        </p>
+        <div className="mb-6 flex items-center gap-2 font-mono text-sm text-muted">
+          <span className="text-green">$</span>
+          <span>bash-snippets</span>
+          <span className="inline-block h-4 w-2 animate-pulse bg-green" aria-hidden />
+        </div>
 
         <h1 className="font-heading text-4xl font-extrabold text-text">
           Bash Script Library

@@ -1,4 +1,30 @@
-import Callout from '@/components/Callout'
+---
+title: "File Permissions Security Audit — Bash Script"
+description: "Scan for world-writable files, SUID/SGID bits, and permission issues using find."
+slug: "file-permissions-security"
+tags: ["chmod", "security", "find"]
+quickAnswer: "Linux file permissions control who can read, write, or execute a file. World-writable files with permission 777 let any user overwrite the file — a critical security risk on web servers."
+faq:
+  - question: "How do I run this script?"
+    answer: "Save as perm-audit.sh, set SCAN_DIR, run chmod +x perm-audit.sh, then execute ./perm-audit.sh to generate a permission report."
+  - question: "Does this work on macOS?"
+    answer: "Yes. find -perm works on macOS. SUID/SGID scanning behaves the same on BSD find."
+  - question: "How do I find world-writable files in Linux?"
+    answer: "Run find /path -type f -perm -002 or find /path -perm 777 to locate files writable by all users."
+  - question: "What file permissions should a web server use?"
+    answer: "Files 644, directories 755. Never chmod -R 644 — that removes execute bits from directories and breaks navigation."
+howToSteps:
+  - name: "Create the script file"
+    text: "Copy the permission audit script below and save it as perm-audit.sh"
+  - name: "Set your scan directory"
+    text: "Edit SCAN_DIR to the directory you want to audit (e.g. /var/www/html)"
+  - name: "Make it executable and run"
+    text: "Run: chmod +x perm-audit.sh then ./perm-audit.sh"
+author: "Anguishe"
+datePublished: "2026-05-18"
+dateModified: "2026-06-03"
+---
+
 
 ## The Script
 
@@ -49,17 +75,75 @@ echo "Private dirs: chmod 700 (rwx------)"
 
 </Callout>
 
-## How to Use It
+## Step-by-Step Setup
 
-    chmod +x permissions-audit.sh
-    ./permissions-audit.sh /var/www
-    Review report at /tmp/perms-audit-[date].txt
-    Fix flagged files: chmod 644 flagged-file.txt
+### Step 1 — Create the script file
+
+```bash
+nano permissions-audit.sh
+```
+
+Paste the script above, then press **Ctrl+X → Y → Enter** to save.
+
+### Step 2 — Set your scan directory
+
+The script accepts a directory as an argument. No editing required — just pass the path when you run it:
+
+| Target directory | What it scans |
+| --- | --- |
+| `/var/www` | Web server files — the most common audit target |
+| `/home` | All user home directories |
+| `/etc` | System config files — should never be world-writable |
+| `/srv` | Hosted application data |
+
+### Step 3 — Make it executable and run the audit
 
 ```bash
 chmod +x permissions-audit.sh
 ./permissions-audit.sh /var/www
-chmod 644 flagged-file.txt
+```
+
+If any `777` files are found, you will see:
+
+```text
+Scanning: /var/www
+Looking for world-writable files (777)...
+
+✗ DANGER: World-writable files found:
+/var/www/html/uploads/shell.php
+/var/www/html/cache/data.tmp
+
+Report saved to: /tmp/perms-audit-20260603.txt
+```
+
+If nothing is found, you get a clean result:
+
+```text
+✓ No 777 files found in /var/www
+```
+
+### Step 4 — Fix flagged files
+
+For each file in the report, apply the correct permission based on its type:
+
+```bash
+# Regular files — readable by all, writable only by owner
+chmod 644 /var/www/html/uploads/shell.php
+
+# Directories — owner can enter and write, others can enter and read
+chmod 755 /var/www/html/cache/
+
+# Scripts and executables — same as directories
+chmod 755 /var/www/html/deploy.sh
+
+# Sensitive files — owner only
+chmod 600 /var/www/.env
+```
+
+Run the audit again after fixing to confirm the report is clean:
+
+```bash
+./permissions-audit.sh /var/www
 ```
 
 ## chmod Basics
@@ -131,8 +215,51 @@ find / -perm -4000 -type f 2>/dev/null     # Find SUID files (security audit)
 Permissions decide what the owner, group, and everyone else can do. `chown` changes who the owner and group are.
 
 ```bash
-chown user file.txt                 # change owner
-chown user:group file.txt           # change owner and group
-chown -R www-data:www-data /var/www # Fix web server ownership
-chown --reference=ref.txt target.txt # Copy perms from another file
+chown user file.txt                  # change owner
+chown user:group file.txt            # change owner and group
+chown -R www-data:www-data /var/www  # Fix web server ownership
+chown --reference=ref.txt target.txt # Copy ownership from another file
 ```
+
+## Common Mistakes
+
+<Callout type="warning" title="Never use chmod -R 777">
+
+`chmod -R 777` makes everything world-writable. On a shared server or web host, that means anyone who can run code as another user can overwrite your files, plant backdoors, or break your app.
+
+</Callout>
+
+<Callout type="warning" title="Safe permissions to memorize">
+
+SSH private keys must be 600 — SSH will refuse to use them otherwise. Web files: 644 for files, 755 for directories. Use `find` + `-exec` instead of `chmod -R` to avoid breaking directory execute bits. Audit world-writable files on new servers immediately.
+
+</Callout>
+
+## Frequently Asked Questions
+
+### How do I find world-writable files in Linux?
+
+Run: `find / -perm -o+w -type f 2>/dev/null`. The `-o+w` flag matches any file where the "other" category has write permission. On a web server, scope it to the web root: `find /var/www -perm -o+w -type f`.
+
+### What file permissions should a web server use?
+
+Files should be `644` (owner can read/write, everyone else read-only). Directories should be `755` (owner can enter and write, others can only enter and read). Never use `777` on a shared or internet-facing server.
+
+### How do I fix file permissions recursively without breaking directories?
+
+Use two `find` commands — one for files, one for directories:
+
+```bash
+find /var/www/html -type f -exec chmod 644 {} \;
+find /var/www/html -type d -exec chmod 755 {} \;
+```
+
+`chmod -R 644` breaks directories by removing their execute bit, which prevents anyone from entering them.
+
+### What is a SUID file and why is it a security risk?
+
+SUID (Set User ID) means the file runs as its owner's permissions rather than the caller's. On a root-owned binary, that means any user who can run it gets root-level access for that execution. Find them with: `find / -perm -4000 -type f 2>/dev/null`.
+
+### What does chmod 600 do?
+
+`chmod 600` gives the file owner read and write permission, and removes all access from the group and others. It is the required permission for SSH private keys — SSH will refuse to use a key with looser permissions.
