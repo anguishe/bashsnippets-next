@@ -100,6 +100,11 @@ export default function RootLayout({
           title="BashSnippets"
           href="/opensearch.xml"
         />
+        <script
+          src="https://analytics.ahrefs.com/analytics.js"
+          data-key="hPaS1a7Tg3n7RQ0sUvzaGg"
+          async
+        />
       </head>
       <body
         className={`${ibmPlexMono.variable} ${syne.variable} flex min-h-screen flex-col bg-bg text-text`}
