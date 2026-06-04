@@ -1,5 +1,6 @@
 import AffiliateBox from '@/components/AffiliateBox';
 import ToolRenderer from '@/components/tools/ToolRenderer';
+import { getSnippetBySlug } from '@/lib/snippets';
 import { getAllToolSlugs, getToolBySlug } from '@/lib/tools';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -12,22 +13,31 @@ type PageProps = {
 };
 
 function buildSchemas(
-  tool: { title: string; description: string; faqs: { question: string; answer: string }[] },
+  tool: { title: string; description: string },
   slug: string,
 ) {
   const canonical = `${SITE_URL}/tools/${slug}`;
 
   const softwareApplication = {
     '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
+    '@type': 'WebApplication',
     name: tool.title,
     description: tool.description,
     applicationCategory: 'DeveloperApplication',
+    applicationSubCategory: 'UtilityApplication',
+    browserRequirements: 'HTML5, JavaScript',
     operatingSystem: 'Linux, macOS',
+    isAccessibleForFree: true,
+    featureList: ['No login required', 'Browser-based', 'Copy-paste output'],
     offers: {
       '@type': 'Offer',
       price: '0',
       priceCurrency: 'USD',
+    },
+    creator: {
+      '@type': 'Organization',
+      name: 'BashSnippets.xyz',
+      url: 'https://bashsnippets.xyz',
     },
     url: canonical,
   };
@@ -57,20 +67,7 @@ function buildSchemas(
     ],
   };
 
-  const faqPage = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: tool.faqs.map((faq) => ({
-      '@type': 'Question',
-      name: faq.question,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: faq.answer,
-      },
-    })),
-  };
-
-  return [softwareApplication, breadcrumb, faqPage];
+  return [softwareApplication, breadcrumb];
 }
 
 export function generateStaticParams() {
@@ -98,6 +95,12 @@ export async function generateMetadata({
       url: `${SITE_URL}/tools/${tool.slug}`,
       images: [{ url: '/ogimage.png', width: 1200, height: 630 }],
     },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: tool.title,
+      description: tool.description,
+      images: ['/ogimage.png'],
+    },
   };
 }
 
@@ -110,6 +113,10 @@ export default async function ToolPage({ params }: PageProps) {
   }
 
   const schemas = buildSchemas(tool, slug);
+
+  const relatedSnippets = (tool.relatedSnippets ?? [])
+    .map((s) => getSnippetBySlug(s))
+    .filter((s): s is NonNullable<ReturnType<typeof getSnippetBySlug>> => s !== undefined);
 
   return (
     <>
@@ -195,6 +202,34 @@ export default async function ToolPage({ params }: PageProps) {
                     {faq.answer}
                   </p>
                 </details>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Section 6: Related scripts */}
+        {relatedSnippets.length > 0 && (
+          <section className="mt-12">
+            <h2 className="mb-6 font-heading text-xl font-bold text-text">
+              Related Scripts
+            </h2>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {relatedSnippets.map((snippet) => (
+                <Link
+                  key={snippet.slug}
+                  href={`/snippets/${snippet.slug}`}
+                  className="block rounded-lg border border-border bg-bg2 p-4 no-underline transition-colors duration-150 hover:border-green"
+                >
+                  <p className="font-mono text-xs uppercase tracking-widest text-muted">
+                    {snippet.difficulty} · {snippet.tags[0]}
+                  </p>
+                  <p className="mt-1 font-heading text-sm font-bold text-text">
+                    {snippet.title}
+                  </p>
+                  <p className="mt-2 text-xs leading-relaxed text-muted line-clamp-2">
+                    {snippet.description}
+                  </p>
+                </Link>
               ))}
             </div>
           </section>

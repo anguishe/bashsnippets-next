@@ -11,11 +11,63 @@ export const metadata: Metadata = {
   alternates: {
     canonical: `${SITE_URL}/about`,
   },
+  openGraph: {
+    title: 'About BashSnippets',
+    description: 'Who runs BashSnippets, what the site offers, and how to get in touch.',
+    url: `${SITE_URL}/about`,
+    type: 'website',
+    images: [{ url: '/ogimage.png', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'About BashSnippets',
+    description: 'Who runs BashSnippets, what the site offers, and how to get in touch.',
+  },
 };
+
+const aboutSchemas = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: 'About BashSnippets',
+    url: `${SITE_URL}/about`,
+    description: 'Who runs BashSnippets, what the site offers, and how to get in touch.',
+    isPartOf: { '@type': 'WebSite', name: 'BashSnippets.xyz', url: SITE_URL },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: 'Anguishe',
+    '@id': `${SITE_URL}/about`,
+    url: `${SITE_URL}/about`,
+    email: 'anguisheh1@gmail.com',
+    sameAs: [
+      'https://youtube.com/@BashSnippets',
+      'https://dev.to/bashsnippets',
+      'https://github.com/anguishe/bash-scripts',
+    ],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+      { '@type': 'ListItem', position: 2, name: 'About', item: `${SITE_URL}/about` },
+    ],
+  },
+];
 
 export default function AboutPage() {
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
+    <>
+      {aboutSchemas.map((schema) => (
+        <script
+          key={schema['@type']}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+      ))}
+      <main className="mx-auto max-w-2xl px-6 py-16">
       <h1 className="font-heading text-4xl font-extrabold text-text">
         About BashSnippets
       </h1>
@@ -37,7 +89,7 @@ export default function AboutPage() {
         </h2>
         <div className="my-6 grid grid-cols-1 gap-3 md:grid-cols-2">
           {[
-            ['16 bash scripts', 'Copy-paste ready, plain-English explanations'],
+            ['17 bash scripts', 'Copy-paste ready, plain-English explanations'],
             ['6 interactive tools', 'Cron builder, chmod calc, exit code lookup'],
             ['Zero logins', 'No account, no email, no paywall'],
             ['MIT licensed', 'Use the scripts anywhere, including production'],
@@ -87,7 +139,7 @@ export default function AboutPage() {
         <a
           href="https://youtube.com/@BashSnippets"
           target="_blank"
-          rel="noopener"
+          rel="noopener noreferrer"
           className="rounded border border-border px-4 py-2 font-mono text-xs text-muted transition-colors hover:border-green hover:text-green"
         >
           YouTube @BashSnippets ↗
@@ -95,7 +147,7 @@ export default function AboutPage() {
         <a
           href="https://dev.to/bashsnippets"
           target="_blank"
-          rel="noopener"
+          rel="noopener noreferrer"
           className="rounded border border-border px-4 py-2 font-mono text-xs text-muted transition-colors hover:border-green hover:text-green"
         >
           dev.to/bashsnippets ↗
@@ -103,7 +155,7 @@ export default function AboutPage() {
         <a
           href="https://github.com/anguishe/bash-scripts"
           target="_blank"
-          rel="noopener"
+          rel="noopener noreferrer"
           className="rounded border border-border px-4 py-2 font-mono text-xs text-muted transition-colors hover:border-green hover:text-green"
         >
           GitHub scripts repo ↗
@@ -115,6 +167,7 @@ export default function AboutPage() {
           Browse the script library →
         </Link>
       </p>
-    </main>
+      </main>
+    </>
   );
 }

@@ -11,6 +11,7 @@ export interface ToolMeta {
   category: string;
   howToUse: string[];
   faqs: ToolFaq[];
+  relatedSnippets?: string[];
 }
 
 export const tools: ToolMeta[] = [
@@ -49,6 +50,7 @@ export const tools: ToolMeta[] = [
           'Exit code 0 always means success in bash and all POSIX-compliant shells. Any non-zero value signals failure. This convention applies to every command, script, and function in the shell.',
       },
     ],
+    relatedSnippets: ['bash-error-handling', 'bash-if-else-examples'],
   },
   {
     slug: 'cron-job-builder',
@@ -85,6 +87,7 @@ export const tools: ToolMeta[] = [
           'Yes. Set the day of week field to `1-5` to run Monday through Friday. The builder supports range syntax, so you can also set it to `1,3,5` for Monday, Wednesday, and Friday only.',
       },
     ],
+    relatedSnippets: ['disk-space-warning', 'automated-file-backup', 'restart-service-if-stopped'],
   },
   {
     slug: 'chmod-permissions-builder',
@@ -121,6 +124,7 @@ export const tools: ToolMeta[] = [
           'When the sticky bit is set on a directory (chmod +t or mode 1755), only the file owner or root can delete or rename files inside it — even if others have write access to the directory. The /tmp directory uses this to prevent users from deleting each other\'s temporary files.',
       },
     ],
+    relatedSnippets: ['file-permissions-security', 'ssh-key-setup-script'],
   },
   {
     slug: 'path-debugger',
@@ -193,6 +197,7 @@ export const tools: ToolMeta[] = [
           'Yes. The templates follow the same conventions used in production Linux scripts: `set -euo pipefail`, cleanup traps on EXIT, explicit non-zero exit codes on failure, and named variables instead of positional magic numbers. Review and test any generated script before running it in your environment.',
       },
     ],
+    relatedSnippets: ['bash-error-handling'],
   },
   {
     slug: 'shellcheck-error-decoder',

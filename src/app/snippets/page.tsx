@@ -5,11 +5,26 @@ import Link from 'next/link';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: 'Bash Script Examples',
+  title: 'Bash Script Library — 17 Copy-Paste Shell Scripts for Linux',
   description:
-    '16 copy-paste bash scripts with plain-English explanations. Tested on Ubuntu 22.04 LTS and macOS Ventura.',
+    '17 copy-paste bash scripts with plain-English explanations. Tested on Ubuntu 22.04 LTS and macOS Ventura.',
   alternates: {
     canonical: `${SITE_URL}/snippets`,
+  },
+  openGraph: {
+    title: 'Bash Script Library — 17 Copy-Paste Shell Scripts for Linux',
+    description:
+      '17 copy-paste bash scripts with plain-English explanations. Tested on Ubuntu 22.04 LTS and macOS Ventura.',
+    url: `${SITE_URL}/snippets`,
+    type: 'website',
+    images: [{ url: `${SITE_URL}/ogimage.png`, width: 1200, height: 630, alt: 'BashSnippets — Bash Script Library' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Bash Script Library — 17 Copy-Paste Shell Scripts for Linux',
+    description:
+      '17 copy-paste bash scripts with plain-English explanations. Tested on Ubuntu 22.04 LTS and macOS Ventura.',
+    images: [`${SITE_URL}/ogimage.png`],
   },
 };
 
@@ -19,7 +34,7 @@ const collectionPageSchema = {
   name: 'Bash Script Library',
   url: `${SITE_URL}/snippets`,
   description:
-    '16 copy-paste bash scripts with plain-English explanations for Linux and macOS.',
+    `${snippets.length} copy-paste bash scripts with plain-English explanations for Linux and macOS.`,
   hasPart: snippets.map((snippet) => ({
     '@type': 'TechArticle',
     name: snippet.title,
@@ -122,13 +137,13 @@ export default function SnippetsPage() {
         </h1>
 
         <p className="mt-4 max-w-2xl text-muted leading-relaxed">
-          16 copy-paste bash scripts with plain-English explanations. Tested on
+          {snippets.length} copy-paste bash scripts with plain-English explanations. Tested on
           Ubuntu 22.04 LTS and macOS Ventura.
         </p>
 
         <div className="my-8 flex flex-wrap gap-6 text-sm">
           <div className="flex items-center gap-2 text-muted">
-            <span className="text-lg font-bold text-green">16</span>
+            <span className="text-lg font-bold text-green">{snippets.length}</span>
             <span>scripts</span>
           </div>
           <div className="flex items-center gap-2 text-muted">

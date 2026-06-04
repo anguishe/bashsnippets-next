@@ -9,48 +9,26 @@ import Link from 'next/link';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
+  title: 'Bash Script Library — Free Copy-Paste Scripts for Linux & DevOps',
+  description:
+    'Free bash scripts for disk monitoring, backups, process management, SSH keys, and more. 17 tested scripts, 6 browser tools, zero logins required.',
   alternates: {
     canonical: `${SITE_URL}/`,
   },
-};
-
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: 'What is a bash script?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'A text file of terminal commands that runs automatically in sequence. Saved with a .sh extension, starting with #!/bin/bash.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'How do I run a bash script?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Make it executable: chmod +x script.sh — then run: ./script.sh. Or skip chmod and type: bash script.sh',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'How do I schedule a bash script?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Use cron. Run crontab -e and add a line like: 0 2 * * * /path/to/script.sh to run daily at 2am.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'How do I stop my script on errors?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Add set -euo pipefail near the top. This exits on error, catches undefined variables, and handles pipe failures.',
-      },
-    },
-  ],
+  openGraph: {
+    title: 'Bash Script Library — Free Copy-Paste Scripts for Linux & DevOps',
+    description:
+      'Free bash scripts for disk monitoring, backups, process management, and more. 17 scripts, 6 tools, zero logins.',
+    url: SITE_URL,
+    type: 'website',
+    images: [{ url: '/ogimage.png', width: 1200, height: 630, alt: 'BashSnippets.xyz — Free Bash Scripts' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Bash Script Library — Free Copy-Paste Scripts for Linux & DevOps',
+    description:
+      'Free bash scripts for disk monitoring, backups, process management, and more. 17 scripts, 6 tools, zero logins.',
+  },
 };
 
 const faqItems = [
@@ -125,18 +103,16 @@ export default function Home() {
               name: 'BashSnippets',
               url: 'https://bashsnippets.xyz',
               logo: 'https://bashsnippets.xyz/favicon-512x512.png',
+              description:
+                'Free bash script library and interactive tools for Linux developers, sysadmins, and DevOps engineers.',
+              foundingDate: '2026',
               sameAs: [
                 'https://www.youtube.com/@BashSnippets',
-                'https://www.tiktok.com/@BashSnippets',
                 'https://dev.to/bashsnippets',
               ],
             },
           ]),
         }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
 
       {/* Hero */}
@@ -189,7 +165,7 @@ export default function Home() {
 
             <div className="mt-10 flex flex-wrap gap-8">
               {[
-                { value: '20+', label: 'Working Scripts' },
+                { value: '17', label: 'Working Scripts' },
                 { value: '100%', label: 'Tested on Linux' },
                 { value: '0', label: 'Logins Required' },
                 { value: 'Free', label: 'Always' },

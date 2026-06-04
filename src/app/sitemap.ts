@@ -1,44 +1,62 @@
-import { getAllSlugs } from '@/lib/snippets';
+import { snippets } from '@/lib/snippets';
 import { getAllToolSlugs } from '@/lib/tools';
 import type { MetadataRoute } from 'next';
 
 const SITE_URL = 'https://bashsnippets.xyz';
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date();
+const TOOL_LAST_MODIFIED = new Date('2026-05-22');
 
-  const snippetUrls: MetadataRoute.Sitemap = getAllSlugs().map((slug) => ({
-    url: `${SITE_URL}/snippets/${slug}`,
-    lastModified,
-    changeFrequency: 'monthly',
+export default function sitemap(): MetadataRoute.Sitemap {
+  const snippetUrls: MetadataRoute.Sitemap = snippets.map((snippet) => ({
+    url: `${SITE_URL}/snippets/${snippet.slug}`,
+    lastModified: new Date(snippet.dateModified),
+    changeFrequency: 'weekly',
     priority: 0.8,
   }));
 
   const toolUrls: MetadataRoute.Sitemap = getAllToolSlugs().map((slug) => ({
     url: `${SITE_URL}/tools/${slug}`,
-    lastModified,
-    changeFrequency: 'monthly',
-    priority: 0.8,
+    lastModified: TOOL_LAST_MODIFIED,
+    changeFrequency: 'weekly',
+    priority: 0.9,
   }));
 
   return [
     {
       url: `${SITE_URL}/`,
-      lastModified,
-      changeFrequency: 'monthly',
+      lastModified: new Date('2026-06-03'),
+      changeFrequency: 'daily',
       priority: 1.0,
     },
     {
       url: `${SITE_URL}/snippets`,
-      lastModified,
-      changeFrequency: 'monthly',
+      lastModified: new Date('2026-06-03'),
+      changeFrequency: 'daily',
       priority: 0.9,
     },
     {
       url: `${SITE_URL}/tools`,
-      lastModified,
-      changeFrequency: 'monthly',
+      lastModified: TOOL_LAST_MODIFIED,
+      changeFrequency: 'daily',
       priority: 0.9,
+    },
+    {
+      url: `${SITE_URL}/about`,
+      lastModified: new Date('2026-05-22'),
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
+    {
+      url: `${SITE_URL}/privacy`,
+      lastModified: new Date('2026-05-22'),
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: `${SITE_URL}/contact`,
+      lastModified: new Date('2026-05-22'),
+      changeFrequency: 'yearly',
+      priority: 0.3,
     },
     ...snippetUrls,
     ...toolUrls,

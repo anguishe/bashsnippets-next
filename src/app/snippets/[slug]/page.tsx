@@ -49,32 +49,8 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string): string[] {
     image: `${SITE_URL}/ogimage.png`,
     proficiencyLevel: snippet.difficulty.charAt(0).toUpperCase() + snippet.difficulty.slice(1),
     programmingLanguage: 'Bash',
-  };
-
-  const faqSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: snippet.faq.map((item) => ({
-      '@type': 'Question',
-      name: item.question,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: item.answer,
-      },
-    })),
-  };
-
-  const howToSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'HowTo',
-    name: snippet.title,
-    description: snippet.description,
-    step: snippet.howToSteps.map((step, i) => ({
-      '@type': 'HowToStep',
-      position: i + 1,
-      name: step.name,
-      text: step.text,
-    })),
+    inLanguage: 'en',
+    articleSection: 'Bash Scripting',
   };
 
   const breadcrumb = {
@@ -102,9 +78,7 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string): string[] {
     ],
   };
 
-  return [articleSchema, faqSchema, howToSchema, breadcrumb].map((schema) =>
-    JSON.stringify(schema),
-  );
+  return [articleSchema, breadcrumb].map((schema) => JSON.stringify(schema));
 }
 
 export function generateStaticParams() {
@@ -130,7 +104,17 @@ export async function generateMetadata({
       title: snippet.title,
       description: snippet.description,
       url: `${SITE_URL}/snippets/${snippet.slug}`,
+      type: 'article',
+      publishedTime: snippet.datePublished,
+      modifiedTime: snippet.dateModified,
+      authors: [`${SITE_URL}/about`],
       images: [OG_IMAGE],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: snippet.title,
+      description: snippet.description,
+      images: [OG_IMAGE.url],
     },
   };
 }

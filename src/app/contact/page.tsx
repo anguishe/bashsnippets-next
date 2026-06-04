@@ -8,6 +8,18 @@ export const metadata: Metadata = {
   alternates: {
     canonical: `${SITE_URL}/contact`,
   },
+  openGraph: {
+    title: 'Contact BashSnippets',
+    description: 'Contact BashSnippets by email, YouTube, or dev.to.',
+    url: `${SITE_URL}/contact`,
+    type: 'website',
+    images: [{ url: '/ogimage.png', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Contact BashSnippets',
+    description: 'Contact BashSnippets by email, YouTube, or dev.to.',
+  },
 };
 
 export default function ContactPage() {
@@ -44,7 +56,7 @@ export default function ContactPage() {
           <a
             href="https://youtube.com/@BashSnippets"
             target="_blank"
-            rel="noopener"
+            rel="noopener noreferrer"
             className="font-mono text-text transition-colors hover:text-green"
           >
             @BashSnippets ↗
@@ -61,7 +73,7 @@ export default function ContactPage() {
           <a
             href="https://dev.to/bashsnippets"
             target="_blank"
-            rel="noopener"
+            rel="noopener noreferrer"
             className="font-mono text-text transition-colors hover:text-green"
           >
             dev.to/bashsnippets ↗

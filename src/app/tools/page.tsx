@@ -6,11 +6,26 @@ import Link from 'next/link';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: 'Bash Tools',
+  title: 'Free Bash Tools — Cron Builder, Chmod Calculator & More',
   description:
     'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, and ShellCheck decoder.',
   alternates: {
     canonical: `${SITE_URL}/tools`,
+  },
+  openGraph: {
+    title: 'Free Bash Tools — Cron Builder, Chmod Calculator & More',
+    description:
+      'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, and ShellCheck decoder.',
+    url: `${SITE_URL}/tools`,
+    type: 'website',
+    images: [{ url: `${SITE_URL}/ogimage.png`, width: 1200, height: 630, alt: 'BashSnippets — Free Bash Tools' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Free Bash Tools — Cron Builder, Chmod Calculator & More',
+    description:
+      'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, and ShellCheck decoder.',
+    images: [`${SITE_URL}/ogimage.png`],
   },
 };
 
@@ -99,6 +114,7 @@ export default function ToolsPage() {
         </div>
 
         <AffiliateBox partner="digitalocean" className="mt-16" />
+        <AffiliateBox partner="namecheap" className="mt-4" />
       </main>
     </>
   );

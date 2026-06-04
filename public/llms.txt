@@ -8,14 +8,14 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 
 ## What This Site Contains
 
-- 20+ ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
+- 17 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
 - Interactive Script Builder tool at /tools/ that generates custom bash scripts
 - Bash Boilerplate Generator tool
 - Beginner FAQ section covering the most common bash questions
 
 ## Script Categories
 
-- Automation & File Management: backup scripts, file renaming, log cleanup, dated folders
+- Automation & File Management: backup scripts, file renaming, log cleanup, dated folders, duplicate file detection
 - Monitoring & Alerts: disk space, CPU/RAM, website uptime, service watchdog
 - Database: MySQL backup with retention
 - Process Management: kill by name, service restart
@@ -40,11 +40,16 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [Send Email Alerts from Bash](https://bashsnippets.xyz/snippets/bash-send-email-alert) — sends an email notification from a bash script using sendmail or msmtp
 - [Linux File Permissions & Security](https://bashsnippets.xyz/snippets/file-permissions-security) — chmod and chown patterns for setting correct file permissions on Linux
 - [SSH Key Setup Script](https://bashsnippets.xyz/snippets/ssh-key-setup-script) — generates an SSH key pair and appends the public key to authorized_keys
+- [Find Duplicate Files in Linux](https://bashsnippets.xyz/snippets/find-duplicate-files) — md5sum + awk to find byte-for-byte duplicates across directories
 
 ## Interactive Tools
 
-- [Script Builder](https://bashsnippets.xyz/tools/) — pick a task and generate a working starter script
+- [Bash Exit Code Lookup](https://bashsnippets.xyz/tools/bash-exit-code-lookup) — look up any exit code 0-255 and get the plain-English meaning and a copy-paste error handler
+- [Cron Job Builder](https://bashsnippets.xyz/tools/cron-job-builder) — visual cron expression builder with human-readable output and copy-paste crontab line
+- [Chmod Permissions Builder](https://bashsnippets.xyz/tools/chmod-permissions-builder) — permission matrix that outputs octal, symbolic, and chmod commands
+- [Bash $PATH Debugger](https://bashsnippets.xyz/tools/path-debugger) — paste your $PATH, find duplicates and missing directories
 - [Bash Boilerplate Generator](https://bashsnippets.xyz/tools/bash-boilerplate-generator) — generates production-ready .sh templates with error handling and logging
+- [ShellCheck Error Decoder](https://bashsnippets.xyz/tools/shellcheck-error-decoder) — paste a ShellCheck error code, get the plain-English explanation and a before/after fix
 
 ## Most important pages
 

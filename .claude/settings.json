@@ -24,7 +24,11 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:api.github.com)",
-      "Bash(xargs ls -la)"
+      "Bash(xargs ls -la)",
+      "Bash(xargs cat)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k: d[k] for k in ['dependencies','devDependencies'] if k in d}, indent=2\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('scripts', {}\\), indent=2\\)\\)\")",
+      "Bash(curl -s -o /dev/null -w '%{http_code}' -X POST https://yandex.com/indexnow -H 'Content-Type: application/json' -d '{ *)"
     ],
     "additionalDirectories": [
       "/home/angsec/Projects/bashsnippets-next",

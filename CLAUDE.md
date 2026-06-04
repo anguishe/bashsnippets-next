@@ -174,16 +174,17 @@ CROSS="✗"
 3. Breadcrumb component with BreadcrumbList schema
 4. Quick Answer block on all snippet/tool pages (134–167 words, self-contained)
 5. Question-format H2 headings on content pages
-6. FAQ section with FAQPage schema on snippet/tool pages
+6. FAQ section on snippet/tool pages (visible accordion only — no FAQPage schema)
 
 **Schema types by page:**
 
 | Page | Required Schema |
 |---|---|
 | Homepage | WebSite + Organization |
-| Snippet | TechArticle + BreadcrumbList + FAQPage |
-| Tool | WebApplication + BreadcrumbList + FAQPage |
+| Snippet | TechArticle + BreadcrumbList |
+| Tool | WebApplication + BreadcrumbList |
 | Index pages | CollectionPage + BreadcrumbList |
+| About | WebPage + Person + BreadcrumbList |
 
 ---
 
