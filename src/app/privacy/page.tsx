@@ -73,10 +73,10 @@ export default function PrivacyPage() {
         <p className="text-sm text-muted">
           Questions about this policy:{' '}
           <a
-            href="mailto:anguishe1@gmail.com"
+            href="mailto:anguisheh1@gmail.com"
             className="text-blue transition-colors hover:text-text"
           >
-            anguishe1@gmail.com
+            anguisheh1@gmail.com
           </a>
         </p>
       </section>

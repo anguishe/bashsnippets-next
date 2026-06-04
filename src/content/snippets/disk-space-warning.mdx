@@ -13,6 +13,12 @@ faq:
     answer: "Use df / and awk to extract the Use% column. This script compares it against THRESHOLD and exits 1 on breach."
   - question: "How do I get an email when my disk is full?"
     answer: "Install mailutils with sudo apt install mailutils, set EMAIL in the email variation script, and schedule with cron hourly."
+  - question: "How do I get an alert when disk space is low?"
+    answer: "Bash + threshold + cron is the standard pattern: this script compares usage to THRESHOLD, prints or mails on breach, and cron runs it on a schedule. For SMS or Slack, pipe the warning into curl to a webhook instead of echo."
+  - question: "How do I send an email alert from a bash script?"
+    answer: "Use: echo \"Your message body\" | mail -s \"Subject line\" user@example.com — requires mailutils on Debian/Ubuntu. Use a meaningful subject so you can filter inbox rules."
+  - question: "What does the df / command do in Linux?"
+    answer: "df means disk free. It reports filesystem size, used space, available space, and mount point. The / argument limits output to the root filesystem. Columns are: Filesystem, 1K-blocks, Used, Available, Use%, Mounted on."
 howToSteps:
   - name: "Create the script file"
     text: "Copy the diskcheck.sh script below and save it as diskcheck.sh"
@@ -26,13 +32,14 @@ dateModified: "2026-06-03"
 ---
 
 
-## The Script
+## What Does the Disk Space Warning Script Look Like?
 
 Paste this into a file called `diskcheck.sh` and you're set. Change `THRESHOLD` to whatever percentage you want to be warned at.
 
 ```bash
 #!/bin/bash
 # diskcheck.sh — warn when disk usage exceeds a threshold
+set -euo pipefail
 
 THRESHOLD=80
 PARTITION="/"
@@ -59,7 +66,7 @@ fi
 
 </Callout>
 
-## Step-by-Step Setup
+## How Do I Set Up and Run the Disk Space Warning Script?
 
 ### Step 1: Create the script file
 
@@ -103,7 +110,7 @@ OK: Disk usage on / is at 42%
 WARNING: Disk usage on / is at 87% (threshold: 80%)
 ```
 
-## Schedule It with Cron
+## How Do I Schedule This Script to Run Automatically?
 
 Running the script by hand only helps when you remember. For a server, put it on a schedule with cron so you catch problems early.
 
@@ -132,7 +139,7 @@ Cron runs with a minimal environment. Always use the **full path** to your scrip
 
 </Callout>
 
-## Variations
+## What Are Common Variations of This Script?
 
 ### Check multiple partitions
 
@@ -140,6 +147,9 @@ Use this version when you need to monitor `/`, `/var`, and `/home` in one run:
 
 ```bash
 #!/bin/bash
+# diskcheck-multi.sh — warn when any of several partitions exceeds a threshold
+set -euo pipefail
+
 THRESHOLD=80
 PARTITIONS=("/" "/var" "/home")
 
@@ -163,6 +173,9 @@ Save as `diskcheck-multi.sh`, then `chmod +x diskcheck-multi.sh`.
 
 ```bash
 #!/bin/bash
+# diskcheck-email.sh — send an email alert when disk usage exceeds a threshold
+set -euo pipefail
+
 THRESHOLD=80
 PARTITION="/"
 EMAIL="admin@yourdomain.com"
@@ -177,7 +190,7 @@ fi
 
 Requires `mailutils` (Debian/Ubuntu: `sudo apt install mailutils`). Save as `diskcheck-email.sh`.
 
-## Common Mistakes
+## What Common Mistakes Break Disk Space Monitoring?
 
 <Callout type="warning" title="Checking the wrong partition">
 
@@ -209,7 +222,7 @@ The `-P` flag forces POSIX output (one line per filesystem).
 
 </Callout>
 
-## Understanding the Commands
+## What Does Each Command in the Script Do?
 
 | Command | What it does |
 | --- | --- |
@@ -219,44 +232,3 @@ The `-P` flag forces POSIX output (one line per filesystem).
 | `tr -d '%'` | Deletes `%` characters so `85%` becomes `85` for numeric compare |
 | `[ "$USAGE" -gt "$THRESHOLD" ]` | True when usage is greater than your threshold |
 
-## Frequently Asked Questions
-
-### How do I check disk space in Linux with bash?
-
-Use `df` (disk free). For a quick human-readable check:
-
-```bash
-df -h /
-```
-
-To extract just the usage percentage for scripting:
-
-```bash
-df / | awk 'NR==2 {print $5}'
-```
-
-Combine with `THRESHOLD` and an `if` statement — that's what `diskcheck.sh` does.
-
-### How do I get an email when my disk is full?
-
-1. Install mail tools: `sudo apt install mailutils`
-2. Use the email variation script with your address in `EMAIL=`
-3. Schedule with cron so it runs hourly or daily
-
-The `mail` command sends the script output as the message body.
-
-### How do I get an alert when disk space is low?
-
-**Bash + threshold + cron** is the standard pattern: this script compares usage to `THRESHOLD`, prints or mails on breach, and cron runs it on a schedule. For SMS or Slack, pipe the warning into `curl` to a webhook instead of `echo`.
-
-### How do I send an email alert from a bash script?
-
-```bash
-echo "Your message body" | mail -s "Subject line" user@example.com
-```
-
-Use a meaningful subject (`Disk alert: / at 87%`) so you can filter inbox rules.
-
-### What does the df / command do in Linux?
-
-`df` means **disk free**. It reports filesystem size, used space, available space, and mount point. The `/` argument limits output to the root filesystem. Columns are typically: Filesystem, 1K-blocks, Used, Available, Use%, Mounted on.

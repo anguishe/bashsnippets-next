@@ -21,7 +21,7 @@ export const metadata: Metadata = {
       'Free bash scripts for disk monitoring, backups, process management, and more. 17 scripts, 6 tools, zero logins.',
     url: SITE_URL,
     type: 'website',
-    images: [{ url: '/ogimage.png', width: 1200, height: 630, alt: 'BashSnippets.xyz — Free Bash Scripts' }],
+    images: [{ url: 'https://bashsnippets.xyz/ogimage.png', width: 1200, height: 630, alt: 'BashSnippets.xyz — Free Bash Scripts' }],
   },
   twitter: {
     card: 'summary_large_image',
@@ -145,7 +145,8 @@ export default function Home() {
             <p className="mt-6 leading-relaxed text-muted">
               I got tired of re-searching the same bash one-liners every time I sat
               down at a terminal. So I started collecting them. This is that
-              collection — real scripts, explained like a human wrote them.
+              collection — real scripts, explained like a human wrote them, with
+              the edge cases documented so you don&apos;t hit the same problems I did.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -179,6 +180,33 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Section 2 — What is BashSnippets */}
+      <section className="mx-auto max-w-4xl border-t border-border px-6 py-16">
+        <ScrollReveal>
+          <h2 className="mb-4 font-heading text-2xl font-bold text-text">
+            What is BashSnippets?
+          </h2>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <p className="leading-relaxed text-muted">
+              BashSnippets is a free bash script library for Linux developers,
+              sysadmins, and DevOps engineers. Every script solves a specific
+              operational problem — disk space monitoring, automated backups,
+              service watchdogs, log cleanup — and comes with a plain-English
+              explanation of what each line does and why.
+            </p>
+            <p className="leading-relaxed text-muted">
+              Bash runs on every Linux server without installing anything. That
+              means these scripts work on Ubuntu, Debian, Fedora, CentOS, and
+              macOS without a dependency manager, a runtime, or a package.json.
+              Copy the script, set a threshold or path, make it executable, and
+              you&apos;re done. The six browser tools — cron builder, chmod
+              calculator, exit code lookup — work the same way: open in a browser,
+              get the answer, no account required.
+            </p>
+          </div>
+        </ScrollReveal>
+      </section>
+
       {/* Section 3 — Snippets Grid */}
       <section
         id="snippets"
@@ -189,8 +217,8 @@ export default function Home() {
             Copy-Paste Scripts That Work
           </h2>
           <p className="mb-10 text-muted">
-            Every snippet runs on Ubuntu, Debian, Fedora, and macOS. Tested
-            personally.
+            Every snippet runs on Ubuntu 22.04 LTS, Debian 12, Fedora 39, and
+            macOS Ventura. Tested personally — including the failure cases.
           </p>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -252,8 +280,16 @@ export default function Home() {
           <h2 className="mb-4 font-heading text-2xl font-bold text-text">
             Free Browser Tools for Bash
           </h2>
-          <p className="mb-10 text-muted">
+          <p className="mb-2 text-muted">
             No install required. Open in your browser, get the answer.
+          </p>
+          <p className="mb-10 text-sm text-muted">
+            The cron builder generates expressions visually and shows the
+            human-readable schedule. The chmod calculator outputs octal, symbolic,
+            and the exact <code className="font-mono text-xs text-green">chmod</code> command.
+            The exit code lookup explains what any exit code 0–255 means and which
+            command typically produces it. All six tools run entirely in your
+            browser — no server round-trips, no data collected.
           </p>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

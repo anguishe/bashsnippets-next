@@ -28,7 +28,13 @@
       "Bash(xargs cat)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k: d[k] for k in ['dependencies','devDependencies'] if k in d}, indent=2\\)\\)\")",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('scripts', {}\\), indent=2\\)\\)\")",
-      "Bash(curl -s -o /dev/null -w '%{http_code}' -X POST https://yandex.com/indexnow -H 'Content-Type: application/json' -d '{ *)"
+      "Bash(curl -s -o /dev/null -w '%{http_code}' -X POST https://yandex.com/indexnow -H 'Content-Type: application/json' -d '{ *)",
+      "Bash(ls /home/angsec/.claude/skills/blog/SKILL.md 2>/dev/null && echo \"claude-blog INSTALLED\" || echo \"claude-blog NOT INSTALLED\")",
+      "Read(//home/angsec/.claude/skills/blog/**)",
+      "Bash(ls /home/angsec/.claude/skills/seo-profound/extensions/profound/ 2>/dev/null || echo \"Extension dir not found\")",
+      "Read(//home/angsec/.claude/skills/seo-profound/extensions/**)",
+      "Bash(grep -i \"PROFOUND_API_KEY\" /home/angsec/.claude/settings.json 2>/dev/null || echo \"Key not found in settings.json\")",
+      "Read(//home/angsec/.claude/**)"
     ],
     "additionalDirectories": [
       "/home/angsec/Projects/bashsnippets-next",

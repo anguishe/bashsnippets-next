@@ -25,7 +25,7 @@ const OG_IMAGE = {
   height: 630,
 } as const;
 
-function generateSnippetSchema(snippet: SnippetMeta, slug: string): string[] {
+function generateSnippetSchema(snippet: SnippetMeta, slug: string, wordCount: number): string[] {
   const canonical = `${SITE_URL}/snippets/${slug}`;
 
   const articleSchema = {
@@ -33,6 +33,8 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string): string[] {
     '@type': 'TechArticle',
     headline: snippet.title,
     description: snippet.description,
+    keywords: snippet.tags.join(', '),
+    wordCount,
     author: {
       '@type': 'Person',
       name: snippet.author,
@@ -140,8 +142,8 @@ export default async function SnippetPage({ params }: PageProps) {
   const Content = await getContent(slug);
 
   const related = getRelatedSnippets(slug, 3);
-  const schemaJson = generateSnippetSchema(snippet, slug);
   const wordCount = getSnippetWordCount(slug);
+  const schemaJson = generateSnippetSchema(snippet, slug, wordCount);
   const readTime = Math.max(1, Math.ceil(wordCount / 200));
 
   return (
