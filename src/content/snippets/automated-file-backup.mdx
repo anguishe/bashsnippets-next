@@ -99,6 +99,8 @@ You only need to do this once. It gives the script permission to run.
 
 You should see: `✓ Done. Saved to: /backup/backup_2026-05-02_14-30`
 
+The [create dated folder snippet](/snippets/create-dated-folder) explains the `date` format options in detail if you want to add seconds or change the separator for custom retention scripts.
+
 ## Schedule It with Cron
 
 Running this manually defeats the purpose. Here's how to make it run automatically every day.
@@ -211,7 +213,7 @@ Open cron with `crontab -e` and add: `0 2 * * * /home/user/backup.sh` — this r
 
 ### What's the difference between cp and rsync for backups?
 
-`cp` copies everything every time — simple but slow on large folders. `rsync` only transfers files that have changed, making it significantly faster for repeated backups of large directories. For daily backups of large directories, rsync is the right choice. For small folders or one-time copies, `cp` is fine.
+`cp` copies everything every time — simple but slow on large folders. `rsync` only transfers files that have changed, making it significantly faster for repeated backups of large directories. For daily backups of large directories, rsync is the right choice. For small folders or one-time copies, `cp` is fine. For MySQL or MariaDB, neither tool captures a consistent state during active writes — use the [MySQL database backup script](/snippets/mysql-database-backup) instead.
 
 ### How do I verify my backup script is working?
 

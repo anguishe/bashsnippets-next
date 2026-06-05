@@ -20,7 +20,7 @@ type PageProps = {
 };
 
 const OG_IMAGE = {
-  url: '/ogimage.png',
+  url: 'https://bashsnippets.xyz/ogimage.png',
   width: 1200,
   height: 630,
 } as const;
@@ -80,7 +80,46 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string, wordCount: nu
     ],
   };
 
-  return [articleSchema, breadcrumb].map((schema) => JSON.stringify(schema));
+  const howToSchema =
+    snippet.howToSteps && snippet.howToSteps.length > 0
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'HowTo',
+          name: snippet.title,
+          description: snippet.description,
+          step: snippet.howToSteps.map((step, i) => ({
+            '@type': 'HowToStep',
+            position: i + 1,
+            name: step.name,
+            text: step.text,
+          })),
+        }
+      : null;
+
+  const validFaqs = snippet.faq.filter((f) => f.question && f.answer);
+  const faqSchema =
+    validFaqs.length > 0
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: validFaqs.map((f) => ({
+            '@type': 'Question',
+            name: f.question,
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: f.answer,
+            },
+          })),
+        }
+      : null;
+
+  const schemas = [
+    articleSchema,
+    breadcrumb,
+    ...(howToSchema ? [howToSchema] : []),
+    ...(faqSchema ? [faqSchema] : []),
+  ];
+  return schemas.map((schema) => JSON.stringify(schema));
 }
 
 export function generateStaticParams() {
@@ -96,14 +135,16 @@ export async function generateMetadata({
     return {};
   }
 
+  const displayTitle = snippet.metaTitle ?? snippet.title;
+
   return {
-    title: snippet.title,
+    title: displayTitle,
     description: snippet.description,
     alternates: {
       canonical: `${SITE_URL}/snippets/${snippet.slug}`,
     },
     openGraph: {
-      title: snippet.title,
+      title: displayTitle,
       description: snippet.description,
       url: `${SITE_URL}/snippets/${snippet.slug}`,
       type: 'article',
@@ -114,7 +155,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: 'summary_large_image',
-      title: snippet.title,
+      title: displayTitle,
       description: snippet.description,
       images: [OG_IMAGE.url],
     },

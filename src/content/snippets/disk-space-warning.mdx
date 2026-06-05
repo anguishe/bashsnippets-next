@@ -194,7 +194,7 @@ Requires `mailutils` (Debian/Ubuntu: `sudo apt install mailutils`). Save as `dis
 
 <Callout type="warning" title="Checking the wrong partition">
 
-On many servers, `/var` or `/home` fills up before `/`. If you only run `df /`, you can miss a full log or upload directory. Match `PARTITION` to where data actually grows — e.g. `PARTITION="/var"` for Apache/nginx logs.
+On many servers, `/var` or `/home` fills up before `/`. If you only run `df /`, you can miss a full log or upload directory. Match `PARTITION` to where data actually grows — e.g. `PARTITION="/var"` for Apache/nginx logs. Once you identify the full partition, the [find duplicate files](/snippets/find-duplicate-files) script locates redundant copies consuming space with no extra tools.
 
 </Callout>
 
@@ -206,7 +206,7 @@ Cron runs in the background. If you only `echo` to stdout, output may go to emai
 0 * * * * /home/you/diskcheck.sh >> /var/log/diskcheck.log 2>&1
 ```
 
-Or use the email variation above.
+Or use the email variation above. For full SMTP setup, Gmail relay via msmtp, and send-once lockfiles that prevent inbox flooding, see the [bash email alert script](/snippets/bash-send-email-alert). Pair disk monitoring with [CPU and RAM monitoring](/snippets/monitor-cpu-ram-usage) to cover all three resources from the same cron schedule.
 
 </Callout>
 

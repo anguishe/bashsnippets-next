@@ -262,4 +262,4 @@ SUID (Set User ID) means the file runs as its owner's permissions rather than th
 
 ### What does chmod 600 do?
 
-`chmod 600` gives the file owner read and write permission, and removes all access from the group and others. It is the required permission for SSH private keys — SSH will refuse to use a key with looser permissions.
+`chmod 600` gives the file owner read and write permission, and removes all access from the group and others. It is the required permission for SSH private keys — SSH will refuse to use a key with looser permissions. After setting correct key permissions, the [SSH key setup script](/snippets/ssh-key-setup-script) handles generating the key pair and copying the public key to remote servers.

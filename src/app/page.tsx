@@ -9,25 +9,25 @@ import Link from 'next/link';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: 'Bash Script Library — Free Copy-Paste Scripts for Linux & DevOps',
+  title: { absolute: 'Free Bash Scripts for Linux & Sysadmins | BashSnippets.xyz' },
   description:
-    'Free bash scripts for disk monitoring, backups, process management, SSH keys, and more. 17 tested scripts, 6 browser tools, zero logins required.',
+    'Linux disks fill silently and services crash without automation scripts. 17 tested bash scripts for disk monitoring, backups, SSH setup, and process management.',
   alternates: {
     canonical: `${SITE_URL}/`,
   },
   openGraph: {
-    title: 'Bash Script Library — Free Copy-Paste Scripts for Linux & DevOps',
+    title: 'Free Bash Scripts for Linux & Sysadmins | BashSnippets.xyz',
     description:
-      'Free bash scripts for disk monitoring, backups, process management, and more. 17 scripts, 6 tools, zero logins.',
+      'Linux disks fill silently and services crash without automation scripts. 17 tested bash scripts for disk monitoring, backups, SSH setup, and process management.',
     url: SITE_URL,
     type: 'website',
     images: [{ url: 'https://bashsnippets.xyz/ogimage.png', width: 1200, height: 630, alt: 'BashSnippets.xyz — Free Bash Scripts' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Bash Script Library — Free Copy-Paste Scripts for Linux & DevOps',
+    title: 'Free Bash Scripts for Linux & Sysadmins | BashSnippets.xyz',
     description:
-      'Free bash scripts for disk monitoring, backups, process management, and more. 17 scripts, 6 tools, zero logins.',
+      'Linux disks fill silently and services crash without automation scripts. 17 tested bash scripts for disk monitoring, backups, SSH setup, and process management.',
   },
 };
 

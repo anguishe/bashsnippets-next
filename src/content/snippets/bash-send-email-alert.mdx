@@ -245,7 +245,7 @@ Run: `sudo apt update && sudo apt install mailutils`. When prompted, choose **In
 
 ### Can I send email alerts automatically from a cron job?
 
-Yes. Schedule your script with `crontab -e`. When the condition is met, the script sends the email. Add `2>&1 | mail -s 'Cron Error' you@example.com` to capture cron output.
+Yes. Schedule your script with `crontab -e`. When the condition is met, the script sends the email. Add `2>&1 | mail -s 'Cron Error' you@example.com` to capture cron output. For HTTP-based monitoring, pair this with the [check if website is up](/snippets/check-if-website-is-up) script to receive alerts when your site returns a non-200 status.
 
 ### What if mail command is not found?
 

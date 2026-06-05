@@ -6,14 +6,14 @@ import Link from 'next/link';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: 'Free Bash Tools — Cron Builder, Chmod Calculator & More',
+  title: 'Free Bash Tools — Cron Builder, Chmod & More',
   description:
     'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, and ShellCheck decoder.',
   alternates: {
     canonical: `${SITE_URL}/tools`,
   },
   openGraph: {
-    title: 'Free Bash Tools — Cron Builder, Chmod Calculator & More',
+    title: 'Free Bash Tools — Cron Builder, Chmod & More',
     description:
       'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, and ShellCheck decoder.',
     url: `${SITE_URL}/tools`,
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Free Bash Tools — Cron Builder, Chmod Calculator & More',
+    title: 'Free Bash Tools — Cron Builder, Chmod & More',
     description:
       'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, and ShellCheck decoder.',
     images: [`${SITE_URL}/ogimage.png`],

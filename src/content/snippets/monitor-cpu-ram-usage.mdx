@@ -238,7 +238,7 @@ The awk column for CPU usage is $2 on Ubuntu but may be different on CentOS/RHEL
 
 <Callout type="warning" title="The script logs warnings but nobody reads the log">
 
-Writing to a log file is pointless if nobody checks it. Combine this with the [Send Email Alerts from Bash](/snippets/bash-send-email-alert) snippet to get notified when thresholds trip. Or pipe cron output to your inbox.
+Writing to a log file is pointless if nobody checks it. Combine this with the [Send Email Alerts from Bash](/snippets/bash-send-email-alert) snippet to get notified when thresholds trip. Or pipe cron output to your inbox. When sustained resource pressure is causing service crashes, the [restart service watchdog](/snippets/restart-service-if-stopped) handles automatic recovery between monitoring cycles.
 
 </Callout>
 

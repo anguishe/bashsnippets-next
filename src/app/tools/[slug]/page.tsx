@@ -1,7 +1,7 @@
 import AffiliateBox from '@/components/AffiliateBox';
 import ToolRenderer from '@/components/tools/ToolRenderer';
 import { getSnippetBySlug } from '@/lib/snippets';
-import { getAllToolSlugs, getToolBySlug } from '@/lib/tools';
+import { getAllToolSlugs, getToolBySlug, type ToolMeta } from '@/lib/tools';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -13,7 +13,7 @@ type PageProps = {
 };
 
 function buildSchemas(
-  tool: { title: string; description: string },
+  tool: Pick<ToolMeta, 'title' | 'description' | 'faqs'>,
   slug: string,
 ) {
   const canonical = `${SITE_URL}/tools/${slug}`;
@@ -67,7 +67,24 @@ function buildSchemas(
     ],
   };
 
-  return [softwareApplication, breadcrumb];
+  const validFaqs = tool.faqs.filter((f) => f.question && f.answer);
+  const faqSchema =
+    validFaqs.length > 0
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: validFaqs.map((f) => ({
+            '@type': 'Question',
+            name: f.question,
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: f.answer,
+            },
+          })),
+        }
+      : null;
+
+  return [softwareApplication, breadcrumb, ...(faqSchema ? [faqSchema] : [])];
 }
 
 export function generateStaticParams() {
@@ -93,13 +110,13 @@ export async function generateMetadata({
       title: tool.title,
       description: tool.description,
       url: `${SITE_URL}/tools/${tool.slug}`,
-      images: [{ url: '/ogimage.png', width: 1200, height: 630 }],
+      images: [{ url: 'https://bashsnippets.xyz/ogimage.png', width: 1200, height: 630 }],
     },
     twitter: {
       card: 'summary_large_image' as const,
       title: tool.title,
       description: tool.description,
-      images: ['/ogimage.png'],
+      images: ['https://bashsnippets.xyz/ogimage.png'],
     },
   };
 }

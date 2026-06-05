@@ -197,6 +197,8 @@ For long-running apps you control, a unit drop-in can set `Restart=on-failure` (
 
 Replace the `mail` pipeline with `curl -X POST -H 'Content-Type: application/json'` to your Incoming Webhook URL, sending JSON with hostname, timestamp, and service name for recover vs. failure.
 
+For watchdogs that restart services on a remote host over SSH, the [SSH key setup script](/snippets/ssh-key-setup-script) enables passwordless key-based authentication so the cron user can connect without a password prompt.
+
 ## Understanding the Commands
 
 | Command | What it does |
@@ -223,11 +225,11 @@ Use `systemctl is-active`: `systemctl is-active --quiet nginx` returns exit code
 
 ### How do I restart a service automatically in Linux?
 
-Write a bash script that checks `systemctl is-active` and runs `systemctl start` if the service is stopped. Schedule it every minute with cron: `* * * * * /home/user/watchdog.sh`
+Write a bash script that checks `systemctl is-active` and runs `systemctl start` if the service is stopped. Schedule it every minute with cron: `* * * * * /home/user/watchdog.sh`. If services crash repeatedly due to resource exhaustion, add [CPU and RAM monitoring](/snippets/monitor-cpu-ram-usage) to identify the root cause.
 
 ### What services can I monitor with this script?
 
-Any systemd service: nginx, apache2, mysql, postgresql, redis, docker, ssh, and custom services. Change `SERVICE='nginx'` to any service name from `systemctl list-units`.
+Any systemd service: nginx, apache2, mysql, postgresql, redis, docker, ssh, and custom services. Change `SERVICE='nginx'` to any service name from `systemctl list-units`. After restarting, confirm the HTTP endpoint responds correctly with the [check if website is up](/snippets/check-if-website-is-up) script — a service that starts but returns 500 needs a different fix.
 
 ### How do I run a bash script every minute with cron?
 

@@ -184,7 +184,7 @@ The most common mistake. Always run with `-print` before `-delete` the first tim
 
 <Callout type="warning" title="Deleting system logs you shouldn't touch">
 
-Avoid pointing `LOG_DIR` at `/var/log` directly — that includes system logs that your OS needs. Always target a specific subfolder like `/var/log/nginx` or `/var/log/myapp`.
+Avoid pointing `LOG_DIR` at `/var/log` directly — that includes system logs that your OS needs. Always target a specific subfolder like `/var/log/nginx` or `/var/log/myapp`. Database transaction logs require a different approach — use the [MySQL database backup script](/snippets/mysql-database-backup) instead of deleting them with find.
 
 </Callout>
 
@@ -221,7 +221,7 @@ Swap `-delete` for `-print` in your command. It prints the matching files to you
 
 ### How do I delete files older than 30 days in Linux?
 
-Run: `find /path/to/folder -type f -mtime +30 -delete`. This finds all files modified more than 30 days ago and deletes them. Always test with `-print` before using `-delete`.
+Run: `find /path/to/folder -type f -mtime +30 -delete`. This finds all files modified more than 30 days ago and deletes them. Always test with `-print` before using `-delete`. For files that accumulate without an age-based pattern, the [find duplicate files](/snippets/find-duplicate-files) script identifies redundant copies by content hash.
 
     Try the Generator →
     Browse All Tools

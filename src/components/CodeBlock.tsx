@@ -103,13 +103,17 @@ export default function CodeBlock({
       </div>
       <div
         style={{
-          padding: '20px 24px',
+          padding: '1.25rem 1.5rem',
           fontFamily: "'IBM Plex Mono', monospace",
           fontSize: '14px',
-          lineHeight: 1.6,
+          lineHeight: 1.75,
+          letterSpacing: '0.01em',
           color: '#e6edf3',
           background: 'transparent',
           overflowX: 'auto',
+          overflowY: 'visible',
+          whiteSpace: 'pre',
+          minHeight: 'calc(4 * 1.75em + 2.5rem)',
         }}
       >
         {children}

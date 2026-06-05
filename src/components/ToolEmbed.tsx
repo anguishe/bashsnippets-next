@@ -6,7 +6,7 @@ interface ToolEmbedProps {
   slug: string;
 }
 
-const DEFAULT_HEIGHT = 700;
+const DEFAULT_HEIGHT = 600;
 
 export default function ToolEmbed({ slug }: ToolEmbedProps) {
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
@@ -19,8 +19,8 @@ export default function ToolEmbed({ slug }: ToolEmbedProps) {
 
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
-      if (e.data?.iframeHeight) {
-        setHeight(e.data.iframeHeight + 32);
+      if (e.data?.type === 'resize' && typeof e.data.height === 'number') {
+        setHeight(Math.max(500, e.data.height + 48));
       }
     };
     window.addEventListener('message', handleMessage);

@@ -67,7 +67,7 @@ fi
 | `500` | Server error | Fires the warning |
 | `000` | No response / timeout | Fires the warning — server completely unreachable |
 
-Your script will trigger the warning for anything that is not 200. A 301 redirect, 404, 500, or complete timeout — all will fire the alert. If your site normally redirects (e.g. HTTP → HTTPS), see the variation below to follow redirects before checking the code.
+Your script will trigger the warning for anything that is not 200. A 301 redirect, 404, 500, or complete timeout — all will fire the alert. When the check fires because a service is down (500 or 000), the [restart service watchdog](/snippets/restart-service-if-stopped) handles automatic recovery within 60 seconds. If your site normally redirects (e.g. HTTP → HTTPS), see the variation below to follow redirects before checking the code.
 
 ## Step-by-Step Setup
 
@@ -127,6 +127,8 @@ if [ "$STATUS" -ne 200 ]; then
     | mail -s "⚠ Site Down: $URL" "$EMAIL"
 fi
 ```
+
+For full SMTP configuration, Gmail relay via msmtp, and send-once lockfiles to avoid inbox flooding, see the [bash email alert script](/snippets/bash-send-email-alert).
 
 ### Handle HTTP → HTTPS redirects correctly
 
@@ -192,7 +194,7 @@ Use `curl -o /dev/null -s -w "%{http_code}" https://yoursite.com`. This returns 
 
 ### How do I get notified when my website goes down?
 
-Add email alerts using the `mail` command in the else branch of your status check. Schedule the script with cron every 5 minutes using `*/5 * * * * ~/uptimecheck.sh`. You'll receive an email within 5 minutes of any outage.
+Add email alerts using the `mail` command in the else branch of your status check. Schedule the script with cron every 5 minutes using `*/5 * * * * ~/uptimecheck.sh`. You'll receive an email within 5 minutes of any outage. To SSH into the server to investigate without a password prompt, set up the [SSH key setup script](/snippets/ssh-key-setup-script) first.
 
 ### What does HTTP 200 mean?
 

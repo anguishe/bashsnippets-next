@@ -20,7 +20,7 @@ export const tools: ToolMeta[] = [
     component: 'BashExitCodeLookup',
     title: 'Bash Exit Code Lookup',
     description:
-      'Look up any bash exit code 0-255 and get the plain-English meaning, common causes, and generated error handler.',
+      'An unhandled exit code hides why a bash script failed and lets errors cascade silently into data loss. Enter any code 0-255 for the plain-English meaning, causes, and a copy-paste error handler.',
     category: 'reference',
     howToUse: [
       'Type any exit code number (0–255) into the search field.',
@@ -57,7 +57,7 @@ export const tools: ToolMeta[] = [
     component: 'CronJobBuilder',
     title: 'Cron Job Builder',
     description:
-      'Visual cron expression builder with human-readable schedule output and copy-paste crontab line.',
+      'A wrong cron expression runs jobs at the wrong time or skips them entirely with no error output. Build cron expressions visually and verify the human-readable schedule before saving to crontab.',
     category: 'builder',
     howToUse: [
       'Select the frequency (every minute, hourly, daily, weekly, monthly) or choose "Custom" to set each field manually.',
@@ -94,7 +94,7 @@ export const tools: ToolMeta[] = [
     component: 'ChmodPermissionsBuilder',
     title: 'Chmod Permissions Builder',
     description:
-      'Build chmod commands visually with a permission matrix. Shows octal, symbolic, and command output.',
+      'Wrong file permissions on a web server expose secrets or let compromised scripts overwrite application files. Build chmod commands visually — shows octal, symbolic notation, and the exact chmod command.',
     category: 'builder',
     howToUse: [
       'Toggle the read, write, and execute checkboxes for Owner, Group, and Others in the permission matrix.',
@@ -131,7 +131,7 @@ export const tools: ToolMeta[] = [
     component: 'PathDebugger',
     title: 'Bash $PATH Debugger',
     description:
-      'Debug your $PATH variable, find duplicate entries, missing directories, and fix ordering issues.',
+      'Duplicate and missing PATH entries cause command-not-found errors and slow shell startup by scanning dead directories. Paste your PATH to find duplicates, empty entries, and ordering problems.',
     category: 'debug',
     howToUse: [
       'Run `echo $PATH` in your terminal and paste the output into the input field.',
@@ -167,7 +167,7 @@ export const tools: ToolMeta[] = [
     component: 'BashBoilerplateGenerator',
     title: 'Bash Boilerplate Generator',
     description:
-      'Generate a production-ready bash script template with error handling, logging, and argument parsing.',
+      'A bash script without error handling silently continues after failures and leaves systems in a broken partial state. Generates a production-ready template with set -euo pipefail, traps, and argument parsing.',
     category: 'generator',
     howToUse: [
       'Toggle the features you need: strict error handling (set -euo pipefail), logging, argument parsing, or --help output.',
@@ -204,7 +204,7 @@ export const tools: ToolMeta[] = [
     component: 'ShellcheckErrorDecoder',
     title: 'ShellCheck Error Decoder',
     description:
-      'Decode ShellCheck error codes SC1xxx-SC3xxx into plain-English explanations with before/after fix examples.',
+      'ShellCheck warnings that go unfixed become the exact edge-case bugs that break in production on unexpected input. Enter any SC error code for the rule name, plain-English explanation, and a before/after fix example.',
     category: 'reference',
     howToUse: [
       'Paste a ShellCheck error code (e.g., SC2086) into the search field, or type the four-digit number directly.',

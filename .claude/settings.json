@@ -34,11 +34,18 @@
       "Bash(ls /home/angsec/.claude/skills/seo-profound/extensions/profound/ 2>/dev/null || echo \"Extension dir not found\")",
       "Read(//home/angsec/.claude/skills/seo-profound/extensions/**)",
       "Bash(grep -i \"PROFOUND_API_KEY\" /home/angsec/.claude/settings.json 2>/dev/null || echo \"Key not found in settings.json\")",
-      "Read(//home/angsec/.claude/**)"
+      "Read(//home/angsec/.claude/**)",
+      "Bash(node -e ' *)",
+      "Bash(node --input-type=module)",
+      "Bash(awk '{print $2}')",
+      "Bash(curl -s -o /tmp/indexnow_response.txt -w '%{http_code}' -X POST https://api.indexnow.org/indexnow -H 'Content-Type: application/json' -d '{ *)",
+      "Bash(grep -rn '\"__TRACKED_VAR__\"\\\\|/__TRACKED_VAR__\\\\b\\\\|'\\\\''__TRACKED_VAR__'\\\\''' src/app/page.tsx src/app/tools/ src/lib/tools.ts src/content/snippets/)",
+      "Bash(sed -i \"s/window\\\\.parent\\\\.postMessage\\({ iframeHeight: document\\\\.body\\\\.scrollHeight }, '\\\\*'\\);/window.parent.postMessage\\({ type: 'resize', height: document.documentElement.scrollHeight }, '*'\\);/g\" /home/angsec/Projects/bashsnippets-next/public/tool-content/*.html)"
     ],
     "additionalDirectories": [
       "/home/angsec/Projects/bashsnippets-next",
-      "/tmp"
+      "/tmp",
+      "/home/angsec/Projects/bashsnippets-next/public/tool-content"
     ]
   }
 }
