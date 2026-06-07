@@ -9,7 +9,7 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 ## What This Site Contains
 
 - 23 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
-- 7 interactive tools at /tools/ including script builders, command generators, and debuggers
+- 8 interactive tools at /tools/ including script builders, command generators, and debuggers
 - Bash Boilerplate Generator tool
 - Beginner FAQ section covering the most common bash questions
 
@@ -64,6 +64,7 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [Bash Boilerplate Generator](https://bashsnippets.xyz/tools/bash-boilerplate-generator) — generates production-ready .sh templates with error handling and logging
 - [ShellCheck Error Decoder](https://bashsnippets.xyz/tools/shellcheck-error-decoder) — paste a ShellCheck error code, get the plain-English explanation and a before/after fix
 - [Rsync Command Builder](https://bashsnippets.xyz/tools/rsync-command-builder) — build rsync commands visually with archive, compress, delete, SSH, and exclude pattern toggles
+- [grep Pattern Builder](https://bashsnippets.xyz/tools/grep-pattern-builder) — form-based grep command builder with recursive, case-insensitive, context, and file type filter toggles plus plain-English command explanation
 
 ## Pillar Guides
 
@@ -77,6 +78,7 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [ShellCheck Error Decoder](https://bashsnippets.xyz/tools/shellcheck-error-decoder): Paste a ShellCheck error code, get the plain-English explanation and a before/after fix.
 - [Bash Boilerplate Generator](https://bashsnippets.xyz/tools/bash-boilerplate-generator): Generate a production-ready bash script template with error handling and argument parsing.
 - [Rsync Command Builder](https://bashsnippets.xyz/tools/rsync-command-builder): Build rsync commands visually with archive, compress, delete, SSH, and exclude pattern toggles.
+- [grep Pattern Builder](https://bashsnippets.xyz/tools/grep-pattern-builder): Build grep commands from toggles — recursive, case-insensitive, context lines, file type filters — with a plain-English explanation for every output.
 - [Find Large Files in Linux](https://bashsnippets.xyz/snippets/find-large-files-linux): Find the biggest files and directories when your disk hits 100% — du + find with exclude patterns.
 - [Kill Process on Port](https://bashsnippets.xyz/snippets/kill-process-on-port): Free a port blocked by EADDRINUSE — lsof/ss discovery, SIGTERM, then SIGKILL escalation.
 - [Rsync Remote Backup](https://bashsnippets.xyz/snippets/rsync-remote-backup): Push incremental offsite backups over SSH with rsync — resumable, compressed, cron-scheduled.

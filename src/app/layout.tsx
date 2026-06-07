@@ -21,7 +21,13 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
+  manifest: '/manifest.json',
   metadataBase: new URL('https://bashsnippets.xyz'),
+  alternates: {
+    types: {
+      'application/rss+xml': [{ url: '/rss.xml', title: 'BashSnippets RSS' }],
+    },
+  },
   title: {
     default: 'BashSnippets.xyz — Free Bash Scripts for Linux & DevOps',
     template: '%s | BashSnippets.xyz',

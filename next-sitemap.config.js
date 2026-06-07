@@ -7,6 +7,7 @@ module.exports = {
     '/robots.txt',
     '/sitemap.xml',
     '/sitemap-0.xml',
+    '/rss.xml',
     '/tool-content/*',
     '/opensearch.xml',
     '/google*',

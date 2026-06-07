@@ -178,6 +178,11 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        source: '/tools/grep-pattern-builder.html',
+        destination: '/tools/grep-pattern-builder',
+        permanent: true,
+      },
+      {
         source: '/builder.html',
         destination: '/tools/bash-boilerplate-generator',
         permanent: true,

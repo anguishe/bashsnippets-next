@@ -40,20 +40,12 @@ const aboutSchemas = [
     '@context': 'https://schema.org',
     '@type': 'Person',
     name: 'Anguishe',
-    '@id': `${SITE_URL}/about`,
     url: `${SITE_URL}/about`,
-    jobTitle: 'Linux Developer & Bash Script Author',
-    description: 'Self-taught Linux developer based in Florida. Builds and maintains BashSnippets.xyz — a free bash script library for sysadmins and DevOps engineers.',
-    worksFor: {
-      '@type': 'Organization',
-      name: 'BashSnippets',
-      url: SITE_URL,
-    },
     email: 'anguisheh1@gmail.com',
     sameAs: [
-      'https://youtube.com/@BashSnippets',
+      'https://www.youtube.com/@BashSnippets',
       'https://dev.to/bashsnippets',
-      'https://github.com/anguishe/bash-scripts',
+      'https://www.tiktok.com/@BashSnippets',
     ],
   },
   {

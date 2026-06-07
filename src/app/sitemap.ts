@@ -46,10 +46,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      url: `${SITE_URL}/guides`,
+      lastModified: new Date('2026-06-06'),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
       url: `${SITE_URL}/about`,
       lastModified: new Date('2026-06-06'),
       changeFrequency: 'monthly',
       priority: 0.5,
+    },
+    {
+      url: `${SITE_URL}/starter-kit`,
+      lastModified: new Date('2026-06-06'),
+      changeFrequency: 'monthly',
+      priority: 0.7,
     },
     {
       url: `${SITE_URL}/privacy`,

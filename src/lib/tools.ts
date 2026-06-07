@@ -251,6 +251,45 @@ export const tools: ToolMeta[] = [
     relatedSnippets: ['rsync-remote-backup', 'automated-file-backup'],
   },
   {
+    slug: 'grep-pattern-builder',
+    component: 'GrepPatternBuilder',
+    title: 'grep Pattern Builder',
+    description:
+      'A wrong grep flag silently matches the wrong files or swallows error output with no warning. Build the exact grep command you need — recursive, case-insensitive, with context lines — and get a plain-English explanation for every output.',
+    quickAnswer:
+      'grep searches file contents for a regex or string pattern, returning every matching line by default. The wrong flag combination lets errors hide in plain sight: omitting -r on a directory finds nothing, missing -i causes case-sensitive mismatches that look like absent log entries, and running without -n makes it impossible to jump directly to the failing line number in a large file. On a busy server generating gigabytes of logs, knowing whether to use -c (count matches), -l (list files), or -q (exit code only) determines whether a search takes seconds or minutes. This builder takes a search pattern, file path, and optional file type filter, then assembles the complete grep command live as you toggle flags. It auto-enables -r when the path looks like a directory, suppresses -n when -c or -l override it, and generates correct --include flags from comma-separated file extensions. Each output includes a plain-English explanation of exactly what the command will do. Runs entirely in your browser with no install.',
+    category: 'builder',
+    howToUse: [
+      'Enter the search pattern — any string or regex, e.g. "error|critical" or "[0-9]{3} ".',
+      'Set the file path or glob pattern, e.g. /var/log/ for all logs or src/**/*.py for Python source files.',
+      'Toggle flags: -r for recursive, -i for case-insensitive, -n for line numbers, -c to count, -l for filenames only.',
+      'Copy the generated command and paste it into your terminal. The plain-English explanation below the output confirms what the command will do before you run it.',
+    ],
+    faqs: [
+      {
+        question: 'How do I search all files in a directory recursively with grep?',
+        answer:
+          'Use grep -r "pattern" /path/to/dir/. The -r flag tells grep to descend into subdirectories. Add -i for case-insensitive matching and -n to see line numbers in results. For large log directories, add --include="*.log" to avoid searching binary files.',
+      },
+      {
+        question: 'What is the difference between grep and egrep?',
+        answer:
+          'egrep is equivalent to grep -E and enables Extended Regular Expressions (ERE). With ERE you can use +, ?, |, and () without backslashes. For example, grep -E "error|warning" matches either word without escaping the pipe. Modern systems alias egrep to grep -E.',
+      },
+      {
+        question: 'How do I use grep to find files containing a pattern without printing the lines?',
+        answer:
+          'Use grep -l "pattern" /path/. The -l flag prints only the names of files that contain a match, one per line. Combine with xargs to act on those files: grep -rl "TODO" src/ | xargs wc -l counts lines in every file containing TODO.',
+      },
+      {
+        question: 'How do I show lines before and after a grep match?',
+        answer:
+          'Use -B N to show N lines before the match and -A N for N lines after. For example, grep -B 2 -A 3 "error" app.log shows 2 lines before and 3 lines after every error line. Use -C N as shorthand for equal before-and-after context.',
+      },
+    ],
+    relatedSnippets: ['search-files-for-text-grep', 'delete-old-log-files'],
+  },
+  {
     slug: 'shellcheck-error-decoder',
     component: 'ShellcheckErrorDecoder',
     title: 'ShellCheck Error Decoder',
