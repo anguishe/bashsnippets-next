@@ -426,6 +426,14 @@
         </div>
 
         <button id="btn-copy" type="button" disabled style="width:100%;margin-top:20px;background:var(--green);color:#0d1117;font-family:var(--mono-font);font-weight:600;font-size:13px;padding:11px;border:none;border-radius:var(--radius);cursor:pointer;">&#x29C9; Copy Handler</button>
+        <button id="btn-export-case" type="button" disabled style="width:100%;margin-top:8px;background:var(--bg2);color:var(--text);font-family:var(--mono-font);font-weight:600;font-size:13px;padding:11px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:border-color 0.2s;">Export All as Case Handler</button>
+        <div id="case-export-panel" style="display:none;margin-top:12px;">
+          <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Generated case handler</div>
+          <div style="position:relative;">
+            <pre id="case-export-output" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:14px;font-family:var(--mono-font);font-size:12px;color:var(--text);white-space:pre-wrap;margin:0;line-height:1.7;max-height:300px;overflow-y:auto;"></pre>
+            <button id="btn-copy-case" type="button" style="position:absolute;top:8px;right:8px;background:var(--bg2);border:1px solid var(--border);color:var(--muted);font-family:var(--mono-font);font-size:11px;padding:4px 10px;border-radius:4px;cursor:pointer;">Copy</button>
+          </div>
+        </div>
         <div style="background:var(--blue-dim);border-left:3px solid var(--blue);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--muted);margin-top:16px;line-height:1.6;">
           &#x1F4A1; <strong style="color:var(--text);">Pro tip:</strong> Exit codes 128+N mean the process was killed by signal N. For example, 137 = 128 + 9 (SIGKILL).
         </div>
@@ -727,6 +735,7 @@
         // Render
         // --------------------------------------------------------
         var currentRaw = '';
+        var lookedUpCodes = [];
         var renderTimer = null;
 
         function updateCodeParam(code) {
@@ -776,6 +785,8 @@
 
           if (shouldFlashHandler) flashHandlerCard();
           if (shouldUpdateUrl) updateCodeParam(code);
+          if (lookedUpCodes.indexOf(code) === -1) lookedUpCodes.push(code);
+          updateExportButton();
         }
 
         function render(options) {
@@ -869,6 +880,70 @@
             done('\u2717 Copy unavailable');
           }
         });
+
+        // --------------------------------------------------------
+        // Export all as case handler
+        // --------------------------------------------------------
+        var btnExportCase = document.getElementById('btn-export-case');
+        var caseExportPanel = document.getElementById('case-export-panel');
+        var caseExportOutput = document.getElementById('case-export-output');
+        var btnCopyCase = document.getElementById('btn-copy-case');
+
+        function updateExportButton() {
+          if (btnExportCase) btnExportCase.disabled = lookedUpCodes.length === 0;
+        }
+
+        function buildCaseExport() {
+          var lines = ['case $? in'];
+          for (var i = 0; i < lookedUpCodes.length; i++) {
+            var c = lookedUpCodes[i];
+            var info = lookup(c);
+            lines.push('  ' + c + ')');
+            lines.push('    echo "Error ' + c + ': ' + info.meaning.replace(/"/g, '\\"') + '"');
+            lines.push('    exit ' + c);
+            lines.push('    ;;');
+          }
+          lines.push('  *)');
+          lines.push('    echo "Unknown error: $?"');
+          lines.push('    exit 1');
+          lines.push('    ;;');
+          lines.push('esac');
+          return lines.join('\n');
+        }
+
+        if (btnExportCase) {
+          btnExportCase.addEventListener('click', function () {
+            if (lookedUpCodes.length === 0) return;
+            var caseCode = buildCaseExport();
+            if (caseExportOutput) caseExportOutput.textContent = caseCode;
+            if (caseExportPanel) caseExportPanel.style.display = 'block';
+          });
+          btnExportCase.addEventListener('mouseover', function () {
+            if (!btnExportCase.disabled) btnExportCase.style.borderColor = 'var(--green)';
+          });
+          btnExportCase.addEventListener('mouseout', function () {
+            btnExportCase.style.borderColor = 'var(--border)';
+          });
+        }
+
+        if (btnCopyCase) {
+          btnCopyCase.addEventListener('click', function () {
+            var text = caseExportOutput ? caseExportOutput.textContent : '';
+            if (!text) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(text).then(function () {
+                btnCopyCase.textContent = '\u2713 Copied!';
+                btnCopyCase.style.color = 'var(--green)';
+                btnCopyCase.style.borderColor = 'var(--green)';
+                setTimeout(function () {
+                  btnCopyCase.textContent = 'Copy';
+                  btnCopyCase.style.color = 'var(--muted)';
+                  btnCopyCase.style.borderColor = 'var(--border)';
+                }, 2000);
+              });
+            }
+          });
+        }
 
         // --------------------------------------------------------
         // Optional ?code=N URL parameter

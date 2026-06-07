@@ -1,0 +1,260 @@
+---
+title: "Rsync Remote Backup — Bash Script"
+description: "A local-only backup dies with the machine. Push an incremental, resumable copy to a remote server with rsync over SSH — script with exclude patterns, dry-run, and cron scheduling."
+slug: "rsync-remote-backup"
+tags: ["rsync", "backup", "ssh", "cron", "offsite", "devops"]
+quickAnswer: "A backup stored on the same machine as the data it protects is not a backup — it is a copy that dies in the same disk failure, ransomware event, or data center outage. rsync over SSH pushes incremental changes to a remote server, transferring only the bytes that differ since the last run. The flags -avz --delete mean: -a preserves permissions, timestamps, symlinks, and ownership; -v shows progress; -z compresses data in transit; --delete removes files on the destination that no longer exist on the source, keeping an exact mirror. The --partial flag resumes interrupted transfers instead of restarting from zero — critical on large backups over unstable connections. Combined with a cron schedule, this gives you nightly offsite backups with no manual intervention. A first run of 10 GB over a 100 Mbps link takes roughly 15 minutes; subsequent runs transfer only changed blocks, often completing in seconds. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, CentOS 9, and macOS Ventura."
+faq:
+  - question: "What do the rsync flags -avz actually do?"
+    answer: "The -a flag (archive) preserves permissions, ownership, timestamps, symlinks, and directory structure — equivalent to -rlptgoD. The -v flag (verbose) prints each file as it transfers so you can watch progress. The -z flag (compress) compresses data during transfer, reducing bandwidth by 60-80% for text-heavy directories. Together they form the standard rsync invocation for backups."
+  - question: "Does --delete remove files from my source?"
+    answer: "No. --delete only affects the destination. It removes files on the remote that no longer exist on the source, keeping the destination as an exact mirror. Without --delete, renamed or removed source files accumulate as orphans on the destination, wasting space indefinitely. Always run --dry-run first to preview what would be deleted."
+  - question: "How do I resume an interrupted rsync transfer?"
+    answer: "Add the --partial flag. Without it, rsync deletes partially transferred files on interruption and restarts them from zero on the next run. With --partial, incomplete files are kept and resumed from where they left off. For large files over unreliable connections, also add --partial-dir=.rsync-tmp to store partials in a hidden directory."
+  - question: "How do I exclude directories from an rsync backup?"
+    answer: "Use --exclude for each pattern: --exclude='node_modules' --exclude='.git' --exclude='*.tmp'. For many exclusions, create a file listing one pattern per line and pass --exclude-from='/path/to/excludes.txt'. Patterns are matched against the relative path from the source directory."
+  - question: "Is rsync secure over the internet?"
+    answer: "Yes, when using -e ssh (the default on modern systems). All data travels through an encrypted SSH tunnel. The remote server never sees unencrypted traffic. For additional security, restrict the SSH key used for backups to rsync-only commands using command= in authorized_keys on the destination."
+howToSteps:
+  - name: "Verify SSH key access to the remote server"
+    text: "Run ssh user@remote-host to confirm passwordless SSH login works before attempting rsync"
+  - name: "Create the backup script"
+    text: "Copy the rsync-backup.sh script below and save it as rsync-backup.sh"
+  - name: "Run a dry-run first"
+    text: "Execute with --dry-run to preview what will be transferred without making changes"
+  - name: "Schedule with cron for nightly backups"
+    text: "Add a crontab entry to run the script daily at your preferred off-peak hour"
+author: "Anguishe"
+datePublished: "2026-06-06"
+dateModified: "2026-06-06"
+---
+
+
+## What Does the Rsync Remote Backup Script Look Like?
+
+A local-only backup dies with the machine. Whether it's disk failure, ransomware, or an accidental `rm -rf`, data stored only on one host has a single point of failure. This script pushes an incremental mirror to a remote server over SSH — transferring only the bytes that changed since the last run.
+
+```bash
+#!/bin/bash
+# Script: rsync-backup.sh
+# Purpose: Push incremental backups to a remote server over SSH
+# Usage: ./rsync-backup.sh
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+SOURCE_DIR="/home/user/projects/"
+REMOTE_USER="backups"
+REMOTE_HOST="backup-server.example.com"
+REMOTE_DIR="/backup/projects/"
+EXCLUDE_FILE="/home/user/.rsync-excludes"
+LOG_FILE="/var/log/rsync-backup.log"
+
+SSH_KEY="/home/user/.ssh/id_ed25519"
+BANDWIDTH_LIMIT=0
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting backup: $SOURCE_DIR -> $REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR" | tee -a "$LOG_FILE"
+
+RSYNC_OPTS=(
+  -avz
+  --delete
+  --partial
+  --progress
+  -e "ssh -i $SSH_KEY -o StrictHostKeyChecking=accept-new"
+)
+
+if [ -f "$EXCLUDE_FILE" ]; then
+  RSYNC_OPTS+=(--exclude-from="$EXCLUDE_FILE")
+fi
+
+if [ "$BANDWIDTH_LIMIT" -gt 0 ]; then
+  RSYNC_OPTS+=(--bwlimit="$BANDWIDTH_LIMIT")
+fi
+
+if rsync "${RSYNC_OPTS[@]}" "$SOURCE_DIR" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR" 2>&1 | tee -a "$LOG_FILE"; then
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $CHECK Backup completed successfully" | tee -a "$LOG_FILE"
+else
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $CROSS Backup FAILED (exit code: $?)" | tee -a "$LOG_FILE"
+  exit 1
+fi
+```
+
+<Callout type="success" title="How it works, line by line">
+
+- **`SOURCE_DIR="/home/user/projects/"`** — Trailing slash means "contents of this directory," not the directory itself. Without it, rsync creates a `projects/` subdirectory at the destination.
+- **`-a` (archive)** — Preserves permissions, ownership, timestamps, symlinks, and directory structure. Equivalent to `-rlptgoD`.
+- **`-v` (verbose)** — Prints each file as it transfers. Remove for cron runs where you only care about errors.
+- **`-z` (compress)** — Compresses data in transit. Saves 60-80% bandwidth on text files. Skip for already-compressed data (images, video, archives).
+- **`--delete`** — Removes destination files that no longer exist on the source. Keeps the remote an exact mirror.
+- **`--partial`** — Keeps partially transferred files instead of deleting them. Next run resumes from where it left off.
+- **`-e "ssh -i $SSH_KEY"`** — Specifies the SSH key for authentication. Always use key-based auth for automated backups.
+- **`--exclude-from`** — Reads exclusion patterns from a file: `node_modules`, `.git`, `*.log`, etc.
+- **`--bwlimit`** — Caps bandwidth in KB/s. Set to avoid saturating a shared connection during business hours.
+
+</Callout>
+
+## How Do I Set Up and Run the Rsync Backup Script?
+
+### Step 1: Verify SSH key access
+
+Before rsync can work, you need passwordless SSH access to the remote server:
+
+```bash
+ssh -i ~/.ssh/id_ed25519 backups@backup-server.example.com "echo connected"
+```
+
+If this fails, set up SSH keys first with the [SSH key setup script](/snippets/ssh-key-setup-script).
+
+### Step 2: Create the exclude file
+
+```bash
+nano ~/.rsync-excludes
+```
+
+Add patterns for directories you never want to back up:
+
+```text
+node_modules
+.git
+__pycache__
+*.tmp
+*.log
+.cache
+vendor
+```
+
+### Step 3: Run a dry-run first
+
+Never run a destructive operation (`--delete`) without previewing what it will do:
+
+```bash
+rsync -avz --delete --dry-run -e ssh /home/user/projects/ backups@server:/backup/projects/
+```
+
+The `--dry-run` flag shows exactly what would be transferred and deleted — without touching any files.
+
+### Step 4: Execute the real backup
+
+```bash
+chmod +x rsync-backup.sh
+./rsync-backup.sh
+```
+
+First run transfers everything. Subsequent runs only send changed blocks — a 10 GB source with 50 MB of daily changes completes in seconds.
+
+## What Are Common Variations of This Script?
+
+### Variation 1: Backup with versioned snapshots (hardlinks)
+
+Creates daily snapshots that look like full copies but share unchanged files via hardlinks — using minimal extra disk space:
+
+```bash
+#!/bin/bash
+# rsync-snapshot.sh — hardlink-based versioned backups
+set -euo pipefail
+
+SOURCE="/home/user/projects/"
+REMOTE="backups@server.example.com"
+REMOTE_BASE="/backup/snapshots"
+CURRENT="$REMOTE_BASE/current"
+SNAPSHOT="$REMOTE_BASE/$(date +%Y-%m-%d_%H%M)"
+
+ssh "$REMOTE" "mkdir -p $REMOTE_BASE"
+
+rsync -avz --delete --partial \
+  --link-dest="$CURRENT" \
+  -e ssh \
+  "$SOURCE" "$REMOTE:$SNAPSHOT"
+
+ssh "$REMOTE" "rm -f $CURRENT && ln -s $SNAPSHOT $CURRENT"
+```
+
+### Variation 2: Bandwidth-limited daytime backup
+
+For shared office connections where a full-speed rsync would saturate upstream:
+
+```bash
+#!/bin/bash
+# rsync-throttled.sh — bandwidth-capped for business hours
+set -euo pipefail
+
+SOURCE="/var/www/html/"
+REMOTE="backups@server.example.com:/backup/web/"
+BW_LIMIT=5000
+
+rsync -avz --delete --partial --bwlimit="$BW_LIMIT" \
+  --exclude='*.log' --exclude='cache/' \
+  -e ssh "$SOURCE" "$REMOTE"
+```
+
+`--bwlimit=5000` caps transfer at 5 MB/s — enough for a background backup without making video calls stutter.
+
+### Variation 3: Backup multiple directories to one destination
+
+```bash
+#!/bin/bash
+# rsync-multi.sh — back up several source directories
+set -euo pipefail
+
+REMOTE="backups@server.example.com"
+DIRS=("/home/user/projects" "/etc" "/var/www")
+
+for DIR in "${DIRS[@]}"; do
+  DEST_NAME=$(basename "$DIR")
+  rsync -avz --delete --partial \
+    -e ssh \
+    "$DIR/" "$REMOTE:/backup/$DEST_NAME/"
+done
+```
+
+## How Do I Automate This with Cron?
+
+Open your crontab:
+
+```bash
+crontab -e
+```
+
+Add a nightly backup at 2 AM when traffic is lowest:
+
+```bash
+# Nightly rsync backup at 2:00 AM
+0 2 * * * /home/user/rsync-backup.sh >> /var/log/rsync-cron.log 2>&1
+```
+
+<Callout type="info" title="Cron environment has no SSH agent">
+
+Cron runs without your interactive shell environment. The script must reference the SSH key path directly (`-e "ssh -i /path/to/key"`), or the connection will fail with `Permission denied`. Never rely on `ssh-agent` for cron-scheduled backups.
+
+</Callout>
+
+<AffiliateBox partner="digitalocean" headline="rsync your backups to a DigitalOcean droplet or Spaces — offsite in one command." />
+
+## Related Scripts
+
+- [Automated File Backup](/snippets/automated-file-backup) — Local cp-based backups with date-stamped directories
+- [MySQL Database Backup](/snippets/mysql-database-backup) — Dump and compress databases before rsync ships them offsite
+- [SSH Key Setup Script](/snippets/ssh-key-setup-script) — Generate and deploy the SSH key rsync needs for passwordless access
+
+## FAQ
+
+### What do the rsync flags -avz actually do?
+
+The `-a` flag (archive) preserves permissions, ownership, timestamps, symlinks, and directory structure — equivalent to `-rlptgoD`. The `-v` flag (verbose) prints each file as it transfers so you can watch progress. The `-z` flag (compress) compresses data during transfer, reducing bandwidth by 60-80% for text-heavy directories. Together they form the standard rsync invocation for backups.
+
+### Does --delete remove files from my source?
+
+No. `--delete` only affects the destination. It removes files on the remote that no longer exist on the source, keeping the destination as an exact mirror. Without `--delete`, renamed or removed source files accumulate as orphans on the destination, wasting space indefinitely. Always run `--dry-run` first to preview what would be deleted.
+
+### How do I resume an interrupted rsync transfer?
+
+Add the `--partial` flag. Without it, rsync deletes partially transferred files on interruption and restarts them from zero on the next run. With `--partial`, incomplete files are kept and resumed from where they left off. For large files over unreliable connections, also add `--partial-dir=.rsync-tmp` to store partials in a hidden directory.
+
+### How do I exclude directories from an rsync backup?
+
+Use `--exclude` for each pattern: `--exclude='node_modules' --exclude='.git' --exclude='*.tmp'`. For many exclusions, create a file listing one pattern per line and pass `--exclude-from='/path/to/excludes.txt'`. Patterns are matched against the relative path from the source directory.
+
+### Is rsync secure over the internet?
+
+Yes, when using `-e ssh` (the default on modern systems). All data travels through an encrypted SSH tunnel. The remote server never sees unencrypted traffic. For additional security, restrict the SSH key used for backups to rsync-only commands using `command=` in `authorized_keys` on the destination.

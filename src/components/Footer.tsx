@@ -5,7 +5,9 @@ const footerLinks = [
   { href: '/snippets', label: 'Snippets' },
   { href: '/tools', label: 'Tools' },
   { href: '/about', label: 'About' },
+  { href: '/contact', label: 'Contact' },
   { href: '/privacy', label: 'Privacy Policy' },
+  { href: '/terms', label: 'Terms' },
 ] as const;
 
 export default function Footer() {

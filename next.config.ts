@@ -113,6 +113,21 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        source: '/snippets/find-large-files-linux.html',
+        destination: '/snippets/find-large-files-linux',
+        permanent: true,
+      },
+      {
+        source: '/snippets/kill-process-on-port.html',
+        destination: '/snippets/kill-process-on-port',
+        permanent: true,
+      },
+      {
+        source: '/snippets/rsync-remote-backup.html',
+        destination: '/snippets/rsync-remote-backup',
+        permanent: true,
+      },
+      {
         source: '/tools/bash-exit-code-lookup.html',
         destination: '/tools/bash-exit-code-lookup',
         permanent: true,
@@ -140,6 +155,11 @@ const nextConfig: NextConfig = {
       {
         source: '/tools/shellcheck-error-decoder.html',
         destination: '/tools/shellcheck-error-decoder',
+        permanent: true,
+      },
+      {
+        source: '/tools/rsync-command-builder.html',
+        destination: '/tools/rsync-command-builder',
         permanent: true,
       },
       {

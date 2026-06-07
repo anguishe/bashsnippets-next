@@ -1,0 +1,220 @@
+---
+title: "Find Large Files in Linux — Bash Script"
+description: "Your disk hit 100% and the server stopped. Find the biggest files and directories fast with du and find — copy-paste script with exclude patterns."
+slug: "find-large-files-linux"
+tags: ["disk", "du", "find", "cleanup", "troubleshooting"]
+quickAnswer: "The du command measures actual disk consumption per directory. When a server hits 100% and services start failing — no new logs, no database writes, no deployments — you need the biggest offenders in seconds, not minutes. This script runs du -ah on a target directory, pipes through sort -rh to rank by size descending, and shows the top 20 largest entries. A second command uses find to locate individual files over 500 MB anywhere on the filesystem while excluding virtual filesystems like /proc and /sys that report false sizes. The combination covers both scenarios: directory bloat (a /var/log that grew to 40 GB) and single massive files (a forgotten database dump or core file). On a typical 25 GB VPS, this identifies 80% of reclaimable space in under 10 seconds. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, and CentOS 9 — du, find, and sort are pre-installed."
+faq:
+  - question: "How do I find what is using the most disk space in Linux?"
+    answer: "Run du -ah /target | sort -rh | head -n 20 to see the 20 largest files and directories under /target, ranked by size. Replace /target with / to scan the entire filesystem — exclude /proc and /sys to avoid false positives from virtual filesystems."
+  - question: "What is the difference between du and df for checking disk space?"
+    answer: "df reports total, used, and available space per mounted filesystem — it answers 'how full is this drive?' du measures actual consumption per file and directory — it answers 'what is taking the space?' Use df first to confirm which partition is full, then du to find what filled it."
+  - question: "How do I find files larger than 1 GB in Linux?"
+    answer: "Run find / -type f -size +1G -exec ls -lh {} \\; to locate every regular file over 1 GB with human-readable sizes. Add --exclude paths for /proc and /sys to avoid permission errors and false results from virtual filesystems."
+  - question: "Is it safe to delete large files I find with du?"
+    answer: "Never delete a file without confirming no running process holds it open. Use lsof +D /path to check. Log files held open by a service will not free space until that service restarts or the file descriptor closes. Compress with gzip or truncate with > filename instead of rm for active log files."
+  - question: "Why does du show different sizes than ls?"
+    answer: "ls -l shows the apparent file size (bytes written). du shows actual disk blocks allocated, which accounts for filesystem overhead, sparse files, and block alignment. A 1-byte file uses at least one 4 KB block on ext4, so du reports 4K while ls reports 1 byte."
+howToSteps:
+  - name: "Create the script file"
+    text: "Copy the find-large-files.sh script below and save it as find-large-files.sh"
+  - name: "Set your target directory and size threshold"
+    text: "Edit TARGET_DIR (default /) and MIN_SIZE (default 500M) at the top of the script"
+  - name: "Make it executable and run"
+    text: "Run: chmod +x find-large-files.sh then sudo ./find-large-files.sh"
+author: "Anguishe"
+datePublished: "2026-06-06"
+dateModified: "2026-06-06"
+---
+
+
+## What Does the Find Large Files Script Look Like?
+
+Your disk hit 100% and now nothing works — nginx can't write access logs, your database refuses new transactions, and deploys fail silently. Before you can fix anything, you need to know what consumed the space. This script answers that question in under 10 seconds.
+
+```bash
+#!/bin/bash
+# Script: find-large-files.sh
+# Purpose: Identify the largest files and directories consuming disk space
+# Usage: sudo ./find-large-files.sh [directory] [min-size]
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+TARGET_DIR="${1:-/}"
+MIN_SIZE="${2:-500M}"
+TOP_COUNT=20
+
+echo "=== Top $TOP_COUNT largest entries under $TARGET_DIR ==="
+du -ah "$TARGET_DIR" --exclude=/proc --exclude=/sys --exclude=/dev 2>/dev/null \
+  | sort -rh \
+  | head -n "$TOP_COUNT"
+
+echo ""
+echo "=== Individual files larger than $MIN_SIZE ==="
+find "$TARGET_DIR" -type f -size +"$MIN_SIZE" \
+  -not -path "/proc/*" \
+  -not -path "/sys/*" \
+  -not -path "/dev/*" \
+  -exec ls -lh {} \; 2>/dev/null \
+  | sort -k5 -rh
+
+echo ""
+echo "$CHECK Scan complete. Review the output above and remove or compress the largest offenders."
+```
+
+<Callout type="success" title="How it works, line by line">
+
+- **`TARGET_DIR="${1:-/}"`** — Defaults to root filesystem. Pass a specific path to narrow the scan.
+- **`MIN_SIZE="${2:-500M}"`** — Minimum file size for the `find` pass. Use `100M`, `1G`, etc.
+- **`du -ah "$TARGET_DIR"`** — `-a` includes files (not just directories), `-h` gives human-readable sizes.
+- **`--exclude=/proc --exclude=/sys --exclude=/dev`** — Virtual filesystems report phantom sizes that waste your time.
+- **`sort -rh`** — Reverse human-numeric sort: 10G before 500M before 2K.
+- **`head -n "$TOP_COUNT"`** — Only the top 20 — enough to identify the problem without flooding your terminal.
+- **`find ... -type f -size +"$MIN_SIZE"`** — Locates individual files (not directories) exceeding the threshold.
+- **`-exec ls -lh {} \;`** — Prints full details (permissions, owner, size, date) for each match.
+
+</Callout>
+
+## How Do I Set Up and Run the Find Large Files Script?
+
+### Step 1: Create the script file
+
+```bash
+nano find-large-files.sh
+```
+
+Paste the script above. Save with **Ctrl+X**, **Y**, **Enter**.
+
+### Step 2: Set your target and threshold
+
+| Target | When to use |
+| --- | --- |
+| **`/`** | Full system scan — find the biggest offenders anywhere |
+| **`/var`** | Logs, caches, mail spools — the most common growth directory on servers |
+| **`/home`** | User data, downloads, old project builds |
+| **`/tmp`** | Orphaned temp files from crashed processes |
+
+### Step 3: Make it executable and run
+
+```bash
+chmod +x find-large-files.sh
+sudo ./find-large-files.sh
+```
+
+Root access is required to read all directories. Without `sudo`, you'll miss files owned by other users and system directories.
+
+### Step 4: Scan a specific directory with a custom threshold
+
+```bash
+sudo ./find-large-files.sh /var/log 100M
+```
+
+## What Are Common Variations of This Script?
+
+### Variation 1: Top directories only (faster scan)
+
+When you need speed over granularity — useful on large filesystems where a full `du -a` takes minutes:
+
+```bash
+#!/bin/bash
+# find-large-dirs.sh — top-level directory sizes only
+set -euo pipefail
+
+TARGET_DIR="${1:-/}"
+
+du -h --max-depth=1 "$TARGET_DIR" --exclude=/proc --exclude=/sys 2>/dev/null \
+  | sort -rh \
+  | head -n 15
+```
+
+### Variation 2: Find files modified in the last 24 hours over 100 MB
+
+Narrows the search to recent growth — answers "what changed since yesterday that filled the disk?"
+
+```bash
+#!/bin/bash
+# find-recent-large.sh — large files created or modified in the last day
+set -euo pipefail
+
+MIN_SIZE="${1:-100M}"
+
+find / -type f -size +"$MIN_SIZE" -mtime -1 \
+  -not -path "/proc/*" \
+  -not -path "/sys/*" \
+  -exec ls -lh {} \; 2>/dev/null \
+  | sort -k5 -rh
+```
+
+### Variation 3: Output to a report file with timestamp
+
+For audit trails or comparing disk consumption over time:
+
+```bash
+#!/bin/bash
+# find-large-report.sh — save results to a dated report
+set -euo pipefail
+
+REPORT_DIR="/var/log/disk-reports"
+REPORT_FILE="$REPORT_DIR/large-files-$(date +%Y-%m-%d_%H%M).txt"
+
+mkdir -p "$REPORT_DIR"
+
+{
+  echo "=== Disk Report: $(date) ==="
+  echo ""
+  du -ah / --exclude=/proc --exclude=/sys 2>/dev/null | sort -rh | head -n 30
+  echo ""
+  echo "=== Files over 500M ==="
+  find / -type f -size +500M -not -path "/proc/*" -not -path "/sys/*" \
+    -exec ls -lh {} \; 2>/dev/null | sort -k5 -rh
+} > "$REPORT_FILE"
+
+echo "Report saved to $REPORT_FILE"
+```
+
+## How Do I Automate This with Cron?
+
+Run a weekly disk consumption report so you catch growth before it becomes an emergency:
+
+```bash
+crontab -e
+```
+
+```bash
+# Weekly disk report — every Sunday at 6 AM
+0 6 * * 0 /home/user/find-large-report.sh
+```
+
+Pair this with the [disk space warning script](/snippets/disk-space-warning) for threshold-based alerts between reports.
+
+<AffiliateBox partner="digitalocean" headline="When the fix is more disk, not less data — spin up a DigitalOcean droplet in 60 seconds." />
+
+## Related Scripts
+
+- [Disk Space Warning](/snippets/disk-space-warning) — Get alerted before the disk fills completely
+- [Delete Old Log Files](/snippets/delete-old-log-files) — Automated cleanup of aged logs consuming space
+- [Find Duplicate Files](/snippets/find-duplicate-files) — Locate byte-for-byte duplicates wasting disk
+
+## FAQ
+
+### How do I find what is using the most disk space in Linux?
+
+Run `du -ah /target | sort -rh | head -n 20` to see the 20 largest files and directories under `/target`, ranked by size. Replace `/target` with `/` to scan the entire filesystem — exclude `/proc` and `/sys` to avoid false positives from virtual filesystems.
+
+### What is the difference between du and df for checking disk space?
+
+`df` reports total, used, and available space per mounted filesystem — it answers "how full is this drive?" `du` measures actual consumption per file and directory — it answers "what is taking the space?" Use `df` first to confirm which partition is full, then `du` to find what filled it.
+
+### How do I find files larger than 1 GB in Linux?
+
+Run `find / -type f -size +1G -exec ls -lh {} \;` to locate every regular file over 1 GB with human-readable sizes. Add `--exclude` paths for `/proc` and `/sys` to avoid permission errors and false results from virtual filesystems.
+
+### Is it safe to delete large files I find with du?
+
+Never delete a file without confirming no running process holds it open. Use `lsof +D /path` to check. Log files held open by a service will not free space until that service restarts or the file descriptor closes. Compress with `gzip` or truncate with `> filename` instead of `rm` for active log files.
+
+### Why does du show different sizes than ls?
+
+`ls -l` shows the apparent file size (bytes written). `du` shows actual disk blocks allocated, which accounts for filesystem overhead, sparse files, and block alignment. A 1-byte file uses at least one 4 KB block on ext4, so `du` reports 4K while `ls` reports 1 byte.

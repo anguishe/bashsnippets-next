@@ -1,5 +1,6 @@
 interface AffiliateBoxProps {
   partner: 'digitalocean' | 'namecheap';
+  headline?: string;
   className?: string;
 }
 
@@ -53,18 +54,13 @@ const partners = {
   },
 } as const;
 
-export default function AffiliateBox({ partner, className = '' }: AffiliateBoxProps) {
+export default function AffiliateBox({ partner, headline, className = '' }: AffiliateBoxProps) {
   const config = partners[partner];
   const Icon = config.Icon;
 
   return (
     <div
-      className={`my-10 rounded-lg border border-border bg-bg2 ${className}`.trim()}
-      style={{
-        borderLeftWidth: '3px',
-        borderLeftColor: '#58a6ff',
-        padding: '20px 24px',
-      }}
+      className={`my-10 rounded-lg border border-border border-l-[3px] border-l-[#58a6ff] bg-bg2 px-6 py-5 ${className}`.trim()}
     >
       <div className="flex flex-wrap items-start gap-4">
         <span className="shrink-0">
@@ -72,7 +68,7 @@ export default function AffiliateBox({ partner, className = '' }: AffiliateBoxPr
         </span>
         <div className="min-w-0 flex-1">
           <p className="font-heading text-base font-bold text-text">
-            {config.headline}
+            {headline ?? config.headline}
           </p>
           <p className="mt-1 text-sm text-muted">{config.subline}</p>
           <a

@@ -8,8 +8,8 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 
 ## What This Site Contains
 
-- 17 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
-- Interactive Script Builder tool at /tools/ that generates custom bash scripts
+- 20 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
+- 7 interactive tools at /tools/ including script builders, command generators, and debuggers
 - Bash Boilerplate Generator tool
 - Beginner FAQ section covering the most common bash questions
 
@@ -41,6 +41,9 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [Linux File Permissions & Security](https://bashsnippets.xyz/snippets/file-permissions-security) — chmod and chown patterns for setting correct file permissions on Linux
 - [SSH Key Setup Script](https://bashsnippets.xyz/snippets/ssh-key-setup-script) — generates an SSH key pair and appends the public key to authorized_keys
 - [Find Duplicate Files in Linux](https://bashsnippets.xyz/snippets/find-duplicate-files) — md5sum + awk to find byte-for-byte duplicates across directories
+- [Find Large Files in Linux](https://bashsnippets.xyz/snippets/find-large-files-linux) — du + find to locate the biggest disk space offenders fast
+- [Kill Process on Port](https://bashsnippets.xyz/snippets/kill-process-on-port) — lsof/ss discovery then SIGTERM with SIGKILL escalation
+- [Rsync Remote Backup](https://bashsnippets.xyz/snippets/rsync-remote-backup) — incremental offsite backup over SSH with exclude patterns and cron
 
 ## Interactive Tools
 
@@ -50,6 +53,7 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [Bash $PATH Debugger](https://bashsnippets.xyz/tools/path-debugger) — paste your $PATH, find duplicates and missing directories
 - [Bash Boilerplate Generator](https://bashsnippets.xyz/tools/bash-boilerplate-generator) — generates production-ready .sh templates with error handling and logging
 - [ShellCheck Error Decoder](https://bashsnippets.xyz/tools/shellcheck-error-decoder) — paste a ShellCheck error code, get the plain-English explanation and a before/after fix
+- [Rsync Command Builder](https://bashsnippets.xyz/tools/rsync-command-builder) — build rsync commands visually with archive, compress, delete, SSH, and exclude pattern toggles
 
 ## Most important pages
 
@@ -58,6 +62,10 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [Chmod Permissions Builder](https://bashsnippets.xyz/tools/chmod-permissions-builder): Build chmod commands visually with a permission matrix showing octal and symbolic output.
 - [ShellCheck Error Decoder](https://bashsnippets.xyz/tools/shellcheck-error-decoder): Paste a ShellCheck error code, get the plain-English explanation and a before/after fix.
 - [Bash Boilerplate Generator](https://bashsnippets.xyz/tools/bash-boilerplate-generator): Generate a production-ready bash script template with error handling and argument parsing.
+- [Rsync Command Builder](https://bashsnippets.xyz/tools/rsync-command-builder): Build rsync commands visually with archive, compress, delete, SSH, and exclude pattern toggles.
+- [Find Large Files in Linux](https://bashsnippets.xyz/snippets/find-large-files-linux): Find the biggest files and directories when your disk hits 100% — du + find with exclude patterns.
+- [Kill Process on Port](https://bashsnippets.xyz/snippets/kill-process-on-port): Free a port blocked by EADDRINUSE — lsof/ss discovery, SIGTERM, then SIGKILL escalation.
+- [Rsync Remote Backup](https://bashsnippets.xyz/snippets/rsync-remote-backup): Push incremental offsite backups over SSH with rsync — resumable, compressed, cron-scheduled.
 
 ## License
 

@@ -347,6 +347,19 @@
             </div>
           </div>
 
+          <div id="dedupe-section" style="display:none;margin-top:16px;">
+            <div style="font-family:var(--mono-font);font-size:11px;color:var(--amber);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">
+              Dedupe one-liner (paste into terminal)
+            </div>
+            <div style="position:relative;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:14px;">
+              <pre id="dedupe-output" style="font-family:var(--mono-font);font-size:12px;color:var(--text);white-space:pre-wrap;word-break:break-all;margin:0;padding-right:72px;line-height:1.6;"></pre>
+              <button id="copy-dedupe-btn" type="button"
+                style="position:absolute;top:10px;right:10px;background:var(--bg2);border:1px solid var(--border);color:var(--muted);font-family:var(--mono-font);font-size:11px;padding:5px 10px;border-radius:4px;cursor:pointer;transition:color .2s,border-color .2s;">
+                Copy
+              </button>
+            </div>
+          </div>
+
         </div>
         <!-- /output-results -->
 
@@ -521,6 +534,15 @@
           cleanedOut.textContent = 'export PATH=' + cleanedEntries.join(':');
         }
 
+        var dedupeSection = document.getElementById('dedupe-section');
+        var dedupeOutput = document.getElementById('dedupe-output');
+        if (countDupes > 0 && dedupeSection && dedupeOutput) {
+          dedupeSection.style.display = 'block';
+          dedupeOutput.textContent = 'export PATH=$(echo "$PATH" | tr \':\' \'\\n\' | awk \'!seen[$0]++\' | tr \'\\n\' \':\' | sed \'s/:$//\')';
+        } else if (dedupeSection) {
+          dedupeSection.style.display = 'none';
+        }
+
         // Show results panel
         placeholder.style.display = 'none';
         resultsDiv.style.display  = 'block';
@@ -562,6 +584,28 @@
           } else {
             copyBtn.textContent = '\u2717 Unavailable';
             copyResetTimer = setTimeout(resetCopyBtn, 2000);
+          }
+        });
+      }
+
+      var copyDedupeBtn = document.getElementById('copy-dedupe-btn');
+      if (copyDedupeBtn) {
+        copyDedupeBtn.addEventListener('click', function () {
+          var text = document.getElementById('dedupe-output');
+          if (!text || !text.textContent) return;
+          if (copyResetTimer) clearTimeout(copyResetTimer);
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text.textContent).then(function () {
+              copyDedupeBtn.textContent = '\u2713 Copied!';
+              copyDedupeBtn.style.color = 'var(--green)';
+              copyDedupeBtn.style.borderColor = 'var(--green)';
+              showToast();
+              copyResetTimer = setTimeout(function () {
+                copyDedupeBtn.textContent = 'Copy';
+                copyDedupeBtn.style.color = 'var(--muted)';
+                copyDedupeBtn.style.borderColor = 'var(--border)';
+              }, 2000);
+            });
           }
         });
       }

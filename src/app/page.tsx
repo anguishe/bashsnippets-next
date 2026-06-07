@@ -1,33 +1,28 @@
 import AdSlot from '@/components/AdSlot';
+import Breadcrumb from '@/components/Breadcrumb';
 import AffiliateBox from '@/components/AffiliateBox';
+import FaqTerminal from '@/components/FaqTerminal';
 import ScrollReveal from '@/components/ScrollReveal';
 import { snippets } from '@/lib/snippets';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 
-const SITE_URL = 'https://bashsnippets.xyz';
-
 export const metadata: Metadata = {
-  title: { absolute: 'Free Bash Scripts for Linux & Sysadmins | BashSnippets.xyz' },
+  title: { absolute: 'Free Bash Scripts & Tools for Linux Sysadmins | BashSnippets.xyz' },
   description:
-    'Linux disks fill silently and services crash without automation scripts. 17 tested bash scripts for disk monitoring, backups, SSH setup, and process management.',
-  alternates: {
-    canonical: `${SITE_URL}/`,
-  },
+    'Copy-paste bash scripts and interactive tools for Linux, macOS, and DevOps — disk monitoring, backups, cron, permissions, and more. Every script is tested, explained line by line, and free.',
   openGraph: {
-    title: 'Free Bash Scripts for Linux & Sysadmins | BashSnippets.xyz',
-    description:
-      'Linux disks fill silently and services crash without automation scripts. 17 tested bash scripts for disk monitoring, backups, SSH setup, and process management.',
-    url: SITE_URL,
     type: 'website',
-    images: [{ url: 'https://bashsnippets.xyz/ogimage.png', width: 1200, height: 630, alt: 'BashSnippets.xyz — Free Bash Scripts' }],
+    url: 'https://bashsnippets.xyz',
+    images: ['/ogimage.png'],
+    siteName: 'BashSnippets.xyz',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Free Bash Scripts for Linux & Sysadmins | BashSnippets.xyz',
-    description:
-      'Linux disks fill silently and services crash without automation scripts. 17 tested bash scripts for disk monitoring, backups, SSH setup, and process management.',
+  },
+  alternates: {
+    canonical: 'https://bashsnippets.xyz',
   },
 };
 
@@ -115,6 +110,10 @@ export default function Home() {
         }}
       />
 
+      <div className="mx-auto max-w-6xl px-6 pt-6">
+        <Breadcrumb items={[{ label: 'Home' }]} />
+      </div>
+
       {/* Hero */}
       <section className="w-full border-b border-border relative overflow-hidden min-h-[420px] md:min-h-[500px]">
         {/* Full-width background image — terminal graphic visible on right */}
@@ -166,7 +165,7 @@ export default function Home() {
 
             <div className="mt-10 flex flex-wrap gap-8">
               {[
-                { value: '17', label: 'Working Scripts' },
+                { value: String(snippets.length), label: 'Working Scripts' },
                 { value: '100%', label: 'Tested on Linux' },
                 { value: '0', label: 'Logins Required' },
                 { value: 'Free', label: 'Always' },
@@ -329,18 +328,7 @@ export default function Home() {
             Common Questions
           </h2>
 
-          <div>
-            {faqItems.map((item) => (
-              <details key={item.question} className="group">
-                <summary className="cursor-pointer border-b border-border py-4 font-heading font-semibold text-text">
-                  {item.question}
-                </summary>
-                <p className="py-4 text-sm leading-relaxed text-muted">
-                  {item.answer}
-                </p>
-              </details>
-            ))}
-          </div>
+          <FaqTerminal items={faqItems} label="faq — bash" />
         </ScrollReveal>
       </section>
 

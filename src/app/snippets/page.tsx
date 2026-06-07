@@ -1,3 +1,4 @@
+import Breadcrumb from '@/components/Breadcrumb';
 import { snippets, type SnippetRegistryEntry } from '@/lib/snippets';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -5,25 +6,25 @@ import Link from 'next/link';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: 'Bash Script Library — 17 Copy-Paste Shell Scripts for Linux',
+  title: `Bash Script Library — ${snippets.length} Copy-Paste Shell Scripts for Linux`,
   description:
-    '17 copy-paste bash scripts with plain-English explanations. Tested on Ubuntu 22.04 LTS and macOS Ventura.',
+    `${snippets.length} copy-paste bash scripts with plain-English explanations. Tested on Ubuntu 22.04 LTS and macOS Ventura.`,
   alternates: {
     canonical: `${SITE_URL}/snippets`,
   },
   openGraph: {
-    title: 'Bash Script Library — 17 Copy-Paste Shell Scripts for Linux',
+    title: `Bash Script Library — ${snippets.length} Copy-Paste Shell Scripts for Linux`,
     description:
-      '17 copy-paste bash scripts with plain-English explanations. Tested on Ubuntu 22.04 LTS and macOS Ventura.',
+      `${snippets.length} copy-paste bash scripts with plain-English explanations. Tested on Ubuntu 22.04 LTS and macOS Ventura.`,
     url: `${SITE_URL}/snippets`,
     type: 'website',
     images: [{ url: `${SITE_URL}/ogimage.png`, width: 1200, height: 630, alt: 'BashSnippets — Bash Script Library' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Bash Script Library — 17 Copy-Paste Shell Scripts for Linux',
+    title: `Bash Script Library — ${snippets.length} Copy-Paste Shell Scripts for Linux`,
     description:
-      '17 copy-paste bash scripts with plain-English explanations. Tested on Ubuntu 22.04 LTS and macOS Ventura.',
+      `${snippets.length} copy-paste bash scripts with plain-English explanations. Tested on Ubuntu 22.04 LTS and macOS Ventura.`,
     images: [`${SITE_URL}/ogimage.png`],
   },
 };
@@ -126,6 +127,13 @@ export default function SnippetsPage() {
       />
 
       <main className="mx-auto max-w-4xl px-6 py-16">
+        <Breadcrumb
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Snippets' },
+          ]}
+        />
+
         <div className="mb-6 flex items-center gap-2 font-mono text-sm text-muted">
           <span className="text-green">$</span>
           <span>bash-snippets</span>
@@ -176,23 +184,20 @@ export default function SnippetsPage() {
             const groupSnippets = snippets.filter(
               (s) => s.difficulty === group.level,
             );
+            if (groupSnippets.length === 0) {
+              return null;
+            }
             return (
               <div key={group.id}>
                 <section id={group.id}>
                   <h2 className="mb-6 font-heading text-2xl font-bold text-text">
                     {group.label} ({groupSnippets.length})
                   </h2>
-                  {groupSnippets.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {groupSnippets.map((snippet) => (
-                        <SnippetCard key={snippet.slug} snippet={snippet} />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted">
-                      No scripts in this category yet.
-                    </p>
-                  )}
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {groupSnippets.map((snippet) => (
+                      <SnippetCard key={snippet.slug} snippet={snippet} />
+                    ))}
+                  </div>
                 </section>
                 {group.id === 'intermediate' && (
                   <div className="my-8 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-blue bg-bg2 p-5">

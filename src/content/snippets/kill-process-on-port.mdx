@@ -1,0 +1,226 @@
+---
+title: "Kill Process on Port — Bash Script"
+description: "EADDRINUSE means something is squatting on your port. Find the process with lsof or ss, then kill it safely — script handles discovery, confirmation, and escalation."
+slug: "kill-process-on-port"
+tags: ["ports", "lsof", "ss", "kill", "networking", "troubleshooting"]
+quickAnswer: "The EADDRINUSE error means another process already bound the port your application needs. Your dev server, API, or database proxy refuses to start until that port is freed. This script takes a port number as an argument, uses lsof -ti :PORT to find the PID holding it, shows you what the process is before killing it, and sends SIGTERM for a graceful shutdown. If the process ignores SIGTERM after a configurable timeout, it escalates to SIGKILL. The discovery step uses ss -ltnp as a fallback when lsof is unavailable — ss ships with every modern Linux distribution as part of iproute2. Never jump straight to kill -9: SIGTERM lets databases flush buffers, web servers finish active requests, and applications clean up temp files. SIGKILL skips all of that and can leave corrupted state. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, CentOS 9, and macOS Ventura."
+faq:
+  - question: "How do I find which process is using a specific port in Linux?"
+    answer: "Run lsof -ti :8080 to get the PID of whatever process is listening on port 8080. For more detail including the process name, use lsof -i :8080 without the -t flag. On systems without lsof, use ss -ltnp | grep :8080 — the -p flag shows the process name and PID."
+  - question: "What is the difference between kill and kill -9?"
+    answer: "Plain kill sends SIGTERM (signal 15), which asks the process to shut down gracefully — it can flush writes, close connections, and clean up. kill -9 sends SIGKILL, which the kernel enforces immediately with no cleanup. Use SIGTERM first and only escalate to -9 after the process fails to stop within a reasonable timeout."
+  - question: "Why do I get EADDRINUSE even after stopping my application?"
+    answer: "TCP keeps the socket in TIME_WAIT state for up to 60 seconds after the last connection closes. Either wait, or set SO_REUSEADDR in your application code. Alternatively, a zombie child process may still hold the port — check with lsof -i :PORT to confirm nothing else grabbed it."
+  - question: "How do I kill a process on a port on macOS?"
+    answer: "The same lsof -ti :PORT | xargs kill command works on macOS. The ss command is Linux-only (part of iproute2), but macOS ships with lsof pre-installed. Use sudo if the process runs as root or another user."
+  - question: "Can I free a port without killing the process?"
+    answer: "No. A bound port belongs to exactly one process. The only ways to free it are: the process voluntarily closes the socket, the process exits, or you kill the process. If you need multiple services on the same port, use a reverse proxy like nginx to multiplex."
+howToSteps:
+  - name: "Create the script file"
+    text: "Copy the kill-port.sh script below and save it as kill-port.sh"
+  - name: "Specify the port to free"
+    text: "Run the script with the port number as an argument: ./kill-port.sh 3000"
+  - name: "Confirm the process and approve the kill"
+    text: "The script shows which process holds the port before sending SIGTERM"
+author: "Anguishe"
+datePublished: "2026-06-06"
+dateModified: "2026-06-06"
+---
+
+
+## What Does the Kill Process on Port Script Look Like?
+
+You run `npm start` or `python manage.py runserver` and get slapped with `EADDRINUSE: address already in use :::3000`. Something is squatting on the port — maybe a crashed dev server that didn't clean up, maybe a background process you forgot about. This script finds it and kills it without forcing you to remember `lsof` flags.
+
+```bash
+#!/bin/bash
+# Script: kill-port.sh
+# Purpose: Find and kill the process occupying a specific network port
+# Usage: ./kill-port.sh <port-number>
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+PORT="${1:?Usage: $0 <port-number>}"
+TIMEOUT=5
+
+if ! [[ "$PORT" =~ ^[0-9]+$ ]] || [ "$PORT" -lt 1 ] || [ "$PORT" -gt 65535 ]; then
+  echo "$CROSS Invalid port number: $PORT (must be 1-65535)"
+  exit 1
+fi
+
+echo "=== Finding process on port $PORT ==="
+
+PID=""
+if command -v lsof &>/dev/null; then
+  PID=$(lsof -ti :"$PORT" 2>/dev/null | head -n 1)
+elif command -v ss &>/dev/null; then
+  PID=$(ss -ltnp "sport = :$PORT" 2>/dev/null | grep -oP 'pid=\K[0-9]+' | head -n 1)
+fi
+
+if [ -z "$PID" ]; then
+  echo "$CHECK Port $PORT is not in use — nothing to kill."
+  exit 0
+fi
+
+PROC_NAME=$(ps -p "$PID" -o comm= 2>/dev/null || echo "unknown")
+echo "Found: PID $PID ($PROC_NAME) is holding port $PORT"
+
+echo "Sending SIGTERM to PID $PID..."
+kill "$PID" 2>/dev/null || true
+
+ELAPSED=0
+while kill -0 "$PID" 2>/dev/null && [ "$ELAPSED" -lt "$TIMEOUT" ]; do
+  sleep 1
+  ELAPSED=$((ELAPSED + 1))
+done
+
+if kill -0 "$PID" 2>/dev/null; then
+  echo "Process did not stop after ${TIMEOUT}s — escalating to SIGKILL..."
+  kill -9 "$PID" 2>/dev/null || true
+  echo "$CHECK Port $PORT freed (SIGKILL sent to PID $PID)"
+else
+  echo "$CHECK Port $PORT freed (PID $PID stopped gracefully)"
+fi
+```
+
+<Callout type="success" title="How it works, line by line">
+
+- **`PORT="${1:?Usage: $0 <port-number>}"`** — Requires a port argument. Exits with a usage message if missing.
+- **`TIMEOUT=5`** — Seconds to wait for graceful shutdown before escalating to SIGKILL.
+- **`lsof -ti :"$PORT"`** — `-t` outputs only the PID, `-i` filters by internet address. Cleanest discovery method.
+- **`ss -ltnp "sport = :$PORT"`** — Fallback: `-l` listening, `-t` TCP, `-n` numeric, `-p` shows process. Available everywhere.
+- **`kill "$PID"`** — Sends SIGTERM (signal 15). The process gets a chance to flush buffers and close connections.
+- **`kill -0 "$PID"`** — Signal 0 tests whether the process exists without actually sending a signal.
+- **`kill -9 "$PID"`** — SIGKILL. Last resort. The kernel terminates the process immediately with no cleanup.
+
+</Callout>
+
+## How Do I Set Up and Run the Kill Port Script?
+
+### Step 1: Create the script file
+
+```bash
+nano kill-port.sh
+```
+
+Paste the script above. Save with **Ctrl+X**, **Y**, **Enter**.
+
+### Step 2: Make it executable
+
+```bash
+chmod +x kill-port.sh
+```
+
+### Step 3: Kill whatever is on port 3000
+
+```bash
+./kill-port.sh 3000
+```
+
+**Output when a process is found:**
+
+```text
+=== Finding process on port 3000 ===
+Found: PID 48291 (node) is holding port 3000
+Sending SIGTERM to PID 48291...
+✓ Port 3000 freed (PID 48291 stopped gracefully)
+```
+
+**Output when port is already free:**
+
+```text
+=== Finding process on port 3000 ===
+✓ Port 3000 is not in use — nothing to kill.
+```
+
+### Step 4: Discovery without killing
+
+If you want to inspect before acting, use these one-liners:
+
+```bash
+lsof -i :3000
+ss -ltnp | grep :3000
+```
+
+## What Are Common Variations of This Script?
+
+### Variation 1: One-liner for fast port clearing
+
+When you know the port and trust what's on it:
+
+```bash
+lsof -ti :3000 | xargs -r kill
+```
+
+The `-r` flag prevents `xargs` from running `kill` with no arguments if nothing is found.
+
+### Variation 2: fuser for immediate TCP port kill
+
+```bash
+fuser -k 3000/tcp
+```
+
+`fuser` identifies processes using files or sockets. The `-k` flag sends SIGKILL to all processes using the specified port. Blunt but effective — available on most systems via the `psmisc` package.
+
+### Variation 3: Kill all processes on a port range
+
+For cleaning up after development sessions that spawn services on multiple ports:
+
+```bash
+#!/bin/bash
+# kill-port-range.sh — free all ports in a range
+set -euo pipefail
+
+START="${1:?Usage: $0 <start-port> <end-port>}"
+END="${2:?Usage: $0 <start-port> <end-port>}"
+
+for PORT in $(seq "$START" "$END"); do
+  PID=$(lsof -ti :"$PORT" 2>/dev/null || true)
+  if [ -n "$PID" ]; then
+    kill "$PID" 2>/dev/null && echo "Killed PID $PID on port $PORT"
+  fi
+done
+```
+
+## How Do I Automate This with Cron?
+
+Port conflicts are rarely a cron problem — they happen at startup time. Instead, add the one-liner before your service start command in your deploy script or systemd `ExecStartPre`:
+
+```bash
+ExecStartPre=/bin/bash -c 'lsof -ti :3000 | xargs -r kill || true'
+ExecStart=/usr/bin/node /app/server.js
+```
+
+This ensures a clean port before your application attempts to bind.
+
+<AffiliateBox partner="digitalocean" headline="Test port-bound services on a clean box — DigitalOcean droplets from $4/mo." />
+
+## Related Scripts
+
+- [Kill a Process](/snippets/kill-a-process) — Kill any process by name with pgrep/pkill
+- [Check If Website Is Up](/snippets/check-if-website-is-up) — Verify your service is responding after freeing the port
+- [Restart Service If Stopped](/snippets/restart-service-if-stopped) — Auto-restart crashed services that release their ports
+
+## FAQ
+
+### How do I find which process is using a specific port in Linux?
+
+Run `lsof -ti :8080` to get the PID of whatever process is listening on port 8080. For more detail including the process name, use `lsof -i :8080` without the `-t` flag. On systems without lsof, use `ss -ltnp | grep :8080` — the `-p` flag shows the process name and PID.
+
+### What is the difference between kill and kill -9?
+
+Plain `kill` sends SIGTERM (signal 15), which asks the process to shut down gracefully — it can flush writes, close connections, and clean up. `kill -9` sends SIGKILL, which the kernel enforces immediately with no cleanup. Use SIGTERM first and only escalate to `-9` after the process fails to stop within a reasonable timeout.
+
+### Why do I get EADDRINUSE even after stopping my application?
+
+TCP keeps the socket in TIME_WAIT state for up to 60 seconds after the last connection closes. Either wait, or set `SO_REUSEADDR` in your application code. Alternatively, a zombie child process may still hold the port — check with `lsof -i :PORT` to confirm nothing else grabbed it.
+
+### How do I kill a process on a port on macOS?
+
+The same `lsof -ti :PORT | xargs kill` command works on macOS. The `ss` command is Linux-only (part of iproute2), but macOS ships with `lsof` pre-installed. Use `sudo` if the process runs as root or another user.
+
+### Can I free a port without killing the process?
+
+No. A bound port belongs to exactly one process. The only ways to free it are: the process voluntarily closes the socket, the process exits, or you kill the process. If you need multiple services on the same port, use a reverse proxy like nginx to multiplex.

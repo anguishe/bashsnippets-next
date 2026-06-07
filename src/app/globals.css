@@ -136,20 +136,162 @@ kbd,
   border: 1px solid var(--border);
 }
 
-.snippet-faq summary {
-  list-style: none;
+/* ── Terminal Q&A FAQ cards ── */
+
+.faq-terminal-card {
+  position: relative;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-top-color: color-mix(in srgb, var(--border) 55%, var(--text) 45%);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
 }
 
-.snippet-faq summary::-webkit-details-marker {
-  display: none;
+.faq-terminal-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.04;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.04) 2px,
+      rgba(255, 255, 255, 0.04) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 24px,
+      rgba(255, 255, 255, 0.02) 24px,
+      rgba(255, 255, 255, 0.02) 25px
+    );
 }
 
-.snippet-faq .faq-chevron {
-  transition: transform 0.2s ease;
+.faq-terminal-card:hover,
+.faq-terminal-card:focus-visible {
+  border-color: color-mix(in srgb, var(--green) 35%, var(--border));
+  box-shadow: 0 4px 24px color-mix(in srgb, var(--green) 12%, transparent);
+  transform: perspective(800px) rotateX(1.5deg) translateY(-2px);
+  outline: none;
 }
 
-.snippet-faq[open] .faq-chevron {
-  transform: rotate(180deg);
+.faq-terminal-titlebar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg3) 90%, var(--bg2));
+}
+
+.faq-terminal-dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.faq-terminal-dots span {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  opacity: 0.45;
+}
+
+.faq-terminal-label {
+  font-family: var(--font-mono), 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+}
+
+.faq-terminal-body {
+  position: relative;
+  z-index: 1;
+  padding: 16px 18px 18px;
+}
+
+.faq-terminal-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 8px;
+  margin: 0 0 12px;
+  font-family: var(--font-mono), 'IBM Plex Mono', monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.faq-terminal-dollar {
+  color: var(--green);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.faq-terminal-question {
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+}
+
+.faq-terminal-caret {
+  color: var(--green);
+  animation: blink 1s step-end infinite;
+  flex-shrink: 0;
+}
+
+.faq-terminal-answer {
+  padding-left: 18px;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.faq-terminal-answer p {
+  margin: 0;
+}
+
+.faq-terminal-answer code {
+  font-family: var(--font-mono), 'IBM Plex Mono', monospace;
+  font-size: 0.85em;
+  color: var(--green);
+  background: var(--bg2);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+  .faq-terminal-card:hover,
+  .faq-terminal-card:focus-visible {
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-terminal-card {
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .faq-terminal-card:hover,
+  .faq-terminal-card:focus-visible {
+    transform: translateY(-2px);
+  }
+
+  .faq-terminal-caret {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 .prose-snippet td {

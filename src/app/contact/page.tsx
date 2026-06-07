@@ -1,3 +1,4 @@
+import Breadcrumb from '@/components/Breadcrumb';
 import type { Metadata } from 'next';
 
 const SITE_URL = 'https://bashsnippets.xyz';
@@ -25,6 +26,13 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
+      <Breadcrumb
+        items={[
+          { label: 'Home', href: '/' },
+          { label: 'Contact' },
+        ]}
+      />
+
       <h1 className="mb-4 font-heading text-4xl font-extrabold text-text">
         Contact
       </h1>
@@ -39,10 +47,10 @@ export default function ContactPage() {
             Email
           </p>
           <a
-            href="mailto:anguishe1@gmail.com"
+            href="mailto:anguisheh1@gmail.com"
             className="font-mono text-text transition-colors hover:text-green"
           >
-            anguishe1@gmail.com
+            anguisheh1@gmail.com
           </a>
           <p className="mt-2 text-xs text-muted">
             Best for: bug reports, script requests, business

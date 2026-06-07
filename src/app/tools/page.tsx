@@ -1,4 +1,5 @@
 import AffiliateBox from '@/components/AffiliateBox';
+import Breadcrumb from '@/components/Breadcrumb';
 import { tools } from '@/lib/tools';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -8,14 +9,14 @@ const SITE_URL = 'https://bashsnippets.xyz';
 export const metadata: Metadata = {
   title: 'Free Bash Tools — Cron Builder, Chmod & More',
   description:
-    'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, and ShellCheck decoder.',
+    'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, rsync command builder, and ShellCheck decoder.',
   alternates: {
     canonical: `${SITE_URL}/tools`,
   },
   openGraph: {
     title: 'Free Bash Tools — Cron Builder, Chmod & More',
     description:
-      'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, and ShellCheck decoder.',
+      'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, rsync command builder, and ShellCheck decoder.',
     url: `${SITE_URL}/tools`,
     type: 'website',
     images: [{ url: `${SITE_URL}/ogimage.png`, width: 1200, height: 630, alt: 'BashSnippets — Free Bash Tools' }],
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Free Bash Tools — Cron Builder, Chmod & More',
     description:
-      'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, and ShellCheck decoder.',
+      'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, rsync command builder, and ShellCheck decoder.',
     images: [`${SITE_URL}/ogimage.png`],
   },
 };
@@ -35,7 +36,7 @@ const collectionPageSchema = {
   name: 'Interactive Bash Tools',
   url: `${SITE_URL}/tools`,
   description:
-    'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, and ShellCheck decoder.',
+    'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, rsync command builder, and ShellCheck decoder.',
   hasPart: tools.map((tool) => ({
     '@type': 'WebApplication',
     name: tool.title,
@@ -78,6 +79,13 @@ export default function ToolsPage() {
       />
 
       <main className="mx-auto max-w-4xl px-6 py-16">
+        <Breadcrumb
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Tools' },
+          ]}
+        />
+
         <div className="mb-6 flex items-center gap-2 font-mono text-sm text-muted">
           <span className="text-green">$</span>
           <span>bash-tools</span>

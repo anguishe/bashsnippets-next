@@ -26,6 +26,7 @@ const toolComponents: Record<string, ComponentType> = {
   'path-debugger': withSkeleton(() => import('@/components/tools/PathDebugger')),
   'bash-boilerplate-generator': withSkeleton(() => import('@/components/tools/BashBoilerplateGenerator')),
   'shellcheck-error-decoder': withSkeleton(() => import('@/components/tools/ShellcheckErrorDecoder')),
+  'rsync-command-builder': withSkeleton(() => import('@/components/tools/RsyncCommandBuilder')),
 };
 
 interface ToolRendererProps {

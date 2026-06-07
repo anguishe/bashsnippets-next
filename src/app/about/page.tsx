@@ -1,4 +1,6 @@
 import AffiliateBox from '@/components/AffiliateBox';
+import Breadcrumb from '@/components/Breadcrumb';
+import { snippets } from '@/lib/snippets';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -7,13 +9,13 @@ const SITE_URL = 'https://bashsnippets.xyz';
 export const metadata: Metadata = {
   title: 'About BashSnippets — Bash Script Author & Linux Developer',
   description:
-    'BashSnippets is a free bash script library built by a self-taught Linux developer. 17 tested scripts, 6 browser tools, zero logins. Learn who built it and how.',
+    `BashSnippets is a free bash script library built by a self-taught Linux developer. ${snippets.length} tested scripts, 6 browser tools, zero logins. Learn who built it and how.`,
   alternates: {
     canonical: `${SITE_URL}/about`,
   },
   openGraph: {
     title: 'About BashSnippets — Bash Script Author & Linux Developer',
-    description: 'BashSnippets is a free bash script library built by a self-taught Linux developer. 17 tested scripts, 6 browser tools, zero logins.',
+    description: `BashSnippets is a free bash script library built by a self-taught Linux developer. ${snippets.length} tested scripts, 6 browser tools, zero logins.`,
     url: `${SITE_URL}/about`,
     type: 'website',
     images: [{ url: 'https://bashsnippets.xyz/ogimage.png', width: 1200, height: 630, alt: 'About BashSnippets — Bash Script Library' }],
@@ -21,7 +23,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'About BashSnippets — Bash Script Author & Linux Developer',
-    description: 'BashSnippets is a free bash script library built by a self-taught Linux developer. 17 tested scripts, 6 browser tools, zero logins.',
+    description: `BashSnippets is a free bash script library built by a self-taught Linux developer. ${snippets.length} tested scripts, 6 browser tools, zero logins.`,
   },
 };
 
@@ -31,7 +33,7 @@ const aboutSchemas = [
     '@type': 'WebPage',
     name: 'About BashSnippets',
     url: `${SITE_URL}/about`,
-    description: 'BashSnippets is a free bash script library built by a self-taught Linux developer. 17 tested scripts, 6 browser tools, zero logins.',
+    description: `BashSnippets is a free bash script library built by a self-taught Linux developer. ${snippets.length} tested scripts, 6 browser tools, zero logins.`,
     isPartOf: { '@type': 'WebSite', name: 'BashSnippets.xyz', url: SITE_URL },
   },
   {
@@ -75,6 +77,13 @@ export default function AboutPage() {
         />
       ))}
       <main className="mx-auto max-w-2xl px-6 py-16">
+        <Breadcrumb
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'About' },
+          ]}
+        />
+
         <h1 className="font-heading text-4xl font-extrabold text-text">
           About BashSnippets
         </h1>
@@ -153,7 +162,7 @@ export default function AboutPage() {
           </h2>
           <div className="my-6 grid grid-cols-1 gap-3 md:grid-cols-2">
             {[
-              ['17 bash scripts', 'Copy-paste ready, plain-English explanations'],
+              [`${snippets.length} bash scripts`, 'Copy-paste ready, plain-English explanations'],
               ['6 interactive tools', 'Cron builder, chmod calc, exit code lookup'],
               ['Zero logins', 'No account, no email, no paywall'],
               ['MIT licensed', 'Use the scripts anywhere, including production'],

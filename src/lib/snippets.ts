@@ -86,6 +86,8 @@ export const snippets: SnippetRegistryEntry[] = [
     title: 'Quick System Info Report',
     description:
       'Guessing server state during an outage costs response time. One bash script snapshots hostname, uptime, CPU load, RAM, disk usage, and IP address in one run — no extra packages.',
+    quickAnswer:
+      "This script prints a one-screen health summary of a Linux box: hostname, kernel, uptime, logged-in users, CPU load average, memory used vs free, root-filesystem usage, and the top three processes by memory. Run it the moment a server feels slow or right after you SSH into an unfamiliar machine — it answers 'what is this box and is it healthy?' in under a second without installing anything. It uses only coreutils (uname, uptime, free, df, ps), so it works on a fresh minimal install where tools like htop are absent. Pipe the output to a file with a timestamp to build a cheap baseline you can diff against later when troubleshooting. Schedule it via cron every morning to catch creeping disk or memory pressure before users notice slowdowns. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, and CentOS 9.",
     tags: ['monitor', 'reporting', 'system'],
     difficulty: 'beginner',
     datePublished: '2026-04-25',
@@ -146,7 +148,7 @@ export const snippets: SnippetRegistryEntry[] = [
     description:
       'Backup directories without timestamps overwrite previous runs and sort unpredictably. date +%Y-%m-%d auto-names folders so ls sorts them chronologically — no packages needed.',
     quickAnswer:
-      'The date +%Y-%m-%d command outputs the current date in ISO 8601 format — for example 2026-06-03. Using this as a folder name means directories sort in chronological order automatically when you run ls, since lexicographic order matches date order for YYYY-MM-DD. The two-command workflow is: DATE=$(date +%Y-%m-%d) to capture the date string, then mkdir "$DATE" to create the folder. In a backup context, this creates a new unique folder every day without overwriting previous backups. Adding the hour and minute with date +%Y-%m-%d_%H-%M creates folders like 2026-06-03_14-30 for multiple runs per day. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, CentOS 9, and macOS Ventura. The date command and mkdir are pre-installed on every POSIX-compliant system — no packages required.',
+      'The date +%Y-%m-%d command outputs the current date in ISO 8601 format — for example 2026-06-03. Using this as a folder name means directories sort in chronological order automatically when you run ls, since lexicographic order matches date order for YYYY-MM-DD. The two-command workflow is: DATE=$(date +%Y-%m-%d) to capture the date string, then mkdir "$DATE" to create the folder. In a backup context, this creates a new unique folder every day without overwriting previous backups. Adding the hour and minute with date +%Y-%m-%d_%H-%M creates folders like 2026-06-03_14-30 for multiple runs per day. Wrap both commands in a cron job to auto-create a fresh folder at the start of each backup run. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, CentOS 9, and macOS Ventura. The date command and mkdir are pre-installed on every POSIX-compliant system — no packages required.',
     tags: ['files', 'date', 'mkdir'],
     difficulty: 'beginner',
     datePublished: '2026-05-14',
@@ -247,6 +249,42 @@ export const snippets: SnippetRegistryEntry[] = [
     difficulty: 'intermediate',
     datePublished: '2026-05-22',
     dateModified: '2026-06-03',
+  },
+  {
+    slug: 'find-large-files-linux',
+    title: 'Find Large Files in Linux',
+    description:
+      'Your disk hit 100% and the server stopped. Find the biggest files and directories fast with du and find — excludes virtual filesystems and ranks by size descending.',
+    quickAnswer:
+      'The du command measures actual disk consumption per directory. When a server hits 100% and services start failing — no new logs, no database writes, no deployments — you need the biggest offenders in seconds, not minutes. This script runs du -ah on a target directory, pipes through sort -rh to rank by size descending, and shows the top 20 largest entries. A second command uses find to locate individual files over 500 MB anywhere on the filesystem while excluding virtual filesystems like /proc and /sys that report false sizes. The combination covers both scenarios: directory bloat (a /var/log that grew to 40 GB) and single massive files (a forgotten database dump or core file). On a typical 25 GB VPS, this identifies 80% of reclaimable space in under 10 seconds. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, and CentOS 9 — du, find, and sort are pre-installed.',
+    tags: ['disk', 'du', 'find', 'cleanup', 'troubleshooting'],
+    difficulty: 'beginner',
+    datePublished: '2026-06-06',
+    dateModified: '2026-06-06',
+  },
+  {
+    slug: 'kill-process-on-port',
+    title: 'Kill Process on Port',
+    description:
+      'EADDRINUSE means something is squatting on your port. Find the process with lsof or ss, then kill it safely — script handles discovery, confirmation, and SIGTERM-to-SIGKILL escalation.',
+    quickAnswer:
+      'The EADDRINUSE error means another process already bound the port your application needs. Your dev server, API, or database proxy refuses to start until that port is freed. This script takes a port number as an argument, uses lsof -ti :PORT to find the PID holding it, shows you what the process is before killing it, and sends SIGTERM for a graceful shutdown. If the process ignores SIGTERM after a configurable timeout, it escalates to SIGKILL. The discovery step uses ss -ltnp as a fallback when lsof is unavailable — ss ships with every modern Linux distribution as part of iproute2. Never jump straight to kill -9: SIGTERM lets databases flush buffers, web servers finish active requests, and applications clean up temp files. SIGKILL skips all of that and can leave corrupted state. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, CentOS 9, and macOS Ventura.',
+    tags: ['ports', 'lsof', 'ss', 'kill', 'networking', 'troubleshooting'],
+    difficulty: 'beginner',
+    datePublished: '2026-06-06',
+    dateModified: '2026-06-06',
+  },
+  {
+    slug: 'rsync-remote-backup',
+    title: 'Rsync Remote Backup',
+    description:
+      'A local-only backup dies with the machine. Push an incremental, resumable copy to a remote server with rsync over SSH — script with exclude patterns, dry-run, and cron scheduling.',
+    quickAnswer:
+      'A backup stored on the same machine as the data it protects is not a backup — it is a copy that dies in the same disk failure, ransomware event, or data center outage. rsync over SSH pushes incremental changes to a remote server, transferring only the bytes that differ since the last run. The flags -avz --delete mean: -a preserves permissions, timestamps, symlinks, and ownership; -v shows progress; -z compresses data in transit; --delete removes files on the destination that no longer exist on the source, keeping an exact mirror. The --partial flag resumes interrupted transfers instead of restarting from zero — critical on large backups over unstable connections. Combined with a cron schedule, this gives you nightly offsite backups with no manual intervention. A first run of 10 GB over a 100 Mbps link takes roughly 15 minutes; subsequent runs transfer only changed blocks, often completing in seconds. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, CentOS 9, and macOS Ventura.',
+    tags: ['rsync', 'backup', 'ssh', 'cron', 'offsite', 'devops'],
+    difficulty: 'intermediate',
+    datePublished: '2026-06-06',
+    dateModified: '2026-06-06',
   },
 ];
 

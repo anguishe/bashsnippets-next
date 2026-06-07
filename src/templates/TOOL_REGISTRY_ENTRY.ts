@@ -29,6 +29,10 @@ export const TOOL_REGISTRY_ENTRY_TEMPLATE: ToolMeta = {
   description:
     'Short plain-English description of what the user gets when they use this tool.',
 
+  // Quick Answer block on tool page — 134–167 words, consequence-first, self-contained
+  quickAnswer:
+    'Write a self-contained Quick Answer paragraph (134–167 words) explaining what breaks without this tool, how it works, and who it helps. This appears in the green-bordered Quick Answer block above the interactive widget.',
+
   // Grouping on /tools index — pick one: reference | builder | debug | generator
   category: 'builder',
 

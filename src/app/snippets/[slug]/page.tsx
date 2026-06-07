@@ -1,5 +1,6 @@
 import AdSlot from '@/components/AdSlot';
 import AffiliateBox from '@/components/AffiliateBox';
+import FaqTerminal from '@/components/FaqTerminal';
 import { mdxComponents } from '@/components/MDXComponents';
 import { getSnippetWordCount } from '@/lib/mdx-frontmatter';
 import {
@@ -63,7 +64,7 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string, wordCount: nu
         '@type': 'ListItem',
         position: 1,
         name: 'Home',
-        item: SITE_URL,
+        item: `${SITE_URL}/`,
       },
       {
         '@type': 'ListItem',
@@ -81,13 +82,13 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string, wordCount: nu
   };
 
   const howToSchema =
-    snippet.howToSteps && snippet.howToSteps.length > 0
+    (snippet.howToSteps?.length ?? 0) > 0
       ? {
           '@context': 'https://schema.org',
           '@type': 'HowTo',
           name: snippet.title,
           description: snippet.description,
-          step: snippet.howToSteps.map((step, i) => ({
+          step: snippet.howToSteps!.map((step, i) => ({
             '@type': 'HowToStep',
             position: i + 1,
             name: step.name,
@@ -98,7 +99,7 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string, wordCount: nu
 
   const validFaqs = snippet.faq.filter((f) => f.question && f.answer);
   const faqSchema =
-    validFaqs.length > 0
+    (snippet.faq?.length ?? 0) > 0
       ? {
           '@context': 'https://schema.org',
           '@type': 'FAQPage',
@@ -305,27 +306,7 @@ export default async function SnippetPage({ params }: PageProps) {
             <h2 className="mb-6 font-heading text-xl font-bold text-text">
               Frequently Asked Questions
             </h2>
-            <div className="space-y-3">
-              {snippet.faq.map((faq) => (
-                <details
-                  key={faq.question}
-                  className="snippet-faq overflow-hidden rounded-lg border border-border bg-bg2"
-                >
-                  <summary className="flex cursor-pointer items-center justify-between gap-4 px-5 py-4 font-heading font-semibold text-text">
-                    <span>{faq.question}</span>
-                    <span
-                      className="faq-chevron shrink-0 text-xs text-muted"
-                      aria-hidden
-                    >
-                      ▼
-                    </span>
-                  </summary>
-                  <p className="px-5 pb-4 text-sm leading-relaxed text-muted">
-                    {faq.answer}
-                  </p>
-                </details>
-              ))}
-            </div>
+            <FaqTerminal items={snippet.faq} label="faq — snippet" />
           </section>
         )}
 

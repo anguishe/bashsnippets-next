@@ -998,7 +998,9 @@
           if (chk('cb-trap')) {
             lines.push('');
             lines.push('cleanup() {');
-            lines.push('  echo "Cleaning up..."');
+            lines.push('  # Remove temporary files/dirs created during execution');
+            lines.push('  rm -rf "${TMPDIR:-/tmp}/' + (val('inp-name') || 'script').replace(/\.sh$/, '') + '.$$"');
+            lines.push('  # Add your cleanup tasks above this line');
             lines.push('}');
             lines.push('trap cleanup EXIT INT TERM');
           }

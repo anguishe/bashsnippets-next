@@ -669,6 +669,17 @@
         </button>
       </div>
 
+      <div id="mirror-display" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px;">
+        <div style="background:var(--bg2);border:2px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;">
+          <div style="font:600 12px var(--mono-font);text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">Octal</div>
+          <div id="mirror-octal" style="font:700 32px var(--mono-font);color:var(--green);">755</div>
+        </div>
+        <div style="background:var(--bg2);border:2px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;">
+          <div style="font:600 12px var(--mono-font);text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">Symbolic</div>
+          <div id="mirror-symbolic" style="font:700 32px var(--mono-font);color:var(--text);">rwxr-xr-x</div>
+        </div>
+      </div>
+
     </div>
 
     <!-- ============================================================
@@ -699,6 +710,14 @@
           <div style="font:700 16px var(--heading-font);color:var(--green);">SAFE: Standard File Permissions</div>
         </div>
         <p style="font:400 14px var(--mono-font);color:var(--text);margin:0;line-height:1.55;">chmod 644 is the standard permission for regular files. Owner can read/write, everyone else can only read. This is secure for most use cases.</p>
+      </div>
+
+      <div id="warning-world-writable" class="security-card" role="alert" style="display:none;background:#4a2e1a;border:2px solid var(--amber);border-radius:var(--radius);padding:20px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+          <span style="font-size:20px;color:var(--amber);" aria-hidden="true">&#9888;</span>
+          <div style="font:700 16px var(--heading-font);color:var(--amber);">WARNING: World-Writable Permission</div>
+        </div>
+        <p style="font:400 14px var(--mono-font);color:var(--text);margin:0;line-height:1.55;">The "Others: Write" bit is set. Any user on this system can modify or delete this file. Restrict write access to owner and group unless you have a specific reason for world-writable permissions.</p>
       </div>
 
     </div>
@@ -837,9 +856,13 @@ chmod 700 ~/private/</pre>
           var w777 = document.getElementById('warning-777');
           var w666 = document.getElementById('warning-666');
           var i644 = document.getElementById('info-644');
+          var wWorld = document.getElementById('warning-world-writable');
+          var othersWrite = getCheckbox('others', 'write');
+          var isWorldWritable = othersWrite && othersWrite.checked;
           if (w777) w777.style.display = octal === '777' ? 'block' : 'none';
           if (w666) w666.style.display = octal === '666' ? 'block' : 'none';
           if (i644) i644.style.display = octal === '644' ? 'block' : 'none';
+          if (wWorld) wWorld.style.display = (isWorldWritable && octal !== '777' && octal !== '666') ? 'block' : 'none';
         }
 
         function updatePermissions() {
@@ -862,6 +885,11 @@ chmod 700 ~/private/</pre>
           }
           if (symbolicEl) symbolicEl.textContent = symbolic;
           if (commandEl) commandEl.textContent = 'chmod ' + octal + ' filename';
+
+          var mirrorOctal = document.getElementById('mirror-octal');
+          var mirrorSymbolic = document.getElementById('mirror-symbolic');
+          if (mirrorOctal) mirrorOctal.textContent = octal;
+          if (mirrorSymbolic) mirrorSymbolic.textContent = symbolic;
 
           updateSecurityWarnings(octal);
         }

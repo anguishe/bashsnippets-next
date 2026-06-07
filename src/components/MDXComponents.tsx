@@ -1,4 +1,5 @@
 import type { ComponentPropsWithoutRef } from 'react';
+import AffiliateBox from './AffiliateBox';
 import Callout from './Callout';
 import CodeBlock from './CodeBlock';
 
@@ -41,5 +42,6 @@ export const mdxComponents = {
   h1: H1,
   h2: H2,
   h3: H3,
+  AffiliateBox,
   Callout,
 };

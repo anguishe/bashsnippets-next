@@ -1,4 +1,5 @@
 import AffiliateBox from '@/components/AffiliateBox';
+import FaqTerminal from '@/components/FaqTerminal';
 import ToolRenderer from '@/components/tools/ToolRenderer';
 import { getSnippetBySlug } from '@/lib/snippets';
 import { getAllToolSlugs, getToolBySlug, type ToolMeta } from '@/lib/tools';
@@ -25,7 +26,7 @@ function buildSchemas(
     description: tool.description,
     applicationCategory: 'DeveloperApplication',
     applicationSubCategory: 'UtilityApplication',
-    browserRequirements: 'HTML5, JavaScript',
+    browserRequirements: 'Requires JavaScript. HTML5.',
     operatingSystem: 'Linux, macOS',
     isAccessibleForFree: true,
     featureList: ['No login required', 'Browser-based', 'Copy-paste output'],
@@ -110,6 +111,7 @@ export async function generateMetadata({
       title: tool.title,
       description: tool.description,
       url: `${SITE_URL}/tools/${tool.slug}`,
+      type: 'website',
       images: [{ url: 'https://bashsnippets.xyz/ogimage.png', width: 1200, height: 630 }],
     },
     twitter: {
@@ -163,9 +165,14 @@ export default async function ToolPage({ params }: PageProps) {
           {tool.title}
         </h1>
 
-        <p className="mb-8 mt-3 text-base text-muted">
-          {tool.description}
-        </p>
+        <div className="mb-8 mt-8 rounded-r-lg border-l-[3px] border-green bg-bg2 px-5 py-4">
+          <p className="mb-2 font-heading text-sm font-bold text-green">
+            Quick Answer
+          </p>
+          <p className="text-sm leading-relaxed text-text">
+            {tool.quickAnswer}
+          </p>
+        </div>
 
         {/* Section 2: Tool component */}
         <div className="rounded-lg border border-border bg-bg2 p-6">
@@ -194,33 +201,13 @@ export default async function ToolPage({ params }: PageProps) {
         {/* Section 4: Affiliate box */}
         <AffiliateBox partner="digitalocean" className="mt-10" />
 
-        {/* Section 5: FAQ accordion */}
+        {/* Section 5: FAQ */}
         {tool.faqs.length > 0 && (
           <section className="mt-12">
             <h2 className="mb-6 font-heading text-xl font-bold text-text">
               Frequently Asked Questions
             </h2>
-            <div className="space-y-3">
-              {tool.faqs.map((faq) => (
-                <details
-                  key={faq.question}
-                  className="snippet-faq overflow-hidden rounded-lg border border-border bg-bg2"
-                >
-                  <summary className="flex cursor-pointer items-center justify-between gap-4 px-5 py-4 font-heading font-semibold text-text">
-                    <span>{faq.question}</span>
-                    <span
-                      className="faq-chevron shrink-0 text-xs text-muted"
-                      aria-hidden
-                    >
-                      ▼
-                    </span>
-                  </summary>
-                  <p className="px-5 pb-4 text-sm leading-relaxed text-muted">
-                    {faq.answer}
-                  </p>
-                </details>
-              ))}
-            </div>
+            <FaqTerminal items={tool.faqs} label="faq — tool" />
           </section>
         )}
 

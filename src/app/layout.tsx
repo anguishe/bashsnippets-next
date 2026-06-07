@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { IBM_Plex_Mono, Syne } from 'next/font/google';
 import Script from 'next/script';
+import CookieConsent from '@/components/CookieConsent';
 import Footer from '@/components/Footer';
 import Nav from '@/components/Nav';
 import './globals.css';
@@ -105,6 +106,19 @@ export default function RootLayout({
           data-key="hPaS1a7Tg3n7RQ0sUvzaGg"
           async
         />
+        <Script id="consent-mode-default" strategy="beforeInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('consent', 'default', {
+              ad_storage: 'denied',
+              ad_user_data: 'denied',
+              ad_personalization: 'denied',
+              analytics_storage: 'denied',
+              wait_for_update: 500
+            });
+          `}
+        </Script>
       </head>
       <body
         className={`${ibmPlexMono.variable} ${syne.variable} flex min-h-screen flex-col bg-bg text-text`}
@@ -112,16 +126,26 @@ export default function RootLayout({
         <Nav />
         <div className="flex-1">{children}</div>
         <Footer />
+        <CookieConsent />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-6B01TGE8XS"
           strategy="afterInteractive"
         />
         <Script id="ga4-init" strategy="afterInteractive">
           {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-6B01TGE8XS');
+            (function() {
+              var match = document.cookie.match(/(?:^|; )bs_consent=([^;]*)/);
+              if (match && match[1] === 'all') {
+                gtag('consent', 'update', {
+                  ad_storage: 'granted',
+                  ad_user_data: 'granted',
+                  ad_personalization: 'granted',
+                  analytics_storage: 'granted'
+                });
+              }
+              gtag('js', new Date());
+              gtag('config', 'G-6B01TGE8XS');
+            })();
           `}
         </Script>
         <Script
