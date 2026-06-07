@@ -198,8 +198,9 @@ export default async function ToolPage({ params }: PageProps) {
           </ol>
         </section>
 
-        {/* Section 4: Affiliate box */}
+        {/* Section 4: Affiliate boxes */}
         <AffiliateBox partner="digitalocean" className="mt-10" />
+        <AffiliateBox partner="namecheap" />
 
         {/* Section 5: FAQ */}
         {tool.faqs.length > 0 && (

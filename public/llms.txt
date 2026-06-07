@@ -8,7 +8,7 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 
 ## What This Site Contains
 
-- 20 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
+- 23 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
 - 7 interactive tools at /tools/ including script builders, command generators, and debuggers
 - Bash Boilerplate Generator tool
 - Beginner FAQ section covering the most common bash questions
@@ -44,6 +44,16 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [Find Large Files in Linux](https://bashsnippets.xyz/snippets/find-large-files-linux) — du + find to locate the biggest disk space offenders fast
 - [Kill Process on Port](https://bashsnippets.xyz/snippets/kill-process-on-port) — lsof/ss discovery then SIGTERM with SIGKILL escalation
 - [Rsync Remote Backup](https://bashsnippets.xyz/snippets/rsync-remote-backup) — incremental offsite backup over SSH with exclude patterns and cron
+- [Check SSL Certificate Expiry](https://bashsnippets.xyz/snippets/check-ssl-certificate-expiry) — openssl s_client expiry check with multi-domain support and cron scheduling
+- [List All Open Ports on Linux](https://bashsnippets.xyz/snippets/list-open-ports-linux) — ss/netstat/lsof audit of every listening port with process names
+- [Docker Cleanup Script](https://bashsnippets.xyz/snippets/docker-prune-cleanup) — docker prune for containers, images, volumes, and build cache with before/after disk report
+
+## Topical Guides
+
+- [Server Monitoring](https://bashsnippets.xyz/snippets/server-monitoring) — 8 bash scripts for monitoring Linux server health: disk, uptime, CPU/RAM, services, and SSL certificates
+- [Backup & Recovery](https://bashsnippets.xyz/snippets/backup-and-recovery) — 3 bash scripts for automated local and remote backups: file archives, MySQL dumps, and rsync over SSH
+- [Disk Management](https://bashsnippets.xyz/snippets/disk-management) — 5 bash scripts for finding and freeing disk space: large files, old logs, duplicates, and Docker cleanup
+- [Linux Security](https://bashsnippets.xyz/snippets/linux-security) — 5 bash scripts for Linux security hardening: file permissions, SSH keys, open ports, and SSL certificate monitoring
 
 ## Interactive Tools
 
@@ -54,6 +64,10 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [Bash Boilerplate Generator](https://bashsnippets.xyz/tools/bash-boilerplate-generator) — generates production-ready .sh templates with error handling and logging
 - [ShellCheck Error Decoder](https://bashsnippets.xyz/tools/shellcheck-error-decoder) — paste a ShellCheck error code, get the plain-English explanation and a before/after fix
 - [Rsync Command Builder](https://bashsnippets.xyz/tools/rsync-command-builder) — build rsync commands visually with archive, compress, delete, SSH, and exclude pattern toggles
+
+## Pillar Guides
+
+- [25 Bash Scripts Every Linux Sysadmin Needs](https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs) — comprehensive guide covering disk monitoring, backups, service management, security, and SSL — 25 production-ready scripts with core commands, cron examples, and full annotated versions
 
 ## Most important pages
 

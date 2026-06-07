@@ -128,6 +128,21 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        source: '/snippets/check-ssl-certificate-expiry.html',
+        destination: '/snippets/check-ssl-certificate-expiry',
+        permanent: true,
+      },
+      {
+        source: '/snippets/list-open-ports-linux.html',
+        destination: '/snippets/list-open-ports-linux',
+        permanent: true,
+      },
+      {
+        source: '/snippets/docker-prune-cleanup.html',
+        destination: '/snippets/docker-prune-cleanup',
+        permanent: true,
+      },
+      {
         source: '/tools/bash-exit-code-lookup.html',
         destination: '/tools/bash-exit-code-lookup',
         permanent: true,

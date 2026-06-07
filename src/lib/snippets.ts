@@ -286,6 +286,42 @@ export const snippets: SnippetRegistryEntry[] = [
     datePublished: '2026-06-06',
     dateModified: '2026-06-06',
   },
+  {
+    slug: 'check-ssl-certificate-expiry',
+    title: 'Check SSL Certificate Expiry with Bash',
+    description:
+      'A bash script that connects to any domain over TLS, reads the certificate, and tells you how many days until it expires — before the site goes dark.',
+    quickAnswer:
+      "Use openssl s_client to fetch the live certificate from a domain, then openssl x509 -noout -enddate to extract the expiry date, then compare it to today with date arithmetic. The check runs in under a second and requires nothing beyond the openssl package, which ships on every major Linux distribution. Wrap the logic in a function that returns days remaining, set a threshold (30 days is standard for Let's Encrypt's 90-day cycle), and you have a cron-ready alert that fires before your domain goes red in browsers. Particularly important for short-lived certificates: a failed Let's Encrypt renewal silently bricks HTTPS with no outward warning until users see the browser error page. Add -servername to the openssl s_client call on SNI hosts or you may read the default certificate instead of the one for your domain.",
+    tags: ['ssl', 'openssl', 'security', 'monitoring', 'cron', 'networking'],
+    difficulty: 'intermediate',
+    datePublished: '2026-06-06',
+    dateModified: '2026-06-06',
+  },
+  {
+    slug: 'list-open-ports-linux',
+    title: 'List All Open Ports on Linux',
+    description:
+      'A bash script that maps every port your server is listening on, along with the process name holding it open — the first step in any security audit.',
+    quickAnswer:
+      'Run ss -tlnp to list every TCP port your server is actively listening on, the process name attached to it, and whether it is bound to all interfaces (0.0.0.0 — network-reachable) or localhost only (127.0.0.1 — safe). The ss command replaced netstat as the default on modern Linux distributions in 2016; it reads directly from kernel socket tables and returns results faster. The output columns are State, Recv-Q, Send-Q, Local Address:Port, and Process. The Local Address column is the one that matters: 0.0.0.0:PORT or :::PORT means external traffic can reach that service. 127.0.0.1:PORT means it is only accessible from the machine itself. Run with sudo for full process detail — without root, ports held by other users show the port without the owning process name.',
+    tags: ['ports', 'networking', 'ss', 'netstat', 'security', 'audit', 'lsof'],
+    difficulty: 'beginner',
+    datePublished: '2026-06-06',
+    dateModified: '2026-06-06',
+  },
+  {
+    slug: 'docker-prune-cleanup',
+    title: 'Docker Cleanup Bash Script — Reclaim Disk Space from Docker Garbage',
+    description:
+      'A bash script that removes stopped containers, unused images, dangling volumes, and build cache from Docker — with a disk-usage report before and after.',
+    quickAnswer:
+      'Docker accumulates garbage silently: stopped containers from testing, images pulled once and never run again, anonymous volumes left behind by containers that exited weeks ago, and build cache layers from every image rebuild. None of it cleans itself up. Run docker system df first to see the damage — on an active development machine or build server, the reclaimable column is often several gigabytes. The safe pruning order is: containers first (docker container prune -f), then images with a time filter (docker image prune -af --filter until=720h keeps anything used in the last 30 days), then volumes (docker volume prune -f removes only volumes with no attached container), then build cache (docker builder prune -af). Running containers are never touched; their images are pinned regardless of the image prune command.',
+    tags: ['docker', 'containers', 'disk', 'cleanup', 'devops', 'pruning'],
+    difficulty: 'beginner',
+    datePublished: '2026-06-06',
+    dateModified: '2026-06-06',
+  },
 ];
 
 function mergeWithFrontmatter(snippet: SnippetRegistryEntry): SnippetMeta {

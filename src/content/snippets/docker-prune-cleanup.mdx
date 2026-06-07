@@ -1,0 +1,184 @@
+---
+title: "Docker Cleanup Bash Script — Reclaim Disk Space from Docker Garbage"
+description: "A bash script that removes stopped containers, unused images, dangling volumes, and build cache from Docker — with a disk-usage report before and after."
+slug: "docker-prune-cleanup"
+tags: ["docker", "containers", "disk", "cleanup", "devops", "pruning"]
+quickAnswer: "Docker accumulates garbage silently: stopped containers from testing, images pulled once and never run again, anonymous volumes left behind by containers that exited weeks ago, and build cache layers from every image rebuild. None of it cleans itself up. Run docker system df first to see the damage — on an active development machine or build server, the reclaimable column is often several gigabytes. The safe pruning order is: containers first (docker container prune -f), then images with a time filter (docker image prune -af --filter until=720h keeps anything used in the last 30 days), then volumes (docker volume prune -f removes only volumes with no attached container), then build cache (docker builder prune -af). Running containers are never touched; their images are pinned regardless of the image prune command."
+faq:
+  - question: "Will docker image prune delete images used by running containers?"
+    answer: "No. Docker never removes images that are referenced by a running or stopped (but not removed) container. The -a flag removes all unused images — meaning images not referenced by any container at all, stopped or running."
+  - question: "Is docker volume prune safe to run on a production server?"
+    answer: "Only if you have no stopped containers you plan to restart that depend on those volumes. docker volume prune only removes volumes with zero attached containers. A database volume attached to a stopped (but preserved) container is safe. A volume from a container you already removed with docker rm is deleted."
+  - question: "What does the --filter until=720h flag do?"
+    answer: "720 hours is 30 days. This flag limits image removal to images that have not been used in the last 30 days, which is a conservative safety margin for keeping recently used images around."
+  - question: "What is the difference between docker system prune and this script?"
+    answer: "docker system prune -af removes everything in one command with no granularity. This script separates containers, images, volumes, and build cache into individual steps so you can see exactly what each step reclaims and have a dry-run check beforehand."
+  - question: "How much disk space does this typically free?"
+    answer: "On a CI/CD build server that has been running for several months without cleanup, 20-50GB is common. On a development machine, 5-15GB is typical. The docker system df output at the start of the script shows the exact reclaimable amount before you commit."
+howToSteps:
+  - name: "Run docker system df"
+    text: "Display current disk usage by images, containers, and volumes. The RECLAIMABLE column shows exactly how much the cleanup will free."
+  - name: "Confirm intent"
+    text: "The script asks for confirmation unless --force is passed. Review the list of what will be removed."
+  - name: "Remove stopped containers"
+    text: "docker container prune -f removes all containers in the Exited state. Running containers are untouched."
+  - name: "Remove unused images"
+    text: "docker image prune -af --filter until=720h removes images not referenced by any container and not used in the last 30 days."
+  - name: "Remove dangling volumes and build cache"
+    text: "docker volume prune -f removes unattached volumes. docker builder prune -af clears the build cache."
+author: "Anguishe"
+datePublished: "2026-06-06"
+dateModified: "2026-06-06"
+---
+
+Docker fills your disk while you're not looking. Every image you pulled for a test and never cleaned up. Every build that added another cache layer. Every container that exited and sat in the Exited state for six months. Run `docker system df` right now — if you haven't pruned recently, the reclaimable column is probably larger than you think.
+
+## What Does the Docker Cleanup Script Look Like?
+
+```bash
+#!/bin/bash
+# Script: docker-prune.sh
+# Purpose: Reclaim disk space from Docker garbage — images, containers, volumes, build cache
+# Usage: ./docker-prune.sh [--force]
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+WARN="!"
+
+FORCE="${1:-}"
+
+if ! command -v docker &>/dev/null; then
+  echo "$CROSS Docker is not installed or not in PATH."
+  exit 1
+fi
+
+echo "=== Docker Disk Usage (before cleanup) ==="
+docker system df
+echo ""
+
+if [[ "$FORCE" != "--force" ]]; then
+  echo "$WARN This will remove:"
+  echo "   - All stopped containers"
+  echo "   - Images unused in the last 30 days"
+  echo "   - Dangling volumes (no attached container)"
+  echo "   - All build cache"
+  echo ""
+  read -r -p "Continue? [y/N] " CONFIRM
+  [[ "$CONFIRM" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 0; }
+  echo ""
+fi
+
+echo "=== Removing stopped containers ==="
+docker container prune -f
+echo ""
+
+echo "=== Removing unused images (older than 30 days) ==="
+docker image prune -af --filter "until=720h"
+echo ""
+
+echo "=== Removing unattached volumes ==="
+# Only removes volumes with zero attached containers — database volumes attached
+# to stopped (preserved) containers are NOT removed
+docker volume prune -f
+echo ""
+
+echo "=== Clearing build cache ==="
+docker builder prune -af
+echo ""
+
+echo "=== Docker Disk Usage (after cleanup) ==="
+docker system df
+echo ""
+echo "$CHECK Cleanup complete."
+```
+
+<Callout type="success" title="What each step does">
+
+- **`command -v docker`** — fails cleanly with a meaningful message if Docker isn't installed, rather than producing confusing "command not found" errors mid-script.
+- **`FORCE="${1:-}"`** — optional `--force` flag skips the confirmation prompt for cron and CI use. Always run interactively first to see what will be removed.
+- **`docker system df`** — the RECLAIMABLE column is the number to watch. Run this before committing to any prune on a server you're unfamiliar with.
+- **`docker container prune -f`** — removes containers in the `Exited` state. Running containers are not affected.
+- **`docker image prune -af --filter "until=720h"`** — `-a` removes all unused images, `--filter "until=720h"` limits it to images not referenced or used in the last 30 days.
+- **`docker volume prune -f`** — only removes volumes with no container attached, running or stopped. A Postgres data volume attached to a stopped container is safe.
+- **`docker builder prune -af`** — clears the BuildKit build cache. Often the largest single category of reclaimed space on CI servers.
+
+</Callout>
+
+## How Much Space Will This Free?
+
+Run `docker system df` before committing to any prune. The output breaks down disk usage into four categories and shows the reclaimable amount for each:
+
+```text
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          47        12        18.3GB    14.1GB (77%)
+Containers      23        3         124MB     118MB (95%)
+Local Volumes   8         2         4.2GB     3.1GB (73%)
+Build Cache     156       0         8.7GB     8.7GB
+```
+
+Build cache is almost always 100% reclaimable. Images show the highest absolute savings on build servers. On a development machine that hasn't been pruned in six months, totals over 20GB are not unusual.
+
+## What Are the Common Variations?
+
+**Nuclear option — remove everything (development machines only):**
+```bash
+docker system prune -af --volumes
+```
+
+**Remove only dangling images (safer, not all unused):**
+```bash
+docker image prune -f
+```
+
+**Check what would be removed without deleting:**
+```bash
+docker system df -v
+docker image ls --filter "dangling=true"
+docker ps -a --filter "status=exited"
+```
+
+## How Do I Schedule Docker Cleanup Automatically?
+
+```bash
+# Weekly on build server (aggressive — no 30-day filter on images)
+0 3 * * 0 /opt/scripts/docker-prune.sh --force >> /var/log/docker-prune.log 2>&1
+
+# Monthly on production (conservative — keeps 30-day images)
+0 3 1 * * /opt/scripts/docker-prune.sh --force >> /var/log/docker-prune.log 2>&1
+```
+
+<Callout type="warning" title="Check disk usage before every prune on production">
+
+The `docker system df` output at the start of the script shows the reclaimable amount before anything is deleted. On a production server you've never pruned before, review that output manually the first time. Build cache and stopped containers are safe to remove. Volumes require a moment's thought — if you're unsure whether a stopped container's volume holds live data, check `docker ps -a` before running. For disk emergencies where Docker isn't the culprit, the [find large files](/snippets/find-large-files-linux) script locates the actual offender in under 10 seconds.
+
+</Callout>
+
+## Frequently Asked Questions
+
+### Will docker image prune delete images used by running containers?
+No. Docker never removes images referenced by any container — running or stopped (but not removed). The `-a` flag removes all images *not* referenced by any container at all.
+
+### Is docker volume prune safe on a production server?
+Only volumes with zero attached containers are removed. A database volume attached to a stopped-but-preserved container is not touched. A volume from a container you already removed with `docker rm` will be deleted — that is expected behavior.
+
+### What does --filter "until=720h" do?
+720 hours equals 30 days. This restricts image removal to images not used in the last 30 days — a conservative safety margin that protects recently active images while cleaning up old test builds.
+
+### What is the difference between this and docker system prune?
+`docker system prune -af` deletes everything in one shot with no visibility into what each category costs. This script separates each operation, shows before/after disk usage, and keeps a 30-day safety window on images.
+
+### How much space does this typically free?
+On a CI/CD server without regular cleanup: 20–50GB is common. On a development machine: 5–15GB. The `docker system df` output at the start shows the exact reclaimable amount before you commit.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets/disk-management" className="text-blue hover:text-green transition-colors">Disk Management</a> guide</p>
+
+<AffiliateBox partner="digitalocean" headline="Running Docker on a DigitalOcean droplet? This script keeps your disk from hitting 100%." />
+
+## Related Scripts
+
+- [Find Large Files in Linux](/snippets/find-large-files-linux) — du + find to locate the biggest disk space offenders fast when your disk hits 100%
+- [Delete Old Log Files](/snippets/delete-old-log-files) — find -mtime cleanup for /var/log before logs fill the filesystem
+- [Disk Space Warning](/snippets/disk-space-warning) — df threshold check that exits with code 1 when a partition crosses your limit

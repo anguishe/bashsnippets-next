@@ -1,0 +1,169 @@
+---
+title: "List All Open Ports on Linux"
+description: "A bash script that maps every port your server is listening on, along with the process name holding it open — the first step in any security audit."
+slug: "list-open-ports-linux"
+tags: ["ports", "networking", "ss", "netstat", "security", "audit", "lsof"]
+quickAnswer: "Run ss -tlnp to list every TCP port your server is actively listening on, the process name attached to it, and whether it is bound to all interfaces (0.0.0.0 — network-reachable) or localhost only (127.0.0.1 — safe). The ss command replaced netstat as the default on modern Linux distributions in 2016; it reads directly from kernel socket tables and returns results faster. The output columns are State, Recv-Q, Send-Q, Local Address:Port, and Process. The Local Address column is the one that matters: 0.0.0.0:PORT or :::PORT means external traffic can reach that service. 127.0.0.1:PORT means it is only accessible from the machine itself. Run with sudo for full process detail — without root, ports held by other users show the port without the owning process name."
+faq:
+  - question: "What is the difference between ss and netstat?"
+    answer: "ss reads directly from kernel socket tables and is faster. netstat reads from /proc and was deprecated in favor of ss on most distributions. Output format differs slightly but the information is equivalent. ss ships with iproute2 (installed everywhere); netstat requires net-tools (not always present)."
+  - question: "Why do some ports show no process name?"
+    answer: "You need root privileges to see the PID and process name for ports held by system services or other users. Run the script with sudo for complete output."
+  - question: "What does 0.0.0.0 vs 127.0.0.1 mean in the output?"
+    answer: "0.0.0.0 means the service is listening on all IPv4 interfaces — external traffic can reach it. 127.0.0.1 means localhost only — not reachable from outside the machine. ::: is the IPv6 equivalent of 0.0.0.0 and may also accept IPv4 traffic depending on kernel settings."
+  - question: "How do I check if one specific port is open?"
+    answer: "Pipe the output through grep: ss -tlnp | grep :8080. For a quick yes/no, lsof -i :8080 is even faster."
+  - question: "Should I be worried about high-numbered ports in the output?"
+    answer: "Only ports in LISTEN state matter for this audit. Ephemeral ports (32768-60999) are used for outgoing connections and won't appear as LISTEN. Any LISTEN port you cannot identify and explain is worth investigating."
+howToSteps:
+  - name: "Check for ss availability"
+    text: "Test whether ss is available with command -v ss; fall back to netstat if absent. ss is preferred on any distro from 2016 onward."
+  - name: "List listening TCP ports"
+    text: "Run ss -tlnp (or netstat -tlnp) to display all TCP ports in LISTEN state with process names."
+  - name: "List listening UDP ports"
+    text: "Run ss -ulnp for UDP services — DNS (53), NTP (123), and DHCP (67/68) are the common expected entries."
+  - name: "Map ports to processes with lsof"
+    text: "Run lsof -i -P -n | grep LISTEN for a process-name-first view of every listening socket."
+  - name: "Investigate unrecognized ports"
+    text: "Cross-reference any unrecognized port against /etc/services or a quick web search. Kill or disable any service you cannot account for."
+author: "Anguishe"
+datePublished: "2026-06-06"
+dateModified: "2026-06-06"
+---
+
+You don't know what your server is listening on until something that shouldn't be externally reachable is. A misconfigured service, a forgotten debug port, a package that auto-started on install — any of them can be sitting on an open port right now. This script maps all of them in one run.
+
+## What Does the Open Port Audit Script Look Like?
+
+```bash
+#!/bin/bash
+# Script: list-open-ports.sh
+# Purpose: Audit every port your server listens on — find forgotten services before attackers do
+# Usage: sudo ./list-open-ports.sh
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+echo "=== Listening TCP Ports ==="
+echo ""
+
+if command -v ss &>/dev/null; then
+  ss -tlnp
+elif command -v netstat &>/dev/null; then
+  echo "(ss not found — using netstat)"
+  netstat -tlnp
+else
+  echo "$CROSS Neither ss nor netstat found. Install iproute2 or net-tools."
+  exit 1
+fi
+
+echo ""
+echo "=== Listening UDP Ports ==="
+echo ""
+
+if command -v ss &>/dev/null; then
+  ss -ulnp
+else
+  netstat -ulnp
+fi
+
+echo ""
+echo "=== Port-to-Process Map (lsof) ==="
+echo ""
+
+if [[ $EUID -ne 0 ]]; then
+  echo "(run with sudo for full process detail)"
+fi
+
+if command -v lsof &>/dev/null; then
+  lsof -i -P -n | grep LISTEN || echo "No LISTEN sockets found by lsof"
+fi
+
+echo ""
+echo "$CHECK Audit complete. Investigate any port you cannot explain."
+```
+
+<Callout type="success" title="What each flag does">
+
+- **`command -v ss`** — checks whether `ss` is available before calling it; falls back to `netstat`. Hard-failing on missing tools would make the script useless on older systems.
+- **`ss -tlnp`** — `-t` TCP, `-l` listening sockets only, `-n` numeric ports (no DNS resolution — faster), `-p` show process. Requires root for process names.
+- **`ss -ulnp`** — same flags but `-u` for UDP. DNS (53), NTP (123), and DHCP are expected. Anything else warrants a second look.
+- **`lsof -i -P -n | grep LISTEN`** — `-i` network connections, `-P` numeric ports, `-n` skip hostname resolution. The process-name-first view makes it easier to identify services at a glance.
+- **`$EUID -ne 0`** — warns without failing when run without root. The port list still works; only the process column is incomplete.
+
+</Callout>
+
+## How Do I Read the ss Output?
+
+The column that determines your exposure is **Local Address:Port**:
+
+| Address prefix | Meaning |
+| --- | --- |
+| `0.0.0.0:PORT` | Listens on all IPv4 interfaces — externally reachable |
+| `:::PORT` | Listens on all IPv6 interfaces — may accept IPv4 too |
+| `127.0.0.1:PORT` | Localhost only — not reachable from outside |
+| `::1:PORT` | IPv6 loopback — localhost only |
+
+Any port in `0.0.0.0` or `:::` that you cannot name and justify should be firewalled before the machine is internet-facing.
+
+## What Are the Common Variations?
+
+**Check one specific port:**
+```bash
+ss -tlnp | grep :8080
+lsof -i :8080
+```
+
+**Show only ports bound to all interfaces (externally reachable):**
+```bash
+ss -tlnp | grep '0\.0\.0\.0\|:::'
+```
+
+**Check whether a port is open on a remote host:**
+```bash
+nc -zv remotehost 443 2>&1
+```
+
+## How Do I Automate Open Port Monitoring?
+
+Run weekly and diff the output to catch newly opened ports:
+```bash
+0 6 * * 1 /opt/scripts/list-open-ports.sh > /tmp/ports-$(date +\%Y\%m\%d).txt && \
+  diff /tmp/ports-prev.txt /tmp/ports-$(date +\%Y\%m\%d).txt | mail -s "Port changes" admin@yourdomain.com
+```
+
+<Callout type="warning" title="New ports appearing between audits">
+
+A package update, a misconfigured service, or a developer leaving a debug endpoint running can open a new port without any explicit firewall change. Weekly diffing catches this. If you find an unrecognized LISTEN port, cross-reference the process name against the [kill process on port](/snippets/kill-process-on-port) script to terminate it cleanly — SIGTERM first, SIGKILL only if the process ignores it. Pair the port audit with the [file permissions security audit](/snippets/file-permissions-security) to cover both network exposure and filesystem exposure in a single review session.
+
+</Callout>
+
+## Frequently Asked Questions
+
+### What is the difference between ss and netstat?
+`ss` reads from kernel socket tables directly — faster and maintained. `netstat` reads from `/proc` and was deprecated when `iproute2` replaced `net-tools` on most distributions around 2016. The information is equivalent; only the format differs slightly.
+
+### Why do some entries show no process name?
+Process names require root. A port held by a system service or a different user shows the address and port without the owning PID when run unprivileged. Run with `sudo` for complete output.
+
+### What does 0.0.0.0 vs 127.0.0.1 mean?
+`0.0.0.0` or `:::` means the service accepts connections on all network interfaces — external traffic can reach it. `127.0.0.1` or `::1` means localhost only — only processes on the same machine can connect.
+
+### How do I check one specific port?
+`ss -tlnp | grep :8080` is the fastest method. `lsof -i :8080` gives the same result with the process name more prominently displayed.
+
+### Should I worry about high-numbered ports?
+Only LISTEN state entries matter here. Ephemeral ports (32768–60999) used for outgoing connections won't appear in LISTEN. Any LISTEN port you cannot explain and justify should be disabled or firewalled.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets/linux-security" className="text-blue hover:text-green transition-colors">Linux Security</a> guide</p>
+
+<AffiliateBox partner="digitalocean" headline="Running a public-facing droplet? Audit open ports before you open firewall rules." />
+
+## Related Scripts
+
+- [Kill Process on Port](/snippets/kill-process-on-port) — lsof/ss discovery then SIGTERM with SIGKILL escalation to free a blocked port
+- [File Permissions Security Audit](/snippets/file-permissions-security) — find world-writable files and restore safe chmod 644/755 patterns
+- [SSH Key Setup Script](/snippets/ssh-key-setup-script) — disable password-based SSH and switch to ed25519 key authentication

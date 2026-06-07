@@ -69,6 +69,36 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'yearly',
       priority: 0.3,
     },
+    {
+      url: `${SITE_URL}/snippets/server-monitoring`,
+      lastModified: new Date('2026-06-06'),
+      changeFrequency: 'weekly',
+      priority: 0.85,
+    },
+    {
+      url: `${SITE_URL}/snippets/backup-and-recovery`,
+      lastModified: new Date('2026-06-06'),
+      changeFrequency: 'weekly',
+      priority: 0.85,
+    },
+    {
+      url: `${SITE_URL}/snippets/disk-management`,
+      lastModified: new Date('2026-06-06'),
+      changeFrequency: 'weekly',
+      priority: 0.85,
+    },
+    {
+      url: `${SITE_URL}/snippets/linux-security`,
+      lastModified: new Date('2026-06-06'),
+      changeFrequency: 'weekly',
+      priority: 0.85,
+    },
+    {
+      url: `${SITE_URL}/guides/bash-scripts-every-sysadmin-needs`,
+      lastModified: new Date('2026-06-06'),
+      changeFrequency: 'monthly',
+      priority: 0.85,
+    },
     ...snippetUrls,
     ...toolUrls,
   ];

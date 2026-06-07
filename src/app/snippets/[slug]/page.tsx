@@ -229,6 +229,7 @@ export default async function SnippetPage({ params }: PageProps) {
           <span className="text-sm text-muted">{readTime} min read</span>
         </div>
 
+
         {snippet.quickAnswer && (
           <div className="mb-8 mt-8 rounded-r-lg border-l-[3px] border-green bg-bg2 px-5 py-4">
             <p className="mb-2 font-heading text-sm font-bold text-green">

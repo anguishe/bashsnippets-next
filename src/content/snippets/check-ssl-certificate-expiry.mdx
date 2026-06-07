@@ -1,0 +1,178 @@
+---
+title: "Check SSL Certificate Expiry with Bash"
+description: "A bash script that connects to any domain over TLS, reads the certificate, and tells you how many days until it expires — before the site goes dark."
+slug: "check-ssl-certificate-expiry"
+tags: ["ssl", "openssl", "security", "monitoring", "cron", "networking"]
+quickAnswer: "Use openssl s_client to fetch the live certificate from a domain, then openssl x509 -noout -enddate to extract the expiry date, then compare it to today with date arithmetic. The check runs in under a second and requires nothing beyond the openssl package, which ships on every major Linux distribution. Wrap the logic in a function that returns days remaining, set a threshold (30 days is standard for Let's Encrypt's 90-day cycle), and you have a cron-ready alert that fires before your domain goes red in browsers. Particularly important for short-lived certificates: a failed Let's Encrypt renewal silently bricks HTTPS with no outward warning until users see the browser error page. Add -servername to the openssl s_client call on SNI hosts or you may read the default certificate instead of the one for your domain."
+faq:
+  - question: "Does this script work with Let's Encrypt certificates?"
+    answer: "Yes. openssl s_client connects to the live server and reads whatever certificate is currently being served — Let's Encrypt, DigiCert, Comodo, or self-signed. The expiry extraction is identical for all certificate authorities."
+  - question: "Can I check multiple domains in one run?"
+    answer: "Yes. The DOMAINS array at the top of the script accepts as many entries as you need. Each domain gets its own status line in the output. Add subdomains individually — wildcard entries do not expand to real hostnames."
+  - question: "Why does the script use echo | and 2>/dev/null?"
+    answer: "openssl s_client waits for stdin input in interactive mode. In a cron job with no terminal attached, this causes the script to hang indefinitely. The echo | redirect tells it there is no input so it closes the connection after reading the certificate."
+  - question: "My server returns the wrong certificate — how do I fix it?"
+    answer: "This happens on SNI hosts serving multiple domains from one IP. Add -servername your.domain.com to the openssl s_client command. Without it, openssl receives the server's default certificate rather than the domain-specific one."
+  - question: "What port should I use for SMTP or LDAPS certificates?"
+    answer: "Replace 443 with the appropriate port: 465 for SMTP with TLS, 8443 for alternate HTTPS, 636 for LDAPS. The openssl s_client -connect syntax is always host:port regardless of service type."
+howToSteps:
+  - name: "Fetch the live certificate"
+    text: "Use openssl s_client -connect host:443 -servername host to establish a TLS connection and retrieve the active certificate."
+  - name: "Extract the expiry date"
+    text: "Pipe through openssl x509 -noout -enddate to isolate the notAfter field, then cut on = to get the date string alone."
+  - name: "Calculate days remaining"
+    text: "Convert the expiry date to a Unix timestamp with date -d and subtract today's epoch. Divide by 86400 for days."
+  - name: "Compare against the threshold"
+    text: "If days remaining is below WARN_THRESHOLD (default 30), print a warning. If zero or negative, flag as expired."
+  - name: "Schedule with cron"
+    text: "Run daily at a fixed time with a crontab entry. The script is idempotent and produces clean output suitable for log files."
+author: "Anguishe"
+datePublished: "2026-06-06"
+dateModified: "2026-06-06"
+---
+
+Your SSL certificate expired at 2am on a Tuesday. By the time monitoring caught it, Google had flagged the site insecure, users were bouncing off browser warnings, and the mail server was rejecting TLS connections. The renewal took five minutes. Knowing it was about to expire takes one script running on a cron.
+
+## What Does the SSL Certificate Expiry Script Look Like?
+
+```bash
+#!/bin/bash
+# Script: check-ssl-expiry.sh
+# Purpose: Alert before SSL certificate expires — silent expiry takes HTTPS offline
+# Usage: ./check-ssl-expiry.sh
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+WARN_THRESHOLD=30
+
+DOMAINS=(
+  "yourdomain.com"
+  "api.yourdomain.com"
+)
+
+check_ssl_expiry() {
+  local DOMAIN="$1"
+  local PORT="${2:-443}"
+
+  local EXPIRY_DATE
+  EXPIRY_DATE=$(echo | openssl s_client \
+    -connect "${DOMAIN}:${PORT}" \
+    -servername "${DOMAIN}" \
+    2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
+
+  if [[ -z "$EXPIRY_DATE" ]]; then
+    echo "$CROSS  ${DOMAIN}: could not retrieve certificate"
+    return 1
+  fi
+
+  local EXPIRY_EPOCH
+  EXPIRY_EPOCH=$(date -d "${EXPIRY_DATE}" +%s 2>/dev/null || \
+                 date -j -f "%b %d %T %Y %Z" "${EXPIRY_DATE}" +%s)
+
+  local NOW_EPOCH
+  NOW_EPOCH=$(date +%s)
+
+  local DAYS_LEFT
+  DAYS_LEFT=$(( (EXPIRY_EPOCH - NOW_EPOCH) / 86400 ))
+
+  if [[ "$DAYS_LEFT" -le 0 ]]; then
+    echo "$CROSS  ${DOMAIN}: EXPIRED — ${EXPIRY_DATE}"
+  elif [[ "$DAYS_LEFT" -le "$WARN_THRESHOLD" ]]; then
+    echo "$CROSS  ${DOMAIN}: expires in ${DAYS_LEFT} days — renew now"
+  else
+    echo "$CHECK  ${DOMAIN}: ${DAYS_LEFT} days remaining (${EXPIRY_DATE})"
+  fi
+}
+
+for DOMAIN in "${DOMAINS[@]}"; do
+  check_ssl_expiry "$DOMAIN"
+done
+```
+
+<Callout type="success" title="What each part does">
+
+- **`set -euo pipefail`** — exit on error, unset variable, or broken pipe. A cert check that silently errors is worse than no check.
+- **`WARN_THRESHOLD=30`** — 30 days gives two renewal attempts before expiry on a 90-day Let's Encrypt cert. Raise to 45 for tighter policies.
+- **`DOMAINS=(...)`** — list every domain and subdomain explicitly. Wildcards in this array won't expand to real hostnames.
+- **`-servername "${DOMAIN}"`** — the SNI flag. On servers hosting multiple domains from one IP, without this flag OpenSSL returns the server's default cert instead of the one for your domain.
+- **`echo |`** — prevents `openssl s_client` from waiting for stdin in interactive mode. Required for cron and CI pipelines.
+- **`cut -d= -f2`** — `enddate` outputs `notAfter=Jun 15 12:00:00 2026 GMT`; cutting on `=` isolates the parseable date string.
+- **`date -d` / `date -j -f`** — Linux vs macOS BSD date syntax. The `||` fallback handles both without an OS check.
+- **`(EXPIRY_EPOCH - NOW_EPOCH) / 86400`** — integer arithmetic drops fractional days, making the result slightly conservative — the right direction.
+
+</Callout>
+
+## How Does the SSL Expiry Check Work Step by Step?
+
+The script establishes a real TLS connection to your server — the same handshake a browser performs — and reads the certificate that the server actually presents. This catches two failure modes that static cert file checks miss: the wrong cert being served (SNI misconfiguration) and the live cert differing from what you think you deployed.
+
+The date arithmetic converts both the expiry date and today's date to Unix epoch seconds, then divides the difference by 86400. Integer division drops fractional days, so a cert expiring in 29.9 days reports as 29 — slightly early, which is the safe direction.
+
+## What Are the Common Variations?
+
+**Check a non-standard port (SMTP TLS, LDAPS):**
+```bash
+check_ssl_expiry "mail.yourdomain.com" 465
+check_ssl_expiry "ldap.yourdomain.com" 636
+```
+
+**Read domains from a file:**
+```bash
+while IFS= read -r DOMAIN; do
+  [[ -z "$DOMAIN" || "$DOMAIN" == \#* ]] && continue
+  check_ssl_expiry "$DOMAIN"
+done < /etc/monitored-domains.txt
+```
+
+**Send an email when threshold is breached:**
+```bash
+if [[ "$DAYS_LEFT" -le "$WARN_THRESHOLD" ]]; then
+  echo "SSL for ${DOMAIN} expires in ${DAYS_LEFT} days" | \
+    mail -s "SSL WARNING: ${DOMAIN}" admin@yourdomain.com
+fi
+```
+
+## How Do I Schedule the SSL Check Automatically?
+
+```bash
+0 8 * * * /opt/scripts/check-ssl-expiry.sh >> /var/log/ssl-check.log 2>&1
+```
+
+Daily at 8am. The log gives you a history of when warnings started firing — useful for tracking renewal lead times over months.
+
+<Callout type="warning" title="Test the full pipeline before you rely on it">
+
+Run the script manually against a domain you know the expiry for, and verify the output matches. Then confirm your cron job actually executes by checking `/var/log/ssl-check.log` the next day. A monitoring script that silently fails to run is no monitoring at all. Pair this with the [website uptime check](/snippets/check-if-website-is-up) script so you catch both the pre-expiry warning and any live downtime.
+
+</Callout>
+
+## Frequently Asked Questions
+
+### Does this work with Let's Encrypt certificates?
+Yes. `openssl s_client` connects to the live server and reads whatever certificate is currently being served — Let's Encrypt, DigiCert, Comodo, or self-signed. The expiry extraction is identical for all CAs.
+
+### Can I check multiple domains in one run?
+Yes. The `DOMAINS` array handles any number of entries. Each domain gets its own status line. Add subdomains individually — wildcard entries won't expand to real hostnames.
+
+### Why does the script use `echo |` and `2>/dev/null`?
+`openssl s_client` waits for stdin in interactive mode. In a cron job with no terminal, this causes the script to hang indefinitely. The `echo |` redirect sends empty stdin so the command closes after reading the certificate.
+
+### My server returns the wrong certificate — how do I fix it?
+Add `-servername your.domain.com` to the `openssl s_client` call — the script already does this via `-servername "${DOMAIN}"`. Servers using SNI host multiple certs from one IP; without the flag, OpenSSL gets the server's default.
+
+### What port do I use for SMTP or LDAPS?
+Replace `443` with `465` for SMTP+TLS, `8443` for alternate HTTPS, `636` for LDAPS. The `-connect` syntax is always `host:port`.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets/server-monitoring" className="text-blue hover:text-green transition-colors">Server Monitoring</a> guide · <a href="/snippets/linux-security" className="text-blue hover:text-green transition-colors">Linux Security</a> guide</p>
+
+<AffiliateBox partner="digitalocean" headline="Monitor SSL expiry on your DigitalOcean droplets — catch the silent failure before browsers do." />
+
+## Related Scripts
+
+- [Check If Website Is Up](/snippets/check-if-website-is-up) — curl HTTP status check, cron-schedulable for five-minute uptime monitoring
+- [SSH Key Setup Script](/snippets/ssh-key-setup-script) — automate ed25519 key generation and authorized_keys deployment
+- [Restart Service If Stopped](/snippets/restart-service-if-stopped) — systemctl watchdog that recovers crashed services within 60 seconds

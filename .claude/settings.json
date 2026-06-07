@@ -40,7 +40,13 @@
       "Bash(awk '{print $2}')",
       "Bash(curl -s -o /tmp/indexnow_response.txt -w '%{http_code}' -X POST https://api.indexnow.org/indexnow -H 'Content-Type: application/json' -d '{ *)",
       "Bash(grep -rn '\"__TRACKED_VAR__\"\\\\|/__TRACKED_VAR__\\\\b\\\\|'\\\\''__TRACKED_VAR__'\\\\''' src/app/page.tsx src/app/tools/ src/lib/tools.ts src/content/snippets/)",
-      "Bash(sed -i \"s/window\\\\.parent\\\\.postMessage\\({ iframeHeight: document\\\\.body\\\\.scrollHeight }, '\\\\*'\\);/window.parent.postMessage\\({ type: 'resize', height: document.documentElement.scrollHeight }, '*'\\);/g\" /home/angsec/Projects/bashsnippets-next/public/tool-content/*.html)"
+      "Bash(sed -i \"s/window\\\\.parent\\\\.postMessage\\({ iframeHeight: document\\\\.body\\\\.scrollHeight }, '\\\\*'\\);/window.parent.postMessage\\({ type: 'resize', height: document.documentElement.scrollHeight }, '*'\\);/g\" /home/angsec/Projects/bashsnippets-next/public/tool-content/*.html)",
+      "Bash(curl -sI https://bashsnippets.xyz/sitemap.xml)",
+      "Bash(curl -sI https://bashsnippets.xyz/tools/rsync-command-builder)",
+      "Bash(curl -sI https://bashsnippets.xyz/snippets/find-large-files-linux)",
+      "Bash(curl -sI https://bashsnippets.xyz/snippets/disk-space-warning.html)",
+      "Bash(curl -sI https://bashsnippets.xyz/tools/cron-job-builder.html)",
+      "Bash(curl -s https://bashsnippets.xyz/sitemap.xml)"
     ],
     "additionalDirectories": [
       "/home/angsec/Projects/bashsnippets-next",
