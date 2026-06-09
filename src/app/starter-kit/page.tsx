@@ -110,6 +110,89 @@ export default function StarterKitPage() {
 
         <section className="mt-10">
           <h2 className="mb-4 font-heading text-xl font-bold text-text">
+            What&apos;s in the ZIP
+          </h2>
+
+          <div className="space-y-3">
+            <div className="rounded-lg border border-border bg-bg2 p-4">
+              <p>
+                <span className="font-mono font-semibold text-green">backup.sh</span>
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                tar.gz archives with sha256 sidecars, read-back integrity test,
+                retention rotation, and optional rsync offsite with retry.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-bg2 p-4">
+              <p>
+                <span className="font-mono font-semibold text-green">healthcheck.sh</span>
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                One cron job that checks disk, memory, load, services, and URLs
+                against your thresholds. One alert when something is wrong.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-bg2 p-4">
+              <p>
+                <span className="font-mono font-semibold text-green">cron-wrapper.sh</span>
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                Gives any command a sane PATH, locale, working directory, lock,
+                timeout, and failure alert with the log tail attached.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-bg2 p-4">
+              <p>
+                <span className="font-mono font-semibold text-green">cleanup.sh</span>
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                Retention cleanup that defaults to dry-run. You must pass --apply
+                to actually delete anything.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-bg2 p-4">
+              <p>
+                <span className="font-mono font-semibold text-green">bashlib.sh</span>
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                31-function shared library. Leveled logging that survives cron,
+                error traps that name the failing line, retry with exponential backoff,
+                single-instance locking, safe delete guards, and a notify() that pages
+                you in production and does nothing on your laptop.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-bg2 p-4">
+              <p>
+                <span className="font-mono font-semibold text-green">template.sh</span>
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                Strict mode, dry-run, --help, and flag parsing already wired in.
+                Copy it, fill in the logic, done.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-bg2 p-4">
+              <p>
+                <span className="font-mono font-semibold text-green">
+                  52-page field guide (PDF)
+                </span>
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                Five gotchas in set -e, why scripts die in cron, macOS vs Linux
+                portability, quoting and word splitting, safe destructive operations,
+                a debugging playbook, and handling secrets in CI.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-10">
+          <h2 className="mb-4 font-heading text-xl font-bold text-text">
             What&apos;s included
           </h2>
           <p className="text-sm leading-relaxed text-muted">
