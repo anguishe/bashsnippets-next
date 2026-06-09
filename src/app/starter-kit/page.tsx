@@ -4,19 +4,19 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 const SITE_URL = 'https://bashsnippets.xyz';
-const GUMROAD_URL = 'GUMROAD_URL_PLACEHOLDER';
+const GUMROAD_URL = 'https://anguish0.gumroad.com/l/toolkit';
 
 export const metadata: Metadata = {
-  title: 'Bash Automation Starter Kit — 30 Scripts for Linux Sysadmins | BashSnippets.xyz',
+  title: 'Production Bash Toolkit — Scripts + Library + Field Guide | BashSnippets.xyz',
   description:
-    'The 30 bash scripts I actually run on production servers — pre-tested, pre-commented, ready to paste. $9. Instant download.',
+    '6 production scripts, bashlib.sh shared library, template.sh, and a 52-page field guide. ShellCheck-clean. $9 instant download.',
   alternates: {
     canonical: `${SITE_URL}/starter-kit`,
   },
   openGraph: {
-    title: 'Bash Automation Starter Kit — 30 Scripts for Linux Sysadmins | BashSnippets.xyz',
+    title: 'Production Bash Toolkit — Scripts + Library + Field Guide | BashSnippets.xyz',
     description:
-      'The 30 bash scripts I actually run on production servers — pre-tested, pre-commented, ready to paste. $9. Instant download.',
+      '6 production scripts, bashlib.sh shared library, template.sh, and a 52-page field guide. ShellCheck-clean. $9 instant download.',
     url: `${SITE_URL}/starter-kit`,
     type: 'website',
     images: [
@@ -24,15 +24,15 @@ export const metadata: Metadata = {
         url: 'https://bashsnippets.xyz/ogimage.png',
         width: 1200,
         height: 630,
-        alt: 'Bash Automation Starter Kit — BashSnippets.xyz',
+        alt: 'Production Bash Toolkit — BashSnippets.xyz',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Bash Automation Starter Kit — 30 Scripts for Linux Sysadmins | BashSnippets.xyz',
+    title: 'Production Bash Toolkit — Scripts + Library + Field Guide | BashSnippets.xyz',
     description:
-      'The 30 bash scripts I actually run on production servers — pre-tested, pre-commented, ready to paste. $9. Instant download.',
+      '6 production scripts, bashlib.sh shared library, template.sh, and a 52-page field guide. ShellCheck-clean. $9 instant download.',
   },
 };
 
@@ -42,7 +42,7 @@ const starterKitSchemas = [
     '@type': 'Product',
     name: 'Bash Automation Starter Kit',
     description:
-      '30 production-tested bash scripts for Linux and DevOps — pre-commented, instant download.',
+      '6 production scripts, bashlib.sh shared library, template.sh, and a 52-page field guide. ShellCheck-clean.',
     offers: {
       '@type': 'Offer',
       price: '9.00',
@@ -84,7 +84,7 @@ export default function StarterKitPage() {
         />
 
         <h1 className="font-heading text-4xl font-extrabold text-text">
-          The 30 bash scripts I actually run on every server I manage
+          The Production Bash Toolkit
         </h1>
 
         <p className="mt-4 font-mono text-sm text-green">
@@ -112,27 +112,18 @@ export default function StarterKitPage() {
           <h2 className="mb-4 font-heading text-xl font-bold text-text">
             What&apos;s included
           </h2>
-          <ul className="space-y-2 text-sm leading-relaxed text-muted">
-            <li>
-              10 monitoring scripts (disk, CPU, RAM, website uptime, SSL expiry, service
-              health)
-            </li>
-            <li>8 backup automation scripts (files, databases, rsync offsite)</li>
-            <li>5 security audit scripts (port inventory, permissions, SSH hardening)</li>
-            <li>
-              4 DevOps utility scripts (Docker cleanup, log rotation, process management)
-            </li>
-            <li>3 bash scripting templates (error handling, retry logic, trap patterns)</li>
-          </ul>
-          <p className="mt-4 text-sm leading-relaxed text-muted">
-            Plus: the production-ready bash script template file I start every new script
-            from.
+          <p className="text-sm leading-relaxed text-muted">
+            6 production scripts + bashlib.sh (31-function shared library) + template.sh +
+            52-page field guide. ShellCheck-clean. Runs on Ubuntu 22.04+, Debian 12, macOS
+            with Homebrew bash. MIT license — unlimited personal and commercial use.
           </p>
         </section>
 
         <div className="mt-10">
           <a
             href={GUMROAD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-block rounded-md bg-green px-6 py-3 font-mono text-sm font-semibold text-bg no-underline transition-colors hover:bg-[#2ea043]"
           >
             Get the Starter Kit — $9 →

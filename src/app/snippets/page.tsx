@@ -1,4 +1,5 @@
 import Breadcrumb from '@/components/Breadcrumb';
+import ToolkitCTA from '@/components/ToolkitCTA';
 import { snippets, type SnippetRegistryEntry } from '@/lib/snippets';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -224,6 +225,8 @@ export default function SnippetsPage() {
             );
           })}
         </div>
+
+        <ToolkitCTA className="mt-14" />
       </main>
     </>
   );

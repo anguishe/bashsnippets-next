@@ -59,9 +59,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${SITE_URL}/starter-kit`,
-      lastModified: new Date('2026-06-06'),
+      lastModified: new Date('2026-06-08'),
       changeFrequency: 'monthly',
-      priority: 0.7,
+      priority: 0.8,
     },
     {
       url: `${SITE_URL}/privacy`,

@@ -1,4 +1,5 @@
 import AffiliateBox from '@/components/AffiliateBox';
+import ToolkitCTA from '@/components/ToolkitCTA';
 import Breadcrumb from '@/components/Breadcrumb';
 import { tools } from '@/lib/tools';
 import type { Metadata } from 'next';
@@ -120,6 +121,8 @@ export default function ToolsPage() {
             </Link>
           ))}
         </div>
+
+        <ToolkitCTA className="mt-16" />
 
         <AffiliateBox partner="digitalocean" className="mt-16" />
         <AffiliateBox partner="namecheap" className="mt-4" />

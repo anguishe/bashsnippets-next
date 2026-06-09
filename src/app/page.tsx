@@ -1,6 +1,7 @@
 import AdSlot from '@/components/AdSlot';
 import Breadcrumb from '@/components/Breadcrumb';
 import AffiliateBox from '@/components/AffiliateBox';
+import ToolkitCTA from '@/components/ToolkitCTA';
 import FaqTerminal from '@/components/FaqTerminal';
 import ScrollReveal from '@/components/ScrollReveal';
 import { snippets } from '@/lib/snippets';
@@ -337,6 +338,7 @@ export default function Home() {
         <ScrollReveal>
           <AffiliateBox partner="digitalocean" />
           <AffiliateBox partner="namecheap" className="mt-4" />
+          <ToolkitCTA className="mt-10" />
         </ScrollReveal>
       </section>
     </>

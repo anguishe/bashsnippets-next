@@ -1,4 +1,5 @@
 import AffiliateBox from '@/components/AffiliateBox';
+import ToolkitCTA from '@/components/ToolkitCTA';
 import FaqTerminal from '@/components/FaqTerminal';
 import ToolRenderer from '@/components/tools/ToolRenderer';
 import { getSnippetBySlug } from '@/lib/snippets';
@@ -201,6 +202,8 @@ export default async function ToolPage({ params }: PageProps) {
         {/* Section 4: Affiliate boxes */}
         <AffiliateBox partner="digitalocean" className="mt-10" />
         <AffiliateBox partner="namecheap" />
+
+        <ToolkitCTA className="mt-10" />
 
         {/* Section 5: FAQ */}
         {tool.faqs.length > 0 && (

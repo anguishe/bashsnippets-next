@@ -1,5 +1,6 @@
 import AdSlot from '@/components/AdSlot';
 import AffiliateBox from '@/components/AffiliateBox';
+import ToolkitCTA from '@/components/ToolkitCTA';
 import FaqTerminal from '@/components/FaqTerminal';
 import { mdxComponents } from '@/components/MDXComponents';
 import { getSnippetWordCount } from '@/lib/mdx-frontmatter';
@@ -279,6 +280,8 @@ export default async function SnippetPage({ params }: PageProps) {
 
         <AffiliateBox partner="digitalocean" />
         <AffiliateBox partner="namecheap" />
+
+        <ToolkitCTA className="mt-10" />
 
         <section className="mt-12">
           <h2 className="mb-6 font-heading text-xl font-bold text-text">
