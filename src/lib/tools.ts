@@ -10,6 +10,8 @@ export interface ToolMeta {
   description: string;
   quickAnswer: string;
   category: string;
+  datePublished: string;
+  dateModified: string;
   howToUse: string[];
   faqs: ToolFaq[];
   relatedSnippets?: string[];
@@ -19,6 +21,8 @@ export const tools: ToolMeta[] = [
   {
     slug: 'bash-exit-code-lookup',
     component: 'BashExitCodeLookup',
+    datePublished: '2026-06-02',
+    dateModified: '2026-06-06',
     title: 'Bash Exit Code Lookup',
     description:
       'An unhandled exit code hides why a bash script failed and lets errors cascade silently into data loss. Enter any code 0-255 for the plain-English meaning, causes, and a copy-paste error handler.',
@@ -58,6 +62,8 @@ export const tools: ToolMeta[] = [
   {
     slug: 'cron-job-builder',
     component: 'CronJobBuilder',
+    datePublished: '2026-06-02',
+    dateModified: '2026-06-04',
     title: 'Cron Job Builder',
     description:
       'A wrong cron expression runs jobs at the wrong time or skips them entirely with no error output. Build cron expressions visually and verify the human-readable schedule before saving to crontab.',
@@ -97,6 +103,8 @@ export const tools: ToolMeta[] = [
   {
     slug: 'chmod-permissions-builder',
     component: 'ChmodPermissionsBuilder',
+    datePublished: '2026-06-02',
+    dateModified: '2026-06-06',
     title: 'Chmod Permissions Builder',
     description:
       'Wrong file permissions on a web server expose secrets or let compromised scripts overwrite application files. Build chmod commands visually — shows octal, symbolic notation, and the exact chmod command.',
@@ -136,6 +144,8 @@ export const tools: ToolMeta[] = [
   {
     slug: 'path-debugger',
     component: 'PathDebugger',
+    datePublished: '2026-06-02',
+    dateModified: '2026-06-06',
     title: 'Bash $PATH Debugger',
     description:
       'Duplicate and missing PATH entries cause command-not-found errors and slow shell startup by scanning dead directories. Paste your PATH to find duplicates, empty entries, and ordering problems.',
@@ -175,6 +185,8 @@ export const tools: ToolMeta[] = [
   {
     slug: 'bash-boilerplate-generator',
     component: 'BashBoilerplateGenerator',
+    datePublished: '2026-06-02',
+    dateModified: '2026-06-06',
     title: 'Bash Boilerplate Generator',
     description:
       'A bash script without error handling silently continues after failures and leaves systems in a broken partial state. Generates a production-ready template with set -euo pipefail, traps, and argument parsing.',
@@ -214,6 +226,8 @@ export const tools: ToolMeta[] = [
   {
     slug: 'rsync-command-builder',
     component: 'RsyncCommandBuilder',
+    datePublished: '2026-06-06',
+    dateModified: '2026-06-06',
     title: 'Rsync Command Builder',
     description:
       'A wrong rsync flag silently overwrites destination files or skips critical data with no error output. Build rsync commands visually — toggle archive, compress, delete, dry-run, SSH, and exclude patterns with a live preview.',
@@ -253,6 +267,8 @@ export const tools: ToolMeta[] = [
   {
     slug: 'grep-pattern-builder',
     component: 'GrepPatternBuilder',
+    datePublished: '2026-06-07',
+    dateModified: '2026-06-07',
     title: 'grep Pattern Builder',
     description:
       'A wrong grep flag silently matches the wrong files or swallows error output with no warning. Build the exact grep command you need — recursive, case-insensitive, with context lines — and get a plain-English explanation for every output.',
@@ -292,6 +308,8 @@ export const tools: ToolMeta[] = [
   {
     slug: 'shellcheck-error-decoder',
     component: 'ShellcheckErrorDecoder',
+    datePublished: '2026-06-02',
+    dateModified: '2026-06-06',
     title: 'ShellCheck Error Decoder',
     description:
       'ShellCheck warnings that go unfixed become the exact edge-case bugs that break in production on unexpected input. Enter any SC error code for the rule name, plain-English explanation, and a before/after fix example.',

@@ -12,21 +12,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }));
 
-  const toolUrls: MetadataRoute.Sitemap = tools.map((tool) => {
-    const toolWithDates = tool as typeof tool & {
-      dateModified?: string;
-      datePublished?: string;
-    };
-    const lastModified =
-      toolWithDates.dateModified ?? toolWithDates.datePublished ?? '2026-05-01';
-
-    return {
-      url: `${SITE_URL}/tools/${tool.slug}`,
-      lastModified: new Date(lastModified),
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    };
-  });
+  const toolUrls: MetadataRoute.Sitemap = tools.map((tool) => ({
+    url: `${SITE_URL}/tools/${tool.slug}`,
+    lastModified: new Date(tool.dateModified ?? tool.datePublished),
+    changeFrequency: 'weekly',
+    priority: 0.9,
+  }));
 
   return [
     {

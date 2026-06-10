@@ -36,6 +36,10 @@ export const TOOL_REGISTRY_ENTRY_TEMPLATE: ToolMeta = {
   // Grouping on /tools index — pick one: reference | builder | debug | generator
   category: 'builder',
 
+  // ISO 8601 dates — used in sitemap lastmod and TechArticle schema
+  datePublished: 'YYYY-MM-DD',
+  dateModified: 'YYYY-MM-DD',
+
   // Numbered usage steps shown on the tool page (4 steps is a good target)
   howToUse: [
     'Describe the first thing the user does (e.g., enter a value in the input field).',
