@@ -13,6 +13,14 @@ const guides = [
     blurb:
       'You walk away with a provisioning checklist, not a reading list: the exact scripts that prevent a disk-full outage, a silent SSL expiry, a service that died over the weekend, and a permission hole on a fresh web root. It is organized by failure mode, so you can jump straight to the problem you are trying to prevent and leave with the cron entry that prevents it.',
   },
+  {
+    slug: 'bash-scripting-for-ci-cd-pipelines',
+    title: 'Bash Scripting for CI/CD Pipelines: GitHub Actions, Deploys, and Docker',
+    description:
+      'A pipeline reported every step green and deployed broken code, because the build step piped output through tee and bash returned the exit code of tee — always zero. This guide covers the four CI-specific failure modes, safe bash headers, secret validation, PIPESTATUS and pipefail, Docker entrypoints, atomic symlink deploys, and debugging with set -x.',
+    blurb:
+      'You leave with a deploy script that fails loudly, rolls back automatically, and passes a health check before marking success — not one that ships broken builds under a green checkmark.',
+  },
 ] as const;
 
 const STRONGEST_GUIDE = guides[0];

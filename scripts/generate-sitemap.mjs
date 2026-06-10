@@ -6,9 +6,9 @@ const SITE_URL = 'https://bashsnippets.xyz';
 // Static entries — copied verbatim from route.ts
 const staticEntries = [
   { url: `${SITE_URL}/`,                                          lastmod: '2026-06-03', changefreq: 'daily',   priority: 1.0  },
-  { url: `${SITE_URL}/snippets`,                                  lastmod: '2026-06-06', changefreq: 'daily',   priority: 0.9  },
-  { url: `${SITE_URL}/tools`,                                     lastmod: '2026-06-06', changefreq: 'daily',   priority: 0.9  },
-  { url: `${SITE_URL}/guides`,                                    lastmod: '2026-06-08', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/snippets`,                                  lastmod: '2026-06-10', changefreq: 'daily',   priority: 0.9  },
+  { url: `${SITE_URL}/tools`,                                     lastmod: '2026-06-10', changefreq: 'daily',   priority: 0.9  },
+  { url: `${SITE_URL}/guides`,                                    lastmod: '2026-06-10', changefreq: 'weekly',  priority: 0.8  },
   { url: `${SITE_URL}/starter-kit`,                               lastmod: '2026-06-08', changefreq: 'monthly', priority: 0.8  },
   { url: `${SITE_URL}/about`,                                     lastmod: '2026-06-06', changefreq: 'monthly', priority: 0.5  },
   { url: `${SITE_URL}/privacy`,                                   lastmod: '2026-06-06', changefreq: 'yearly',  priority: 0.3  },
@@ -19,6 +19,7 @@ const staticEntries = [
   { url: `${SITE_URL}/snippets/disk-management`,                  lastmod: '2026-06-06', changefreq: 'weekly',  priority: 0.85 },
   { url: `${SITE_URL}/snippets/linux-security`,                   lastmod: '2026-06-06', changefreq: 'weekly',  priority: 0.85 },
   { url: `${SITE_URL}/guides/bash-scripts-every-sysadmin-needs`,  lastmod: '2026-06-08', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/guides/bash-scripting-for-ci-cd-pipelines`, lastmod: '2026-06-10', changefreq: 'weekly',  priority: 0.8  },
 ];
 
 // src/lib/*.ts cannot be imported directly in plain Node (TypeScript + path aliases).
@@ -47,6 +48,11 @@ const snippets = [
   { slug: 'check-ssl-certificate-expiry', dateModified: '2026-06-06' },
   { slug: 'list-open-ports-linux', dateModified: '2026-06-06' },
   { slug: 'docker-prune-cleanup', dateModified: '2026-06-06' },
+  { slug: 'bash-for-loop-examples', dateModified: '2026-06-10' },
+  { slug: 'bash-functions', dateModified: '2026-06-10' },
+  { slug: 'bash-arrays', dateModified: '2026-06-10' },
+  { slug: 'bash-argument-parsing', dateModified: '2026-06-10' },
+  { slug: 'bash-string-manipulation', dateModified: '2026-06-10' },
 ];
 
 const tools = [
@@ -58,6 +64,7 @@ const tools = [
   { slug: 'rsync-command-builder', datePublished: '2026-06-06', dateModified: '2026-06-06' },
   { slug: 'grep-pattern-builder', datePublished: '2026-06-07', dateModified: '2026-06-07' },
   { slug: 'shellcheck-error-decoder', datePublished: '2026-06-02', dateModified: '2026-06-06' },
+  { slug: 'bash-trap-builder', datePublished: '2026-06-10', dateModified: '2026-06-10' },
 ];
 
 const snippetEntries = snippets.map(s => ({

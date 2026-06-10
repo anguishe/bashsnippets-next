@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bash trap &amp; Signal Handler Builder</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg2: #161b22;
+      --bg3: #1c2128;
+      --border: #30363d;
+      --green: #39d353;
+      --green-dim: #1a4a2e;
+      --amber: #e3b341;
+      --blue: #58a6ff;
+      --blue-dim: #0d2a4a;
+      --muted: #8b949e;
+      --text: #e6edf3;
+      --radius: 8px;
+      --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+      --head: "Syne", system-ui, sans-serif;
+      --body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--body);
+      padding: 1.5rem;
+      line-height: 1.5;
+    }
+
+    h2 {
+      font-family: var(--head);
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: var(--text);
+      margin-bottom: 0.85rem;
+      letter-spacing: -0.01em;
+    }
+
+    .panel {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .label-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--green);
+      background: var(--green-dim);
+      border-radius: 4px;
+      padding: 0.1rem 0.4rem;
+      margin-right: 0.5rem;
+    }
+
+    /* Signal grid */
+    .signal-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .signal-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem 0.85rem;
+      cursor: pointer;
+      transition: border-color 0.12s ease, background 0.12s ease;
+      user-select: none;
+    }
+    .signal-card:hover { border-color: var(--muted); }
+    .signal-card.on {
+      border-color: var(--green);
+      background: var(--green-dim);
+    }
+
+    .signal-head {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.3rem;
+    }
+    .signal-name {
+      font-family: var(--mono);
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--green);
+    }
+    .signal-num {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 0.35rem;
+    }
+    .signal-box {
+      margin-left: auto;
+      width: 16px;
+      height: 16px;
+      border: 1px solid var(--muted);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--bg);
+      background: transparent;
+    }
+    .signal-card.on .signal-box {
+      background: var(--green);
+      border-color: var(--green);
+    }
+    .signal-desc {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    /* Checklist rows */
+    .check-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      padding: 0.5rem 0;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+    }
+    .check-row:last-child { border-bottom: none; }
+    .check-box {
+      flex: 0 0 auto;
+      width: 16px;
+      height: 16px;
+      margin-top: 0.15rem;
+      border: 1px solid var(--muted);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--bg);
+      background: transparent;
+    }
+    .check-row.on .check-box {
+      background: var(--green);
+      border-color: var(--green);
+    }
+    .check-text { font-size: 0.86rem; }
+    .check-text .code {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--amber);
+    }
+
+    /* Behavior options */
+    .opt-group { margin-bottom: 0.9rem; }
+    .opt-group:last-child { margin-bottom: 0; }
+    .opt-title {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 0.45rem;
+    }
+    .radio-row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .radio-pill {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.4rem 0.7rem;
+      cursor: pointer;
+      background: var(--bg3);
+      color: var(--muted);
+      transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+    }
+    .radio-pill:hover { border-color: var(--muted); }
+    .radio-pill.on {
+      border-color: var(--green);
+      color: var(--green);
+      background: var(--green-dim);
+    }
+
+    /* Output */
+    .out-bar {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.7rem;
+    }
+    .btn {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid var(--green);
+      color: var(--green);
+      background: transparent;
+      border-radius: var(--radius);
+      padding: 0.45rem 0.8rem;
+      cursor: pointer;
+      transition: background 0.12s ease, color 0.12s ease;
+    }
+    .btn:hover { background: var(--green); color: var(--bg); }
+    .btn.copied { background: var(--green); color: var(--bg); }
+
+    pre.code {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.55;
+      color: var(--text);
+      white-space: pre;
+      tab-size: 2;
+    }
+    pre.code .cm { color: var(--muted); }
+    pre.code .kw { color: var(--green); }
+
+    .warn {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--amber);
+      background: rgba(227, 179, 65, 0.08);
+      border: 1px solid var(--amber);
+      border-radius: var(--radius);
+      padding: 0.5rem 0.7rem;
+      margin-bottom: 0.7rem;
+      display: none;
+    }
+    .warn.show { display: block; }
+
+    /* Reference table */
+    table.ref {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+    table.ref th, table.ref td {
+      border: 1px solid var(--border);
+      padding: 0.55rem 0.7rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    table.ref th {
+      background: var(--bg3);
+      font-family: var(--mono);
+      font-weight: 600;
+      color: var(--blue);
+      font-size: 0.78rem;
+    }
+    table.ref td.sig {
+      font-family: var(--mono);
+      color: var(--green);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    table.ref td { color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <!-- 1. SIGNAL SELECTOR -->
+  <div class="panel">
+    <h2><span class="label-num">01</span>Signals to trap</h2>
+    <div class="signal-grid" id="signalGrid"></div>
+  </div>
+
+  <!-- 2. CLEANUP ACTIONS -->
+  <div class="panel">
+    <h2><span class="label-num">02</span>Cleanup actions</h2>
+    <div id="actionList"></div>
+  </div>
+
+  <!-- 3. BEHAVIOR OPTIONS -->
+  <div class="panel">
+    <h2><span class="label-num">03</span>Behavior</h2>
+
+    <div class="opt-group">
+      <div class="opt-title">Trap style</div>
+      <div class="radio-row" id="styleRow">
+        <div class="radio-pill on" data-style="combined">Combined single function</div>
+        <div class="radio-pill" data-style="persignal">Per-signal functions</div>
+      </div>
+    </div>
+
+    <div class="opt-group">
+      <div class="opt-title">Options</div>
+      <div class="radio-row">
+        <div class="radio-pill on" id="optHeader">Include set -euo pipefail header</div>
+        <div class="radio-pill on" id="optSigName">Include signal name in log output</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. OUTPUT -->
+  <div class="panel">
+    <h2><span class="label-num">04</span>Generated code</h2>
+    <div class="out-bar">
+      <button class="btn" id="copyTrap">Copy trap block only</button>
+      <button class="btn" id="copyFull">Copy complete script header</button>
+    </div>
+    <div class="warn" id="errWarn">ERR only fires while set -e is active. You disabled the
+      set -euo pipefail header, so the ERR trap will never run. Re-enable the header or drop ERR.</div>
+    <pre class="code" id="output"></pre>
+  </div>
+
+  <!-- 5. REFERENCE TABLE -->
+  <div class="panel">
+    <h2><span class="label-num">05</span>Signal reference</h2>
+    <table class="ref">
+      <thead>
+        <tr><th>Signal</th><th>When it fires</th><th>Common use case</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="sig">EXIT (0)</td><td>Script exits for any reason — success, failure, or interrupt.</td><td>The one trap that always runs. Put resource teardown here.</td></tr>
+        <tr><td class="sig">ERR</td><td>A command returns a non-zero exit code (only while set -e is on).</td><td>Log the exact failing line with $LINENO before the script dies.</td></tr>
+        <tr><td class="sig">INT (2)</td><td>User presses Ctrl+C at the terminal.</td><td>Print an interrupted message and exit 130 so callers see it was cancelled.</td></tr>
+        <tr><td class="sig">TERM (15)</td><td>kill, systemctl stop, or docker stop sends SIGTERM.</td><td>Graceful shutdown of long-running scripts and Docker entrypoints.</td></tr>
+        <tr><td class="sig">HUP (1)</td><td>Terminal closes or the SSH session drops.</td><td>Decide whether to abort or keep running when the session is lost.</td></tr>
+        <tr><td class="sig">PIPE</td><td>Writing to a pipe whose reader has closed (e.g. head exited early).</td><td>Suppress broken-pipe noise; usually handled rather than aborted on.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    "use strict";
+
+    // ---- State ----
+    var SIGNALS = [
+      { id: "EXIT", num: "0",  desc: "Fires when the script exits for ANY reason — success or failure." },
+      { id: "ERR",  num: "",   desc: "Fires when any command returns a non-zero exit code (needs set -e)." },
+      { id: "INT",  num: "2",  desc: "Fires when the user presses Ctrl+C." },
+      { id: "TERM", num: "15", desc: "Fires when the OS or another process sends kill / systemctl stop." },
+      { id: "HUP",  num: "1",  desc: "Fires when the terminal closes or the SSH session drops." },
+      { id: "PIPE", num: "",   desc: "Fires when writing to a broken pipe (the reader closed)." }
+    ];
+
+    var ACTIONS = [
+      { id: "temp",     label: "Remove temp files",     code: 'rm -f "$TMPFILE"' },
+      { id: "lock",     label: "Remove lock file",      code: 'rm -f "$LOCKFILE"' },
+      { id: "jobs",     label: "Kill background jobs",   code: 'kill "${job_pids[@]}"' },
+      { id: "log",      label: "Log exit reason",       code: 'echo exit code + line' },
+      { id: "terminal", label: "Restore terminal",      code: 'tput cnorm' }
+    ];
+
+    var state = {
+      signals: { EXIT: true, ERR: true, INT: false, TERM: false, HUP: false, PIPE: false },
+      actions: { temp: true, lock: false, jobs: false, log: true, terminal: false },
+      style: "combined",
+      header: true,
+      sigName: true
+    };
+
+    // ---- Build signal cards ----
+    var grid = document.getElementById("signalGrid");
+    SIGNALS.forEach(function (s) {
+      var card = document.createElement("div");
+      card.className = "signal-card" + (state.signals[s.id] ? " on" : "");
+      card.setAttribute("data-sig", s.id);
+      card.innerHTML =
+        '<div class="signal-head">' +
+          '<span class="signal-name">' + s.id + '</span>' +
+          (s.num ? '<span class="signal-num">' + s.num + '</span>' : '') +
+          '<span class="signal-box">' + (state.signals[s.id] ? "\u2713" : "") + '</span>' +
+        '</div>' +
+        '<div class="signal-desc">' + s.desc + '</div>';
+      card.addEventListener("click", function () {
+        state.signals[s.id] = !state.signals[s.id];
+        card.classList.toggle("on", state.signals[s.id]);
+        card.querySelector(".signal-box").textContent = state.signals[s.id] ? "\u2713" : "";
+        render();
+      });
+      grid.appendChild(card);
+    });
+
+    // ---- Build action checklist ----
+    var list = document.getElementById("actionList");
+    ACTIONS.forEach(function (a) {
+      var row = document.createElement("div");
+      row.className = "check-row" + (state.actions[a.id] ? " on" : "");
+      row.innerHTML =
+        '<span class="check-box">' + (state.actions[a.id] ? "\u2713" : "") + '</span>' +
+        '<span class="check-text">' + a.label +
+          ' &nbsp;<span class="code">' + a.code + '</span></span>';
+      row.addEventListener("click", function () {
+        state.actions[a.id] = !state.actions[a.id];
+        row.classList.toggle("on", state.actions[a.id]);
+        row.querySelector(".check-box").textContent = state.actions[a.id] ? "\u2713" : "";
+        render();
+      });
+      list.appendChild(row);
+    });
+
+    // ---- Behavior toggles ----
+    document.getElementById("styleRow").addEventListener("click", function (e) {
+      var pill = e.target.closest(".radio-pill");
+      if (!pill) return;
+      state.style = pill.getAttribute("data-style");
+      this.querySelectorAll(".radio-pill").forEach(function (p) {
+        p.classList.toggle("on", p === pill);
+      });
+      render();
+    });
+    function bindToggle(elId, key) {
+      var el = document.getElementById(elId);
+      el.addEventListener("click", function () {
+        state[key] = !state[key];
+        el.classList.toggle("on", state[key]);
+        render();
+      });
+    }
+    bindToggle("optHeader", "header");
+    bindToggle("optSigName", "sigName");
+
+    // ---- Code generation ----
+    function selectedSignals() {
+      return SIGNALS.map(function (s) { return s.id; })
+        .filter(function (id) { return state.signals[id]; });
+    }
+
+    // Resource-teardown lines (everything except the log action).
+    function teardownLines(indent) {
+      var L = [];
+      if (state.actions.temp) {
+        L.push(indent + "# Remove the temp file so a crash never leaves it behind.");
+        L.push(indent + 'rm -f "$TMPFILE"');
+      }
+      if (state.actions.lock) {
+        L.push(indent + "# Release the lock so the next run is not blocked by a stale file.");
+        L.push(indent + 'rm -f "$LOCKFILE"');
+      }
+      if (state.actions.jobs) {
+        L.push(indent + "# Stop any background jobs this script started so they do not outlive it.");
+        L.push(indent + "local -a job_pids");
+        L.push(indent + "mapfile -t job_pids < <(jobs -p)");
+        L.push(indent + 'if [[ "${#job_pids[@]}" -gt 0 ]]; then');
+        L.push(indent + '  kill "${job_pids[@]}" 2>/dev/null || true');
+        L.push(indent + "fi");
+      }
+      if (state.actions.terminal) {
+        L.push(indent + "# Restore the cursor in case the script hid it (tput civis).");
+        L.push(indent + "tput cnorm 2>/dev/null || true");
+      }
+      return L;
+    }
+
+    function logLine(indent, sigExpr) {
+      // sigExpr is a shell expression/string for the signal label, or "" to omit.
+      var tag = state.sigName && sigExpr ? "[" + sigExpr + "] " : "";
+      var L = [];
+      L.push(indent + "# Report why we exited: non-zero is a failure, zero is clean.");
+      L.push(indent + "if (( exit_code != 0 )); then");
+      L.push(indent + '  echo "$CROSS ' + tag + 'failed: exit $exit_code near line $line_no" >&2');
+      L.push(indent + "else");
+      L.push(indent + '  echo "$CHECK ' + tag + 'clean exit"');
+      L.push(indent + "fi");
+      return L;
+    }
+
+    // Top-of-script variable declarations driven by selected actions.
+    function topVars() {
+      var L = [];
+      if (state.actions.temp) {
+        L.push("# Create the temp file up front so the trap can always remove it.");
+        L.push("TMPFILE=$(mktemp)");
+      }
+      if (state.actions.lock) {
+        L.push('LOCKFILE="/var/lock/myscript.lock"');
+      }
+      return L;
+    }
+
+    function exitCodeFor(sig) {
+      // Conventional 128 + signal number for fatal signals.
+      if (sig === "INT") return "130";
+      if (sig === "TERM") return "143";
+      if (sig === "HUP") return "129";
+      return "0";
+    }
+
+    function generateCombined(sigs) {
+      var fn = [];
+      fn.push("# One handler for every trapped signal. Args: $1 exit code, $2 line, $3 signal.");
+      fn.push("cleanup() {");
+      if (state.actions.log) {
+        fn.push('  local exit_code="$1"');
+        fn.push('  local line_no="$2"');
+      }
+      if (state.actions.log && state.sigName) fn.push('  local sig="${3:-EXIT}"');
+      fn.push("  # ERR and EXIT can both fire on one failure; run the body only once.");
+      fn.push('  [[ "${_CLEANED:-0}" -eq 1 ]] && return 0');
+      fn.push("  _CLEANED=1");
+      var td = teardownLines("  ");
+      if (td.length) { fn.push(""); td.forEach(function (l) { fn.push(l); }); }
+      if (state.actions.log) {
+        fn.push("");
+        logLine("  ", "$sig").forEach(function (l) { fn.push(l); });
+      }
+      fn.push("}");
+
+      var traps = [];
+      traps.push("# Single quotes: cleanup is resolved when the signal fires, not at definition (SC2064).");
+      sigs.forEach(function (s) {
+        traps.push("trap 'cleanup $? $LINENO " + s + "' " + s);
+      });
+      return { fn: fn, traps: traps, needsCleanFlag: true };
+    }
+
+    function generatePerSignal(sigs) {
+      var fn = [];
+      var needsTeardown = teardownLines("  ").length > 0;
+
+      if (needsTeardown) {
+        fn.push("# Shared teardown, idempotent so multiple handlers can call it safely.");
+        fn.push("do_cleanup() {");
+        fn.push('  [[ "${_CLEANED:-0}" -eq 1 ]] && return 0');
+        fn.push("  _CLEANED=1");
+        teardownLines("  ").forEach(function (l) { fn.push(l); });
+        fn.push("}");
+        fn.push("");
+      }
+
+      sigs.forEach(function (s, i) {
+        if (i > 0) fn.push("");
+        if (s === "EXIT") {
+          fn.push("on_exit() {");
+          if (state.actions.log) {
+            fn.push('  local exit_code=$?');
+            fn.push('  local line_no="${1:-0}"');
+          }
+          if (needsTeardown) fn.push("  do_cleanup");
+          if (state.actions.log) logLine("  ", "EXIT").forEach(function (l) { fn.push(l); });
+          if (!state.actions.log && !needsTeardown) fn.push("  :  # EXIT trapped; no action configured");
+          fn.push("}");
+        } else if (s === "ERR") {
+          fn.push("on_err() {");
+          if (state.actions.log) {
+            var tag = state.sigName ? "[ERR] " : "";
+            fn.push('  local exit_code=$?');
+            fn.push('  local line_no="$1"');
+            fn.push("  # Log the failing line before EXIT fires and tears things down.");
+            fn.push('  echo "$CROSS ' + tag + 'command failed: exit $exit_code at line $line_no" >&2');
+          } else {
+            fn.push("  :  # ERR trapped; enable Log exit reason to record the failing line");
+          }
+          fn.push("}");
+        } else {
+          var lower = "on_" + s.toLowerCase();
+          var code = exitCodeFor(s);
+          fn.push(lower + "() {");
+          if (needsTeardown) fn.push("  do_cleanup");
+          if (state.actions.log) {
+            var tag2 = state.sigName ? "[" + s + "] " : "";
+            fn.push('  echo "$CROSS ' + tag2 + 'received SIG' + s + '" >&2');
+          }
+          fn.push("  # 128 + signal number is the conventional exit code for a fatal signal.");
+          fn.push("  exit " + code);
+          fn.push("}");
+        }
+      });
+
+      var traps = [];
+      traps.push("# Single quotes so handler names resolve at fire time, not definition (SC2064).");
+      sigs.forEach(function (s) {
+        if (s === "ERR") traps.push("trap 'on_err $LINENO' ERR");
+        else if (s === "EXIT") traps.push("trap 'on_exit $LINENO' EXIT");
+        else traps.push("trap 'on_" + s.toLowerCase() + "' " + s);
+      });
+      return { fn: fn, traps: traps, needsCleanFlag: needsTeardown };
+    }
+
+    function build() {
+      var sigs = selectedSignals();
+      if (sigs.length === 0) {
+        return { full: "# Select at least one signal above to generate a trap block.", trap: "" };
+      }
+      var gen = state.style === "combined" ? generateCombined(sigs) : generatePerSignal(sigs);
+
+      // Assemble the body first so we can detect which convention vars it uses.
+      var bodyLines = gen.fn.concat(gen.traps);
+      var bodyText = bodyLines.join("\n");
+      var usesCheck = /\$CHECK\b/.test(bodyText);
+      var usesCross = /\$CROSS\b/.test(bodyText);
+
+      // ---- Full header assembly ----
+      var head = [];
+      head.push("#!/bin/bash");
+      head.push("# Script: myscript.sh");
+      head.push("# Purpose: A script without a trap leaves temp files, locks, and jobs behind when it crashes.");
+      head.push("# Usage: ./myscript.sh");
+      if (state.header) head.push("set -euo pipefail");
+      // Only declare the convention vars the generated code references (keeps it SC2034-clean).
+      if (usesCheck || usesCross) head.push("");
+      if (usesCheck) head.push('CHECK="\u2713"');
+      if (usesCross) head.push('CROSS="\u2717"');
+
+      var tv = topVars();
+      if (tv.length || gen.needsCleanFlag) head.push("");
+      if (gen.needsCleanFlag) head.push("_CLEANED=0   # guard so cleanup runs exactly once");
+      tv.forEach(function (l) { head.push(l); });
+
+      head.push("");
+      gen.fn.forEach(function (l) { head.push(l); });
+      head.push("");
+      gen.traps.forEach(function (l) { head.push(l); });
+
+      return { full: head.join("\n"), trap: gen.traps.join("\n") };
+    }
+
+    // ---- Lightweight highlighter (comments muted, keywords green) ----
+    function escapeHtml(s) {
+      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    var KW = ["set", "local", "trap", "if", "then", "else", "elif", "fi", "for",
+              "while", "do", "done", "case", "esac", "return", "exit", "function",
+              "declare", "mapfile", "readonly", "kill", "echo"];
+    var kwRe = new RegExp("\\b(" + KW.join("|") + ")\\b", "g");
+    function highlight(code) {
+      return code.split("\n").map(function (line) {
+        var trimmed = line.replace(/^\s+/, "");
+        if (trimmed.charAt(0) === "#") {
+          return '<span class="cm">' + escapeHtml(line) + "</span>";
+        }
+        return escapeHtml(line).replace(kwRe, '<span class="kw">$1</span>');
+      }).join("\n");
+    }
+
+    var current = { full: "", trap: "" };
+
+    function render() {
+      current = build();
+      document.getElementById("output").innerHTML = highlight(current.full);
+      // ERR-without-set-e warning
+      var bad = state.signals.ERR && !state.header;
+      document.getElementById("errWarn").classList.toggle("show", bad);
+    }
+
+    // ---- Copy buttons ----
+    function copy(text, btn, original) {
+      function done() {
+        btn.classList.add("copied");
+        btn.textContent = "Copied \u2713";
+        setTimeout(function () {
+          btn.classList.remove("copied");
+          btn.textContent = original;
+        }, 1400);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallback(text); done(); });
+      } else {
+        fallback(text); done();
+      }
+    }
+    function fallback(text) {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+    document.getElementById("copyTrap").addEventListener("click", function () {
+      copy(current.trap, this, "Copy trap block only");
+    });
+    document.getElementById("copyFull").addEventListener("click", function () {
+      copy(current.full, this, "Copy complete script header");
+    });
+
+    render();
+  </script>
+</body>
+</html>

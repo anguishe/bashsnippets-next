@@ -1,0 +1,305 @@
+---
+title: "Bash Scripting for CI/CD Pipelines: GitHub Actions, Deploys, and Docker"
+description: "A pipeline reported every step green and deployed broken code, because the build step piped its output through tee and bash returned the exit code of tee — always zero — instead of the compiler that had just failed. The error was real, the logs showed it, and the pipeline shipped anyway. CI is where bash fails differently than on a server: a silent failure can wear a green checkmark. This guide covers the four CI-specific failure modes, the minimal safe header for every step, validating secrets and environment variables before they cause cryptic mid-run errors, exit codes in pipelines and the PIPESTATUS array, Docker entrypoints and why exec \"$@\" is mandatory, deploy patterns that survive production, and how to debug a failing pipeline script with set -x. It is written for developers who run, debug, and modify bash they did not write — in GitHub Actions, Docker, and deploy scripts. Tested against Ubuntu 22.04 and 24.04 runners."
+tags: ["ci-cd", "github-actions", "devops", "deploy", "docker"]
+datePublished: "2026-06-10"
+dateModified: "2026-06-10"
+readingTime: "18 min"
+---
+
+A deployment pipeline ran for three weeks reporting every step green, and every one of those runs shipped a build that had failed to compile. The build step ended in `npm run build | tee build.log` so the output could be archived. Bash returns the exit status of the **last** command in a pipeline, which was `tee` — and `tee` always succeeds at copying text. The compiler's non-zero exit was discarded the instant the pipe handed off to `tee`. The error message was right there in `build.log`. GitHub Actions saw exit code 0, painted the step green, and deployed the broken artifact. Nobody looked at the log because the checkmark said there was nothing to look at.
+
+That is the defining property of bash in CI: a silent failure can present as success. On a server you watch the command fail in your terminal. In a pipeline, a swallowed exit code produces a green checkmark over broken code, and the gap between "the logs show an error" and "the pipeline reports failure" is exactly where outages are born. This guide is about closing that gap. It is written for the developer who inherits bash they did not write — inside a GitHub Actions `run:` block, a Docker `ENTRYPOINT`, a Kubernetes init container, a deploy script — and has to run it, debug it, and change it without breaking production.
+
+## Why bash in CI/CD fails differently than bash on a server
+
+There are four failure modes that are specific to CI and rarely bite you at an interactive prompt.
+
+**1. Exit codes swallowed by a pipe.** The story above is the canonical case. Any `command | tee`, `command | grep`, or `command | sort` returns the exit code of the *right-hand* command, masking a failure on the left. On a server you would notice the bad output; in CI the pipeline only checks the final exit code, and it is wrong. `set -o pipefail` is the fix, and it belongs in every CI step that contains a pipe whose left side can fail.
+
+**2. Shell provisioning differences.** GitHub's `ubuntu-latest` runners give you bash 5.x. The `macos-latest` runners ship bash 3.2 — a 2007 release frozen for licensing reasons — where associative arrays, `${var,,}` case conversion, and `mapfile` do not exist. A script that passes on the Ubuntu runner can fail with a syntax error on the macOS runner in the same workflow. If a step must run cross-platform, target the lowest common denominator or pin the shell.
+
+**3. Environment variable injection gaps.** CI sets variables you do not control and does not set ones you assume exist. `$HOME`, `$USER`, and `$PATH` differ from your laptop; `$CI`, `$GITHUB_SHA`, and dozens of others appear that you never defined. A script that reads `$DEPLOY_TARGET` and finds it empty will, without `set -u`, treat it as the empty string and do something silently wrong rather than failing.
+
+**4. Interactive-shell assumptions.** CI runs a *non-interactive, non-login* shell. It does not source `~/.bashrc` or `~/.bash_profile`, so aliases are absent, functions you defined for your prompt are gone, and `PATH` may not include directories your login shell adds. A command that works when you type it can produce `command not found` in CI purely because the environment that defined it was never loaded.
+
+Here is the shape of the fix at the workflow level — `set -euo pipefail` at the top of a multi-line `run:` block:
+
+```yaml
+- name: Build and verify
+  run: |
+    set -euo pipefail
+    npm ci
+    npm run build | tee build.log
+    grep -q "build succeeded" build.log
+```
+
+It belongs there even though GitHub Actions reports step failures on its own, because Actions only sees the exit code of the whole block. Without `pipefail`, the `tee` on line three hides a build failure; without `set -e`, a failure on line two does not stop line three from running against a half-built tree. The runner's own failure detection is downstream of bash's — if bash reports success, Actions believes it.
+
+## The minimal safe bash header for every CI step
+
+Every CI bash step should start with the same few lines. They are not boilerplate; each one closes one of the failure modes above.
+
+```bash
+#!/usr/bin/env bash
+# Strict mode: turn silent failures into loud ones.
+set -euo pipefail
+IFS=$'\n\t'   # split only on newline and tab, never on spaces
+```
+
+`set -e` exits the moment any command returns non-zero, which in CI means the step exits non-zero and the workflow registers a failure and fires its notifications. `set -u` treats any reference to an unset variable as an error and exits — so a typo'd `$DPLOY_TARGET` or a missing secret fails immediately instead of expanding to an empty string and corrupting a path. `set -o pipefail` makes a pipeline return the first non-zero exit code among its commands rather than only the last, which is what catches the `| tee` class of bug.
+
+The `IFS=$'\n\t'` line changes word splitting so bash splits unquoted expansions only on newlines and tabs, not spaces. In CI you frequently process lists where the elements are paths or values that may contain spaces; restricting `IFS` makes accidental space-splitting far less likely. You do not always need it, but it is cheap insurance and harmless when your data has no spaces. For a deeper treatment of why these flags matter and the failure each one prevents, see [Bash Error Handling](/snippets/bash-error-handling).
+
+A small logging helper makes CI logs readable when several steps interleave output. Prefix every line with the step name so a failed run is greppable:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+STEP="${1:-build}"   # name this stage so its log lines are identifiable
+
+log() {
+  # Send to stderr so it survives stdout redirection, and tag it with the step.
+  echo "[$STEP] $*" >&2
+}
+
+log "starting"
+# ... work ...
+log "complete"
+```
+
+Fifteen lines, and they eliminate all four CI-specific failure modes at the top of every step.
+
+## Handling environment variables and secrets safely
+
+In GitHub Actions, `env:` values and `secrets:` values arrive in the shell **identically** — both become ordinary environment variables. The shell cannot tell a secret from a public config value; the only difference is that Actions masks the secret's literal string in the log output. That is exactly why it is dangerous: the moment you transform a secret — base64-decode it, slice it, interpolate it into a longer string — the transformed value no longer matches the mask, and it prints in clear text.
+
+The first habit is failing fast when a required variable is missing. `set -u` catches an *unset* variable, but a variable set to an empty string passes `-u`. Use the `${VAR:?message}` expansion to require a non-empty value:
+
+```bash
+DEPLOY_KEY="${DEPLOY_KEY:?DEPLOY_KEY is required but was empty or unset}"
+```
+
+If `DEPLOY_KEY` is missing or blank, the script aborts on this line with your message, instead of failing on line 47 with a cryptic `permission denied` that takes twenty minutes to trace back to a missing secret.
+
+For multiple required variables, a `validate_env` function run at the top of the script turns a class of mid-run mysteries into a single clear message at startup:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+# Fail at startup with the full list of missing variables, not one at a time on line 47.
+validate_env() {
+  local missing=()
+  local var
+  for var in "$@"; do
+    # Indirect expansion: ${!var} is the value of the variable NAMED by $var.
+    if [[ -z "${!var:-}" ]]; then
+      missing+=("$var")
+    fi
+  done
+  if [[ "${#missing[@]}" -gt 0 ]]; then
+    echo "$CROSS Missing required env vars: ${missing[*]}" >&2
+    exit 1
+  fi
+  echo "$CHECK All required env vars present"
+}
+
+validate_env DEPLOY_TARGET DEPLOY_KEY REGISTRY_URL
+```
+
+The `${!var}` indirect expansion reads the value of the variable *named by* `$var`, so the function checks each requested variable by name and collects every missing one before exiting. A developer who forgot two secrets sees both in one message rather than discovering them one failed run at a time.
+
+On the leak pattern: never `echo` a secret to debug it, and be wary of `set -x` (covered below) in any step that touches secrets — trace mode prints every expansion, and a masked secret that gets concatenated or transformed will appear in the trace in a form the masker does not recognize. If you must trace a step that handles secrets, scope the trace tightly around the non-secret logic.
+
+## Exit codes in pipelines — the silent killer
+
+This is the failure mode worth understanding in full, because it is the one that ships broken code under a green checkmark.
+
+Consider `grep "ERROR" deploy.log | wc -l > /dev/null`. The intent is "fail if there are errors in the log." It never fails. Bash reports the exit code of the last command in the pipeline — `wc`, which succeeds at counting whether the count is zero or a thousand. The `grep` exit code, the one that actually carries the signal, is thrown away.
+
+Two tools fix this. `PIPESTATUS` is an array holding the exit code of every command in the most recent pipeline:
+
+```bash
+npm run build | tee build.log
+# ${PIPESTATUS[0]} is npm's exit code; ${PIPESTATUS[1]} is tee's.
+build_rc="${PIPESTATUS[0]}"
+if [[ "$build_rc" -ne 0 ]]; then
+  echo "build failed with code $build_rc" >&2
+  exit "$build_rc"
+fi
+```
+
+`PIPESTATUS` must be read immediately after the pipeline — the very next command overwrites it — and indexes left to right, so `[0]` is the leftmost command.
+
+`set -o pipefail` is the broader fix: it makes the whole pipeline return the first non-zero exit code among its members, so `npm run build | tee build.log` fails when `npm` fails regardless of `tee`. Turn it on in your header and most pipeline-exit bugs disappear.
+
+`pipefail` has one well-known false positive: `grep` returns exit code 1 when it finds no matches, which is often a perfectly fine outcome. Under `pipefail` plus `set -e`, a no-match `grep` in a pipeline aborts the script. Handle it explicitly:
+
+```bash
+# A no-match grep returns 1; that is fine here, so absorb it without aborting.
+error_count=$(grep -c "ERROR" deploy.log || true)
+if [[ "$error_count" -gt 0 ]]; then
+  echo "found $error_count errors" >&2
+  exit 1
+fi
+```
+
+The `|| true` swallows grep's "no match" exit so `set -e` does not fire, while still letting you act on the count. Use it deliberately and only where a non-match is genuinely acceptable — blanketing every command in `|| true` reintroduces exactly the silent-success problem you are trying to eliminate.
+
+## Docker and bash — entrypoints, init containers, and exec
+
+Every Docker `ENTRYPOINT` shell script must end with `exec "$@"`, and forgetting it breaks signal handling in a way that is invisible until a deploy hangs.
+
+Without `exec`, your entrypoint script stays running as PID 1 and launches your real process as a child. When the orchestrator sends `SIGTERM` to stop the container — which it does on every `docker stop`, every rolling deploy, every pod eviction — that signal goes to the *script*, not to your application. The script, a plain bash process, does not forward it. Your application never learns it should shut down. After the grace period (10 seconds by default), the orchestrator gives up and sends `SIGKILL`, which terminates your process abruptly with no chance to flush buffers, close connections, or finish in-flight requests. Connections drop, data in flight is lost, and shutdowns that should take a second take ten.
+
+`exec "$@"` replaces the shell process with your application, so your application *becomes* PID 1 and receives signals directly. Combined with a `trap`, you get graceful shutdown:
+
+```bash
+#!/usr/bin/env bash
+# Docker entrypoint: forward signals and start the app as PID 1.
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+# Wait for a dependency to be ready before starting the main process.
+wait_for() {
+  local host="$1" port="$2" attempts="${3:-30}"
+  local i
+  for ((i = 1; i <= attempts; i++)); do
+    if timeout 2 bash -c "echo > /dev/tcp/$host/$port" 2>/dev/null; then
+      echo "$CHECK $host:$port is ready"
+      return 0
+    fi
+    echo "waiting for $host:$port ($i/$attempts)"
+    sleep $(( i < 5 ? i : 5 ))   # back off, capped at 5s
+  done
+  echo "$CROSS $host:$port never became ready" >&2
+  return 1
+}
+
+# Optional graceful-shutdown hook before exec hands off PID 1.
+trap 'echo "received SIGTERM, shutting down" >&2' TERM
+
+wait_for "${DB_HOST:?DB_HOST required}" "${DB_PORT:-5432}"
+
+# exec replaces the shell so the app becomes PID 1 and receives signals directly.
+exec "$@"
+```
+
+The `wait_for` function is the wait-for-it pattern: it probes a dependency's TCP port with a short `timeout`, retries with a backoff that climbs and then caps, and gives up with a clear error after a bounded number of attempts rather than blocking forever. The trap pattern here is worth understanding in isolation; the [Bash trap & Signal Handler Builder](/tools/bash-trap-builder) generates the exact signal-handling block for whatever combination of EXIT, ERR, and TERM your entrypoint needs.
+
+## Deploying with bash — the patterns that survive production
+
+A deploy script that copies files over the running release is a deploy script that serves half-written files to live traffic during the copy. The patterns below avoid that.
+
+**Atomic symlink swap.** Deploy into a fresh timestamped directory, then flip a `current` symlink in one atomic operation. The webserver always points at `current`; there is no window where it serves a partial release.
+
+**Rollback by preserving releases.** Because each deploy lands in its own timestamped directory and you keep the last several, rollback is re-pointing the symlink at the previous directory — the same script can do both.
+
+**Post-deploy health check.** Curl a health endpoint in a loop after the swap; if it does not return 200 within a bounded number of attempts, fail the deploy so the pipeline goes red.
+
+**Git SHA tagging.** Write the deployed commit's SHA into the release so you can always answer "what exactly is running right now."
+
+```bash
+#!/usr/bin/env bash
+# Script: deploy.sh
+# Purpose: Copy-over-live deploys serve half-written files; atomic symlink swaps do not.
+# Usage: ./deploy.sh [--rollback]
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+RELEASES_DIR="/srv/app/releases"
+CURRENT_LINK="/srv/app/current"
+HEALTH_URL="http://127.0.0.1:8080/healthz"
+KEEP_RELEASES=5
+HEALTH_ATTEMPTS=10
+
+rollback() {
+  # Point 'current' at the second-newest release directory.
+  local prev
+  # shellcheck disable=SC2012  # sorting release dirs by mtime; ls -1dt is the readable idiom here
+  prev=$(ls -1dt "$RELEASES_DIR"/*/ | sed -n '2p')
+  [[ -n "$prev" ]] || { echo "$CROSS no previous release to roll back to" >&2; exit 1; }
+  ln -sfn "$prev" "$CURRENT_LINK"
+  echo "$CHECK rolled back to $prev"
+  exit 0
+}
+
+[[ "${1:-}" == "--rollback" ]] && rollback
+
+# Fresh timestamped release dir; nothing live is touched until the swap.
+release="$RELEASES_DIR/$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$release"
+rsync -a ./build/ "$release/"
+
+# Stamp the exact commit so 'what is running' is always answerable.
+git rev-parse HEAD > "$release/REVISION"
+
+# Atomic swap: ln -sfn replaces the symlink in one operation, no partial state.
+ln -sfn "$release" "$CURRENT_LINK"
+echo "$CHECK swapped current → $release"
+
+# Health check; fail the deploy (red pipeline) if the app does not come up.
+healthy=0
+for ((i = 1; i <= HEALTH_ATTEMPTS; i++)); do
+  if curl -sf "$HEALTH_URL" >/dev/null; then
+    healthy=1
+    echo "$CHECK health check passed on attempt $i"
+    break
+  fi
+  sleep 2
+done
+if [[ "$healthy" -ne 0 ]]; then
+  # Prune old releases, keeping the most recent KEEP_RELEASES.
+  # shellcheck disable=SC2012  # sorting release dirs by mtime; ls -1dt is the readable idiom here
+  ls -1dt "$RELEASES_DIR"/*/ | tail -n +$((KEEP_RELEASES + 1)) | xargs -r rm -rf
+else
+  echo "$CROSS health check failed; rolling back" >&2
+  rollback
+fi
+```
+
+`ln -sfn` is the load-bearing line: `-f` forces replacement, `-n` treats the existing symlink as a file rather than following into the directory it points at, and the operation is atomic so no request ever sees a half-swapped state. The health check converts "the deploy finished" into "the deploy works," and a failure rolls back automatically instead of leaving a broken release live. For deploys that authenticate to remote hosts, the SSH key provisioning is its own concern — see [SSH Key Setup Script](/snippets/ssh-key-setup-script) for non-interactive key setup that does not prompt mid-pipeline. And for deploys triggered on a schedule rather than on push, the [Cron Job Builder](/tools/cron-job-builder) generates the crontab entry with correct environment and logging.
+
+## Debugging a failing CI pipeline bash script
+
+When a step fails and the logs do not say why, trace execution. `bash -x` runs a script with every command printed before it executes:
+
+```yaml
+- name: Debug deploy
+  run: bash -x ./deploy.sh
+```
+
+For a long script, tracing the whole thing is noise. Toggle tracing around just the suspect section with `set -x` and `set +x`:
+
+```bash
+echo "everything before here runs normally"
+set -x                      # trace ON
+problematic_function "$arg"
+set +x                      # trace OFF
+echo "back to quiet output"
+```
+
+Reading trace output: each traced line is prefixed with `+`, and nested function calls add more `+` characters so you can see call depth. The critical tell is variable expansion — a line like `+ rsync -a /build/ /srv/app/releases//` with a doubled slash or an obviously empty segment shows you a variable expanded to nothing, which is usually the bug. An *unset* variable under `set -u` aborts before it ever reaches the trace; an *empty* variable expands to nothing and shows as a gap in the traced command. That distinction — abort versus silent gap — tells you whether the variable was never set or was set to the empty string.
+
+Finally, capture output without losing exit codes. The naive `./deploy.sh | tee deploy.log` reintroduces the pipe-exit-code bug from earlier. Either set `pipefail` so the pipeline reports `deploy.sh`'s failure, or read `${PIPESTATUS[0]}` immediately after the pipe to recover the real exit code. In a debugging context where you are capturing logs of a step you suspect is failing, getting the exit code right is the whole point — a log of a failure that the pipeline scored as success is the original problem all over again.
+
+## Checklist — is your CI bash script production-ready?
+
+- [ ] Starts with `set -euo pipefail`
+- [ ] All required env vars validated with `${VAR:?}` (or a `validate_env` call) at startup
+- [ ] No pipelines where exit codes matter without `set -o pipefail`
+- [ ] Cleanup on failure via a `trap EXIT` handler
+- [ ] Docker entrypoint ends with `exec "$@"`
+- [ ] Deploy script preserves the previous release for rollback
+- [ ] Health check runs after deploy; the script fails if the check fails
+- [ ] Tested on the same runner OS (Ubuntu 22.04 / 24.04) the pipeline actually uses

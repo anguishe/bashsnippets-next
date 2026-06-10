@@ -1,0 +1,186 @@
+---
+title: "Bash Argument Parsing: Positional Args, getopts, and Long Flags"
+description: "A deploy script that reads $1 as the environment name will happily accept --env as the environment and deploy to a target that does not exist, silently falling through to whatever default it has. That is exactly how a production deploy became a no-op while the service ran degraded for 40 minutes. Argument parsing exists to make that impossible — to reject malformed input loudly instead of guessing. This page covers the three layers you need: positional arguments with defaults and ${1:?} validation, getopts for POSIX short flags like -v and -f FILE, and the while+case pattern for GNU-style --long-flags since getopts cannot parse them. It shows how to combine positional args with optional flags in one script, why the -- end-of-options sentinel matters, and ends with a backup script that accepts --source, --dest, --dry-run, and --days with a real usage() function and required-argument validation. Tested on Ubuntu 22.04 LTS and RHEL 9 with bash 5.1."
+tags: ["bash", "arguments", "getopts", "cli"]
+difficulty: "intermediate"
+datePublished: "2026-06-10"
+dateModified: "2026-06-10"
+howToSteps:
+  - name: "Read positional args with defaults and validation"
+    text: "Access ordered arguments as $1, $2. Supply a default with ${1:-value} or require one with ${1:?message} so a missing argument fails immediately and clearly."
+  - name: "Parse short flags with getopts"
+    text: "Use a while getopts \"hvf:\" opt loop for POSIX short options. A trailing colon (f:) means that flag takes an argument, available in $OPTARG."
+  - name: "Parse long flags with a while+case loop"
+    text: "getopts cannot handle --long-flags. Use while [[ $# -gt 0 ]]; do case \"$1\" in --verbose) ...; shift;; esac; done and shift past each consumed argument."
+  - name: "Validate required arguments after parsing"
+    text: "After the parse loop, check that mandatory variables were set. If a required --source is empty, print usage and exit non-zero rather than running with a blank path."
+  - name: "Use -- to separate flags from positional values"
+    text: "Pass -- to mark the end of options so a positional argument starting with a dash (like a filename -weird.txt) is not misread as a flag."
+faq:
+  - question: "How do I parse command-line arguments in a bash script?"
+    answer: "For simple ordered input use positional parameters $1, $2 with ${1:?} validation. For short flags (-v, -f file) use getopts. For GNU-style long flags (--verbose, --file=path) use a while loop with a case statement and shift, because getopts does not support long options. Most production scripts use the while+case pattern."
+  - question: "Why doesn't getopts work with long options like --verbose?"
+    answer: "getopts implements the POSIX short-option syntax only: single-dash, single-letter flags. It has no support for GNU-style double-dash long options. To accept --verbose or --file=path you must write a manual while [[ $# -gt 0 ]]; do case \"$1\" in ... esac; shift; done loop."
+  - question: "How do I set a default value for a missing bash argument?"
+    answer: "Use ${1:-default} to substitute a value when $1 is unset or empty without assigning it, or ${1:=default} to also assign it. To make an argument mandatory instead, use ${1:?error message}, which aborts with your message if the argument is missing."
+  - question: "What does -- mean in a bash command?"
+    answer: "-- marks the end of options. Everything after it is treated as a positional argument even if it begins with a dash. It prevents a filename like -rf.txt or a value like --weird from being misinterpreted as a flag, both when you call other commands and when parsing your own script's input."
+  - question: "How do I show a usage message and exit when arguments are wrong?"
+    answer: "Define a usage() function that echoes the expected syntax to stderr and returns or exits non-zero. Call it from your argument-validation block and on -h/--help. Sending usage to stderr (>&2) keeps it out of piped stdout and signals an error condition to callers."
+---
+
+A deploy script accepted its target environment as the first positional argument: `ENV="$1"`. A teammate, reasonably, ran it as `./deploy.sh --env prod`, expecting production. The script read `$1` — which was the literal string `--env` — as the environment name, looked for a config directory called `--env`, did not find one, and fell through to its default, which happened to be `staging`. The production deploy never executed. There was no error, because from the script's point of view nothing had gone wrong: it deployed to staging exactly as its (silent) default instructed. The production service ran the previous, degraded build for 40 minutes before someone checking the dashboard noticed traffic errors. Argument parsing is the discipline that turns that silent fallthrough into a loud, immediate `unknown option: --env` — a refusal instead of a guess.
+
+## Positional arguments with defaults and validation
+
+The simplest input is ordered: `$1`, `$2`, `$3`. Give optional arguments a default and make required ones mandatory:
+
+```bash
+# Optional with a default — substitutes if $1 is unset or empty:
+LOG_LEVEL="${1:-info}"
+
+# Required — aborts with your message if $2 is missing:
+TARGET="${2:?Usage: deploy.sh [log-level] <target>}"
+```
+
+`${1:-info}` supplies `info` when no first argument is given, without assigning anything. `${2:?message}` stops the script immediately with your message if the argument is absent. That single character — `:?` instead of `:-` — is the line between "fail loudly now" and "guess and corrupt later."
+
+## getopts for short flags
+
+For POSIX single-letter flags, `getopts` is built in and reliable. A trailing colon after a letter means that flag takes an argument, delivered in `$OPTARG`:
+
+```bash
+verbose=0
+file=""
+
+# "hvf:" — h and v are boolean flags; f: takes an argument.
+while getopts "hvf:" opt; do
+  case "$opt" in
+    h) echo "Usage: script.sh [-v] [-f FILE]"; exit 0 ;;
+    v) verbose=1 ;;
+    f) file="$OPTARG" ;;
+    *) echo "Invalid option" >&2; exit 1 ;;   # getopts sets opt to ? on error
+  esac
+done
+shift $((OPTIND - 1))   # drop parsed flags so $1 is the first positional arg
+```
+
+The `shift $((OPTIND - 1))` at the end discards everything `getopts` consumed, so any remaining `$1`, `$2` are the positional arguments that came after the flags. `getopts` handles bundling (`-vf file`) and reports errors for unknown flags — but it speaks only short options.
+
+## Long options with while + case
+
+`getopts` cannot parse `--verbose` or `--file=path`. For GNU-style long flags — which is what most users expect in 2026 — write the parse loop by hand:
+
+```bash
+verbose=0
+file=""
+dry_run=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --verbose)   verbose=1; shift ;;
+    --dry-run)   dry_run=1; shift ;;
+    --file)      file="$2"; shift 2 ;;        # value is the next argument
+    --file=*)    file="${1#*=}"; shift ;;     # value is glued with =
+    --)          shift; break ;;              # end of options
+    -*)          echo "Unknown option: $1" >&2; exit 1 ;;
+    *)           break ;;                     # first non-flag = start of positionals
+  esac
+done
+```
+
+Each branch `shift`s past what it consumed — `shift` for a boolean, `shift 2` for a flag plus its separate-word value. The `--file=*` branch handles the `--file=path` spelling by stripping everything up to and including the `=` with `${1#*=}`. The `-*)` catch-all rejects unknown flags loudly, which is precisely the protection the deploy script lacked.
+
+## Combining positional args and flags
+
+Real scripts take both — a positional source plus optional flags. The `--) shift; break` and `*) break` branches above hand control back to your positional handling once flags are exhausted, so after the loop the remaining `"$@"` are your positional arguments.
+
+## The -- end-of-options sentinel
+
+`--` tells a command "no more flags follow." It matters both when you call other commands and when parsing your own input. If a filename legitimately starts with a dash — `-recovery.log` — then `rm "$file"` would treat it as a flag and error out, but `rm -- "$file"` forces it to be read as a filename. Pass `--` through to subcommands when any argument value could begin with a dash.
+
+## Validating positional arguments and subcommand dispatch
+
+After the flag loop consumes options, the remaining `"$@"` are your positional arguments. Validate their count before using them, the same way you validated required flags:
+
+```bash
+# After the while/case parse loop, "$@" holds whatever was not a flag.
+if [[ "$#" -lt 1 ]]; then
+  echo "$CROSS expected at least one path argument" >&2
+  exit 1
+fi
+input="$1"
+```
+
+For tools that group behavior under verbs — `script.sh deploy`, `script.sh rollback`, the model `git` and `docker` use — dispatch on the first positional argument with a `case`:
+
+```bash
+subcommand="${1:-}"
+shift || true   # drop the verb so "$@" now holds only ITS arguments
+
+case "$subcommand" in
+  deploy)    run_deploy "$@" ;;
+  rollback)  run_rollback "$@" ;;
+  status)    run_status "$@" ;;
+  ""|help)   usage 0 ;;
+  *)         echo "$CROSS unknown command: $subcommand" >&2; usage ;;
+esac
+```
+
+The `shift` removes the verb so each handler function sees only its own arguments, and the `*)` branch rejects an unknown subcommand with the same loud failure you give an unknown flag. This is how one script grows from a single action into a small CLI without collapsing into a tangle of nested `if` statements — and every unrecognized input still fails visibly instead of falling through to a silent default.
+
+## Complete production script
+
+A backup script accepting `--source`, `--dest`, `--dry-run`, and `--days`, with a `usage()` function, required-argument validation, and clear error messages.
+
+```bash
+#!/bin/bash
+# Script: flexible-backup.sh
+# Purpose: Without required-arg validation, a missing --source backs up an empty path silently.
+# Usage: ./flexible-backup.sh --source DIR --dest DIR [--days N] [--dry-run]
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+src=""
+dest=""
+retention_days=30   # named default, not a magic number buried in the logic
+dry_run=0
+
+# Usage goes to stderr so it does not pollute piped stdout.
+usage() {
+  echo "Usage: flexible-backup.sh --source DIR --dest DIR [--days N] [--dry-run]" >&2
+  exit "${1:-1}"
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --source)  src="$2"; shift 2 ;;
+    --dest)    dest="$2"; shift 2 ;;
+    --days)    retention_days="$2"; shift 2 ;;
+    --dry-run) dry_run=1; shift ;;
+    -h|--help) usage 0 ;;
+    --)        shift; break ;;
+    -*)        echo "$CROSS Unknown option: $1" >&2; usage ;;
+    *)         echo "$CROSS Unexpected argument: $1" >&2; usage ;;
+  esac
+done
+
+# Validate required arguments AFTER parsing — never assume they were set.
+[[ -n "$src"  ]] || { echo "$CROSS --source is required"; usage; }
+[[ -n "$dest" ]] || { echo "$CROSS --dest is required";   usage; }
+[[ -d "$src"  ]] || { echo "$CROSS source dir not found: $src" >&2; exit 1; }
+
+if [[ "$dry_run" -eq 1 ]]; then
+  echo "$CHECK DRY RUN: would back up $src → $dest, pruning files older than $retention_days days"
+  exit 0
+fi
+
+mkdir -p "$dest"
+rsync -a "$src/" "$dest/"
+find "$dest" -type f -mtime +"$retention_days" -delete
+echo "$CHECK Backed up $src → $dest (retention ${retention_days}d)"
+```
+
+The flags can arrive in any order, missing required arguments are caught before a single file moves, and `--dry-run` lets a user verify the resolved paths and retention window before committing. The script refuses bad input instead of guessing — which is the entire job of argument parsing, and the whole reason that 40-minute degraded deploy could not happen here.

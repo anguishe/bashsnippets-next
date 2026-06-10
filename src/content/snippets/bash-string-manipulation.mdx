@@ -1,0 +1,160 @@
+---
+title: "Bash String Manipulation: Substrings, Replace, and Parameter Expansion"
+description: "Extracting a domain from a URL with cut -d/ -f3 works until the input gains an s — https:// shifts the field positions and the same command silently returns the wrong slice. One script that did this addressed 2,300 notification emails to null@domain instead of the real recipients before anyone caught it. Bash parameter expansion handles this class of work without spawning a subshell and without silent wrong-field bugs, because it operates on pattern boundaries rather than blind field counts. This page covers length with ${#var}, substrings with ${var:offset:length}, prefix and suffix stripping with #/##/%/%% (shortest vs greedy), search-and-replace with / and //, case conversion (bash 4+), and the ${var:-} / ${var:=} / ${var:?} default trio. It also covers when sed or awk is the more readable choice. It ends with a filename normalizer built entirely from parameter expansion — no subshells. Tested on Ubuntu 22.04 LTS and RHEL 9 with bash 5.1."
+tags: ["bash", "strings", "parameter-expansion", "scripting"]
+difficulty: "intermediate"
+datePublished: "2026-06-10"
+dateModified: "2026-06-10"
+howToSteps:
+  - name: "Get length and substrings without a subshell"
+    text: "Use ${#var} for length and ${var:offset:length} for a substring. These run inside bash with no external process, unlike echo \"$var\" | cut or wc -c."
+  - name: "Strip prefixes with # and ##"
+    text: "${var#pattern} removes the shortest matching prefix; ${var##pattern} removes the longest. Use ## with */ to extract a filename from a full path."
+  - name: "Strip suffixes with % and %%"
+    text: "${var%pattern} removes the shortest matching suffix; ${var%%pattern} the longest. Use % with .* to drop a single file extension."
+  - name: "Replace with / and //"
+    text: "${var/old/new} replaces the first match; ${var//old/new} replaces all matches. Use // to turn every space in a filename into an underscore."
+  - name: "Choose defaults with :- := and :?"
+    text: "${var:-default} substitutes without assigning, ${var:=default} assigns too, and ${var:?message} aborts if unset. Pick based on whether you want to set, read, or require the variable."
+faq:
+  - question: "How do I extract a substring in bash?"
+    answer: "Use ${var:offset:length}. ${var:0:8} returns the first 8 characters; ${var:5} returns everything from index 5 to the end. Offsets are zero-based. A negative offset like ${var: -3} (note the space) counts from the end. This runs inside bash with no subshell."
+  - question: "What is the difference between # and ## in bash parameter expansion?"
+    answer: "Both strip a matching prefix. ${var#pattern} removes the shortest match; ${var##pattern} removes the longest (greedy). For a path like /a/b/c.txt, ${var##*/} gives c.txt (everything up to the last slash removed), while ${var#*/} gives a/b/c.txt (only up to the first slash removed)."
+  - question: "How do I replace all occurrences of a character in a bash string?"
+    answer: "Use ${var//old/new} with double slashes for all matches; ${var/old/new} with a single slash replaces only the first. For example, ${name// /_} replaces every space in $name with an underscore — a common filename-sanitizing step with no subshell."
+  - question: "How do I convert a bash string to lowercase or uppercase?"
+    answer: "In bash 4+, ${var,,} lowercases the whole string and ${var^^} uppercases it; ${var,} and ${var^} change only the first character. These are built in. On bash 3.2 (default macOS) they are unavailable — fall back to tr '[:upper:]' '[:lower:]'."
+  - question: "When should I use sed or awk instead of bash parameter expansion?"
+    answer: "Use parameter expansion for single-variable, fixed-pattern edits — stripping a path, dropping an extension, swapping a character — because it avoids a subshell and is fast in loops. Switch to sed or awk when you need real regular expressions, multi-line processing, or transformations across many lines, where a parameter-expansion equivalent would be unreadable."
+---
+
+A script extracted the hostname from a URL with `cut -d/ -f3` — split on `/`, take the third field. For `http://example.com/path` the fields are `http:`, ``, `example.com`, `path`, so field 3 is `example.com`. Correct. Then the upstream system started emitting `https://` URLs. The field positions did not move — `https:` is still field 1, the empty string is still field 2, `example.com` is still field 3 — but a developer "fixed" an unrelated parsing change and shifted the field number, and now field 3 returned an empty fragment. The script built recipient addresses from that empty value and sent 2,300 notification emails to `null@domain` instead of real users before the bounce rate triggered an alert. The lesson is not "be careful with `cut`." It is that field-counting is fragile against format changes, while bash parameter expansion matches on *pattern boundaries* — and does it without spawning a subshell per call, which matters when you are doing this 2,300 times in a loop.
+
+## Length and substrings
+
+```bash
+path="backup_20240310_120000.tar.gz"
+
+echo "${#path}"        # 30 — string length, no subshell
+
+# Extract the 8-char date that starts at offset 7:
+echo "${path:7:8}"     # 20240310
+```
+
+`${#var}` is the length. `${var:offset:length}` slices: zero-based offset, then how many characters. Omit the length (`${var:7}`) to take everything to the end. This replaces `echo "$path" | cut -c8-15` with no pipe and no external process.
+
+## Prefix stripping: # and ##
+
+`#` removes the shortest matching prefix; `##` removes the longest (greedy). The canonical use is pulling the filename out of a full path:
+
+```bash
+full="/var/log/app/error.log"
+
+echo "${full##*/}"   # error.log   — remove everything up to the LAST slash (greedy)
+echo "${full#*/}"    # var/log/app/error.log — remove up to the FIRST slash only
+```
+
+`*/` is the pattern "anything ending in a slash." With `##` it matches as much as possible, deleting all directory components and leaving the basename — the parameter-expansion equivalent of `basename`. With `#` it matches as little as possible, removing only the leading slash.
+
+## Suffix stripping: % and %%
+
+`%` and `%%` do the same, anchored at the end. The everyday use is dropping a file extension:
+
+```bash
+file="archive.tar.gz"
+
+echo "${file%.*}"    # archive.tar  — remove the shortest .* suffix (just .gz)
+echo "${file%%.*}"   # archive      — remove the longest .* suffix (.tar.gz)
+```
+
+Choose `%` to strip one extension and `%%` to strip a compound one. This is `dirname`/`basename`-style work done inside the shell.
+
+## Search and replace: / and //
+
+A single `/` replaces the first match; `//` replaces every match:
+
+```bash
+name="Q3 sales report final"
+
+echo "${name/ /_}"    # Q3_sales report final  — first space only
+echo "${name// /_}"   # Q3_sales_report_final  — every space
+```
+
+`${var// /_}` is the standard way to make a string filesystem-safe by turning spaces into underscores — no `sed`, no subshell.
+
+## Case conversion (bash 4+)
+
+```bash
+svc="NGINX"
+
+echo "${svc,,}"   # nginx  — whole string to lowercase
+echo "${svc^^}"   # NGINX  — whole string to uppercase
+echo "${svc,}"    # nGINX  — first character only to lowercase
+echo "${svc^}"    # Nginx  — first character only to uppercase (after a ,, )
+```
+
+These are built into bash 4.0+. The system bash on macOS is 3.2, where they do not exist — if your script must run there too, fall back to `tr '[:upper:]' '[:lower:]'`.
+
+## Default values: :- := and :?
+
+Three expansions, three intents:
+
+```bash
+LOG_DIR="${LOG_DIR:-/var/log/app}"   # read with a fallback; does NOT assign
+: "${CACHE_DIR:=/tmp/cache}"          # assign the default into CACHE_DIR if unset
+DB_HOST="${DB_HOST:?DB_HOST must be set}"  # abort with a message if unset/empty
+```
+
+`:-` substitutes a value for this one use without changing the variable. `:=` also assigns it, so every later reference sees the default (note: `:=` cannot be used directly on positional parameters, hence the `:` no-op command idiom). `:?` enforces that the variable was provided and stops the script with your message otherwise — the right choice for required configuration like database credentials in CI.
+
+## When NOT to use parameter expansion
+
+Parameter expansion wins for single-variable, fixed-pattern edits because it skips the subshell. It loses on readability the moment you need real regular expressions, multi-line input, or a transformation applied across many lines. Extracting a path component: parameter expansion. Replacing the third comma-separated field in every line of a 50,000-line CSV: `awk`. Rewriting a string only when it matches a complex regex with capture groups: `sed -E`. If the parameter-expansion version requires a comment to explain what the pattern does, the `sed`/`awk` version is probably the more maintainable choice. Speed favors expansion in tight loops; clarity favors `sed`/`awk` for genuinely text-processing tasks.
+
+## Complete production script
+
+A filename normalizer that strips the path, downcases, replaces spaces with underscores, and removes a trailing `_YYYYMMDD` date suffix — using parameter expansion only, zero subshells:
+
+```bash
+#!/bin/bash
+# Script: normalize-filename.sh
+# Purpose: Inconsistent filenames (spaces, mixed case, date suffixes) break downstream globbing and sorting.
+# Usage: ./normalize-filename.sh "/path/to/My Report_20240310.TXT"
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+raw="${1:?Usage: normalize-filename.sh <path>}"
+
+# 1. Strip the directory: longest */ prefix → basename only.
+name="${raw##*/}"
+
+# A name with no dot would make stem and ext identical below; reject it early.
+if [[ "$name" != *.* ]]; then
+  echo "$CROSS no file extension in: $name" >&2
+  exit 1
+fi
+
+# 2. Lowercase the whole thing (bash 4+).
+name="${name,,}"
+
+# 3. Replace every space with an underscore so globbing/sorting behave.
+name="${name// /_}"
+
+# 4. Split extension off, normalize the stem, then reattach.
+ext="${name##*.}"      # text after the last dot
+stem="${name%.*}"      # everything before the last dot
+
+# 5. Drop a trailing _YYYYMMDD (8 digits) date suffix if present.
+#    %_* removes the shortest _<anything> suffix; guard so we only strip real dates.
+if [[ "$stem" =~ _[0-9]{8}$ ]]; then
+  stem="${stem%_*}"
+fi
+
+normalized="${stem}.${ext}"
+echo "$CHECK ${raw} → ${normalized}"
+```
+
+Every transformation — basename, lowercase, space replacement, extension split, date-suffix removal — happens inside bash with no `basename`, no `tr`, no `sed`, and no subshell. In a loop over thousands of files that is the difference between a script that finishes in a second and one that forks thousands of processes. And because each step matches on a pattern boundary rather than a field number, a change in input format fails visibly instead of silently returning the wrong slice the way that `cut -d/ -f3` did.

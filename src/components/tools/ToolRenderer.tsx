@@ -25,6 +25,7 @@ const toolComponents: Record<string, ComponentType> = {
   'chmod-permissions-builder': withSkeleton(() => import('@/components/tools/ChmodPermissionsBuilder')),
   'path-debugger': withSkeleton(() => import('@/components/tools/PathDebugger')),
   'bash-boilerplate-generator': withSkeleton(() => import('@/components/tools/BashBoilerplateGenerator')),
+  'bash-trap-builder': withSkeleton(() => import('@/components/tools/BashTrapBuilder')),
   'shellcheck-error-decoder': withSkeleton(() => import('@/components/tools/ShellcheckErrorDecoder')),
   'rsync-command-builder': withSkeleton(() => import('@/components/tools/RsyncCommandBuilder')),
   'grep-pattern-builder': withSkeleton(() => import('@/components/tools/GrepPatternBuilder')),

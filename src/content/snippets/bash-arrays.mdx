@@ -1,0 +1,192 @@
+---
+title: "Bash Arrays: Indexed, Associative, Append, and Safe Iteration"
+description: "Storing a list as a space-separated string in bash is a latent outage. The moment one element contains a space — a hostname like \"web-prod 01\" handed out by a cloud provider — word splitting turns one item into two and your loop acts on entries that were never there. An array makes the space a non-event: each element stays one unit no matter what is inside it. This page covers declaring indexed arrays two ways, the critical \"${arr[@]}\" vs \"${arr[*]}\" distinction, appending with arr+=(), measuring length with ${#arr[@]}, slicing with ${arr[@]:start:len}, and associative arrays (declare -A, bash 4+) for key/value maps like service-to-port lookups. It ends with a production health checker that collects every failure into a second array and reports them all at the end instead of stopping at the first. Tested on Ubuntu 22.04 LTS and RHEL 9 with bash 5.1."
+tags: ["bash", "arrays", "associative-arrays", "scripting"]
+difficulty: "intermediate"
+datePublished: "2026-06-10"
+dateModified: "2026-06-10"
+howToSteps:
+  - name: "Declare with parentheses or by index"
+    text: "Create an array as arr=(a b c) for a known list, or assign individual slots with arr[0]=a. Both produce a real indexed array, unlike a space-separated string."
+  - name: "Iterate with \"${arr[@]}\" in double quotes"
+    text: "Loop with for x in \"${arr[@]}\" so each element stays one word even if it contains spaces. The [*] form joins everything into a single string."
+  - name: "Append with the += operator"
+    text: "Grow an array with arr+=(\"new element\"). This adds one element regardless of spaces inside it, unlike building a string with arr=\"$arr new\"."
+  - name: "Count elements with ${#arr[@]}"
+    text: "Get the length with ${#arr[@]} and use it to validate input — for example, refusing to run if fewer than the required number of arguments were supplied."
+  - name: "Use declare -A for key/value maps"
+    text: "For lookups like service name to port number, declare -A ports then ports[nginx]=80. Iterate keys with \"${!ports[@]}\" and values with \"${ports[@]}\"."
+faq:
+  - question: "What is the difference between ${array[@]} and ${array[*]} in bash?"
+    answer: "Quoted, \"${array[@]}\" expands to one word per element, so iteration and argument passing keep each element intact. \"${array[*]}\" joins all elements into a single string using the first character of IFS as the separator. Use [@] for loops and passing arguments; use [*] only when you deliberately want one joined string."
+  - question: "How do I append to an array in bash?"
+    answer: "Use the += compound operator: array+=(\"new value\"). It appends one element even if the value contains spaces. Avoid array=\"$array new\" — that turns the array into a flat string and reintroduces the word-splitting bug arrays exist to prevent."
+  - question: "How do I get the length of a bash array?"
+    answer: "${#array[@]} gives the number of elements. Note that ${#array} (without [@]) gives the string length of the first element instead, which is a common mistake. To count, always include [@]."
+  - question: "What is an associative array in bash and when do I need one?"
+    answer: "An associative array (bash 4+, declared with declare -A) maps arbitrary string keys to values instead of using numeric indices. Use it for lookups: service name to port, username to home directory, hostname to IP. Iterate keys with \"${!map[@]}\" and access values with \"${map[$key]}\"."
+---
+
+A sysadmin stored a fleet's server list the obvious way: a space-separated string, `SERVERS="web-01 web-02 db-prod"`, iterated with `for host in $SERVERS`. It worked for two years. Then the cloud provider assigned a new instance the display name `web-prod 01` — with a space, which their naming policy permitted — and the next maintenance run looped over `web-prod` and `01` as two separate hosts. The script tried to SSH into both, retried on failure, and generated 47 connection attempts to nonexistent hostnames in under a minute. AWS flagged it as a possible compromised host and locked the account pending review. The root cause was not the space in the hostname. It was storing a list as a string. An array would have made that space completely invisible, because each element of an array stays one element no matter what characters it contains.
+
+## Declaring indexed arrays
+
+Two syntaxes, both producing a real array:
+
+```bash
+# Parentheses form — a known list:
+fruits=("apple" "dragon fruit" "kiwi")
+
+# Assign-by-index form — building it up:
+servers[0]="web-01"
+servers[1]="db-prod 02"
+servers[2]="cache-03"
+```
+
+The middle elements contain spaces, and that is fine — `dragon fruit` and `db-prod 02` are each a single element. The same characters in a space-separated string would have been two items.
+
+## The critical distinction: [@] vs [*]
+
+This is the difference that prevents the outage above:
+
+```bash
+servers=("web-01" "db-prod 02" "cache-03")
+
+# RIGHT: each element stays one word, even with the embedded space.
+for host in "${servers[@]}"; do
+  echo "→ $host"          # three lines: web-01 / db-prod 02 / cache-03
+done
+```
+
+`"${servers[@]}"` in double quotes expands to one word per element. `"${servers[*]}"` instead joins every element into a single string separated by the first character of `IFS` (a space by default). For iterating or passing arguments to a command, you want `[@]` essentially always. Reserve `[*]` for the rare case where you want one display string — for example `echo "Checking: ${servers[*]}"`. Drop the quotes on either form and you are back to uncontrolled word-splitting, so keep the double quotes.
+
+## Appending
+
+Grow an array with the `+=` compound assignment:
+
+```bash
+failures=()                      # start empty
+failures+=("web-01: timeout")    # append one element
+failures+=("db-prod 02: refused")
+```
+
+Each `+=` adds exactly one element regardless of spaces inside it. The tempting shortcut `list="$list new item"` flattens everything back into a string and reintroduces the exact bug arrays exist to eliminate. Always append with `+=( )`.
+
+## Length and validation
+
+`${#array[@]}` is the element count — and it is genuinely useful for guarding input:
+
+```bash
+required_args=2
+if [[ "${#@}" -lt "$required_args" ]]; then
+  echo "$CROSS Need at least $required_args arguments, got ${#@}"
+  exit 1
+fi
+```
+
+Watch the trap here: `${#array[@]}` counts elements, but `${#array}` (no `[@]`) gives the *string length of the first element*. They look almost identical and mean entirely different things. To count, always include `[@]`.
+
+## Slicing
+
+Extract a sub-range with `${array[@]:start:length}`:
+
+```bash
+items=("a" "b" "c" "d" "e")
+echo "${items[@]:1:3}"   # b c d — start at index 1, take 3 elements
+```
+
+Useful for paging through a long list or skipping a known header element.
+
+## Associative arrays
+
+Bash 4+ supports key/value maps via `declare -A`. The canonical use is a lookup table — service names to the ports they should be listening on:
+
+```bash
+declare -A service_ports
+service_ports[nginx]=80
+service_ports[postgres]=5432
+service_ports[redis]=6379
+
+# Iterate keys with "${!map[@]}", values with "${map[@]}".
+for svc in "${!service_ports[@]}"; do
+  echo "$svc should listen on ${service_ports[$svc]}"
+done
+```
+
+`"${!service_ports[@]}"` (note the `!`) expands to the keys; `"${service_ports[$key]}"` fetches a value. This replaces brittle parallel arrays or `case` statements with a direct, readable map. Associative arrays require bash 4.0+, so they will not work on the system bash that ships on macOS (3.2) — relevant if your script runs on mixed CI runners.
+
+## Iterating by index, deleting, and passing to functions
+
+Sometimes you need the index, not just the value — to modify an element in place or report its position. `"${!array[@]}"` expands to the list of indices:
+
+```bash
+releases=("v1.0" "v1.1" "v1.2")
+for i in "${!releases[@]}"; do
+  echo "slot $i → ${releases[$i]}"
+done
+```
+
+Deleting with `unset` leaves a gap rather than renumbering. `unset 'releases[1]'` removes index 1, but indices 0 and 2 remain, so the array is now sparse and a later `${releases[1]}` is empty. To compact it back to contiguous indices, reassign through `[@]`:
+
+```bash
+unset 'releases[1]'          # removes the element but leaves a hole at index 1
+releases=("${releases[@]}")  # re-pack: indices become 0,1 again
+```
+
+Passing an array into a function needs care, because `"$@"` flattens every argument into one flat list and the receiving function cannot tell where one array ended. Pass it by name with a nameref instead:
+
+```bash
+print_all() {
+  local -n arr_ref="$1"   # nameref: receive the array by name, no flattening
+  local item
+  for item in "${arr_ref[@]}"; do
+    echo "→ $item"
+  done
+}
+print_all releases          # pass the NAME, not "${releases[@]}"
+```
+
+The nameref (`local -n`, bash 4.3+) hands the whole array to the function without copying it through positional parameters, so elements with spaces survive and you avoid the classic bug of an array silently collapsing into a string at the function boundary.
+
+## Complete production script
+
+A service health checker that demonstrates the whole point of arrays: it stores the service list as an array, checks each one, **collects every failure into a second array**, and reports all of them at the end — rather than stopping at the first failure and hiding the rest.
+
+```bash
+#!/bin/bash
+# Script: health-check.sh
+# Purpose: Without collecting failures, the script stops at the first dead service and hides the others.
+# Usage: ./health-check.sh
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+# Service name → expected port. Associative array = readable, no parallel lists.
+declare -A services
+services[nginx]=80
+services[postgres]=5432
+services[redis]=6379
+
+failures=()   # indexed array; we append every failure and report them together
+
+for svc in "${!services[@]}"; do
+  port="${services[$svc]}"
+  # Quote everything; a value with a space would otherwise split the test.
+  if timeout 2 bash -c "echo > /dev/tcp/127.0.0.1/$port" 2>/dev/null; then
+    echo "$CHECK $svc up on port $port"
+  else
+    echo "$CROSS $svc DOWN on port $port"
+    failures+=("$svc (port $port)")   # collect, do not abort
+  fi
+done
+
+# Report the complete failure set, using ${#failures[@]} to decide the exit code.
+if [[ "${#failures[@]}" -gt 0 ]]; then
+  echo "$CROSS ${#failures[@]} service(s) failed: ${failures[*]}"
+  exit 1
+fi
+echo "$CHECK All ${#services[@]} services healthy"
+```
+
+The associative array maps each service to its port with no parallel-array bookkeeping. The indexed `failures` array accumulates problems so a single dead service does not mask three others — `${failures[*]}` prints them as one readable line and `${#failures[@]}` drives the exit code. Stopping at the first failure is how you spend an hour fixing nginx and then discover postgres was also down the whole time; collecting failures into an array is how you see the full picture in one run.

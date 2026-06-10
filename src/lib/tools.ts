@@ -346,6 +346,52 @@ export const tools: ToolMeta[] = [
     ],
     relatedSnippets: ['bash-error-handling'],
   },
+  {
+    slug: 'bash-trap-builder',
+    component: 'BashTrapBuilder',
+    title: 'Bash trap & Signal Handler Builder',
+    description:
+      'A script that exits without a trap leaves temp files, lock files, and background jobs behind every time it crashes. Build your trap block visually — pick signals, choose cleanup actions, copy the result.',
+    quickAnswer:
+      'Select signals (EXIT, ERR, INT, TERM) and cleanup actions, then copy the generated trap block into your script header.',
+    category: 'builder',
+    datePublished: '2026-06-10',
+    dateModified: '2026-06-10',
+    howToUse: [
+      'Select the signals you want to trap in panel 01.',
+      'Choose cleanup actions (temp files, lock files, background jobs) in panel 02.',
+      'Toggle per-signal vs. combined handler style and the set -euo pipefail header in panel 03.',
+      'Copy the trap block only, or the full script header, from panel 04.',
+      'Paste into your script immediately after the shebang and set -euo pipefail line.',
+    ],
+    faqs: [
+      {
+        question: 'What is the difference between trap EXIT and trap ERR in bash?',
+        answer:
+          'EXIT fires every time the script exits, regardless of why — success, failure, or Ctrl+C. ERR fires only when a command returns a non-zero exit code, and only when set -e is active. For cleanup that must always run, use EXIT. For logging failures at the exact line they occur, use ERR.',
+      },
+      {
+        question: 'Should I use single or double quotes in a bash trap statement?',
+        answer:
+          'Single quotes in most cases. With double quotes, variables expand immediately when the trap line is parsed, capturing their value at that moment. With single quotes, expansion happens when the trap fires, which is usually what you want. Exception: if you want to capture the current value of $TMPFILE at trap-definition time, double quotes are correct.',
+      },
+      {
+        question: 'Will trap EXIT run if my script calls exit 1?',
+        answer:
+          'Yes. EXIT fires on any exit, including explicit exit 1, set -e failures, and SIGTERM. The only way to prevent a trap from running is to kill the script with SIGKILL (kill -9), which cannot be trapped.',
+      },
+      {
+        question: 'How do I pass the exit code to my trap handler so I can log success vs failure?',
+        answer:
+          'Capture $? as the first line inside your handler function: local exit_code=$?. After that point $? reflects the cleanup commands themselves, so capture it immediately on entry.',
+      },
+      {
+        question: 'Does trap work with set -euo pipefail?',
+        answer:
+          'Yes, and they complement each other. set -e causes the ERR trap to fire on any non-zero exit code. set -u exits with code 1 on unbound variables, triggering the EXIT trap. set -o pipefail propagates pipe failures through the ERR trap. The combination gives complete coverage.',
+      },
+    ],
+  },
 ];
 
 export function getToolBySlug(slug: string): ToolMeta | undefined {

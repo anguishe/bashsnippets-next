@@ -1,0 +1,200 @@
+---
+title: "Bash Functions: Return Values, Local Scope, and Reusable Logic"
+description: "A bash function cannot return a string with return — that keyword only sets an exit code from 0 to 255. Try return \"$result\" with a string and you either get a truncated number or an error. The two patterns that actually work are echo plus command substitution (result=$(my_func)) and nameref output variables with local -n (bash 4.3+). The second habit that prevents silent corruption is declaring every variable inside a function with local. A function that assigns count=0 without local overwrites a count variable in the caller, and the bug surfaces three functions later as a wrong total with no error message. This page covers both function declaration styles, the two return-value patterns shown in one script, why local is mandatory, argument validation with $1 and $#, and how to source a script to test a single function in isolation. Tested on Ubuntu 22.04 LTS and RHEL 9 with bash 5.1."
+tags: ["bash", "functions", "scripting", "local-scope"]
+difficulty: "intermediate"
+datePublished: "2026-06-10"
+dateModified: "2026-06-10"
+howToSteps:
+  - name: "Pick one declaration style and stay consistent"
+    text: "Both name() { ...; } and function name { ...; } work. Choose the POSIX name() form for portability and use it everywhere; mixing the two in one codebase reads as carelessness."
+  - name: "Declare every internal variable local"
+    text: "Put local on every variable a function assigns. Without it, the assignment leaks into the caller's scope and silently overwrites a variable with the same name."
+  - name: "Return data by echoing it, not with return"
+    text: "return sets an exit code (0–255 only). To hand back a string or number, echo it and capture with result=$(my_func), or use a nameref output parameter."
+  - name: "Validate required arguments before using them"
+    text: "Check $# or use ${1:?message} at the top of the function so a missing argument fails immediately with a clear message instead of corrupting later logic."
+  - name: "Source the script to test one function alone"
+    text: "Guard the main run with a check, then source script.sh in a shell and call the function directly to test it in isolation without executing the whole file."
+faq:
+  - question: "Why can't a bash function return a string?"
+    answer: "Because return only sets the function's exit status, which must be an integer from 0 to 255. It is meant for success/failure signaling, not data. To return a string, echo it inside the function and capture the output with command substitution: name=$(get_name), or write into a nameref output variable with local -n."
+  - question: "What is the difference between function name() and name() in bash?"
+    answer: "Functionally nothing in bash — both declare the same function. name() is POSIX-portable and works in sh; function name { } is a bash/ksh extension. Using both forms together is valid but inconsistent. Pick name() and use it throughout."
+  - question: "Why do I need local in bash functions?"
+    answer: "Bash variables are global by default. Assigning a variable inside a function without local modifies (or creates) that variable in the entire script. If the caller has a variable of the same name, your function silently overwrites it, producing wrong results elsewhere with no error. local confines the variable to the function."
+  - question: "How do I return multiple values from a bash function?"
+    answer: "Echo them separated by a delimiter and split on the caller side, or use multiple nameref output parameters. A common pattern is to echo space-separated values and read them: read -r a b c < <(my_func). For complex data, write into caller variables with local -n out_var=\"$1\"."
+---
+
+A 300-line bash deploy script we inherited had the same six-line error-checking block copy-pasted eleven times — once after each critical command. Ten copies were identical. The eleventh had a single typo: `2>/dev/null` where the others wrote `2>&1`, which meant that one command's failures were discarded instead of logged. For four months a specific failure path produced no error in the logs and no alert, while the deploy quietly continued past a step that had not actually succeeded. The fix was not "be more careful copy-pasting." The fix was a function. A function is not just the unit of reuse in bash — it is the unit of reliability. Logic that exists in exactly one place can only be wrong in one place, and when you fix it, it is fixed everywhere.
+
+## Declaring and calling functions
+
+Bash accepts two declaration syntaxes:
+
+```bash
+# POSIX form — portable, works in sh:
+log_info() {
+  echo "[INFO] $1"
+}
+
+# bash/ksh form — identical behavior in bash:
+function log_info {
+  echo "[INFO] $1"
+}
+```
+
+Both define the same callable. Call it like a command, with arguments as positional words and no parentheses: `log_info "starting backup"`. Choose the `name()` form — it is portable and unambiguous — and use it consistently. A codebase that mixes both styles signals that nobody decided on a convention, and inconsistency is where bugs hide.
+
+## Return values: exit codes, not strings
+
+This is the concept that trips up everyone arriving from another language. `return` in bash does **not** return data. It sets the function's *exit status*, an integer from 0 to 255, where 0 means success:
+
+```bash
+is_root() {
+  [[ "$EUID" -eq 0 ]]   # the test's own exit status becomes the function's
+}
+
+if is_root; then echo "running as root"; fi
+```
+
+To hand back an actual value, you have two correct patterns. The first is **echo plus command substitution** — the function prints its result, and the caller captures stdout:
+
+```bash
+get_timestamp() {
+  date +"%Y%m%d_%H%M%S"
+}
+
+stamp=$(get_timestamp)   # capture what the function echoed
+```
+
+The second is a **nameref output variable** (`local -n`, bash 4.3 and later), where the caller passes the name of a variable to fill:
+
+```bash
+get_disk_free() {
+  local -n out_ref="$1"   # out_ref is an alias for the caller's variable
+  out_ref=$(df --output=avail / | tail -1 | tr -d ' ')
+}
+
+get_disk_free free_kb     # fills the caller's $free_kb without a subshell
+```
+
+Echo-and-capture is simpler and the right default. The nameref form avoids spawning a subshell and lets one function set several outputs, which matters in a hot loop. Here is a single script using both, so the contrast is concrete:
+
+```bash
+#!/bin/bash
+# Script: return-patterns.sh
+# Purpose: Demonstrates both correct ways to return data, since return cannot.
+# Usage: ./return-patterns.sh
+set -euo pipefail
+
+CHECK="✓"
+
+# Pattern 1: echo + command substitution.
+build_filename() {
+  local prefix="$1"
+  echo "${prefix}_$(date +%Y%m%d).log"
+}
+
+# Pattern 2: nameref output variable (bash 4.3+).
+count_lines() {
+  local file="$1"
+  local -n result_ref="$2"   # alias to the caller's variable
+  # shellcheck disable=SC2034  # result_ref is a nameref; the write lands in the caller's var
+  result_ref=$(wc -l < "$file")
+}
+
+name=$(build_filename "deploy")        # capture echoed value
+host_lines=0                           # declare before the nameref fills it
+count_lines "/etc/hosts" host_lines    # fill host_lines directly
+echo "$CHECK File: $name has $host_lines host entries"
+```
+
+## Local variables prevent silent corruption
+
+Bash variables are global by default. A variable assigned inside a function without `local` modifies the script-wide variable of that name. This produces one of the nastiest bugs in shell scripting because it fails silently:
+
+```bash
+# BROKEN: 'i' leaks out of the function.
+process_batch() {
+  for i in 1 2 3; do :; done   # no 'local i' — clobbers the caller's i
+}
+
+for i in a b c; do
+  process_batch
+  echo "outer loop sees: $i"   # prints '3' three times, not a, b, c
+done
+```
+
+The outer loop's counter is destroyed by the inner function because both use `i` and the inner one is global. Add `local i` inside `process_batch` and the outer loop runs correctly. Make `local` a reflex: every variable a function assigns gets `local`, no exceptions. The cost of a missing `local` is a wrong number five functions away with no error to trace it back to.
+
+## Passing and validating arguments
+
+Arguments arrive as `$1`, `$2`, and so on; `$#` is the count; `$@` is all of them. Validate required arguments at the top of the function so a missing one fails immediately with a clear message rather than corrupting later logic:
+
+```bash
+copy_release() {
+  local src="${1:?copy_release: source path required}"
+  local dest="${2:?copy_release: destination path required}"
+  [[ -d "$src" ]] || { echo "$CROSS source $src not found"; return 1; }
+  cp -r "$src" "$dest"
+}
+```
+
+The `${1:?message}` form aborts with your message if `$1` is unset or empty, turning a vague downstream failure into a precise one at the call site.
+
+## A reusable function library
+
+These three functions appear in nearly every production script — standardized logging and a dependency guard. Define them once, source them everywhere:
+
+```bash
+#!/bin/bash
+# Script: bashlib.sh
+# Purpose: Shared functions so logging and dependency checks live in exactly one place.
+# Usage: source bashlib.sh
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+# Timestamped info line to stdout.
+log_info() {
+  local msg="$1"
+  echo "$CHECK [$(date +%H:%M:%S)] $msg"
+}
+
+# Error line to stderr so it survives stdout redirection.
+log_error() {
+  local msg="$1"
+  echo "$CROSS [$(date +%H:%M:%S)] $msg" >&2
+}
+
+# Abort early if a required command is missing, with a clear message.
+require_command() {
+  local cmd="$1"
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    log_error "required command not found: $cmd"
+    return 1
+  fi
+}
+```
+
+`log_error` writes to stderr (`>&2`) so the message is not lost when a caller redirects stdout to a file, and `require_command` fails the script up front rather than halfway through when a missing `jq` or `curl` finally gets invoked.
+
+## Testing a function in isolation
+
+You do not need to run the whole script to test one function. Guard the main execution so that *sourcing* the file defines the functions without running anything:
+
+```bash
+main() {
+  log_info "real run"
+}
+
+# Only execute main when run directly, not when sourced for testing.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi
+```
+
+Now in an interactive shell you can `source ./script.sh` and call `require_command jq` or `build_filename test` directly, inspecting the result without triggering the full run. That is unit testing in bash: source the file, call the function, check the output. Functions you can test in isolation are functions you can trust in production.

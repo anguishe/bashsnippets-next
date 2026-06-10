@@ -322,6 +322,56 @@ export const snippets: SnippetRegistryEntry[] = [
     datePublished: '2026-06-06',
     dateModified: '2026-06-06',
   },
+  {
+    slug: 'bash-for-loop-examples',
+    title: 'Bash For Loop Examples: Iterate Files, Arrays, and Counters Safely',
+    description:
+      'A bash for loop over an unquoted variable silently skips filenames with spaces and processes paths that do not exist. Glob the directory and quote every expansion to handle spaces, arrays, counters, and line-by-line reads safely.',
+    tags: ['bash', 'for-loop', 'arrays', 'scripting'],
+    difficulty: 'intermediate',
+    datePublished: '2026-06-10',
+    dateModified: '2026-06-10',
+  },
+  {
+    slug: 'bash-functions',
+    title: 'Bash Functions: Return Values, Local Scope, and Reusable Logic',
+    description:
+      'A bash function cannot return a string with return — that keyword sets an exit code only. Use echo plus command substitution or namerefs to return data, and local on every variable to stop silent global collisions.',
+    tags: ['bash', 'functions', 'scripting', 'local-scope'],
+    difficulty: 'intermediate',
+    datePublished: '2026-06-10',
+    dateModified: '2026-06-10',
+  },
+  {
+    slug: 'bash-arrays',
+    title: 'Bash Arrays: Indexed, Associative, Append, and Safe Iteration',
+    description:
+      'Storing a list as a space-separated string breaks the moment one element contains a space, splitting one item into two. Arrays make the space a non-event — covering indexed and associative arrays, append, length, slicing, and safe iteration.',
+    tags: ['bash', 'arrays', 'associative-arrays', 'scripting'],
+    difficulty: 'intermediate',
+    datePublished: '2026-06-10',
+    dateModified: '2026-06-10',
+  },
+  {
+    slug: 'bash-argument-parsing',
+    title: 'Bash Argument Parsing: Positional Args, getopts, and Long Flags',
+    description:
+      'A script that reads $1 as a value will accept --env as that value and deploy nowhere, silently. Parse arguments properly with positional defaults, getopts for short flags, and a while+case loop for GNU-style long flags.',
+    tags: ['bash', 'arguments', 'getopts', 'cli'],
+    difficulty: 'intermediate',
+    datePublished: '2026-06-10',
+    dateModified: '2026-06-10',
+  },
+  {
+    slug: 'bash-string-manipulation',
+    title: 'Bash String Manipulation: Substrings, Replace, and Parameter Expansion',
+    description:
+      'Field-counting with cut -d/ -f3 returns the wrong slice the moment a URL gains an s for https. Parameter expansion matches on pattern boundaries with no subshell — substrings, prefix/suffix stripping, replace, case conversion, and defaults.',
+    tags: ['bash', 'strings', 'parameter-expansion', 'scripting'],
+    difficulty: 'intermediate',
+    datePublished: '2026-06-10',
+    dateModified: '2026-06-10',
+  },
 ];
 
 function mergeWithFrontmatter(snippet: SnippetRegistryEntry): SnippetMeta {
