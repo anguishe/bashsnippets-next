@@ -1,6 +1,8 @@
 import { snippets } from '@/lib/snippets';
 import { tools } from '@/lib/tools';
 
+export const dynamic = 'force-dynamic';
+
 const SITE_URL = 'https://bashsnippets.xyz';
 
 type SitemapEntry = {
