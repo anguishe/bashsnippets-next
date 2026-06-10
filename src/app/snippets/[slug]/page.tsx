@@ -57,7 +57,7 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string, wordCount: nu
     articleSection: 'Bash Scripting',
   };
 
-  const breadcrumb = {
+  const breadcrumbSchema = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
@@ -82,25 +82,9 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string, wordCount: nu
     ],
   };
 
-  const howToSchema =
-    (snippet.howToSteps?.length ?? 0) > 0
-      ? {
-          '@context': 'https://schema.org',
-          '@type': 'HowTo',
-          name: snippet.title,
-          description: snippet.description,
-          step: snippet.howToSteps!.map((step, i) => ({
-            '@type': 'HowToStep',
-            position: i + 1,
-            name: step.name,
-            text: step.text,
-          })),
-        }
-      : null;
-
   const validFaqs = snippet.faq.filter((f) => f.question && f.answer);
   const faqSchema =
-    (snippet.faq?.length ?? 0) > 0
+    validFaqs.length > 0
       ? {
           '@context': 'https://schema.org',
           '@type': 'FAQPage',
@@ -115,12 +99,25 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string, wordCount: nu
         }
       : null;
 
-  const schemas = [
-    articleSchema,
-    breadcrumb,
-    ...(howToSchema ? [howToSchema] : []),
-    ...(faqSchema ? [faqSchema] : []),
-  ];
+  const howToSchema =
+    snippet.howToSteps?.length
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'HowTo',
+          name: snippet.title,
+          description: snippet.description,
+          step: snippet.howToSteps.map((step, i) => ({
+            '@type': 'HowToStep',
+            position: i + 1,
+            name: step.name,
+            text: step.text,
+          })),
+        }
+      : null;
+
+  const schemas: object[] = [articleSchema, breadcrumbSchema];
+  if (snippet.faq?.length && faqSchema) schemas.push(faqSchema);
+  if (snippet.howToSteps?.length && howToSchema) schemas.push(howToSchema);
   return schemas.map((schema) => JSON.stringify(schema));
 }
 

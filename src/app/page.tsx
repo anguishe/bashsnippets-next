@@ -9,21 +9,31 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 
+const SITE_URL = 'https://bashsnippets.xyz';
+
+const homeTitle = 'Free Bash Script Library — Copy-Paste Scripts for Linux';
+const homeDescription =
+  'Copy-paste bash scripts and interactive tools for Linux, macOS, and DevOps — disk monitoring, backups, cron, permissions, and more. Every script is tested, explained line by line, and free.';
+
 export const metadata: Metadata = {
-  title: { absolute: 'Free Bash Scripts & Tools for Linux Sysadmins | BashSnippets.xyz' },
-  description:
-    'Copy-paste bash scripts and interactive tools for Linux, macOS, and DevOps — disk monitoring, backups, cron, permissions, and more. Every script is tested, explained line by line, and free.',
+  title: { absolute: `${homeTitle} | BashSnippets.xyz` },
+  description: homeDescription,
   openGraph: {
+    title: homeTitle,
+    description: homeDescription,
+    url: SITE_URL,
     type: 'website',
-    url: 'https://bashsnippets.xyz',
-    images: ['/ogimage.png'],
     siteName: 'BashSnippets.xyz',
+    images: [{ url: `${SITE_URL}/ogimage.png`, width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
+    title: homeTitle,
+    description: homeDescription,
+    images: [`${SITE_URL}/ogimage.png`],
   },
   alternates: {
-    canonical: 'https://bashsnippets.xyz',
+    canonical: SITE_URL,
   },
 };
 
@@ -74,43 +84,6 @@ export default function Home() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify([
-            {
-              '@context': 'https://schema.org',
-              '@type': 'WebSite',
-              name: 'BashSnippets.xyz',
-              url: 'https://bashsnippets.xyz',
-              potentialAction: {
-                '@type': 'SearchAction',
-                target: {
-                  '@type': 'EntryPoint',
-                  urlTemplate:
-                    'https://bashsnippets.xyz/snippets/?q={search_term_string}',
-                },
-                'query-input': 'required name=search_term_string',
-              },
-            },
-            {
-              '@context': 'https://schema.org',
-              '@type': 'Organization',
-              name: 'BashSnippets',
-              url: 'https://bashsnippets.xyz',
-              logo: 'https://bashsnippets.xyz/favicon-512x512.png',
-              description:
-                'Free bash script library and interactive tools for Linux developers, sysadmins, and DevOps engineers.',
-              foundingDate: '2026',
-              sameAs: [
-                'https://www.youtube.com/@BashSnippets',
-                'https://dev.to/bashsnippets',
-              ],
-            },
-          ]),
-        }}
-      />
-
       <div className="mx-auto max-w-6xl px-6 pt-6">
         <Breadcrumb items={[{ label: 'Home' }]} />
       </div>

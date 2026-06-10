@@ -22,9 +22,15 @@ howToSteps:
     text: "Execute with: ./syscheck.sh — add an alias in ~/.bashrc for instant access"
 author: "Anguishe"
 datePublished: "2026-04-25"
-dateModified: "2026-06-03"
+dateModified: "2026-06-09"
 ---
 
+
+## What Breaks When You Cannot See Server State at a Glance?
+
+You SSH into a production box after a pager alert and start typing commands one at a time — `hostname`, `uptime`, `free`, `df` — while the incident timer runs. Each command uses different flag syntax, and `free` output on this distro wraps columns differently than your laptop. By the time you have a readable snapshot, you have burned five minutes collecting data you could have had in one second.
+
+This script prints hostname, uptime, RAM, root disk usage, and primary IP in a fixed layout every time. Paste the output into a ticket, Slack thread, or status email without reformatting. Alias it as `syscheck` in your shell config so any teammate in any session gets the same report with one word. Pair it with [disk space warning](/snippets/disk-space-warning) and [CPU/RAM monitoring](/snippets/monitor-cpu-ram-usage) scripts when you need threshold alerts instead of a one-shot snapshot.
 
 ## The Script
 

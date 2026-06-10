@@ -170,7 +170,7 @@ export const tools: ToolMeta[] = [
           'The binary is either not installed, or its directory is missing from $PATH. Paste your PATH into this tool to check whether the expected directory is present. If the directory is there, verify the binary exists with `which commandname` or `ls /expected/path/`.',
       },
     ],
-    relatedSnippets: ['bash-error-handling'],
+    relatedSnippets: ['bash-error-handling', 'bash-if-else-examples'],
   },
   {
     slug: 'bash-boilerplate-generator',
@@ -326,6 +326,7 @@ export const tools: ToolMeta[] = [
           'ShellCheck warns about patterns that work in normal cases but fail in edge cases — variables with spaces, filenames with special characters, or pipelines that swallow errors. Each warning is a real bug risk. The script appears to work until it encounters unexpected input.',
       },
     ],
+    relatedSnippets: ['bash-error-handling'],
   },
 ];
 

@@ -8,6 +8,7 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 
 ## What This Site Contains
 
+# keep in sync with snippets.ts count
 - 23 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
 - 8 interactive tools at /tools/ including script builders, command generators, and debuggers
 - Bash Boilerplate Generator tool
@@ -24,29 +25,29 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 
 ## All Snippet Pages
 
-- [Automated File Backup](https://bashsnippets.xyz/snippets/automated-file-backup) — cp -r with timestamps and cron scheduling
-- [Disk Space Warning](https://bashsnippets.xyz/snippets/disk-space-warning) — df threshold check with cron
-- [Delete Old Log Files](https://bashsnippets.xyz/snippets/delete-old-log-files) — find -mtime -delete with retention control
-- [Quick System Info Report](https://bashsnippets.xyz/snippets/quick-system-info-report) — hostname, uptime, RAM, disk, IP in one command
-- [Search Files for Text (grep)](https://bashsnippets.xyz/snippets/search-files-for-text-grep) — recursive grep with filename and line number
-- [Bash Error Handling](https://bashsnippets.xyz/snippets/bash-error-handling) — set -euo pipefail template
-- [MySQL Database Backup](https://bashsnippets.xyz/snippets/mysql-database-backup) — mysqldump with gzip and 7-day retention
-- [Check If Website Is Up](https://bashsnippets.xyz/snippets/check-if-website-is-up) — curl HTTP status check for cron monitoring
-- [Monitor CPU and RAM Usage](https://bashsnippets.xyz/snippets/monitor-cpu-ram-usage) — top + free threshold alerts
-- [Restart Service If Stopped](https://bashsnippets.xyz/snippets/restart-service-if-stopped) — systemctl watchdog pattern
-- [Kill a Process](https://bashsnippets.xyz/snippets/kill-a-process) — pgrep preview then pkill with confirmation
-- [Create Dated Work Folder](https://bashsnippets.xyz/snippets/create-dated-folder) — mkdir with date variable
-- [Bash If Else — Complete Examples for Beginners](https://bashsnippets.xyz/snippets/bash-if-else-examples) — if / elif / else syntax with practical examples — number comparison, string check, file exists
-- [Send Email Alerts from Bash](https://bashsnippets.xyz/snippets/bash-send-email-alert) — sends an email notification from a bash script using sendmail or msmtp
-- [Linux File Permissions & Security](https://bashsnippets.xyz/snippets/file-permissions-security) — chmod and chown patterns for setting correct file permissions on Linux
-- [SSH Key Setup Script](https://bashsnippets.xyz/snippets/ssh-key-setup-script) — generates an SSH key pair and appends the public key to authorized_keys
-- [Find Duplicate Files in Linux](https://bashsnippets.xyz/snippets/find-duplicate-files) — md5sum + awk to find byte-for-byte duplicates across directories
-- [Find Large Files in Linux](https://bashsnippets.xyz/snippets/find-large-files-linux) — du + find to locate the biggest disk space offenders fast
-- [Kill Process on Port](https://bashsnippets.xyz/snippets/kill-process-on-port) — lsof/ss discovery then SIGTERM with SIGKILL escalation
-- [Rsync Remote Backup](https://bashsnippets.xyz/snippets/rsync-remote-backup) — incremental offsite backup over SSH with exclude patterns and cron
-- [Check SSL Certificate Expiry](https://bashsnippets.xyz/snippets/check-ssl-certificate-expiry) — openssl s_client expiry check with multi-domain support and cron scheduling
-- [List All Open Ports on Linux](https://bashsnippets.xyz/snippets/list-open-ports-linux) — ss/netstat/lsof audit of every listening port with process names
-- [Docker Cleanup Script](https://bashsnippets.xyz/snippets/docker-prune-cleanup) — docker prune for containers, images, volumes, and build cache with before/after disk report
+- [Disk Space Warning Script](https://bashsnippets.xyz/snippets/disk-space-warning) — Copy a disk space warning bash script using df, thresholds, cron, and email alerts. Monitor Linux servers and prevent full drives.
+- [Automated File Backup](https://bashsnippets.xyz/snippets/automated-file-backup) — Accidental deletion or disk failure permanently destroys data with no undo on Linux. Timestamps each cp -r run with a date string so backups never overwrite each other.
+- [Delete Old Log Files](https://bashsnippets.xyz/snippets/delete-old-log-files) — Unmanaged log files silently fill /var/log until disk writes fail and services crash. find -mtime deletes .log files older than N days — preview with -print before removing from production.
+- [Quick System Info Report](https://bashsnippets.xyz/snippets/quick-system-info-report) — Guessing server state during an outage costs response time. One bash script snapshots hostname, uptime, CPU load, RAM, disk usage, and IP address in one run — no extra packages.
+- [Search Files for Text with grep](https://bashsnippets.xyz/snippets/search-files-for-text-grep) — Opening files manually to find a pattern across a codebase wastes time. grep -rn searches every file recursively and returns every match with filename and line number.
+- [Check If Website Is Up](https://bashsnippets.xyz/snippets/check-if-website-is-up) — Discovering a site is down from a user complaint means hours of lost traffic already gone. curl -s alerts on any non-200 HTTP status code — cron-schedulable for five-minute checks.
+- [Bash Error Handling with set -euo pipefail](https://bashsnippets.xyz/snippets/bash-error-handling) — Bash silently continues after failed commands by default — a broken cd followed by rm -rf destroys the wrong directory. set -euo pipefail exits on first failure before damage spreads.
+- [Bash If/Else Examples](https://bashsnippets.xyz/snippets/bash-if-else-examples) — Comparison operator mistakes in bash scripts cause silent logic failures on unexpected input. Covers if/else, elif, integer and string test operators, file condition checks, and quoting safety.
+- [Create a Dated Folder](https://bashsnippets.xyz/snippets/create-dated-folder) — Backup directories without timestamps overwrite previous runs and sort unpredictably. date +%Y-%m-%d auto-names folders so ls sorts them chronologically — no packages needed.
+- [Kill a Process with pkill and pgrep](https://bashsnippets.xyz/snippets/kill-a-process) — The ps/grep/copy-PID/kill workflow takes four steps every time you need to stop a process. pkill by name collapses that to one command — pgrep -l previews matches before terminating.
+- [File Permissions Security Audit](https://bashsnippets.xyz/snippets/file-permissions-security) — World-writable files on a web server let any compromised script overwrite your application. find -perm 777 audits them and correct chmod 644/755 patterns restore safe permissions.
+- [Monitor CPU and RAM Usage](https://bashsnippets.xyz/snippets/monitor-cpu-ram-usage) — A runaway process consuming 100% CPU goes undetected until the server becomes unresponsive. top -bn1 and free -m measure CPU and RAM in scripts so cron can alert before impact.
+- [Send Email Alerts from Bash](https://bashsnippets.xyz/snippets/bash-send-email-alert) — Monitoring scripts without email alerts mean failures go unnoticed until users report them. Wraps mailx or curl SMTP into a reusable alert function with per-run deduplication to prevent inbox flooding.
+- [MySQL Database Backup Script](https://bashsnippets.xyz/snippets/mysql-database-backup) — A mistaken DROP TABLE or storage failure permanently destroys database data with no built-in undo. mysqldump with gzip compression and 7-day cron rotation keeps nightly backups under 100 MB.
+- [SSH Key Setup Script](https://bashsnippets.xyz/snippets/ssh-key-setup-script) — Password-based SSH is vulnerable to brute-force attacks and credential leaks on any internet-exposed server. Automates ssh-keygen -t ed25519 and ssh-copy-id to enable key-based auth in one run.
+- [Find Duplicate Files in Linux](https://bashsnippets.xyz/snippets/find-duplicate-files) — Duplicate files accumulate silently in archives and download folders, wasting gigabytes of disk space. md5sum hashes every file and awk prints only the redundant copies — nothing to install.
+- [Restart a Service If It Stopped](https://bashsnippets.xyz/snippets/restart-service-if-stopped) — A crashed nginx or postgresql stays down for hours without a watchdog to detect and recover it. systemctl is-active in a cron loop detects stopped services and restarts them within 60 seconds.
+- [Find Large Files in Linux](https://bashsnippets.xyz/snippets/find-large-files-linux) — Your disk hit 100% and the server stopped. Find the biggest files and directories fast with du and find — excludes virtual filesystems and ranks by size descending.
+- [Kill Process on Port](https://bashsnippets.xyz/snippets/kill-process-on-port) — EADDRINUSE means something is squatting on your port. Find the process with lsof or ss, then kill it safely — script handles discovery, confirmation, and SIGTERM-to-SIGKILL escalation.
+- [Rsync Remote Backup](https://bashsnippets.xyz/snippets/rsync-remote-backup) — A local-only backup dies with the machine. Push an incremental, resumable copy to a remote server with rsync over SSH — script with exclude patterns, dry-run, and cron scheduling.
+- [Check SSL Certificate Expiry with Bash](https://bashsnippets.xyz/snippets/check-ssl-certificate-expiry) — A bash script that connects to any domain over TLS, reads the certificate, and tells you how many days until it expires — before the site goes dark.
+- [List All Open Ports on Linux](https://bashsnippets.xyz/snippets/list-open-ports-linux) — A bash script that maps every port your server is listening on, along with the process name holding it open — the first step in any security audit.
+- [Docker Cleanup Bash Script — Reclaim Disk Space from Docker Garbage](https://bashsnippets.xyz/snippets/docker-prune-cleanup) — A bash script that removes stopped containers, unused images, dangling volumes, and build cache from Docker — with a disk-usage report before and after.
 
 ## Topical Guides
 
@@ -57,14 +58,14 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 
 ## Interactive Tools
 
-- [Bash Exit Code Lookup](https://bashsnippets.xyz/tools/bash-exit-code-lookup) — look up any exit code 0-255 and get the plain-English meaning and a copy-paste error handler
-- [Cron Job Builder](https://bashsnippets.xyz/tools/cron-job-builder) — visual cron expression builder with human-readable output and copy-paste crontab line
-- [Chmod Permissions Builder](https://bashsnippets.xyz/tools/chmod-permissions-builder) — permission matrix that outputs octal, symbolic, and chmod commands
-- [Bash $PATH Debugger](https://bashsnippets.xyz/tools/path-debugger) — paste your $PATH, find duplicates and missing directories
-- [Bash Boilerplate Generator](https://bashsnippets.xyz/tools/bash-boilerplate-generator) — generates production-ready .sh templates with error handling and logging
-- [ShellCheck Error Decoder](https://bashsnippets.xyz/tools/shellcheck-error-decoder) — paste a ShellCheck error code, get the plain-English explanation and a before/after fix
-- [Rsync Command Builder](https://bashsnippets.xyz/tools/rsync-command-builder) — build rsync commands visually with archive, compress, delete, SSH, and exclude pattern toggles
-- [grep Pattern Builder](https://bashsnippets.xyz/tools/grep-pattern-builder) — form-based grep command builder with recursive, case-insensitive, context, and file type filter toggles plus plain-English command explanation
+- [Bash Exit Code Lookup](https://bashsnippets.xyz/tools/bash-exit-code-lookup) — An unhandled exit code hides why a bash script failed and lets errors cascade silently into data loss. Enter any code 0-255 for the plain-English meaning, causes, and a copy-paste error handler.
+- [Cron Job Builder](https://bashsnippets.xyz/tools/cron-job-builder) — A wrong cron expression runs jobs at the wrong time or skips them entirely with no error output. Build cron expressions visually and verify the human-readable schedule before saving to crontab.
+- [Chmod Permissions Builder](https://bashsnippets.xyz/tools/chmod-permissions-builder) — Wrong file permissions on a web server expose secrets or let compromised scripts overwrite application files. Build chmod commands visually — shows octal, symbolic notation, and the exact chmod command.
+- [Bash $PATH Debugger](https://bashsnippets.xyz/tools/path-debugger) — Duplicate and missing PATH entries cause command-not-found errors and slow shell startup by scanning dead directories. Paste your PATH to find duplicates, empty entries, and ordering problems.
+- [Bash Boilerplate Generator](https://bashsnippets.xyz/tools/bash-boilerplate-generator) — A bash script without error handling silently continues after failures and leaves systems in a broken partial state. Generates a production-ready template with set -euo pipefail, traps, and argument parsing.
+- [Rsync Command Builder](https://bashsnippets.xyz/tools/rsync-command-builder) — A wrong rsync flag silently overwrites destination files or skips critical data with no error output. Build rsync commands visually — toggle archive, compress, delete, dry-run, SSH, and exclude patterns with a live preview.
+- [grep Pattern Builder](https://bashsnippets.xyz/tools/grep-pattern-builder) — A wrong grep flag silently matches the wrong files or swallows error output with no warning. Build the exact grep command you need — recursive, case-insensitive, with context lines — and get a plain-English explanation for every output.
+- [ShellCheck Error Decoder](https://bashsnippets.xyz/tools/shellcheck-error-decoder) — ShellCheck warnings that go unfixed become the exact edge-case bugs that break in production on unexpected input. Enter any SC error code for the rule name, plain-English explanation, and a before/after fix example.
 
 ## Pillar Guides
 

@@ -1,5 +1,6 @@
 import AffiliateBox from '@/components/AffiliateBox';
 import Breadcrumb from '@/components/Breadcrumb';
+import FaqTerminal from '@/components/FaqTerminal';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -88,6 +89,62 @@ const snippets = [
   },
 ];
 
+const decisionRows = [
+  {
+    slug: 'file-permissions-security',
+    signal: 'you inherit a server or deploy new software and need to confirm config files are not world-readable, web roots are not world-writable, and SSH directories carry the permissions sshd demands.',
+  },
+  {
+    slug: 'ssh-key-setup-script',
+    signal: 'a server still accepts password logins over the internet. This is the single highest-value hardening step — it eliminates the entire class of brute-force SSH attacks in one change.',
+  },
+  {
+    slug: 'list-open-ports-linux',
+    signal: 'you are about to open firewall rules on a new box and need to see every service in LISTEN state, and which are bound to 0.0.0.0 (network-reachable) versus 127.0.0.1 (local only).',
+  },
+  {
+    slug: 'check-ssl-certificate-expiry',
+    signal: 'HTTPS depends on a certificate that auto-renews, and you want to catch the silent renewal failure 30 days before browsers start showing the warning page.',
+  },
+  {
+    slug: 'kill-process-on-port',
+    signal: 'the open-ports inventory turns up an unexpected listener and you need to identify the owning process and stop it cleanly before it stays exposed.',
+  },
+];
+
+const faqItems = [
+  {
+    question: 'How do I check which ports are open on Linux?',
+    answer:
+      'Run the list-open-ports script, which wraps ss -tlnp to show every listening TCP port, the process holding it, and whether it is bound to 0.0.0.0 (reachable from the network) or 127.0.0.1 (local only). The bind address is the column that matters: anything on 0.0.0.0 is part of your attack surface and should be there on purpose, not by accident.',
+  },
+  {
+    question: 'Is SSH key authentication more secure than a password?',
+    answer:
+      'Yes. A password can be brute-forced or leaked; a 256-bit Ed25519 key cannot be guessed in any practical timeframe. Set up keys with the ssh-key-setup script, confirm you can log in with the key, then disable password authentication in sshd_config. That sequence removes the entire class of brute-force SSH attacks while making sure you never lock yourself out.',
+  },
+  {
+    question: 'What file permissions should a web server use?',
+    answer:
+      'Files should be 644 and directories 755, owned by a non-web user with the web server only in the group. World-writable (777) anything is the classic hole — a compromised script can overwrite your application files. The file-permissions script audits for these and applies the correct pattern with two separate find commands, so it never strips execute bits from directories and breaks navigation. Secrets-bearing files such as .env or wp-config.php should be tighter still at 640, readable by the owner and group but never world-readable.',
+  },
+  {
+    question: 'Why did my SSL certificate expire if certbot renews automatically?',
+    answer:
+      'A renewal hook can fail silently — a rate limit, a changed DNS record, a stopped service — and certbot reports nothing the user sees until the certificate expires. The check-ssl-certificate-expiry script reads the live certificate from outside the box, the way a browser does, and alerts 30 days out. It catches the failure that the renewal log hides and the renewal hook never surfaces.',
+  },
+];
+
+const faqPageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqItems.map((item) => ({
+    '@type': 'Question',
+    name: item.question,
+    acceptedAnswer: { '@type': 'Answer', text: item.answer },
+  })),
+};
+
 export default function LinuxSecurityHub() {
   return (
     <>
@@ -98,6 +155,10 @@ export default function LinuxSecurityHub() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageSchema) }}
       />
 
       <main className="mx-auto max-w-4xl px-6 py-16">
@@ -213,6 +274,78 @@ export default function LinuxSecurityHub() {
               </article>
             ))}
           </div>
+        </section>
+
+        <section className="mt-16">
+          <h2 className="mb-4 font-heading text-2xl font-bold text-text">
+            Which Script Do I Reach For?
+          </h2>
+          <p className="mb-6 leading-relaxed text-muted">
+            Security on a server is a set of distinct surfaces — the filesystem, remote access, the
+            network, and TLS — and each script audits one of them. Running an SSH check does nothing
+            for an exposed port. Identify the surface you are worried about and reach for the script
+            that maps it. None of these replace a firewall or a patching schedule; they close the
+            gaps those tools miss — the world-writable config a package left behind, the debug port
+            a deploy opened, the certificate a renewal hook failed to update — the small, silent
+            misconfigurations that turn into incidents.
+          </p>
+          <div className="space-y-3">
+            {decisionRows.map((row) => (
+              <div key={row.slug} className="rounded-lg border border-border bg-bg2 p-4">
+                <Link
+                  href={`/snippets/${row.slug}`}
+                  className="font-mono text-sm text-green transition-colors hover:text-text"
+                >
+                  {row.slug}
+                </Link>
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  <span className="text-text">Reach for it when </span>
+                  {row.signal}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-16">
+          <h2 className="mb-4 font-heading text-2xl font-bold text-text">
+            How These Scripts Compose
+          </h2>
+          <p className="leading-relaxed text-muted">
+            These chain into a new-server hardening pass.{' '}
+            <Link href="/snippets/ssh-key-setup-script" className="text-green hover:text-text transition-colors">
+              ssh-key-setup-script
+            </Link>{' '}
+            goes first — key authentication before anything else, so a misconfiguration later never
+            leaves password login exposed.{' '}
+            <Link href="/snippets/list-open-ports-linux" className="text-green hover:text-text transition-colors">
+              list-open-ports-linux
+            </Link>{' '}
+            then maps every listener; an unexpected service bound to{' '}
+            <code className="font-mono text-xs text-blue">0.0.0.0</code> gets investigated with{' '}
+            <Link href="/snippets/kill-process-on-port" className="text-green hover:text-text transition-colors">
+              kill-process-on-port
+            </Link>
+            , which names the process before stopping it.{' '}
+            <Link href="/snippets/file-permissions-security" className="text-green hover:text-text transition-colors">
+              file-permissions-security
+            </Link>{' '}
+            audits the web root and config files in the same pass. Finally,{' '}
+            <Link href="/snippets/check-ssl-certificate-expiry" className="text-green hover:text-text transition-colors">
+              check-ssl-certificate-expiry
+            </Link>{' '}
+            goes on a daily cron last, so the one failure mode that produces no error of its own still
+            reaches you with 30 days to spare. Run the first four as a one-time pass on every new
+            box and keep the certificate check on its schedule — the difference between a server
+            hardened on day one and one hardened after the incident is usually just this checklist.
+          </p>
+        </section>
+
+        <section className="mt-16">
+          <h2 className="mb-6 font-heading text-2xl font-bold text-text">
+            Frequently Asked Questions
+          </h2>
+          <FaqTerminal items={faqItems} label="faq — linux-security" />
         </section>
 
         <div className="mt-12 border-t border-border pt-8">

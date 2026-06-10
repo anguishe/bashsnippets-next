@@ -93,6 +93,46 @@ export const metadata: Metadata = {
   },
 };
 
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': 'https://bashsnippets.xyz/#organization',
+  name: 'BashSnippets.xyz',
+  url: 'https://bashsnippets.xyz',
+  logo: 'https://bashsnippets.xyz/favicon-512x512.png',
+  description:
+    'Free bash script library and interactive tools for Linux users, sysadmins, and DevOps engineers.',
+  sameAs: [
+    'https://www.youtube.com/@BashSnippets',
+    'https://www.tiktok.com/@BashSnippets',
+    'https://dev.to/bashsnippets',
+  ],
+  founder: {
+    '@type': 'Person',
+    name: 'Anguishe',
+    url: 'https://bashsnippets.xyz/about',
+  },
+};
+
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': 'https://bashsnippets.xyz/#website',
+  url: 'https://bashsnippets.xyz',
+  name: 'BashSnippets.xyz',
+  description: 'Free bash script library for Linux users and sysadmins',
+  publisher: { '@id': 'https://bashsnippets.xyz/#organization' },
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: 'https://bashsnippets.xyz/snippets?q={search_term_string}',
+    },
+    'query-input': 'required name=search_term_string',
+  },
+};
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -106,6 +146,18 @@ export default function RootLayout({
           type="application/opensearchdescription+xml"
           title="BashSnippets"
           href="/opensearch.xml"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationSchema),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(websiteSchema),
+          }}
         />
         <script
           src="https://analytics.ahrefs.com/analytics.js"

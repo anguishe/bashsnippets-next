@@ -20,7 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev        # local dev server
-npm run build      # production build (also runs next-sitemap via postbuild)
+npm run build      # production build + static export (no postbuild; sitemap is native app/sitemap.ts)
 npm run start      # serve production build locally
 npm run lint       # eslint via next lint
 ```

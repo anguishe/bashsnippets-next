@@ -1,5 +1,6 @@
 import AffiliateBox from '@/components/AffiliateBox';
 import Breadcrumb from '@/components/Breadcrumb';
+import FaqTerminal from '@/components/FaqTerminal';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -101,6 +102,74 @@ const snippets = [
   },
 ];
 
+const decisionRows = [
+  {
+    slug: 'disk-space-warning',
+    signal: 'you want one recurring check that warns before any filesystem crosses a usage threshold. The first script to install on every server, before anything has gone wrong.',
+  },
+  {
+    slug: 'check-if-website-is-up',
+    signal: 'a public URL has to stay reachable and you need to know about a non-200 response — or a connection that times out entirely — before a customer files the ticket.',
+  },
+  {
+    slug: 'monitor-cpu-ram-usage',
+    signal: 'the box feels slow but nothing is obviously down: sustained load average or memory pressure that has not crashed anything yet, but is heading there.',
+  },
+  {
+    slug: 'restart-service-if-stopped',
+    signal: 'a specific systemd unit must stay running and you want automatic recovery within a minute of it dying, plus a log line every time it does.',
+  },
+  {
+    slug: 'quick-system-info-report',
+    signal: 'you have just SSHed into an unfamiliar or misbehaving box and need its whole state — uptime, load, memory, disk, top processes — on one screen, immediately.',
+  },
+  {
+    slug: 'check-ssl-certificate-expiry',
+    signal: 'HTTPS depends on a certificate that renews on a schedule you do not personally watch, and a silent renewal failure would not surface until browsers go red.',
+  },
+  {
+    slug: 'kill-a-process',
+    signal: 'a named process is hung or duplicated and has to be stopped cleanly — with a preview of what matches — before you restart it.',
+  },
+  {
+    slug: 'bash-send-email-alert',
+    signal: 'any of the checks above detects a problem and the alert has to leave the box and reach a human inbox without flooding it on every cron run.',
+  },
+];
+
+const faqItems = [
+  {
+    question: 'How do I monitor a Linux server without installing monitoring software?',
+    answer:
+      'Schedule the bash scripts on this page with cron. Each one uses only coreutils, systemctl, curl, or openssl, so there is no agent to install and no dashboard to maintain. A single crontab with a handful of entries covers disk, uptime, CPU, services, and certificate expiry — the same checks a paid SaaS platform runs, at zero cost and with no outbound telemetry.',
+  },
+  {
+    question: 'How often should monitoring scripts run in cron?',
+    answer:
+      'Match the interval to how fast the failure hurts. Uptime and service checks run every one to five minutes; disk and CPU checks every five to fifteen minutes; SSL expiry once a day is enough. Running everything every minute wastes CPU and floods logs without catching failures any sooner — a certificate that expires in 20 days does not need checking 1,440 times a day.',
+  },
+  {
+    question: 'Why are my monitoring scripts not sending email alerts?',
+    answer:
+      'Most cloud VPS providers block outbound port 25, so a bare mail command silently fails with no error you will notice. Relay through an authenticated SMTP service with msmtp instead, and add per-run deduplication so a persistent problem does not flood your inbox on every cron run. The send-email-alert script handles both the relay and the rate limiting.',
+  },
+  {
+    question: 'What is the difference between monitoring uptime and monitoring a service?',
+    answer:
+      'Uptime monitoring tests the response from outside the box and catches network, DNS, and application failures a user would actually see. Service monitoring checks systemd state on the box itself and can act on it by restarting the unit. Run both: one sees what users see, the other can fix what broke. Neither replaces the other.',
+  },
+];
+
+const faqPageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqItems.map((item) => ({
+    '@type': 'Question',
+    name: item.question,
+    acceptedAnswer: { '@type': 'Answer', text: item.answer },
+  })),
+};
+
 export default function ServerMonitoringHub() {
   return (
     <>
@@ -111,6 +180,10 @@ export default function ServerMonitoringHub() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageSchema) }}
       />
 
       <main className="mx-auto max-w-4xl px-6 py-16">
@@ -218,6 +291,71 @@ export default function ServerMonitoringHub() {
               </article>
             ))}
           </div>
+        </section>
+
+        <section className="mt-16">
+          <h2 className="mb-4 font-heading text-2xl font-bold text-text">
+            Which Script Do I Reach For?
+          </h2>
+          <p className="mb-6 leading-relaxed text-muted">
+            Monitoring is not one job — it is several, and each script here answers a different
+            question. The trap is reaching for the wrong one: running a CPU check when the real
+            problem is a dead service, or watching uptime when the disk is the thing about to fail.
+            Match the signal you are seeing to the script built for it.
+          </p>
+          <div className="space-y-3">
+            {decisionRows.map((row) => (
+              <div key={row.slug} className="rounded-lg border border-border bg-bg2 p-4">
+                <Link
+                  href={`/snippets/${row.slug}`}
+                  className="font-mono text-sm text-green transition-colors hover:text-text"
+                >
+                  {row.slug}
+                </Link>
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  <span className="text-text">Reach for it when </span>
+                  {row.signal}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-16">
+          <h2 className="mb-4 font-heading text-2xl font-bold text-text">
+            How These Scripts Compose
+          </h2>
+          <p className="leading-relaxed text-muted">
+            These compose into a closed monitoring loop.{' '}
+            <Link href="/snippets/restart-service-if-stopped" className="text-green hover:text-text transition-colors">
+              restart-service-if-stopped
+            </Link>{' '}
+            runs every minute from cron and detects that nginx has died; it calls{' '}
+            <code className="font-mono text-xs text-blue">systemctl start</code>, and if the restart
+            itself fails it pipes the failure through{' '}
+            <Link href="/snippets/bash-send-email-alert" className="text-green hover:text-text transition-colors">
+              bash-send-email-alert
+            </Link>{' '}
+            so a human is paged instead of guessing. Separately,{' '}
+            <Link href="/snippets/disk-space-warning" className="text-green hover:text-text transition-colors">
+              disk-space-warning
+            </Link>{' '}
+            crosses its threshold at 3am and fires the same alert function; the on-call engineer then
+            runs{' '}
+            <Link href="/snippets/quick-system-info-report" className="text-green hover:text-text transition-colors">
+              quick-system-info-report
+            </Link>{' '}
+            on login to confirm the box&apos;s full state in one screen before touching anything.
+            Detection, recovery, and notification are three separate scripts, not one monolith —
+            which is exactly why each can be scheduled, tested, and replaced on its own.
+          </p>
+        </section>
+
+        <section className="mt-16">
+          <h2 className="mb-6 font-heading text-2xl font-bold text-text">
+            Frequently Asked Questions
+          </h2>
+          <FaqTerminal items={faqItems} label="faq — server-monitoring" />
         </section>
 
         <div className="mt-12 border-t border-border pt-8">

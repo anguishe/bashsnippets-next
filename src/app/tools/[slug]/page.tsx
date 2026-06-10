@@ -27,7 +27,7 @@ function buildSchemas(
     description: tool.description,
     applicationCategory: 'DeveloperApplication',
     applicationSubCategory: 'UtilityApplication',
-    browserRequirements: 'Requires JavaScript. HTML5.',
+    browserRequirements: 'HTML5, JavaScript',
     operatingSystem: 'Linux, macOS',
     isAccessibleForFree: true,
     featureList: ['No login required', 'Browser-based', 'Copy-paste output'],
@@ -215,11 +215,11 @@ export default async function ToolPage({ params }: PageProps) {
           </section>
         )}
 
-        {/* Section 6: Related scripts */}
+        {/* Section 6: Related snippets */}
         {relatedSnippets.length > 0 && (
           <section className="mt-12">
             <h2 className="mb-6 font-heading text-xl font-bold text-text">
-              Related Scripts
+              Related Snippets
             </h2>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               {relatedSnippets.map((snippet) => (
@@ -231,7 +231,7 @@ export default async function ToolPage({ params }: PageProps) {
                   <p className="font-mono text-xs uppercase tracking-widest text-muted">
                     {snippet.difficulty} · {snippet.tags[0]}
                   </p>
-                  <p className="mt-1 font-heading text-sm font-bold text-text">
+                  <p className="mt-1 font-heading text-sm font-bold text-blue transition-colors hover:text-green">
                     {snippet.title}
                   </p>
                   <p className="mt-2 text-xs leading-relaxed text-muted line-clamp-2">

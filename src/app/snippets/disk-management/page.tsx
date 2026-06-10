@@ -1,5 +1,6 @@
 import AffiliateBox from '@/components/AffiliateBox';
 import Breadcrumb from '@/components/Breadcrumb';
+import FaqTerminal from '@/components/FaqTerminal';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -88,6 +89,62 @@ const snippets = [
   },
 ];
 
+const decisionRows = [
+  {
+    slug: 'disk-space-warning',
+    signal: 'you want the permanent background watch: one cron entry that warns when any filesystem crosses a threshold, long before writes start failing. This is the script you install before there is a problem.',
+  },
+  {
+    slug: 'find-large-files-linux',
+    signal: 'the warning has fired or df already shows the disk nearly full, and you need the biggest directories and files ranked by size in seconds, not minutes of manual du.',
+  },
+  {
+    slug: 'delete-old-log-files',
+    signal: 'the offender is /var/log — the most predictable source of unbounded growth — and you want age-based cleanup with a dry run to confirm exactly what gets removed first.',
+  },
+  {
+    slug: 'find-duplicate-files',
+    signal: 'usage is high but no single file is huge: redundant copies of archives, database dumps, or media scattered across a shared workspace and counted twice.',
+  },
+  {
+    slug: 'docker-prune-cleanup',
+    signal: 'the box runs Docker and the space is hiding in /var/lib/docker — stopped containers, dangling images, and build cache that df attributes to one opaque directory.',
+  },
+];
+
+const faqItems = [
+  {
+    question: 'How do I find what is filling up my Linux disk?',
+    answer:
+      'Run the find-large-files script, which uses du and find to rank the largest directories and files on a path in seconds. Start at the filesystem that df reports as nearly full, then drill into the biggest directory it names. Logs under /var/log and Docker storage under /var/lib/docker are the two most common culprits on a server.',
+  },
+  {
+    question: 'Is it safe to delete files in /var/log?',
+    answer:
+      'Yes, deleting old rotated logs is safe — they are historical records, not active state. Use the delete-old-log-files script with an age threshold and run it with the dry-run flag first to confirm what will be removed. Never truncate a log a running process still holds open; rotate it with logrotate instead, or the space will not actually free.',
+  },
+  {
+    question: 'Why is my disk full when du shows less space used than df?',
+    answer:
+      'A process is still holding a deleted file open, so the kernel does not reclaim the space until that process closes it. Find the culprit with lsof +L1, then restart the offending service to release the disk. This is the classic disk-full mystery on long-running servers, and du alone will never reveal it because the file no longer has a directory entry.',
+  },
+  {
+    question: 'How do I stop a disk from filling up again?',
+    answer:
+      'Schedule the disk-space-warning script on cron to catch growth early, and run delete-old-log-files weekly to bound the most predictable source. Configure logrotate for application logs, and prune Docker on a schedule if the box builds images. Prevention is three or four cron entries — far cheaper than the emergency surgery a full disk forces at 3am. Set the warning threshold low enough (80%, not 95%) that the alert arrives while you still have room to think rather than react.',
+  },
+];
+
+const faqPageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqItems.map((item) => ({
+    '@type': 'Question',
+    name: item.question,
+    acceptedAnswer: { '@type': 'Answer', text: item.answer },
+  })),
+};
+
 export default function DiskManagementHub() {
   return (
     <>
@@ -98,6 +155,10 @@ export default function DiskManagementHub() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageSchema) }}
       />
 
       <main className="mx-auto max-w-4xl px-6 py-16">
@@ -211,6 +272,76 @@ export default function DiskManagementHub() {
               </article>
             ))}
           </div>
+        </section>
+
+        <section className="mt-16">
+          <h2 className="mb-4 font-heading text-2xl font-bold text-text">
+            Which Script Do I Reach For?
+          </h2>
+          <p className="mb-6 leading-relaxed text-muted">
+            A disk problem has two phases — before it fills and after — and the scripts split along
+            that line. The recurring watch runs forever in the background; the investigation scripts
+            run when the watch goes off or when df already shows 95%. Pick by where you are on that
+            timeline. The discipline that separates a calm cleanup from a 3am emergency is treating
+            the watch&apos;s output as a chore list at 80% rather than waiting for the alert at 98% —
+            at 80% you investigate, at 98% you are deleting files under pressure with services
+            already failing around you.
+          </p>
+          <div className="space-y-3">
+            {decisionRows.map((row) => (
+              <div key={row.slug} className="rounded-lg border border-border bg-bg2 p-4">
+                <Link
+                  href={`/snippets/${row.slug}`}
+                  className="font-mono text-sm text-green transition-colors hover:text-text"
+                >
+                  {row.slug}
+                </Link>
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  <span className="text-text">Reach for it when </span>
+                  {row.signal}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-16">
+          <h2 className="mb-4 font-heading text-2xl font-bold text-text">
+            How These Scripts Compose
+          </h2>
+          <p className="leading-relaxed text-muted">
+            The disk-full workflow runs these in sequence.{' '}
+            <Link href="/snippets/disk-space-warning" className="text-green hover:text-text transition-colors">
+              disk-space-warning
+            </Link>{' '}
+            crosses 85% at 3am and pages you. You SSH in and run{' '}
+            <Link href="/snippets/find-large-files-linux" className="text-green hover:text-text transition-colors">
+              find-large-files-linux
+            </Link>
+            , which ranks the top consumers and points at{' '}
+            <code className="font-mono text-xs text-blue">/var/log</code> holding 30 GB of unrotated
+            nginx logs.{' '}
+            <Link href="/snippets/delete-old-log-files" className="text-green hover:text-text transition-colors">
+              delete-old-log-files
+            </Link>{' '}
+            clears everything older than 14 days — with a dry run first — and reclaims most of it
+            immediately. If the box runs containers and the space is in{' '}
+            <code className="font-mono text-xs text-blue">/var/lib/docker</code> instead,{' '}
+            <Link href="/snippets/docker-prune-cleanup" className="text-green hover:text-text transition-colors">
+              docker-prune-cleanup
+            </Link>{' '}
+            takes over. One script watches, one diagnoses, and one of two remediates depending on
+            what the diagnosis found. The reason the diagnosis step is never skippable: deleting
+            blindly is how you remove the wrong logs or a database dump someone still needed. Always
+            rank first, then delete the thing you confirmed is safe.
+          </p>
+        </section>
+
+        <section className="mt-16">
+          <h2 className="mb-6 font-heading text-2xl font-bold text-text">
+            Frequently Asked Questions
+          </h2>
+          <FaqTerminal items={faqItems} label="faq — disk-management" />
         </section>
 
         <div className="mt-12 border-t border-border pt-8">

@@ -22,9 +22,15 @@ howToSteps:
     text: "Run: chmod +x search.sh then ./search.sh"
 author: "Anguishe"
 datePublished: "2026-05-01"
-dateModified: "2026-06-03"
+dateModified: "2026-06-09"
 ---
 
+
+## What Breaks When You Search Files by Hand?
+
+Opening files one at a time to find a config value, hardcoded credential, or error string does not scale past a dozen files. You miss matches in nested directories, skip the right file because the filename looks unrelated, and waste time scrolling logs that grep would filter in milliseconds.
+
+`grep` ships pre-installed on every Linux server and macOS machine — no package manager, no IDE required. This page collects the flags that matter for daily ops: recursive search, line numbers, file-type filters, and directory exclusions that keep `node_modules` from flooding your results. When you need to find duplicate content consuming disk instead of text inside files, switch to the [find duplicate files](/snippets/find-duplicate-files) script.
 
 ## The Script
 
