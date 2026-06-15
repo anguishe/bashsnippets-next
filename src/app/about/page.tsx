@@ -1,6 +1,7 @@
 import AffiliateBox from '@/components/AffiliateBox';
 import Breadcrumb from '@/components/Breadcrumb';
 import { snippets } from '@/lib/snippets';
+import { tools } from '@/lib/tools';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -9,13 +10,13 @@ const SITE_URL = 'https://bashsnippets.xyz';
 export const metadata: Metadata = {
   title: 'About BashSnippets — Bash Script Author & Linux Developer',
   description:
-    `BashSnippets is a free bash script library built by a self-taught Linux developer. ${snippets.length} tested scripts, 6 browser tools, zero logins. Learn who built it and how.`,
+    `BashSnippets is a free bash script library built by a self-taught Linux developer. ${snippets.length} tested scripts, ${tools.length} browser tools, zero logins. Learn who built it and how.`,
   alternates: {
     canonical: `${SITE_URL}/about`,
   },
   openGraph: {
     title: 'About BashSnippets — Bash Script Author & Linux Developer',
-    description: `BashSnippets is a free bash script library built by a self-taught Linux developer. ${snippets.length} tested scripts, 6 browser tools, zero logins.`,
+    description: `BashSnippets is a free bash script library built by a self-taught Linux developer. ${snippets.length} tested scripts, ${tools.length} browser tools, zero logins.`,
     url: `${SITE_URL}/about`,
     type: 'website',
     images: [{ url: 'https://bashsnippets.xyz/ogimage.png', width: 1200, height: 630, alt: 'About BashSnippets — Bash Script Library' }],
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'About BashSnippets — Bash Script Author & Linux Developer',
-    description: `BashSnippets is a free bash script library built by a self-taught Linux developer. ${snippets.length} tested scripts, 6 browser tools, zero logins.`,
+    description: `BashSnippets is a free bash script library built by a self-taught Linux developer. ${snippets.length} tested scripts, ${tools.length} browser tools, zero logins.`,
   },
 };
 
@@ -33,7 +34,7 @@ const aboutSchemas = [
     '@type': 'WebPage',
     name: 'About BashSnippets',
     url: `${SITE_URL}/about`,
-    description: `BashSnippets is a free bash script library built by a self-taught Linux developer. ${snippets.length} tested scripts, 6 browser tools, zero logins.`,
+    description: `BashSnippets is a free bash script library built by a self-taught Linux developer. ${snippets.length} tested scripts, ${tools.length} browser tools, zero logins.`,
     isPartOf: { '@type': 'WebSite', name: 'BashSnippets.xyz', url: SITE_URL },
   },
   {
@@ -46,6 +47,7 @@ const aboutSchemas = [
       'https://www.youtube.com/@BashSnippets',
       'https://dev.to/bashsnippets',
       'https://www.tiktok.com/@BashSnippets',
+      'https://github.com/anguishe/bash-scripts',
     ],
   },
   {
@@ -155,7 +157,7 @@ export default function AboutPage() {
           <div className="my-6 grid grid-cols-1 gap-3 md:grid-cols-2">
             {[
               [`${snippets.length} bash scripts`, 'Copy-paste ready, plain-English explanations'],
-              ['6 interactive tools', 'Cron builder, chmod calc, exit code lookup'],
+              [`${tools.length} interactive tools`, 'Cron builder, chmod calc, exit code lookup'],
               ['Zero logins', 'No account, no email, no paywall'],
               ['MIT licensed', 'Use the scripts anywhere, including production'],
             ].map(([title, desc]) => (
@@ -176,8 +178,9 @@ export default function AboutPage() {
             Static HTML migrated to Next.js 15 with TypeScript and MDX. Hosted on
             Vercel. Scripts tested on Ubuntu 22.04 LTS, Debian 12, Fedora 39, and
             macOS Ventura. The site has no database — snippet content lives in MDX
-            files, and tools are standalone HTML pages served as iframes so they
-            can be updated independently without touching the Next.js app.
+            files, and most interactive tools are React components rendered
+            client-side, with a few still embedding a standalone HTML page in an
+            iframe.
           </p>
         </section>
 

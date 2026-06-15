@@ -380,7 +380,7 @@ export default function BashScriptsGuide() {
               <p>
                 This command finds every <C>.log</C> file under <C>/var/log</C> that was last
                 modified more than 30 days ago and deletes it. The <C>-mtime +30</C> flag means
-                &quot;more than 30 days ago&quot; — the <C>+</C> prefix is easy to misread and
+                &quot;more than 30 days ago&quot; — the <C>+</C> prefix is commonly misread and
                 important to get right. The full script includes a <C>--dry-run</C> flag that prints
                 what would be deleted without touching anything.
               </p>

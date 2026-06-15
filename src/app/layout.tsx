@@ -106,6 +106,7 @@ const organizationSchema = {
     'https://www.youtube.com/@BashSnippets',
     'https://www.tiktok.com/@BashSnippets',
     'https://dev.to/bashsnippets',
+    'https://github.com/anguishe/bash-scripts',
   ],
   founder: {
     '@type': 'Person',
@@ -181,8 +182,16 @@ export default function RootLayout({
       <body
         className={`${ibmPlexMono.variable} ${syne.variable} flex min-h-screen flex-col bg-bg text-text`}
       >
+        <a
+          href="#main-content"
+          className="sr-only rounded-[6px] border border-green bg-bg2 px-4 py-2 font-mono text-sm text-green focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100]"
+        >
+          Skip to content
+        </a>
         <Nav />
-        <div className="flex-1">{children}</div>
+        <div id="main-content" tabIndex={-1} className="flex-1">
+          {children}
+        </div>
         <Footer />
         <CookieConsent />
         <Script

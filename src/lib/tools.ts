@@ -391,6 +391,7 @@ export const tools: ToolMeta[] = [
           'Yes, and they complement each other. set -e causes the ERR trap to fire on any non-zero exit code. set -u exits with code 1 on unbound variables, triggering the EXIT trap. set -o pipefail propagates pipe failures through the ERR trap. The combination gives complete coverage.',
       },
     ],
+    relatedSnippets: ['bash-error-handling'],
   },
 ];
 
@@ -404,4 +405,23 @@ export function getAllToolSlugs(): string[] {
 
 export function getToolsByCategory(category: string): ToolMeta[] {
   return tools.filter((tool) => tool.category === category);
+}
+
+// Snippet tag → interactive tool slug. Drives the "Matching tool" link on
+// snippet pages so a snippet surfaces its hands-on builder without per-page wiring.
+const TAG_TO_TOOL_SLUG: Record<string, string> = {
+  cron: 'cron-job-builder',
+  'cron-ready': 'cron-job-builder',
+  chmod: 'chmod-permissions-builder',
+  permissions: 'chmod-permissions-builder',
+  grep: 'grep-pattern-builder',
+  'exit-code': 'bash-exit-code-lookup',
+};
+
+export function getMatchingTool(tags: string[]): ToolMeta | undefined {
+  for (const tag of tags) {
+    const slug = TAG_TO_TOOL_SLUG[tag.toLowerCase()];
+    if (slug) return getToolBySlug(slug);
+  }
+  return undefined;
 }

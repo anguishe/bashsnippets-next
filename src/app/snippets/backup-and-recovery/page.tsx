@@ -197,7 +197,7 @@ export default function BackupAndRecoveryHub() {
             without errors for months until the day you need to restore, when you discover the archive
             was writing to a directory that didn&apos;t have enough space, or the database user had lost
             its dump privileges after a password rotation. Test restores. Schedule them. The scripts
-            are the easy part.
+            are the low-risk part; the restore you never tested is where it breaks.
           </p>
         </div>
 

@@ -4,7 +4,7 @@ const footerLinks = [
   { href: '/', label: 'Home' },
   { href: '/snippets', label: 'Snippets' },
   { href: '/tools', label: 'Tools' },
-  { href: '/guides/bash-scripts-every-sysadmin-needs', label: 'Guides' },
+  { href: '/guides', label: 'Guides' },
   { href: '/starter-kit', label: 'Bash Toolkit — $9' },
   { href: '/about', label: 'About' },
   { href: '/contact', label: 'Contact' },

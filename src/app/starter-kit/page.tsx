@@ -288,7 +288,6 @@ export default function StarterKitPage() {
         </section>
 
         <div className="mt-10">
-          {/* TODO: wire Gumroad product URL before launch */}
           <a
             href={GUMROAD_URL}
             target="_blank"

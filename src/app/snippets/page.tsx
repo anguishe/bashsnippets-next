@@ -1,6 +1,7 @@
 import Breadcrumb from '@/components/Breadcrumb';
 import ToolkitCTA from '@/components/ToolkitCTA';
 import { snippets, type SnippetRegistryEntry } from '@/lib/snippets';
+import { tools } from '@/lib/tools';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -156,7 +157,7 @@ export default function SnippetsPage() {
             <span>scripts</span>
           </div>
           <div className="flex items-center gap-2 text-muted">
-            <span className="text-lg font-bold text-green">6</span>
+            <span className="text-lg font-bold text-green">{tools.length}</span>
             <span>free tools</span>
           </div>
           <div className="flex items-center gap-2 text-muted">
@@ -210,7 +211,7 @@ export default function SnippetsPage() {
                         Need a cron expression? chmod calculator?
                       </p>
                       <p className="mt-1 text-xs text-muted">
-                        6 browser-based bash tools — no install required
+                        {tools.length} browser-based bash tools — no install required
                       </p>
                     </div>
                     <Link

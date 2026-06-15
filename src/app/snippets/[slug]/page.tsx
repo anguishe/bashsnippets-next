@@ -10,6 +10,7 @@ import {
   getSnippetBySlug,
   type SnippetMeta,
 } from '@/lib/snippets';
+import { getMatchingTool } from '@/lib/tools';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -182,6 +183,7 @@ export default async function SnippetPage({ params }: PageProps) {
   const Content = await getContent(slug);
 
   const related = getRelatedSnippets(slug, 3);
+  const matchingTool = getMatchingTool(snippet.tags);
   const wordCount = getSnippetWordCount(slug);
   const schemaJson = generateSnippetSchema(snippet, slug, wordCount);
   const readTime = Math.max(1, Math.ceil(wordCount / 200));
@@ -227,6 +229,16 @@ export default async function SnippetPage({ params }: PageProps) {
           <span className="text-sm text-muted">{readTime} min read</span>
         </div>
 
+        {matchingTool && (
+          <Link
+            href={`/tools/${matchingTool.slug}`}
+            className="mt-4 inline-flex items-center gap-2 rounded-[6px] border border-border bg-bg2 px-3 py-1.5 font-mono text-xs text-muted no-underline transition-colors duration-150 hover:border-green hover:text-text"
+          >
+            <span className="uppercase tracking-widest text-green">Matching tool</span>
+            <span aria-hidden>›</span>
+            <span>{matchingTool.title}</span>
+          </Link>
+        )}
 
         {snippet.quickAnswer && (
           <div className="mb-8 mt-8 rounded-r-lg border-l-[3px] border-green bg-bg2 px-5 py-4">
