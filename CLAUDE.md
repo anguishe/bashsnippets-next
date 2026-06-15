@@ -20,7 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev        # local dev server
-npm run build      # production build + static export (no postbuild; sitemap is native app/sitemap.ts)
+npm run build      # production build; sitemap written to public/sitemap.xml by scripts/generate-sitemap.mjs
 npm run start      # serve production build locally
 npm run lint       # eslint via next lint
 ```
@@ -46,13 +46,13 @@ const mod = await import(`@/content/snippets/${slug}.mdx`);
 
 ### Content: Tools
 
-Each tool requires **three things**:
+Each tool requires:
 
-1. A standalone HTML file at `public/tool-content/<slug>.html`
-2. A registry entry in `src/lib/tools.ts`
-3. A route page at `src/app/tools/[slug]/page.tsx` that renders `<ToolEmbed slug={slug} />`
+1. A registry entry in `src/lib/tools.ts`
+2. A React component in `src/components/tools/<Component>.tsx`, registered by slug in the `toolComponents` map in `ToolRenderer.tsx`
+3. No per-tool route file — the shared `src/app/tools/[slug]/page.tsx` renders `<ToolRenderer slug={slug} />` and dispatches by slug
 
-Tools are served as iframes via `ToolEmbed.tsx` — do **not** convert tools to React components unless explicitly asked.
+All tools are native React components rendered by `ToolRenderer` and registered by slug in the `toolComponents` map. The `ToolEmbed.tsx` iframe path has been removed — no `public/tool-content/*.html` files remain.
 
 ### MDX Pipeline
 
@@ -66,6 +66,8 @@ Affiliate URLs are **hardcoded constants in `AffiliateBox.tsx`**, not a separate
 - Namecheap: `https://namecheap.pxf.io/c/7260430/1632743/5618`
 
 Update `AffiliateBox.tsx` if these ever change. Use `<AffiliateBox partner="digitalocean" />` or `partner="namecheap"` — never inline raw affiliate URLs elsewhere.
+
+> **AdSlot status (2026-06-14):** Ad units are flag-disabled in all components pending AdSense site approval. Remove the flag when approval email is received.
 
 ---
 

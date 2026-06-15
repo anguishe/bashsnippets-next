@@ -1,0 +1,17 @@
+User-Agent: *
+Allow: /
+Disallow: /tool-content/
+
+User-Agent: Google-Extended
+Allow: /
+
+User-Agent: GPTBot
+Disallow: /
+
+User-Agent: Bytespider
+Disallow: /
+
+User-Agent: CCBot
+Disallow: /
+
+Sitemap: https://bashsnippets.xyz/sitemap.xml

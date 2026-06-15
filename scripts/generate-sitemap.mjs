@@ -1,9 +1,9 @@
-import { writeFileSync } from 'fs';
+import { writeFileSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 
 const SITE_URL = 'https://bashsnippets.xyz';
 
-// Static entries — copied verbatim from route.ts
+// Only static routes that have no registry entry belong here.
 const staticEntries = [
   { url: `${SITE_URL}/`,                                          lastmod: '2026-06-03', changefreq: 'daily',   priority: 1.0  },
   { url: `${SITE_URL}/snippets`,                                  lastmod: '2026-06-10', changefreq: 'daily',   priority: 0.9  },
@@ -22,63 +22,38 @@ const staticEntries = [
   { url: `${SITE_URL}/guides/bash-scripting-for-ci-cd-pipelines`, lastmod: '2026-06-10', changefreq: 'weekly',  priority: 0.8  },
 ];
 
-// src/lib/*.ts cannot be imported directly in plain Node (TypeScript + path aliases).
-// Inline arrays synced from src/lib/snippets.ts and src/lib/tools.ts.
-const snippets = [
-  { slug: 'disk-space-warning', dateModified: '2026-06-03' },
-  { slug: 'automated-file-backup', dateModified: '2026-06-03' },
-  { slug: 'delete-old-log-files', dateModified: '2026-06-03' },
-  { slug: 'quick-system-info-report', dateModified: '2026-05-22' },
-  { slug: 'search-files-for-text-grep', dateModified: '2026-06-03' },
-  { slug: 'check-if-website-is-up', dateModified: '2026-06-03' },
-  { slug: 'bash-error-handling', dateModified: '2026-06-03' },
-  { slug: 'bash-if-else-examples', dateModified: '2026-06-03' },
-  { slug: 'create-dated-folder', dateModified: '2026-06-03' },
-  { slug: 'kill-a-process', dateModified: '2026-06-03' },
-  { slug: 'file-permissions-security', dateModified: '2026-06-03' },
-  { slug: 'monitor-cpu-ram-usage', dateModified: '2026-06-03' },
-  { slug: 'bash-send-email-alert', dateModified: '2026-06-03' },
-  { slug: 'mysql-database-backup', dateModified: '2026-06-03' },
-  { slug: 'ssh-key-setup-script', dateModified: '2026-06-03' },
-  { slug: 'find-duplicate-files', dateModified: '2026-06-03' },
-  { slug: 'restart-service-if-stopped', dateModified: '2026-06-03' },
-  { slug: 'find-large-files-linux', dateModified: '2026-06-06' },
-  { slug: 'kill-process-on-port', dateModified: '2026-06-06' },
-  { slug: 'rsync-remote-backup', dateModified: '2026-06-06' },
-  { slug: 'check-ssl-certificate-expiry', dateModified: '2026-06-06' },
-  { slug: 'list-open-ports-linux', dateModified: '2026-06-06' },
-  { slug: 'docker-prune-cleanup', dateModified: '2026-06-06' },
-  { slug: 'bash-for-loop-examples', dateModified: '2026-06-10' },
-  { slug: 'bash-functions', dateModified: '2026-06-10' },
-  { slug: 'bash-arrays', dateModified: '2026-06-10' },
-  { slug: 'bash-argument-parsing', dateModified: '2026-06-10' },
-  { slug: 'bash-string-manipulation', dateModified: '2026-06-10' },
-];
+/**
+ * Extract { slug, dateModified } pairs from a TypeScript registry source file
+ * by matching slug: '...' and the nearest following dateModified: '...' literal.
+ * Coupled to the object-literal format of src/lib/snippets.ts and src/lib/tools.ts.
+ */
+function parseRegistry(filePath) {
+  const content = readFileSync(resolve(process.cwd(), filePath), 'utf-8');
+  const slugs = [...content.matchAll(/slug:\s*'([^']+)'/g)]
+    .map(m => ({ slug: m[1], index: m.index }));
+  const dates = [...content.matchAll(/dateModified:\s*'([^']+)'/g)]
+    .map(m => ({ date: m[1], index: m.index }));
 
-const tools = [
-  { slug: 'bash-exit-code-lookup', datePublished: '2026-06-02', dateModified: '2026-06-06' },
-  { slug: 'cron-job-builder', datePublished: '2026-06-02', dateModified: '2026-06-04' },
-  { slug: 'chmod-permissions-builder', datePublished: '2026-06-02', dateModified: '2026-06-06' },
-  { slug: 'path-debugger', datePublished: '2026-06-02', dateModified: '2026-06-06' },
-  { slug: 'bash-boilerplate-generator', datePublished: '2026-06-02', dateModified: '2026-06-06' },
-  { slug: 'rsync-command-builder', datePublished: '2026-06-06', dateModified: '2026-06-06' },
-  { slug: 'grep-pattern-builder', datePublished: '2026-06-07', dateModified: '2026-06-07' },
-  { slug: 'shellcheck-error-decoder', datePublished: '2026-06-02', dateModified: '2026-06-06' },
-  { slug: 'bash-trap-builder', datePublished: '2026-06-10', dateModified: '2026-06-10' },
-];
+  return slugs
+    .map(s => ({ slug: s.slug, dateModified: dates.find(d => d.index > s.index)?.date }))
+    .filter(e => e.dateModified);
+}
+
+const snippets = parseRegistry('src/lib/snippets.ts');
+const tools    = parseRegistry('src/lib/tools.ts');
 
 const snippetEntries = snippets.map(s => ({
-  url: `${SITE_URL}/snippets/${s.slug}`,
-  lastmod: s.dateModified,
+  url:        `${SITE_URL}/snippets/${s.slug}`,
+  lastmod:    s.dateModified,
   changefreq: 'weekly',
-  priority: 0.8,
+  priority:   0.8,
 }));
 
 const toolEntries = tools.map(t => ({
-  url: `${SITE_URL}/tools/${t.slug}`,
-  lastmod: t.dateModified ?? t.datePublished,
+  url:        `${SITE_URL}/tools/${t.slug}`,
+  lastmod:    t.dateModified,
   changefreq: 'weekly',
-  priority: 0.9,
+  priority:   0.9,
 }));
 
 const allEntries = [...staticEntries, ...snippetEntries, ...toolEntries];
@@ -86,10 +61,12 @@ const allEntries = [...staticEntries, ...snippetEntries, ...toolEntries];
 const xml = [
   '<?xml version="1.0" encoding="UTF-8"?>',
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-  ...allEntries.map(e => `  <url>\n    <loc>${e.url}</loc>\n    <lastmod>${e.lastmod}</lastmod>\n    <changefreq>${e.changefreq}</changefreq>\n    <priority>${e.priority}</priority>\n  </url>`),
+  ...allEntries.map(e =>
+    `  <url>\n    <loc>${e.url}</loc>\n    <lastmod>${e.lastmod}</lastmod>\n    <changefreq>${e.changefreq}</changefreq>\n    <priority>${e.priority}</priority>\n  </url>`
+  ),
   '</urlset>',
 ].join('\n');
 
 const outPath = resolve(process.cwd(), 'public', 'sitemap.xml');
 writeFileSync(outPath, xml, 'utf-8');
-console.log(`sitemap.xml written to ${outPath} with ${allEntries.length} entries`);
+console.log(`sitemap.xml → ${outPath} (${allEntries.length} entries: ${snippets.length} snippets, ${tools.length} tools)`);
