@@ -26,7 +26,7 @@ const guides = [
 const STRONGEST_GUIDE = guides[0];
 
 export const metadata: Metadata = {
-  title: 'Bash Guides | BashSnippets.xyz',
+  title: { absolute: 'Bash Guides | BashSnippets.xyz' },
   description: 'In-depth bash guides for Linux sysadmins.',
   alternates: {
     canonical: `${SITE_URL}/guides`,

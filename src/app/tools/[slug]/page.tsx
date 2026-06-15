@@ -15,7 +15,7 @@ type PageProps = {
 };
 
 function buildSchemas(
-  tool: Pick<ToolMeta, 'title' | 'description' | 'faqs'>,
+  tool: Pick<ToolMeta, 'title' | 'description' | 'faqs' | 'howToUse'>,
   slug: string,
 ) {
   const canonical = `${SITE_URL}/tools/${slug}`;
@@ -86,7 +86,26 @@ function buildSchemas(
         }
       : null;
 
-  return [softwareApplication, breadcrumb, ...(faqSchema ? [faqSchema] : [])];
+  const howTo =
+    tool.howToUse.length > 0
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'HowTo',
+          name: `How to use the ${tool.title}`,
+          step: tool.howToUse.map((text, i) => ({
+            '@type': 'HowToStep',
+            position: i + 1,
+            text,
+          })),
+        }
+      : null;
+
+  return [
+    softwareApplication,
+    breadcrumb,
+    ...(howTo ? [howTo] : []),
+    ...(faqSchema ? [faqSchema] : []),
+  ];
 }
 
 export function generateStaticParams() {

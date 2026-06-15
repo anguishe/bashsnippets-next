@@ -5,9 +5,9 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       { userAgent: '*', allow: '/', disallow: '/tool-content/' },
       { userAgent: 'Google-Extended', allow: '/' },
-      { userAgent: 'GPTBot', disallow: '/' },
+      { userAgent: 'GPTBot', allow: '/' },
       { userAgent: 'Bytespider', disallow: '/' },
-      { userAgent: 'CCBot', disallow: '/' },
+      { userAgent: 'CCBot', allow: '/' },
     ],
     sitemap: 'https://bashsnippets.xyz/sitemap.xml',
   };

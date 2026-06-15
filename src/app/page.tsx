@@ -5,6 +5,7 @@ import ToolkitCTA from '@/components/ToolkitCTA';
 import FaqTerminal from '@/components/FaqTerminal';
 import ScrollReveal from '@/components/ScrollReveal';
 import { snippets } from '@/lib/snippets';
+import { tools } from '@/lib/tools';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -172,7 +173,7 @@ export default function Home() {
               means these scripts work on Ubuntu, Debian, Fedora, CentOS, and
               macOS without a dependency manager, a runtime, or a package.json.
               Copy the script, set a threshold or path, make it executable, and
-              you&apos;re done. The six browser tools — cron builder, chmod
+              you&apos;re done. The {tools.length} browser tools — cron builder, chmod
               calculator, exit code lookup — work the same way: open in a browser,
               get the answer, no account required.
             </p>
@@ -261,7 +262,7 @@ export default function Home() {
             human-readable schedule. The chmod calculator outputs octal, symbolic,
             and the exact <code className="font-mono text-xs text-green">chmod</code> command.
             The exit code lookup explains what any exit code 0–255 means and which
-            command typically produces it. All six tools run entirely in your
+            command typically produces it. All {tools.length} tools run entirely in your
             browser — no server round-trips, no data collected.
           </p>
 
@@ -287,7 +288,7 @@ export default function Home() {
             href="/tools"
             className="mt-8 inline-block text-sm text-blue transition-colors hover:text-text"
           >
-            See all 6 tools →
+            See all {tools.length} tools →
           </Link>
         </ScrollReveal>
       </section>
