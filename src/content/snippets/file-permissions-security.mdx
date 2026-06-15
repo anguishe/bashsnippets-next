@@ -26,7 +26,11 @@ dateModified: "2026-06-03"
 ---
 
 
-## The Script
+I spent a genuinely stupid ten minutes at my own desk re-typing an SSH passphrase I was certain I knew, getting bounced every single time, convinced I'd somehow forgotten a key I'd used that morning. I hadn't. The key file had ended up at mode `0644` — readable by every account on the box — and `ssh` was refusing to touch it. That's the part that fooled me: SSH treats a private key the group or world can read as compromised and ignores it outright, and depending on the client the rejection can look like an ordinary auth failure, so you blame your fingers instead of the permission bits.
+
+Once I went looking, the key wasn't the only thing I'd left careless. A scan turned up files sitting world-writable that I'd `chmod 777`'d at some point to make a problem go away and never tightened back. On my own single-user box the blast radius was small, but the habit is the kind that quietly becomes a hole the moment anything else can run code as another user. The script below is the audit I now run against a directory to surface world-writable files before they surface as an incident — and to remind me what the correct modes actually are, which was the part I wasn't willing to keep guessing at.
+
+## The permission audit I run on my own files now
 
 Paste this into a file called `permissions-audit.sh`. It scans a target directory for world-writable files and saves a report when it finds them.
 
@@ -75,7 +79,7 @@ echo "Private dirs: chmod 700 (rwx------)"
 
 </Callout>
 
-## Step-by-Step Setup
+## Running the audit
 
 ### Step 1 — Create the script file
 
@@ -221,7 +225,7 @@ chown -R www-data:www-data /var/www  # Fix web server ownership
 chown --reference=ref.txt target.txt # Copy ownership from another file
 ```
 
-## Common Mistakes
+## The permission traps that bite hardest
 
 <Callout type="warning" title="Never use chmod -R 777">
 

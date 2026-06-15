@@ -26,9 +26,13 @@ dateModified: "2026-06-03"
 ---
 
 
+A script of mine ran a `cd` into a directory that didn't exist, shrugged the failure off, and kept going — so the very next line, which was destructive, ran in whatever directory I happened to be standing in instead of the one I'd meant to target. It did its work flawlessly, on entirely the wrong files. The script printed nothing alarming and exited zero. As far as bash was concerned, everything had gone fine.
+
+That's the default that catches everyone eventually: bash, left to itself, treats a failed command as a suggestion. The `cd` returns non-zero, bash ignores it, and execution marches on as if nothing happened — which is reasonable for an interactive shell where a typo shouldn't kill your session, and quietly dangerous in a script where the next command assumes the last one worked. `set -euo pipefail` rewrites that contract in one line: stop on the first error, treat an unset variable as an error instead of an empty string, and make a pipeline fail if any stage fails, not only the last. I didn't learn this from a style guide. I learned it cleaning up after a script that obediently ran the right command in the wrong place. The header below goes at the top of everything I write now.
+
 ## The Template — Add This to Every Script
 
-This is the safest way to start any bash script. Copy this header and build from here.
+This is the safest way to start any bash script. Copy this header and build from here. The same strict-mode header is what stops a CI job from passing on a step that actually failed — see [bash scripting for CI/CD pipelines](/guides/bash-scripting-for-ci-cd-pipelines).
 
 ```bash
 #!/bin/bash
@@ -46,7 +50,7 @@ trap 'echo "Error on line $LINENO — script stopped." >&2' ERR
 
 </Callout>
 
-## Step-by-Step Setup
+## Adding it to a script, step by step
 
 ### Step 1 — Create a new script file
 
@@ -102,6 +106,8 @@ Error on line 5 — script stopped.
 The second `echo` never executes. That is `set -e` working correctly. Remove the test line and build from there.
 
 ## What Each Flag Does
+
+Each flag is a documented option of the bash [`set` builtin](https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html):
 
 | Flag | Long form | What it does |
 | --- | --- | --- |

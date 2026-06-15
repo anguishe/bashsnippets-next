@@ -142,7 +142,7 @@ A package update, a misconfigured service, or a developer leaving a debug endpoi
 ## Frequently Asked Questions
 
 ### What is the difference between ss and netstat?
-`ss` reads from kernel socket tables directly — faster and maintained. `netstat` reads from `/proc` and was deprecated when `iproute2` replaced `net-tools` on most distributions around 2016. The information is equivalent; only the format differs slightly.
+[`ss`](https://man7.org/linux/man-pages/man8/ss.8.html) reads from kernel socket tables directly — faster and maintained. `netstat` reads from `/proc` and was deprecated when `iproute2` replaced `net-tools` on most distributions around 2016. The information is equivalent; only the format differs slightly.
 
 ### Why do some entries show no process name?
 Process names require root. A port held by a system service or a different user shows the address and port without the owning PID when run unprivileged. Run with `sudo` for complete output.

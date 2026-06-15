@@ -26,7 +26,11 @@ dateModified: "2026-06-03"
 ---
 
 
-## The Script
+My 2 TB HDD was wall-to-wall with duplicate downloads — the same installer pulled three separate times, photo dumps copied into two different folders, `file (1).zip` sitting right next to `file.zip` — and for an embarrassingly long stretch I was sorting it out by eye. Open two folders side by side, compare names, compare sizes, delete the one I was *fairly* sure was redundant, hope I'd guessed right. It was slow, it was error-prone, and the one thing it could never actually tell me was whether two files were truly identical or only similarly named.
+
+That last point is the whole reason to stop doing it by hand. A filename tells you nothing reliable; two files can share a name and differ, or differ in name and be byte-for-byte the same. The only honest test is the content itself, which is what a hash gives you — run each file through `md5sum` and identical files produce identical hashes regardless of what they're called or where they live. Sort by that hash so copies land next to each other, let `awk` print every hash it has already seen, and the machine surfaces the duplicates in seconds instead of an afternoon. The script below does exactly that, and it only ever prints — deleting stays my call, after I've read the list. The afternoons I'd spent guessing were the real cost, and I wasn't keen to spend more.
+
+## The script that found the copies for me
 
 Save as `find-dupes.sh`. Set `TARGET` to the directory you want to scan — `$HOME/Downloads` is the default. The script prints only duplicate files (second copy onward), one per line.
 
@@ -65,7 +69,7 @@ This script only **prints** duplicates — it never deletes anything. Pipe the o
 
 </Callout>
 
-## How It Works
+## Why the hash-sort-awk chain works
 
 **`find "$TARGET" -type f`** lists every regular file in the target directory recursively. `-type f` skips symlinks, directories, and device files — only real files get checksummed.
 
@@ -75,7 +79,7 @@ This script only **prints** duplicates — it never deletes anything. Pipe the o
 
 **`awk 'seen[$1]++'`** builds an associative array keyed on the hash (field 1). The first time a hash appears, `seen[$1]` is 0 (falsy) — awk does not print. On the second occurrence it becomes 1 (truthy) — awk prints. Every duplicate beyond the first is printed. The original is never output.
 
-## Step-by-Step Setup
+## Running it against a real folder
 
 ### Step 1 — Create the file
 
@@ -110,7 +114,7 @@ cat dupes_$(date +%Y%m%d).txt
 
 Review the list, then delete files you are sure are safe to remove.
 
-## Variations
+## Depth limits, reports, and scheduling
 
 ### Accept a directory as an argument
 
@@ -168,7 +172,7 @@ MD5 is not cryptographically secure, but for finding byte-for-byte duplicate fil
 
 </Callout>
 
-## Common Mistakes
+## Where the pipeline trips up
 
 <Callout type="warning" title="xargs without -r hangs on empty input">
 

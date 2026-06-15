@@ -26,7 +26,11 @@ dateModified: "2026-06-03"
 ---
 
 
-## The Script
+One stray `DROP TABLE` against a local database I'd been building against for weeks, and the rows were gone — no staging copy, no replica, no undo, nothing but the specific sinking feeling of having done it to myself at my own keyboard. It wasn't a production system; there was no production system. That almost made it worse. The data only ever lived in one place, on one disk, and the moment I confirmed the statement, the only copy that had ever existed stopped existing.
+
+What I'd been missing wasn't caution — I'm careful, and careful still fat-fingers a query eventually. What I was missing was a second copy that didn't depend on me being careful. A live MySQL data directory isn't a backup you can trust either: copy those files mid-write and you can capture a half-finished transaction, which is why `mysqldump` exists — it asks the server for a consistent logical snapshot instead of grabbing bytes out from under it. The script below dumps the database, compresses the result, stamps it with the date so nothing overwrites anything, and prunes old copies. I started running it on a schedule the same day, and I've fat-fingered queries since — without the same consequence, which was the whole point.
+
+## The dump script I now run on a schedule
 
 Copy this into `mysql-backup.sh`, edit the configuration block, then make it executable.
 
@@ -83,7 +87,7 @@ Then `chmod 600 ~/.my.cnf` and drop the `-u` and `-p` flags from the `mysqldump`
 
 </Callout>
 
-## Step-by-Step Setup
+## Setting it up safely
 
 ### Step 1 — Create the script file
 
@@ -170,7 +174,7 @@ mysql -e "DROP DATABASE restore_test;"
 
 Do this once after your first backup. Do it again after any major schema change.
 
-## How It Works
+## Why each piece is shaped the way it is
 
 **`-u"$DB_USER"` and `-p"$DB_PASS"`** — These pass the MySQL username and password to `mysqldump`. Putting the flags adjacent to the quoted variables (`-u"root"`) avoids a space between `-p` and the password, which `mysqldump` expects when you supply the password on the command line. Prefer `~/.my.cnf` in production so the password never appears in process listings or the script file.
 
@@ -199,7 +203,7 @@ If the job fails silently, set an explicit `PATH` at the top of the crontab or u
 
 </Callout>
 
-## Variations
+## Adapting it for all-databases, remote, and MariaDB
 
 | Use case | What to change |
 | --- | --- |

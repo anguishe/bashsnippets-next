@@ -26,7 +26,11 @@ dateModified: "2026-06-03"
 ---
 
 
-## The Script
+I was clearing space on the SSD — the usual end-of-month sweep of dead checkouts and `node_modules` graveyards — and I fired `rm -rf` at what I was sure was a throwaway directory. It wasn't. It was about two months of work on a side project, gone in the time it takes to press Enter. My first thought was relief: there's a backup somewhere. There wasn't. For months I'd been promising myself I'd "set up proper backups next week," and next week had never actually arrived, so the folder was nowhere — not on the 2 TB drive where backups are supposed to live, not anywhere else.
+
+What stung wasn't the deletion itself. `rm` did exactly what I told it to. The real failure was that backups had stayed a future-tense intention instead of something that runs on its own, and an intention protects nothing. A backup only counts if it happens whether or not you remember it: a script, on a schedule, named so no run overwrites the last, writing to a different disk than the one you work on. The version below is what I wrote that same night, once I'd decided future-me didn't get to be trusted with two months of work ever again.
+
+## The backup script I wrote the night I lost a folder
 
 Copy this, paste it into a file called `backup.sh`, and you're 90% done.
 
@@ -60,7 +64,7 @@ fi
 
 </Callout>
 
-## Step-by-Step Setup
+## Setting it up so it actually runs
 
 ### Step 1 — Create the file
 
@@ -103,7 +107,7 @@ The [create dated folder snippet](/snippets/create-dated-folder) explains the `d
 
 ## Schedule It with Cron
 
-Running this manually defeats the purpose. Here's how to make it run automatically every day.
+Running this manually defeats the purpose. Here's how to make it run automatically every day. Backups are one piece of a server's baseline — see the [bash scripts every sysadmin needs](/guides/bash-scripts-every-sysadmin-needs) guide for the rest.
 
 ### Open your crontab
 
@@ -130,7 +134,7 @@ Go to [crontab.guru](https://crontab.guru) to build and test cron time expressio
 
 </Callout>
 
-## Variations
+## Three versions I keep around
 
 ### Faster backups with rsync (recommended for large folders)
 
@@ -181,7 +185,7 @@ ls -dt "$DEST"/backup_* | tail -n +$(( KEEP + 1 )) | xargs rm -rf
 echo "✓ Backed up. Keeping last $KEEP snapshots."
 ```
 
-## Common Mistakes
+## Where backups quietly betray you
 
 <Callout type="warning" title="Missing trailing slash on rsync SOURCE">
 

@@ -26,7 +26,11 @@ dateModified: "2026-06-03"
 ---
 
 
-## The Script
+I'd fumbled `ssh-keygen` enough times to lose patience with myself — wrong key type one night, wrong output path another, the `-N` flag in the wrong spot so it sat there prompting when I wanted it silent — and the time I actually noticed I had a problem was the time I copied a public key to a host I hadn't meant to touch. No real harm done; a public key on the wrong server is clutter, not a breach. But it was the moment I decided I'd rather hand the whole dance to a script than keep retyping the same flags from memory at one in the morning.
+
+The reason this is worth scripting isn't the keygen line itself — it's everything around it that's quiet and unforgiving. The `~/.ssh` directory has to be `700` and the private key `600`, or SSH refuses the key and you waste ten minutes blaming your passphrase. The empty `-N ""` is what makes generation non-interactive, which is the difference between a script that runs clean and one that hangs waiting for input. The version below generates the key with the right permissions every time, prints the public half to paste wherever it needs to go, and optionally copies it to a server — so the part I used to get wrong is the part I no longer touch.
+
+## The setup script so I stop fat-fingering keys
 
 Save as `ssh-key-setup.sh`. Leave `REMOTE_USER` empty to only generate and display keys; set it to `you@203.0.113.10` (for example) to run `ssh-copy-id` automatically after generation.
 
@@ -99,7 +103,7 @@ Copy the public key output above → DigitalOcean Control Panel → Settings →
 
 </Callout>
 
-## Step-by-Step Setup
+## Running it, then locking the server down
 
 ### Step 1 — Save the script
 
@@ -182,7 +186,7 @@ Always verify key-based login works in a new terminal before disabling password 
 
 </Callout>
 
-## How It Works
+## What each command is doing for you
 
 **`mkdir -p "$HOME/.ssh"`** creates the SSH config directory if it is missing; `-p` avoids errors when the path already exists and creates parent directories when needed.
 
@@ -192,7 +196,7 @@ Always verify key-based login works in a new terminal before disabling password 
 
 **`ssh-copy-id -i "${KEY_FILE}.pub" "$REMOTE_USER"`** logs into the remote host (you'll need password auth or another working key the first time), appends your public key to `~/.ssh/authorized_keys`, and fixes remote permissions so passwordless login works on the next `ssh`.
 
-## Variations
+## RSA, passphrases, and many servers
 
 ### 1. Generate RSA 4096 key
 
@@ -229,7 +233,7 @@ Your private key (`~/.ssh/id_ed25519`) must be `600`. Your `.ssh` directory must
 
 ### What is the difference between RSA and Ed25519 SSH keys?
 
-Ed25519 is newer, faster, and more secure than RSA 2048. Use Ed25519 for new keys in 2026. RSA 4096 is acceptable if Ed25519 isn't supported.
+[Ed25519](https://ed25519.cr.yp.to/) is newer, faster, and more secure than RSA 2048. Use Ed25519 for new keys in 2026. RSA 4096 is acceptable if Ed25519 isn't supported.
 
 ### How do I add an SSH key to a DigitalOcean Droplet?
 

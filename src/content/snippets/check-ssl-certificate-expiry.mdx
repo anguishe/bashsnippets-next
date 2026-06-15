@@ -94,10 +94,10 @@ done
 <Callout type="success" title="What each part does">
 
 - **`set -euo pipefail`** — exit on error, unset variable, or broken pipe. A cert check that silently errors is worse than no check.
-- **`WARN_THRESHOLD=30`** — 30 days gives two renewal attempts before expiry on a 90-day Let's Encrypt cert. Raise to 45 for tighter policies.
+- **`WARN_THRESHOLD=30`** — 30 days gives two renewal attempts before expiry on a [90-day Let's Encrypt cert](https://letsencrypt.org/2015/11/09/why-90-days/). Raise to 45 for tighter policies.
 - **`DOMAINS=(...)`** — list every domain and subdomain explicitly. Wildcards in this array won't expand to real hostnames.
 - **`-servername "${DOMAIN}"`** — the SNI flag. On servers hosting multiple domains from one IP, without this flag OpenSSL returns the server's default cert instead of the one for your domain.
-- **`echo |`** — prevents `openssl s_client` from waiting for stdin in interactive mode. Required for cron and CI pipelines.
+- **`echo |`** — prevents [`openssl s_client`](https://docs.openssl.org/master/man1/openssl-s_client/) from waiting for stdin in interactive mode. Required for cron and CI pipelines.
 - **`cut -d= -f2`** — `enddate` outputs `notAfter=Jun 15 12:00:00 2026 GMT`; cutting on `=` isolates the parseable date string.
 - **`date -d` / `date -j -f`** — Linux vs macOS BSD date syntax. The `||` fallback handles both without an OS check.
 - **`(EXPIRY_EPOCH - NOW_EPOCH) / 86400`** — integer arithmetic drops fractional days, making the result slightly conservative — the right direction.

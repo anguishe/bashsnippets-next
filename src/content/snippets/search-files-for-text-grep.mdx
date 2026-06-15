@@ -65,7 +65,7 @@ echo "Found in $COUNT file(s)"
 
 <Callout type="success" title="What this does">
 
-`grep -rn` searches recursively (`-r`) through all subdirectories and shows line numbers (`-n`) for each match. `--include` filters to a specific file type. `--color=auto` highlights your keyword in the output so it's easy to scan.
+`grep -rn` searches recursively (`-r`) through all subdirectories and shows line numbers (`-n`) for each match. `--include` filters to a specific file type. `--color=auto` highlights your keyword in the output so matches stand out at a glance.
 
 </Callout>
 
@@ -189,10 +189,6 @@ Searching a project without excluding `node_modules` or `.git` will flood your r
 
 </Callout>
 
-    Get $200 Free →
-
-      View Hosting Plans →
-
 ## Common Mistakes
 
 <Callout type="warning" title="Forgetting -r on a folder">
@@ -238,5 +234,3 @@ Add the `-i` flag: `grep -i "error" logfile.txt`. This matches ERROR, error, Err
 
 Use `grep -rn "term" /folder --include="*.py"`. You can stack multiple `--include` flags to search several file types at once.
 
-    Try the Generator →
-    Browse All Tools

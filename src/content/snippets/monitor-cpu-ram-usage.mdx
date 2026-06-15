@@ -26,7 +26,11 @@ dateModified: "2026-06-03"
 ---
 
 
-## The Script
+I started a long job on my own machine, walked off to do something else, and came back a few hours later to a desktop so sluggish the mouse cursor stuttered when I moved it. One process had pinned every core of the i7 and was steadily eating into 64 GB of RAM, and it had been doing it, uncontested, the entire time I was away. By the time the machine felt slow under my hands, the damage — a wasted afternoon, a swap-thrashed box I had to coax back to responsiveness — was already done.
+
+The thing that gets you isn't the runaway process; those happen. It's that a busy machine and a healthy machine feel identical until you're sitting in front of one. CPU and memory pressure leave no trace unless something is sampling them and writing it down. So I built the check below to take a one-shot reading of CPU and RAM, compare each against a threshold, and log a warning the moment either crosses it. One detail worth carrying with you: when the kernel's OOM killer finally reaps a process under memory pressure, it exits with code 137 — that's 128 plus signal 9 — so a 137 in your logs is RAM exhaustion's fingerprint, not a bug in your code. Catching that an hour in, instead of an afternoon later, is the whole reason this runs now.
+
+## The monitor I built after my own machine seized up
 
 Paste this into `monitor.sh`. Adjust `THRESHOLD` and `LOG_FILE` if you want a different cutoff or log path.
 
@@ -64,7 +68,7 @@ else
 fi
 ```
 
-## How It Works
+## What each line is actually reading
 
 | Line / piece | What it does |
 | --- | --- |
@@ -75,7 +79,7 @@ fi
 | tee -a "$LOG_FILE" | Prints to stdout and appends to the log file. |
 | $DATE | Timestamp so every log entry is traceable. |
 
-## Step-by-Step Setup
+## Getting it logging on your box
 
 ### Step 1 — Create the file
 
@@ -143,7 +147,7 @@ Cron runs silently. Without `>> /var/log/monitor-cron.log 2>&1` on your cron lin
 
 </Callout>
 
-## Variations
+## Versions for email, per-process, and graphing
 
 ### Send an email when CPU or RAM spikes
 
@@ -226,9 +230,7 @@ LINE=$(printf '{"timestamp":"%s","cpu":%s,"ram":%s}\n' "$TS" "$CPU" "$RAM")
 echo "$LINE" >> "$LOG_FILE"
 ```
 
-    Get $200 Free →
-
-## Common Mistakes
+## Where the parsing falls apart
 
 <Callout type="warning" title="top output format differs between distros">
 
@@ -238,7 +240,7 @@ The awk column for CPU usage is $2 on Ubuntu but may be different on CentOS/RHEL
 
 <Callout type="warning" title="The script logs warnings but nobody reads the log">
 
-Writing to a log file is pointless if nobody checks it. Combine this with the [Send Email Alerts from Bash](/snippets/bash-send-email-alert) snippet to get notified when thresholds trip. Or pipe cron output to your inbox. When sustained resource pressure is causing service crashes, the [restart service watchdog](/snippets/restart-service-if-stopped) handles automatic recovery between monitoring cycles.
+Writing to a log file is pointless if nobody checks it. Combine this with the [Send Email Alerts from Bash](/snippets/bash-send-email-alert) snippet to get notified when thresholds trip. Or pipe cron output to your inbox. When sustained resource pressure is causing service crashes, the [restart service watchdog](/snippets/restart-service-if-stopped) handles automatic recovery between monitoring cycles. A service the kernel kills under memory pressure exits with code 137 — 128 plus signal 9 ([SIGKILL](https://man7.org/linux/man-pages/man7/signal.7.html)), the OOM killer's signature — so a 137 in your logs points to RAM exhaustion, not a code bug.
 
 </Callout>
 
@@ -247,10 +249,6 @@ Writing to a log file is pointless if nobody checks it. Combine this with the [S
 On older kernels, `free` may not show "available" memory correctly. The $3/$2 calculation can overstate usage because Linux aggressively caches disk reads in RAM. On modern Ubuntu (18.04+), this is handled correctly.
 
 </Callout>
-
-    Start your Droplet →
-
-      View Hosting Plans →
 
 ## Frequently Asked Questions
 

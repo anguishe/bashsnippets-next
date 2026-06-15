@@ -32,6 +32,10 @@ dateModified: "2026-06-03"
 ---
 
 
+A long task on my own machine died halfway through with a write error, and only when I went looking did I run `df` and find the root SSD sitting at 100%. I'd been reacting to a crash that a five-line check would have warned me about an hour earlier. There was no heads-up, no yellow light — the disk went from "fine" to "out" while I wasn't looking, and the first I heard of it was a program falling over because there was nowhere left to write.
+
+That's the nature of a full disk: it gives no warning on its own, and by the time something fails loudly enough to notice, you're already past the point where you had options. The fix isn't clever, which is the point — read the usage percentage off `df`, compare it to a threshold you choose, and say something while there's still room to act. Run it once and it tells you where you stand right now; run it on a schedule and it turns a silent wall you hit into a warning you get ahead of. The script below is the difference between finding out from a threshold and finding out from a crash. I'd rather get the warning than clean up after the wall.
+
 ## What Does the Disk Space Warning Script Look Like?
 
 Paste this into a file called `diskcheck.sh` and you're set. Change `THRESHOLD` to whatever percentage you want to be warned at.
@@ -112,7 +116,7 @@ WARNING: Disk usage on / is at 87% (threshold: 80%)
 
 ## How Do I Schedule This Script to Run Automatically?
 
-Running the script by hand only helps when you remember. For a server, put it on a schedule with cron so you catch problems early.
+Running the script by hand only helps when you remember. For a server, put it on a schedule with cron so you catch problems early. Disk monitoring is one of several jobs every box needs from day one — the [bash scripts every sysadmin needs](/guides/bash-scripts-every-sysadmin-needs) guide covers the full baseline.
 
 Open your crontab:
 
@@ -231,5 +235,23 @@ The `-P` flag forces POSIX output (one line per filesystem).
 | `awk 'NR==2{print $5}'` | Prints field 5 from line 2 — the Use% column |
 | `tr -d '%'` | Deletes `%` characters so `85%` becomes `85` for numeric compare |
 | `[ "$USAGE" -gt "$THRESHOLD" ]` | True when usage is greater than your threshold |
+
+## Frequently Asked Questions
+
+### How do I check disk space in Linux with bash?
+
+Use `df` to read usage and `awk` to pull out the Use% column: `df / | awk 'NR==2 {print $5}' | tr -d '%'`. That leaves a bare number you can compare against a threshold in an `if` test, which is exactly what the script above does before deciding whether to warn.
+
+### How do I get an alert when disk space is low?
+
+The standard pattern is bash plus a threshold plus cron: the script compares current usage to a number you set, prints or emails a warning on breach, and cron runs it on a schedule so you never have to remember. For SMS or Slack instead of email, pipe the warning line into `curl` against a webhook rather than `echo`.
+
+### Why does my disk fill up without any warning?
+
+Because nothing on a stock Linux box watches free space for you. A filesystem reports its usage when asked and stays silent otherwise, so usage climbs invisibly until a write fails. A threshold check is the thing that turns "the disk is full" into "the disk is getting full" while you still have room to act.
+
+### What does the df / command do in Linux?
+
+`df` means disk free. It reports filesystem size, used space, available space, and the mount point. The `/` argument limits the output to the root filesystem. The columns are Filesystem, 1K-blocks, Used, Available, Use%, and Mounted on — the script reads Use% from the second line.
 
 <p className="text-sm text-muted">Part of the <a href="/snippets/server-monitoring" className="text-blue hover:text-green transition-colors">Server Monitoring</a> · <a href="/snippets/disk-management" className="text-blue hover:text-green transition-colors">Disk Management</a> collection</p>

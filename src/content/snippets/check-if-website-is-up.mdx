@@ -26,7 +26,11 @@ dateModified: "2026-06-03"
 ---
 
 
-## The Script
+A little side project I host on a cheap VPS had been throwing errors for most of an afternoon, and I found out the way you never want to: by clicking my own link to show someone, and watching it hang. Best guess, it had been down a few hours. Nothing alerted me, because nothing was watching it — I'd stood the thing up, pointed DNS at it, and quietly assumed it would tell me if it fell over. Servers don't do that. They go dark and wait for you to notice.
+
+The uncomfortable part is how cheap the fix was relative to all that silence. One `curl` that fetches the URL, reads the HTTP status code, and shouts when it isn't 200 would have caught the outage in the first five minutes instead of the third hour. The mechanism that bites here is the timeout: without `--max-time`, `curl` will sit there forever against a server that accepts the connection but never answers, and your check hangs right alongside the thing it was meant to watch. A status of `000` means it never connected at all. The script below is the watcher I should have written the day I deployed — the part I wasn't willing to leave to luck a second time.
+
+## The uptime check I should have written months earlier
 
 Paste this into `uptimecheck.sh`. Change `URL` to your site. Schedule with cron and never find out your site was down from a user again.
 
@@ -69,7 +73,7 @@ fi
 
 Your script will trigger the warning for anything that is not 200. A 301 redirect, 404, 500, or complete timeout — all will fire the alert. When the check fires because a service is down (500 or 000), the [restart service watchdog](/snippets/restart-service-if-stopped) handles automatic recovery within 60 seconds. If your site normally redirects (e.g. HTTP → HTTPS), see the variation below to follow redirects before checking the code.
 
-## Step-by-Step Setup
+## Getting the check running
 
 ### Step 1 — Create the file
 
@@ -112,7 +116,7 @@ crontab -e
 0 * * * * /home/user/uptimecheck.sh
 ```
 
-## Variations
+## Versions for redirects, email, and many sites
 
 ### Send an email alert when the site goes down
 
@@ -166,7 +170,7 @@ TIMESTAMP=$(date "+%Y-%m-%d %H:%M")
 echo "[$TIMESTAMP] $URL — HTTP $STATUS" >> "$LOG"
 ```
 
-## Common Mistakes
+## Where uptime checks lie to you
 
 <Callout type="warning" title="Missing --max-time causes scripts to hang">
 

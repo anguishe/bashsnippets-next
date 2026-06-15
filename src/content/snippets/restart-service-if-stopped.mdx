@@ -175,7 +175,7 @@ Add this line (use your actual path):
 * * * * * /home/user/service-watchdog.sh >> /var/log/watchdog-cron.log 2>&1
 ```
 
-The `>> /var/log/watchdog-cron.log 2>&1` redirect captures all output so you have a log of every check, every outage, and every recovery.
+The `>> /var/log/watchdog-cron.log 2>&1` redirect captures all output so you have a log of every check, every outage, and every recovery. A service watchdog is one of the core jobs in the [bash scripts every sysadmin needs](/guides/bash-scripts-every-sysadmin-needs) guide.
 
 <Callout type="info" title="Cron and sudo permissions">
 
@@ -238,7 +238,5 @@ Open `crontab -e` and add: `* * * * * /full/path/to/script.sh` — the five aste
 ### What is systemctl is-active?
 
 `systemctl is-active servicename` checks whether a systemd service is currently running. It returns exit code 0 (success) if active, and 1+ (error) if inactive, failed, or not found.
-
-    Try the Generator →
 
 <p className="text-sm text-muted">Part of the <a href="/snippets/server-monitoring" className="text-blue hover:text-green transition-colors">Server Monitoring</a> collection</p>

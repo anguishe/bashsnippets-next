@@ -26,7 +26,11 @@ dateModified: "2026-06-03"
 ---
 
 
-## The Script
+I had a disk check that worked perfectly. It read the usage, compared it to a threshold, decided things were getting tight — and then did absolutely nothing with that conclusion except append a line to a log file that no human, me very much included, was ever going to open. So when the disk did fill, the script had technically known for hours and had told no one. A monitor that monitors in silence isn't a monitor; it's a diary.
+
+That's the gap this snippet closes, and it's more common than it sounds. Writing the detection logic feels like the hard part, so you stop there, and the alerting — the bit that actually changes your behavior — never gets built. The fix is small: pipe the message into `mail` so a threshold breach lands in your inbox instead of a logfile. The catch that bites people is environment. Under cron the `PATH` is minimal and `mail` may resolve to nothing, or deliver only to a local mailbox you never check, so an alert you "sent" never arrives. The script below sends a real one — with the host, the time, and the top disk consumers in the body — so the next time something goes red, I find out from my inbox, not from a crash. Finding out from a crash instead of from an inbox was a lesson I only needed once.
+
+## The alert script that finally got my attention
 
 Save as `disk-email-alert.sh` (or any name). Set `EMAIL` and `THRESHOLD`, install `mailutils`, then run or cron it.
 
@@ -73,7 +77,7 @@ The script logs the percentage, fills `MESSAGE` with host, time, and `du` output
 
 </Callout>
 
-## How It Works
+## How the message gets built and sent
 
 **`HOSTNAME=$(hostname)`** runs the `hostname` command once and stores the machine name in `HOSTNAME`, so subject lines and the body clearly say which server had the problem (especially useful if you run the same script on several VPS hosts).
 
@@ -89,7 +93,7 @@ You must have mailutils installed: `sudo apt install mailutils`
 
 </Callout>
 
-## Step-by-Step Setup
+## Getting mail working end to end
 
 ### Step 1 — Install mailutils
 
@@ -143,13 +147,13 @@ crontab -e
 15 6 * * * /home/user/disk-email-alert.sh
 ```
 
-<Callout type="info" title="� Cron errors by mail">
+<Callout type="info" title="Cron errors by mail">
 
 To capture stderr from a cron line: append `2>&1 | mail -s 'Cron Error' you@example.com` so failures land in your inbox.
 
 </Callout>
 
-## Variations
+## Gmail relay, combined checks, and rate-limiting
 
 ### Use Gmail SMTP via msmtp (config example)
 
@@ -207,9 +211,7 @@ if [[ "$USAGE" -gt "$THRESHOLD" ]]; then
 fi
 ```
 
-    Get $200 Free →
-
-## Common Mistakes
+## Why your alerts never arrive
 
 <Callout type="warning" title="Sending from cron without a full path">
 
@@ -254,11 +256,5 @@ Run: `which mail` — if it returns nothing, install with: `sudo apt install mai
 ### How do I send email from bash using SMTP (Gmail)?
 
 Use ssmtp or msmtp with your Gmail SMTP credentials. Configure `/etc/ssmtp/ssmtp.conf` with your gmail address and an App Password (not your real password).
-
-    Launch your Droplet →
-
-      Find your domain →
-
-    Try the Generator →
 
 <p className="text-sm text-muted">Part of the <a href="/snippets/server-monitoring" className="text-blue hover:text-green transition-colors">Server Monitoring</a> collection</p>

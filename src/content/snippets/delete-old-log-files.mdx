@@ -26,7 +26,11 @@ dateModified: "2026-06-03"
 ---
 
 
-## The Script
+My SSD hit zero free bytes on a Tuesday, and three unrelated things broke within about a minute of each other — a build, a database write, and my editor's autosave all failing at once. A full disk doesn't announce itself politely; every program that needs to write a single byte starts throwing errors, so the symptoms scatter and the cause hides. It took me an embarrassing while to run `df`, see `/` at 100%, and longer still to trace it back to one app I'd left running for a week that had been quietly appending to a log file the whole time.
+
+Nothing was wrong with the app. It was doing what loggers do. The problem was that nothing was ever pruning what it wrote, so a directory I never looked at grew until it swallowed the last gigabyte on the drive. That's the trap with logs: they're individually tiny and collectively fatal, and they fail you silently right up until everything that touches the disk gives out at the same moment. The script below is what I now point at any directory that grows without bound, so old log files age out on a schedule instead of waiting to take the whole machine down — the part I wasn't going to sit through twice.
+
+## The cleanup script that saved my SSD
 
 Paste this into a file called `cleanlog.sh`. Change `LOG_DIR` and `DAYS` to match your setup. **Run with `-print` first** before using `-delete`.
 
@@ -58,7 +62,7 @@ echo "✓ Done. Cleaned logs older than $DAYS days."
 
 </Callout>
 
-## Step-by-Step Setup
+## Setting it up without nuking the wrong files
 
 ### Step 1 — Create the file
 
@@ -115,13 +119,13 @@ crontab -e
 0 0 1 * * /home/user/cleanlog.sh
 ```
 
-<Callout type="info" title="� Log output to a file">
+<Callout type="info" title="Log output to a file">
 
 Add `>> /var/log/cleanlog.log 2>&1` to the end of your cron line so you have a record of every cleanup run and any errors.
 
 </Callout>
 
-## Variations
+## Versions for messier log directories
 
 ### Clean multiple file types at once
 
@@ -170,11 +174,7 @@ done
 echo "✓ All directories cleaned."
 ```
 
-    Get $200 Free →
-
-      View Hosting Plans →
-
-## Common Mistakes
+## How this deletes the wrong thing
 
 <Callout type="warning" title="Not previewing with -print first">
 
@@ -222,8 +222,5 @@ Swap `-delete` for `-print` in your command. It prints the matching files to you
 ### How do I delete files older than 30 days in Linux?
 
 Run: `find /path/to/folder -type f -mtime +30 -delete`. This finds all files modified more than 30 days ago and deletes them. Always test with `-print` before using `-delete`. For files that accumulate without an age-based pattern, the [find duplicate files](/snippets/find-duplicate-files) script identifies redundant copies by content hash.
-
-    Try the Generator →
-    Browse All Tools
 
 <p className="text-sm text-muted">Part of the <a href="/snippets/disk-management" className="text-blue hover:text-green transition-colors">Disk Management</a> collection</p>

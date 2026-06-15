@@ -26,7 +26,11 @@ dateModified: "2026-06-03"
 ---
 
 
-## The Script
+A small scheduled job I'd half-forgotten about stopped doing its work, and it did it the worst possible way — silently, with no error I'd ever see, because it was running under cron with its output going nowhere. When I finally dug in, the culprit was a single test I'd written carelessly: `[ $STATUS = ok ]`, no quotes. As long as `$STATUS` came back with a value it was fine. The one time the command feeding it returned nothing, `$STATUS` expanded to empty, the test collapsed to `[ = ok ]`, and bash choked on a comparison with a missing left-hand side.
+
+That's the whole trap, and it's why every example here quotes its variables. An unquoted variable in `[ ]` isn't one argument that might be empty — when it's empty it's *zero* arguments, so the shell sees `[ = ok ]` and either errors or evaluates something you never meant. Wrap it in quotes and an empty value becomes `[ "" = ok ]`: still false, but valid, and your branch behaves. The three-branch disk check below is where I rebuilt my intuition for `if`/`elif`/`else`, the comparison operators that actually matter, and the spacing rules bash is unforgiving about — the same small things that, left unquoted, take down a job you'd stopped thinking about. A job dying in silence over a missing pair of quotes is not something I wanted to debug twice.
+
+## The three-branch check this all started with
 
 Copy this into `disk-if-else.sh`. It uses `if`, `elif`, and `else` to classify disk usage into three levels — the same pattern as our [disk space warning](/snippets/disk-space-warning) snippet, with an extra critical branch.
 
@@ -61,7 +65,7 @@ fi
 
 </Callout>
 
-## Step-by-Step Setup
+## Building the check yourself
 
 ### Step 1 — Create the file
 
@@ -129,7 +133,7 @@ Go to [crontab.guru](https://crontab.guru) to build and test cron time expressio
 
 </Callout>
 
-## Variations
+## The comparisons you'll actually reach for
 
 ### String comparison (= and !=)
 
@@ -199,7 +203,9 @@ fi
 | File | `-d` | Directory exists |
 | File | `-e` | File or directory exists |
 
-## Common Mistakes
+## The bracket traps everyone hits
+
+The trap that actually bit me lives one level below these: an unquoted variable in a test. `[ $x = ok ]` works until `$x` is empty, at which point it collapses to `[ = ok ]` and bash errors on the missing operand. Quoting it — `[ "$x" = ok ]` — turns an empty value into a harmless empty string instead of a vanished argument. The three below are the ones that break scripts most often.
 
 <Callout type="warning" title="Forgetting spaces inside [ ]">
 

@@ -221,7 +221,7 @@ TCP keeps the socket in TIME_WAIT state for up to 60 seconds after the last conn
 
 ### How do I kill a process on a port on macOS?
 
-The same `lsof -ti :PORT | xargs kill` command works on macOS. The `ss` command is Linux-only (part of iproute2), but macOS ships with `lsof` pre-installed. Use `sudo` if the process runs as root or another user.
+The same `lsof -ti :PORT | xargs kill` command works on macOS. The [`ss`](https://man7.org/linux/man-pages/man8/ss.8.html) command is Linux-only (part of iproute2), but macOS ships with `lsof` pre-installed. Use `sudo` if the process runs as root or another user.
 
 ### Can I free a port without killing the process?
 

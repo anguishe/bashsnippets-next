@@ -26,6 +26,10 @@ dateModified: "2026-06-03"
 ---
 
 
+Past-me had a naming convention for backups, if it deserves the word: a folder called `backup`, beside `backup2`, beside `backupNEW`, beside `backup_final`, all piled onto the same 2 TB drive over months of "I'll make a quick copy first." The day I actually needed one of them, I opened the drive and genuinely could not tell which was the good one. Same names, near-identical sizes, and every manual copy I'd ever made had been quietly clobbering or shadowing the one before it. The copy I wanted was probably in there. It was also probably the one I'd overwritten.
+
+The failure here is almost embarrassingly basic: a name with no date in it carries no information about when it was made or whether it's current, so every "quick copy" competes with the last instead of joining a timeline. Stamp the date into the name in `YYYY-MM-DD` order and the problem evaporates — the folders sort themselves chronologically in `ls`, nothing collides, and "which one is newest" becomes something you can see instead of guess. The one-liner below is what I should have been typing from the start, and the alias further down is how I made it the path of least resistance — the part I wasn't willing to keep getting wrong.
+
 ## The One-Liner
 
 Run this directly in your terminal — no script file needed.
@@ -40,7 +44,7 @@ Running this today creates a folder called `2026-05-03_project`. The `$()` synta
 
 </Callout>
 
-## Step-by-Step Setup
+## From one-liner to daily habit
 
 ### Step 1 — Run the one-liner directly in your terminal
 
@@ -130,7 +134,7 @@ Add the alias to `~/.zshrc` instead, then run `source ~/.zshrc`. The alias synta
       May-03-2026
       Human readable — does not sort well
 
-## Variations
+## Other ways I name dated folders
 
 ### Create and immediately cd into it
 
@@ -172,7 +176,7 @@ echo "✓ Created: $FULL"
 cd "$FULL"
 ```
 
-<Callout type="info" title="� Add it as an alias">
+<Callout type="info" title="Add it as an alias">
 
 Add this to your `~/.bashrc` to create dated folders from anywhere with one command:
 
@@ -217,7 +221,7 @@ Always wrap dated folder names in quotes: `mkdir "$(date +%Y-%m-%d)_my project"`
 
 </Callout>
 
-## Common Mistakes
+## Where dated folders go wrong
 
 <Callout type="warning" title="Spaces in folder names break without quotes">
 
@@ -237,10 +241,6 @@ Adding an alias in the terminal only lasts for that session. You must add it to 
 
 </Callout>
 
-    Get $200 Free →
-
-      View Hosting Plans →
-
 ## Frequently Asked Questions
 
 ### How do I create a folder with today's date in bash?
@@ -255,5 +255,3 @@ Use `date +%Y-%m-%d_%H-%M` inside `$()`: `mkdir "folder_$(date +%Y-%m-%d_%H-%M)"
 
 Use ISO 8601 format: `YYYY-MM-DD`. This sorts correctly in every file manager because the most significant unit (year) comes first. Formats like `MM-DD-YYYY` sort incorrectly by month rather than year.
 
-    Try the Generator →
-    Browse All Tools
