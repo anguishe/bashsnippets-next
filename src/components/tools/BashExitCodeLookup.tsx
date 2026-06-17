@@ -43,14 +43,97 @@ const COMMON_CODES = [
   { code: 143, label: '143 (SIGTERM)', tooltip: 'Script terminated by SIGTERM' },
 ];
 
+interface SignalInfo {
+  name: string;
+  desc: string;
+  trappable: boolean;
+}
+
+// Signal numbers that, added to 128, produce the exit code of a terminated process.
+const SIGNALS: Record<number, SignalInfo> = {
+  1: { name: 'SIGHUP', desc: 'Hangup — controlling terminal closed', trappable: true },
+  2: { name: 'SIGINT', desc: 'Interrupt from keyboard (Ctrl-C)', trappable: true },
+  3: { name: 'SIGQUIT', desc: 'Quit from keyboard (Ctrl-\\), core dump', trappable: true },
+  4: { name: 'SIGILL', desc: 'Illegal instruction', trappable: true },
+  6: { name: 'SIGABRT', desc: 'Abort signal from abort()', trappable: true },
+  8: { name: 'SIGFPE', desc: 'Floating-point exception', trappable: true },
+  9: { name: 'SIGKILL', desc: 'Killed — cannot be caught or ignored', trappable: false },
+  11: { name: 'SIGSEGV', desc: 'Invalid memory reference (segfault)', trappable: true },
+  13: { name: 'SIGPIPE', desc: 'Broken pipe — wrote with no reader', trappable: true },
+  14: { name: 'SIGALRM', desc: 'Timer signal from alarm()', trappable: true },
+  15: { name: 'SIGTERM', desc: 'Termination signal (default kill)', trappable: true },
+  19: { name: 'SIGSTOP', desc: 'Stop process — cannot be caught or ignored', trappable: false },
+  24: { name: 'SIGXCPU', desc: 'CPU time limit exceeded', trappable: true },
+  25: { name: 'SIGXFSZ', desc: 'File size limit exceeded', trappable: true },
+};
+
+interface SignalForCode extends SignalInfo {
+  num: number;
+}
+
+function signalForCode(code: number): SignalForCode | null {
+  if (code > 128 && code <= 128 + 64) {
+    const num = code - 128;
+    const sig = SIGNALS[num];
+    if (sig) return { num, ...sig };
+  }
+  return null;
+}
+
 function lookup(code: number): ExitCodeInfo {
-  return (
-    EXIT_CODES[code] ?? {
-      meaning: `Exit code ${code}`,
-      causes: 'Check command documentation',
-      example: '',
+  if (EXIT_CODES[code]) return EXIT_CODES[code];
+  const sig = signalForCode(code);
+  if (sig) {
+    return {
+      meaning: `Terminated by ${sig.name}`,
+      causes: `Process received signal ${sig.num} (${sig.name}) — ${sig.desc}`,
+      example: `128 + ${sig.num} = ${code}`,
+    };
+  }
+  return {
+    meaning: `Exit code ${code}`,
+    causes: 'Check command documentation',
+    example: '',
+  };
+}
+
+interface SearchEntry {
+  code: number;
+  meaning: string;
+  keywords: string;
+}
+
+// Flattened, lowercased index of every known code (and signal code) for free-text search.
+const SEARCH_INDEX: SearchEntry[] = (() => {
+  const byCode = new Map<number, SearchEntry>();
+  for (const [c, info] of Object.entries(EXIT_CODES)) {
+    const code = Number(c);
+    byCode.set(code, {
+      code,
+      meaning: info.meaning,
+      keywords: `${code} ${info.meaning} ${info.causes} ${info.example}`.toLowerCase(),
+    });
+  }
+  for (const [n, sig] of Object.entries(SIGNALS)) {
+    const code = 128 + Number(n);
+    const existing = byCode.get(code);
+    const sigWords = ` ${sig.name} ${sig.desc} signal ${n}`.toLowerCase();
+    if (existing) {
+      existing.keywords += sigWords;
+    } else {
+      byCode.set(code, {
+        code,
+        meaning: `Terminated by ${sig.name}`,
+        keywords: `${code}${sigWords}`,
+      });
     }
-  );
+  }
+  return [...byCode.values()].sort((a, b) => a.code - b.code);
+})();
+
+function buildTrapHandler(code: number, sig: SignalForCode): string {
+  const shortName = sig.name.replace(/^SIG/, '');
+  return `trap 'echo "Caught ${sig.name}, cleaning up"; exit ${code}' ${shortName}`;
 }
 
 function buildHandler(code: number, style: HandlerStyle, meaning: string): string {
@@ -67,13 +150,20 @@ function buildHandler(code: number, style: HandlerStyle, meaning: string): strin
 export default function BashExitCodeLookup() {
   const searchParams = useSearchParams();
   const [codeInput, setCodeInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [handlerStyle, setHandlerStyle] = useState<HandlerStyle>('ifelse');
   const [view, setView] = useState<'empty' | 'loading' | 'result'>('empty');
   const [result, setResult] = useState<{ code: number; info: ExitCodeInfo; handler: string } | null>(null);
   const [handlerFlash, setHandlerFlash] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const { copied, copy } = useClipboard();
+  const { copied: trapCopied, copy: copyTrap } = useClipboard();
   const renderTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const query = searchQuery.trim().toLowerCase();
+  const searchMatches = query
+    ? SEARCH_INDEX.filter((e) => e.keywords.includes(query)).slice(0, 8)
+    : [];
 
   const renderResult = useCallback(
     (code: number, shouldUpdateUrl: boolean, shouldFlashHandler: boolean) => {
@@ -143,6 +233,13 @@ export default function BashExitCodeLookup() {
     if (ok) setShowToast(true);
   }, [result, copy]);
 
+  const resultSignal = result ? signalForCode(result.code) : null;
+
+  const handleTrapCopy = useCallback(async () => {
+    if (!result || !resultSignal) return;
+    await copyTrap(buildTrapHandler(result.code, resultSignal));
+  }, [result, resultSignal, copyTrap]);
+
   useEffect(() => {
     if (!showToast) return;
     const t = setTimeout(() => setShowToast(false), 1800);
@@ -153,6 +250,43 @@ export default function BashExitCodeLookup() {
     <div className="rounded-lg border border-border bg-bg p-0">
       <div className="flex flex-col items-start gap-6 md:flex-row">
         <div className="w-full shrink-0 md:w-[340px]">
+          <label htmlFor="inp-search" className="mb-1.5 block font-mono text-xs text-muted">
+            Search codes & signals
+          </label>
+          <div className="relative mb-4">
+            <input
+              type="text"
+              id="inp-search"
+              placeholder="e.g. sigkill, segfault, not found"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-md border border-border bg-bg3 px-3 py-2.5 font-mono text-sm text-text outline-none focus:border-green"
+            />
+            {query && (
+              <div className="mt-1.5 overflow-hidden rounded-md border border-border bg-bg2">
+                {searchMatches.length === 0 ? (
+                  <div className="px-3 py-2 font-mono text-xs text-muted">No matches</div>
+                ) : (
+                  searchMatches.map((m) => (
+                    <button
+                      key={m.code}
+                      type="button"
+                      onClick={() => {
+                        setCodeInput(String(m.code));
+                        setSearchQuery('');
+                        render({ updateUrl: true });
+                      }}
+                      className="flex w-full items-center gap-2 border-b border-border px-3 py-2 text-left font-mono text-xs text-text last:border-b-0 hover:bg-bg3"
+                    >
+                      <span className="shrink-0 font-semibold text-green">{m.code}</span>
+                      <span className="truncate text-muted">{m.meaning}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
           <label htmlFor="inp-code" className="mb-1.5 block font-mono text-xs text-muted">
             Exit Code
           </label>
@@ -249,6 +383,34 @@ export default function BashExitCodeLookup() {
                   {result.info.example ? ` — ${result.info.example}` : ''}
                 </div>
               </div>
+
+              {resultSignal && (
+                <div className="mb-4 rounded-lg border border-border bg-bg2 px-6 py-5">
+                  <div className="mb-2 text-[11px] uppercase tracking-widest text-green">Signal mapping</div>
+                  <div className="mb-3 font-mono text-[15px] text-text">
+                    <span className="text-muted">128</span> + <span className="text-amber">{resultSignal.num}</span> ={' '}
+                    <span className="font-semibold text-green">{result.code}</span>{' '}
+                    <span className="text-text">{resultSignal.name}</span>
+                  </div>
+                  <p className="mb-3 text-[13px] leading-relaxed text-muted">{resultSignal.desc}</p>
+                  {resultSignal.trappable ? (
+                    <>
+                      <div className="mb-2 flex items-center justify-between gap-3 border-b border-border pb-2">
+                        <span className="font-mono text-xs text-muted">Trap handler</span>
+                        <CopyButton copied={trapCopied} onClick={() => void handleTrapCopy()} />
+                      </div>
+                      <pre
+                        className="overflow-x-auto bg-transparent font-mono text-[13px] leading-relaxed text-text"
+                        dangerouslySetInnerHTML={{ __html: highlightBash(buildTrapHandler(result.code, resultSignal)) }}
+                      />
+                    </>
+                  ) : (
+                    <div className="rounded-md border-l-[3px] border-amber bg-[#3d2f0d] px-3.5 py-2.5 font-mono text-xs leading-relaxed text-amber">
+                      {resultSignal.name} cannot be caught, blocked, or ignored — no trap handler is possible.
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div
                 className={`rounded-lg border border-border bg-bg p-4 ${handlerFlash ? 'border-l-[3px] border-l-green' : 'border-l-[3px] border-l-border'}`}

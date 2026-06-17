@@ -20,6 +20,7 @@ const staticEntries = [
   { url: `${SITE_URL}/snippets/linux-security`,                   lastmod: '2026-06-06', changefreq: 'weekly',  priority: 0.85 },
   { url: `${SITE_URL}/guides/bash-scripts-every-sysadmin-needs`,  lastmod: '2026-06-08', changefreq: 'weekly',  priority: 0.8  },
   { url: `${SITE_URL}/guides/bash-scripting-for-ci-cd-pipelines`, lastmod: '2026-06-10', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/guides/bash-text-processing`,               lastmod: '2026-06-17', changefreq: 'weekly',  priority: 0.8  },
 ];
 
 /**

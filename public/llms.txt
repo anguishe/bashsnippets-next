@@ -9,8 +9,8 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 ## What This Site Contains
 
 # keep in sync with snippets.ts count
-- 28 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
-- 9 interactive tools at /tools/ including script builders, command generators, and debuggers
+- 30 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
+- 10 interactive tools at /tools/ including script builders, command generators, and debuggers
 - Bash Boilerplate Generator tool
 - Beginner FAQ section covering the most common bash questions
 
@@ -48,11 +48,13 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [Check SSL Certificate Expiry with Bash](https://bashsnippets.xyz/snippets/check-ssl-certificate-expiry) — A bash script that connects to any domain over TLS, reads the certificate, and tells you how many days until it expires — before the site goes dark.
 - [List All Open Ports on Linux](https://bashsnippets.xyz/snippets/list-open-ports-linux) — A bash script that maps every port your server is listening on, along with the process name holding it open — the first step in any security audit.
 - [Docker Cleanup Bash Script — Reclaim Disk Space from Docker Garbage](https://bashsnippets.xyz/snippets/docker-prune-cleanup) — A bash script that removes stopped containers, unused images, dangling volumes, and build cache from Docker — with a disk-usage report before and after.
-- [Bash For Loop Examples: Iterate Files, Arrays, and Counters Safely](https://bashsnippets.xyz/snippets/bash-for-loop-examples) — A bash for loop over an unquoted variable silently skips filenames with spaces and processes paths that do not exist. Glob the directory and quote every expansion to handle spaces, arrays, counters, and line-by-line reads safely.
+- [Bash For Loop Examples](https://bashsnippets.xyz/snippets/bash-for-loop-examples) — A for loop over the output of ls word-splits on filenames with spaces and silently skips files. Loop over a glob, a range, an array, or command output the safe way — with the quoting that stops the loop from doing the wrong thing quietly.
 - [Bash Functions: Return Values, Local Scope, and Reusable Logic](https://bashsnippets.xyz/snippets/bash-functions) — A bash function cannot return a string with return — that keyword sets an exit code only. Use echo plus command substitution or namerefs to return data, and local on every variable to stop silent global collisions.
 - [Bash Arrays: Indexed, Associative, Append, and Safe Iteration](https://bashsnippets.xyz/snippets/bash-arrays) — Storing a list as a space-separated string breaks the moment one element contains a space, splitting one item into two. Arrays make the space a non-event — covering indexed and associative arrays, append, length, slicing, and safe iteration.
 - [Bash Argument Parsing: Positional Args, getopts, and Long Flags](https://bashsnippets.xyz/snippets/bash-argument-parsing) — A script that reads $1 as a value will accept --env as that value and deploy nowhere, silently. Parse arguments properly with positional defaults, getopts for short flags, and a while+case loop for GNU-style long flags.
 - [Bash String Manipulation: Substrings, Replace, and Parameter Expansion](https://bashsnippets.xyz/snippets/bash-string-manipulation) — Field-counting with cut -d/ -f3 returns the wrong slice the moment a URL gains an s for https. Parameter expansion matches on pattern boundaries with no subshell — substrings, prefix/suffix stripping, replace, case conversion, and defaults.
+- [Read a File Line by Line in Bash](https://bashsnippets.xyz/snippets/bash-read-file-line-by-line) — A while-read loop silently dropped the last server in a monitoring list because the file had no trailing newline — and that was the server that went down. Read a file line by line the correct way: while IFS= read -r line, with the guard that catches the missing final line.
+- [Bash Functions and Arguments](https://bashsnippets.xyz/snippets/bash-functions-arguments) — A function reused the variable name 'target' without declaring it local, overwrote the caller's variable, and the cleanup step deleted the wrong directory. Write bash functions that take arguments, return values, and don't leak state — with the local keyword that stops a function from clobbering its caller.
 
 ## Topical Guides
 
@@ -72,11 +74,13 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [grep Pattern Builder](https://bashsnippets.xyz/tools/grep-pattern-builder) — A wrong grep flag silently matches the wrong files or swallows error output with no warning. Build the exact grep command you need — recursive, case-insensitive, with context lines — and get a plain-English explanation for every output.
 - [ShellCheck Error Decoder](https://bashsnippets.xyz/tools/shellcheck-error-decoder) — ShellCheck warnings that go unfixed become the exact edge-case bugs that break in production on unexpected input. Enter any SC error code for the rule name, plain-English explanation, and a before/after fix example.
 - [Bash trap & Signal Handler Builder](https://bashsnippets.xyz/tools/bash-trap-builder) — A script that exits without a trap leaves temp files, lock files, and background jobs behind every time it crashes. Build your trap block visually — pick signals, choose cleanup actions, copy the result.
+- [Find Command Builder](https://bashsnippets.xyz/tools/find-command-builder) — A find action placed before its filters runs on everything find walks — find -delete before -name empties the whole tree. Build find commands with tests ordered before actions, patterns quoted, and every flag explained.
 
 ## Pillar Guides
 
 - [25 Bash Scripts Every Linux Sysadmin Needs](https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs) — comprehensive guide covering disk monitoring, backups, service management, security, and SSL — 25 production-ready scripts with core commands, cron examples, and full annotated versions
 - [Bash Scripting for CI/CD Pipelines: GitHub Actions, Deploys, and Docker](https://bashsnippets.xyz/guides/bash-scripting-for-ci-cd-pipelines) — A pipeline reported every step green and deployed broken code, because the build step piped output through tee and bash returned the exit code of tee — always zero. This guide covers the four CI-specific failure modes, safe bash headers, secret validation, PIPESTATUS and pipefail, Docker entrypoints, atomic symlink deploys, and debugging with set -x.
+- [Bash Text Processing: find, grep, sed, and awk for Logs and Config Files](https://bashsnippets.xyz/guides/bash-text-processing) — The four commands that turn an unreadable log or a tree of config files into an answer — find to locate, grep to search, sed to transform, awk to summarize. The order matters, and the gotchas are the reason most one-liners do the wrong thing quietly.
 
 ## Most important pages
 

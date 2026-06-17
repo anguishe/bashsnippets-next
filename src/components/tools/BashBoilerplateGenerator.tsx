@@ -141,6 +141,15 @@ export default function BashBoilerplateGenerator() {
       lines.push('    *) usage; exit 1 ;;');
       lines.push('  esac');
       lines.push('done');
+      lines.push('');
+      lines.push('# Wrap state-changing commands with run() so -d performs a dry run.');
+      lines.push('run() {');
+      lines.push('  if [ "$DRY_RUN" -eq 1 ]; then');
+      lines.push('    echo "[dry-run] $*"');
+      lines.push('  else');
+      lines.push('    "$@"');
+      lines.push('  fi');
+      lines.push('}');
     }
 
     if (lock) {
@@ -177,9 +186,13 @@ export default function BashBoilerplateGenerator() {
       lines.push('');
     }
 
-    lines.push(`log "\${CHECK} ${scriptName} started"`);
+    // Footer must stay runnable regardless of which toggles are on: fall back to
+    // echo when log() is disabled, and drop the ${CHECK} prefix when CHECK is undefined.
+    const logCmd = logFn ? 'log' : 'echo';
+    const okPrefix = checks ? '${CHECK} ' : '';
+    lines.push(`${logCmd} "${okPrefix}${scriptName} started"`);
     lines.push('# --- your code here ---');
-    lines.push('log "${CHECK} Done."');
+    lines.push(`${logCmd} "${okPrefix}Done."`);
     lines.push('exit 0');
 
     const raw = lines.join('\n');
@@ -269,7 +282,7 @@ export default function BashBoilerplateGenerator() {
               {[
                 [logFn, setLogFn, 'Timestamped log() function'],
                 [checks, setChecks, 'CHECK / CROSS variables'],
-                [args, setArgs, 'Argument parser (--help, --dry-run)'],
+                [args, setArgs, 'getopts parser + usage() (-h help, -d dry-run)'],
                 [lock, setLock, 'Lock file (prevent duplicate runs)'],
                 [root, setRoot, 'Require root check'],
                 [trap, setTrap, 'Trap on EXIT (cleanup handler)'],

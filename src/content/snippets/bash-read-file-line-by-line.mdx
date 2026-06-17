@@ -1,0 +1,85 @@
+---
+title: "Read a File Line by Line in Bash"
+description: "A while-read loop silently dropped the last server in a monitoring list because the file had no trailing newline — and that was the server that went down. Read a file line by line the correct way: while IFS= read -r line, with the guard that catches the missing final line."
+slug: bash-read-file-line-by-line
+tags: [bash, read, loops, files, intermediate]
+quickAnswer: "The correct way to read a file line by line in bash is while IFS= read -r line; do ... done < file.txt. Three parts matter. IFS= (empty) stops bash from trimming leading and trailing whitespace from each line. The -r flag stops read from treating backslashes as escape characters, so a path like C:\\\\temp survives intact. And redirecting the file in with < at the done keyword feeds the loop without spawning a subshell, so variables you set inside the loop are still set after it. The trap that bites everyone: if the file's last line has no trailing newline, read returns false on that final line and the loop skips it. Guard it with while IFS= read -r line || [[ -n \"$line\" ]]; do, which processes the leftover line when read hits end-of-file mid-line. Never loop for line in $(cat file) — that word-splits on spaces and reads words, not lines."
+author: Anguishe
+datePublished: 2026-06-17
+dateModified: 2026-06-17
+faq:
+  - question: "Why does my bash loop skip the last line of the file?"
+    answer: "Because the last line has no trailing newline, so read returns a non-zero status on it and the while loop exits before processing it. Add the guard: while IFS= read -r line || [[ -n \"$line\" ]]; do. The || clause runs the loop body one more time when read hit end-of-file with a partial line still buffered."
+  - question: "What does IFS= and -r do in read?"
+    answer: "IFS= sets the field separator to empty for that command, which prevents read from stripping leading and trailing whitespace. -r prevents read from interpreting backslashes as escapes, so backslashes in the data are preserved literally. Together they read the line exactly as written."
+  - question: "Why are my variables empty after the while loop?"
+    answer: "You probably piped into the loop — cat file | while read line. The pipe runs the loop in a subshell, so variables set inside it vanish when the subshell exits. Redirect the file instead with done < file.txt, which keeps the loop in the current shell."
+  - question: "Can I read a file line by line with a for loop?"
+    answer: "No — for line in $(cat file) word-splits on spaces and tabs, so it iterates words, not lines, and a line with spaces becomes several iterations. A while IFS= read -r loop is the only form that reads one full line at a time."
+howToSteps:
+  - name: "Use while IFS= read -r line"
+    text: "Start the loop with while IFS= read -r line; do. IFS= preserves whitespace, -r preserves backslashes, and read pulls exactly one line per iteration."
+  - name: "Redirect the file at done, don't pipe into it"
+    text: "End the loop with done < file.txt. Piping (cat file | while ...) runs the loop in a subshell, so any counters or flags you set inside are lost when it ends."
+  - name: "Add the missing-newline guard"
+    text: "Write while IFS= read -r line || [[ -n \"$line\" ]]; do so the final line is processed even when the file does not end in a newline. Without it, the last line is silently skipped."
+  - name: "Quote the line on use"
+    text: "Reference the line as \"$line\" inside the loop. Unquoted, it word-splits again the moment you pass it to another command, undoing the careful reading you just did."
+---
+
+## The monitoring loop that never checked the last server
+
+We kept a plaintext list of hosts, one per line, and a script read it and pinged each one. `app-07` was the last line. `app-07` went down on a Sunday, and the alert never fired. The loop had been skipping the last line of the file for months, and `app-07` had only recently been appended — by an editor that did not add a trailing newline. `while read host` returned false on that final, newline-less line and the loop exited one host early, every single run. The list looked complete. The loop quietly read all of it except the part that mattered.
+
+The bug was not `ping`. It was reading lines without guarding the no-trailing-newline case, and using a bare `read` that mangles input besides.
+
+## The correct read loop
+
+```bash
+#!/bin/bash
+# Script: check-hosts.sh
+# Purpose: ping every host in a list, including a newline-less last line
+# Usage: ./check-hosts.sh hosts.txt
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+HOST_FILE="${1:?Usage: check-hosts.sh <host-file>}"
+
+while IFS= read -r host || [[ -n "$host" ]]; do
+  [[ -z "$host" || "$host" == \#* ]] && continue   # skip blanks and comments
+  if ping -c1 -W2 "$host" >/dev/null 2>&1; then
+    echo "$CHECK up:   $host"
+  else
+    echo "$CROSS down: $host"
+  fi
+done < "$HOST_FILE"
+```
+
+Every piece earns its place. `IFS=` keeps a host like `  app-07` from being silently trimmed into something else. `-r` keeps any backslash in the data literal. The `|| [[ -n "$host" ]]` is the fix for `app-07`: when `read` hits end-of-file with a partial line still in `$host`, it returns false, but the `||` clause sees the non-empty buffer and runs the loop body one last time. Redirecting with `done < "$HOST_FILE"` keeps the loop in the current shell — which matters the moment you want to count failures.
+
+## Why not pipe into the loop
+
+```bash
+# WRONG — the count is always 0
+fails=0
+cat hosts.txt | while IFS= read -r host; do
+  ping -c1 "$host" >/dev/null 2>&1 || ((fails++))
+done
+echo "failures: $fails"   # prints 0, always
+```
+
+The pipe runs the `while` in a subshell. `fails` increments inside that subshell and dies with it, so the parent shell still sees `0`. Redirect the file (`done < hosts.txt`) and the loop runs in the current shell, so the count survives.
+
+## Reading fields from each line
+
+```bash
+# Split each line on a delimiter into named variables
+while IFS=, read -r name ip role; do
+  echo "$CHECK $name ($role) -> $ip"
+done < servers.csv
+```
+
+Setting `IFS=,` for the `read` splits each line on commas into `name`, `ip`, and `role` in one step — the clean way to parse a simple CSV without reaching for `cut`.
+
+Glob over parse, quote on use, and guard the last line. For iterating a known list of files rather than a file's contents, reach for a [for loop](https://bashsnippets.xyz/snippets/bash-for-loop-examples) instead, and wrap anything that acts on what it reads in [set -euo pipefail](https://bashsnippets.xyz/snippets/bash-error-handling).

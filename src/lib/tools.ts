@@ -393,6 +393,47 @@ export const tools: ToolMeta[] = [
     ],
     relatedSnippets: ['bash-error-handling'],
   },
+  {
+    slug: 'find-command-builder',
+    component: 'FindCommandBuilder',
+    title: 'Find Command Builder',
+    description:
+      'A find action placed before its filters runs on everything find walks — find -delete before -name empties the whole tree. Build find commands with tests ordered before actions, patterns quoted, and every flag explained.',
+    quickAnswer:
+      'The find command searches a directory tree for files matching tests you combine: -name for a quoted glob, -type f or -type d, -mtime for age in days, -size for size, and -path to include or exclude subtrees. The order of the expression is the program — find evaluates left to right, so an action like -delete or -exec must come after the tests that narrow the matches, or it runs on everything find walks. Two traps cause most accidents: an unquoted -name *.log is expanded by the shell before find sees it, so always quote the pattern; and the age sign is easy to reverse — -mtime +30 means older than 30 days while -mtime -1 means within the last day. This builder assembles the command with tests before actions, quotes patterns for you, explains every flag in plain English, and flags -delete and -exec as the destructive actions to preview with -print first.',
+    category: 'builder',
+    datePublished: '2026-06-17',
+    dateModified: '2026-06-17',
+    howToUse: [
+      'Set the starting path, then add tests (-name, -type, -mtime, -size) to narrow what matches before adding any action.',
+      'Leave name patterns to the builder — it quotes -name values so the shell does not expand the glob before find runs.',
+      'Pick an action last: -print to list, -print0 to pipe into xargs -0, -delete to remove, or -exec to run a command.',
+      'Preview destructive jobs: generate the -print version, read the file list, then switch the action to -delete.',
+    ],
+    faqs: [
+      {
+        question: 'Why does find -name *.log not work?',
+        answer:
+          'The shell expands *.log before find ever runs, so find receives a filename instead of a pattern. Quote it — find -name "*.log" — so find does the matching.',
+      },
+      {
+        question: 'What is the difference between -mtime +30 and -mtime -1?',
+        answer:
+          '+30 matches files modified more than 30 days ago; -1 matches files modified within the last day; a bare 30 means exactly day 30. Reversing the sign on a -delete job deletes the wrong files.',
+      },
+      {
+        question: 'How do I delete files found by find without a mistake?',
+        answer:
+          'Run the command with -print first and read the list. -delete is an action and must come after the tests; placed before them it deletes everything find walks.',
+      },
+      {
+        question: 'What is the difference between -exec command \\; and -exec command +?',
+        answer:
+          '\\; runs the command once per file; + batches many files into one invocation, which is faster and the right default when the command accepts multiple arguments.',
+      },
+    ],
+    relatedSnippets: ['delete-old-log-files', 'search-files-for-text-grep'],
+  },
 ];
 
 export function getToolBySlug(slug: string): ToolMeta | undefined {

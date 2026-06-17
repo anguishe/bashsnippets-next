@@ -1,0 +1,110 @@
+---
+title: "Bash Functions and Arguments"
+description: "A function reused the variable name 'target' without declaring it local, overwrote the caller's variable, and the cleanup step deleted the wrong directory. Write bash functions that take arguments, return values, and don't leak state — with the local keyword that stops a function from clobbering its caller."
+slug: bash-functions-arguments
+tags: [bash, functions, arguments, scripting, intermediate]
+quickAnswer: "A bash function is defined with name() { ...; } and receives arguments as positional parameters: $1, $2, and so on, with $@ for all of them, $# for the count, and $0 still the script name. Two rules prevent the worst bugs. First, declare every variable a function uses with local, because bash variables are global by default — a function that sets target= without local overwrites a target in the caller's scope, which is how a cleanup routine ends up deleting the wrong path. Second, return is an exit status, not a value: it only carries 0–255 and wraps around above that, so return 300 hands back 44. To return real data, echo it and capture with command substitution: result=$(my_func arg). Use return only for success or failure. For scripts with flags rather than fixed positions, parse with getopts instead of reading $1 by hand."
+author: Anguishe
+datePublished: 2026-06-17
+dateModified: 2026-06-17
+faq:
+  - question: "How do I pass arguments to a bash function?"
+    answer: "Call it with the arguments after the name — my_func one two — and read them inside as positional parameters: $1, $2, $@ for all, $# for the count. Functions use the same positional parameters as the script, so $1 inside the function is the function's first argument, not the script's."
+  - question: "How do I return a value from a bash function?"
+    answer: "echo the value and capture it with command substitution: result=$(my_func). The return keyword only sets an exit status (0–255), so it is for success/failure, not data. return 300 wraps to 44 because it is a status code, not an integer return value."
+  - question: "Why does my function change a variable outside it?"
+    answer: "Because bash variables are global by default. If the function assigns to a name that also exists in the caller, it overwrites the caller's value. Declare function-local variables with local var=... so they stay inside the function and disappear when it returns."
+  - question: "When should I use getopts instead of $1 $2?"
+    answer: "Use positional parameters for one or two fixed arguments. Use getopts when the script takes flags like -v or -f file in any order — getopts handles the parsing, bundled flags, and missing-argument errors that hand-rolled $1 parsing gets wrong."
+howToSteps:
+  - name: "Read arguments as $1, $@, $#"
+    text: "Inside the function, the first argument is $1, all of them are \"$@\", and the count is $#. Quote \"$@\" so arguments with spaces are passed on as separate, intact items."
+  - name: "Declare every variable local"
+    text: "Write local name=... for each variable the function uses. Without local, the assignment is global and can overwrite a variable of the same name in the code that called the function."
+  - name: "Return data with echo, status with return"
+    text: "To hand back a value, echo it and capture with result=$(func). Reserve return for 0 (success) or non-zero (failure); it cannot carry a number above 255 or any string."
+  - name: "Parse flags with getopts"
+    text: "For flag-style arguments, loop with while getopts \"vf:\" opt; do to read -v and -f file. The trailing colon marks a flag that requires an argument, and getopts reports missing ones for you."
+---
+
+## The cleanup that deleted the wrong directory
+
+A deploy script had a helper, `prepare()`, that built a release into a temp path and stored it in a variable named `target`. The main script also used `target` — it was the directory the cleanup step removed at the end with `rm -rf "$target"`. `prepare()` did not declare `target` as `local`, so calling it overwrote the main script's `target` with the temp path. On the run where the temp build failed halfway, `target` was left pointing at the wrong place, and `rm -rf "$target"` removed a directory that was very much not temporary. We restored from backup. The ten minutes of dread before the backup finished is the part I will not repeat.
+
+The bug was not `rm`. It was a function leaking a variable into its caller because bash makes variables global unless you say otherwise.
+
+## Functions take arguments as $1, $@, $#
+
+```bash
+#!/bin/bash
+# Script: deploy-helpers.sh
+# Purpose: show function arguments and safe local scope
+# Usage: ./deploy-helpers.sh
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+greet_all() {
+  echo "$CHECK got $# argument(s)"
+  for name in "$@"; do
+    echo "  - $name"
+  done
+}
+
+greet_all "web-01" "db primary" "cache-02"
+```
+
+Inside `greet_all`, `$1` is its own first argument, `$#` is the count, and `"$@"` is every argument kept as separate items — the quotes are what keep `db primary` from splitting into two. Functions reuse the same positional parameters the script does, scoped to the call.
+
+## Declare variables local — the fix for the outage
+
+```bash
+prepare() {
+  local target          # local — stays inside this function
+  target=$(mktemp -d)
+  echo "$target"        # hand the path back via stdout
+}
+
+# The caller keeps its OWN target untouched
+target="/srv/release/current"
+build_dir=$(prepare)    # capture the function's echoed value
+echo "$CHECK built in:  $build_dir"
+echo "$CHECK caller still: $target"
+```
+
+`local target` confines the variable to the function; the caller's `target` is never touched. Note how `prepare` hands its result back — it `echo`s the path and the caller captures it with `$(prepare)`. That is the correct way to return data.
+
+## return is a status, not a value
+
+```bash
+count_files() {
+  local n
+  n=$(find "$1" -type f | wc -l)
+  echo "$n"             # RIGHT: data goes to stdout
+  return 0              # status: success
+}
+
+total=$(count_files /var/log)
+echo "$CHECK found $total files"
+```
+
+`return` only carries an exit status, `0`–`255`, and wraps above that — `return 300` hands back `44`. So `return` answers "did it work," and `echo` plus command substitution answers "what is the value." Mixing them up is how a function that counts 300 files convinces the caller it counted 44.
+
+## Parse flags with getopts, not by hand
+
+```bash
+verbose=0
+file=""
+while getopts "vf:" opt; do
+  case "$opt" in
+    v) verbose=1 ;;
+    f) file="$OPTARG" ;;
+    *) echo "$CROSS usage: $0 [-v] [-f file]"; exit 1 ;;
+  esac
+done
+```
+
+The colon after `f` marks `-f` as needing an argument, which lands in `$OPTARG`. `getopts` handles flag order, bundling (`-vf file`), and missing arguments — all the things hand-rolled `$1` parsing gets subtly wrong.
+
+`local` everything, return data with `echo`, and parse flags with `getopts`. A function that fails should fail loudly — wrap the script in [set -euo pipefail](https://bashsnippets.xyz/snippets/bash-error-handling), and reach for a [for loop](https://bashsnippets.xyz/snippets/bash-for-loop-examples) when a function needs to act on a list.

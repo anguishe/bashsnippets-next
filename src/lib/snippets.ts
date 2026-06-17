@@ -324,15 +324,39 @@ export const snippets: SnippetRegistryEntry[] = [
   },
   {
     slug: 'bash-for-loop-examples',
-    title: 'Bash For Loop Examples: Iterate Files, Arrays, and Counters Safely',
+    title: 'Bash For Loop Examples',
     description:
-      'A bash for loop over an unquoted variable silently skips filenames with spaces and processes paths that do not exist. Glob the directory and quote every expansion to handle spaces, arrays, counters, and line-by-line reads safely.',
+      'A for loop over the output of ls word-splits on filenames with spaces and silently skips files. Loop over a glob, a range, an array, or command output the safe way — with the quoting that stops the loop from doing the wrong thing quietly.',
     quickAnswer:
-      "A bash for loop repeats commands over a list — files, numbers, or command output. The safe pattern is for f in *.log; do … done, which iterates real filenames even when they contain spaces, unlike looping over a variable. For numbers use C-style: for ((i=1; i<=10; i++)); do … done, or a range with for i in {1..10}. To loop over command output, prefer while read to avoid word-splitting: find . -name '*.txt' | while read -r f; do … done. The classic trap: for f in $(ls) breaks on any filename with a space and chokes when nothing matches — glob directly instead, and quote \"$f\" inside the body. Works on every bash you'll meet: Ubuntu, Debian, Fedora, macOS.",
-    tags: ['bash', 'for-loop', 'arrays', 'scripting'],
+      'A bash for loop repeats a block of code once per item in a list. The safe forms are: loop a glob directly (for f in *.log) to iterate files, which handles spaces and special characters correctly; loop a brace range (for i in {1..10}) or a C-style counter (for ((i=0; i<10; i++))) for numbers; and loop an array with the quoted expansion (for x in "${items[@]}") so each element stays intact. The form to avoid is for f in $(ls) — command substitution word-splits on whitespace, so a file named report final.txt becomes two loop iterations, report and final.txt, and the real file is never touched. Always quote the loop variable when you use it ("$f"), because the split happens at use, not only at the loop header. Glob over parse, quote on use, and the loop stops surprising you.',
+    tags: ['bash', 'loops', 'for', 'scripting', 'beginner'],
+    difficulty: 'beginner',
+    datePublished: '2026-06-17',
+    dateModified: '2026-06-17',
+  },
+  {
+    slug: 'bash-read-file-line-by-line',
+    title: 'Read a File Line by Line in Bash',
+    description:
+      'A while-read loop silently dropped the last server in a monitoring list because the file had no trailing newline — and that was the server that went down. Read a file line by line the correct way: while IFS= read -r line, with the guard that catches the missing final line.',
+    quickAnswer:
+      'The correct way to read a file line by line in bash is while IFS= read -r line; do ... done < file.txt. Three parts matter. IFS= (empty) stops bash from trimming leading and trailing whitespace from each line. The -r flag stops read from treating backslashes as escape characters, so a path like C:\\\\temp survives intact. And redirecting the file in with < at the done keyword feeds the loop without spawning a subshell, so variables you set inside the loop are still set after it. The trap that bites everyone: if the file\'s last line has no trailing newline, read returns false on that final line and the loop skips it. Guard it with while IFS= read -r line || [[ -n "$line" ]]; do, which processes the leftover line when read hits end-of-file mid-line. Never loop for line in $(cat file) — that word-splits on spaces and reads words, not lines.',
+    tags: ['bash', 'read', 'loops', 'files', 'intermediate'],
     difficulty: 'intermediate',
-    datePublished: '2026-06-10',
-    dateModified: '2026-06-10',
+    datePublished: '2026-06-17',
+    dateModified: '2026-06-17',
+  },
+  {
+    slug: 'bash-functions-arguments',
+    title: 'Bash Functions and Arguments',
+    description:
+      "A function reused the variable name 'target' without declaring it local, overwrote the caller's variable, and the cleanup step deleted the wrong directory. Write bash functions that take arguments, return values, and don't leak state — with the local keyword that stops a function from clobbering its caller.",
+    quickAnswer:
+      'A bash function is defined with name() { ...; } and receives arguments as positional parameters: $1, $2, and so on, with $@ for all of them, $# for the count, and $0 still the script name. Two rules prevent the worst bugs. First, declare every variable a function uses with local, because bash variables are global by default — a function that sets target= without local overwrites a target in the caller\'s scope, which is how a cleanup routine ends up deleting the wrong path. Second, return is an exit status, not a value: it only carries 0–255 and wraps around above that, so return 300 hands back 44. To return real data, echo it and capture with command substitution: result=$(my_func arg). Use return only for success or failure. For scripts with flags rather than fixed positions, parse with getopts instead of reading $1 by hand.',
+    tags: ['bash', 'functions', 'arguments', 'scripting', 'intermediate'],
+    difficulty: 'intermediate',
+    datePublished: '2026-06-17',
+    dateModified: '2026-06-17',
   },
   {
     slug: 'bash-functions',

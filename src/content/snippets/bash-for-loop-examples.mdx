@@ -1,177 +1,90 @@
 ---
-title: "Bash For Loop Examples: Iterate Files, Arrays, and Counters Safely"
-description: "A bash for loop that iterates over filenames without quoting will silently skip files with spaces and process the wrong ones. The fix is two changes: never loop over the output of ls or an unquoted variable, and always wrap your expansion in double quotes — for f in \"$dir\"/* then operate on \"$f\". That single pattern handles spaces, tabs, newlines, and glob characters in filenames without a single subshell. This page shows the four loop forms you actually need in production: looping over files in a directory, iterating an array with the ${arr[@]} expansion, the C-style ((i=0; i<n; i++)) counter loop for numbered work, and the while-read pattern for reading a file line by line. Each form is shown as a wrong-then-right pair so you can see the failure before the fix. Tested on Ubuntu 22.04 LTS and RHEL 9 with bash 5.1."
-tags: ["bash", "for-loop", "arrays", "scripting"]
-difficulty: "intermediate"
-datePublished: "2026-06-10"
-dateModified: "2026-06-10"
-howToSteps:
-  - name: "Glob the directory, never parse ls"
-    text: "Use for f in \"$dir\"/* to let bash expand the glob directly. Parsing ls output breaks on spaces, newlines, and control characters in filenames."
-  - name: "Quote every variable expansion"
-    text: "Reference the loop variable as \"$f\", not $f. Unquoted, a filename with a space splits into two words and the loop operates on paths that do not exist."
-  - name: "Iterate arrays with the [@] form in quotes"
-    text: "Write for item in \"${arr[@]}\" so each element stays a single word. The [*] form joins everything into one string and is almost never what you want."
-  - name: "Use a C-style loop only for real counters"
-    text: "Reach for ((i=0; i<n; i++)) when you need an index — processing log.1 through log.9, retry attempts, batch numbering. For files, glob instead."
-  - name: "Read files with while IFS= read -r line"
-    text: "Never use for line in $(cat file). Use a while-read loop so lines with spaces, leading whitespace, and backslashes survive intact."
+title: "Bash For Loop Examples"
+description: "A for loop over the output of ls word-splits on filenames with spaces and silently skips files. Loop over a glob, a range, an array, or command output the safe way — with the quoting that stops the loop from doing the wrong thing quietly."
+slug: bash-for-loop-examples
+tags: [bash, loops, for, scripting, beginner]
+quickAnswer: "A bash for loop repeats a block of code once per item in a list. The safe forms are: loop a glob directly (for f in *.log) to iterate files, which handles spaces and special characters correctly; loop a brace range (for i in {1..10}) or a C-style counter (for ((i=0; i<10; i++))) for numbers; and loop an array with the quoted expansion (for x in \"${items[@]}\") so each element stays intact. The form to avoid is for f in $(ls) — command substitution word-splits on whitespace, so a file named report final.txt becomes two loop iterations, report and final.txt, and the real file is never touched. Always quote the loop variable when you use it (\"$f\"), because the split happens at use, not only at the loop header. Glob over parse, quote on use, and the loop stops surprising you."
+author: Anguishe
+datePublished: 2026-06-17
+dateModified: 2026-06-17
 faq:
-  - question: "Why does my bash for loop skip files with spaces in the name?"
-    answer: "Because the variable is unquoted. for f in $files word-splits on every space, so \"my report.txt\" becomes two iterations: \"my\" and \"report.txt\", neither of which exists. Quote the expansion — \"$f\" — and glob the directory directly with for f in \"$dir\"/* instead of building a string of filenames."
-  - question: "What is the difference between ${array[@]} and ${array[*]} in a for loop?"
-    answer: "Inside double quotes, \"${array[@]}\" expands to one word per element, so a loop sees each element separately. \"${array[*]}\" joins all elements into a single string separated by the first character of IFS. For iteration you almost always want [@]; [*] is for building a single display string."
-  - question: "Why is for line in $(cat file) wrong?"
-    answer: "It word-splits the file on whitespace, not on newlines, so a line containing spaces becomes multiple iterations and empty lines vanish. It also globs, so a line containing * expands to filenames. Use while IFS= read -r line; do ...; done < file, which reads exactly one line per iteration."
+  - question: "Why does my bash for loop break on filenames with spaces?"
+    answer: "Because you are looping over the output of a command like ls or find without -print0, and bash word-splits that output on spaces. A file named 'project notes.txt' becomes two iterations. Loop a glob directly instead — for f in *.txt — and quote the variable on use: \"$f\"."
   - question: "How do I loop a fixed number of times in bash?"
-    answer: "Use a C-style loop: for ((i=1; i<=10; i++)); do ...; done. Avoid for i in {1..$n} because brace expansion happens before variable expansion, so the variable is not substituted and the loop runs once over the literal string {1..$n}."
-  - question: "Does break exit all nested loops or just the inner one?"
-    answer: "break exits only the innermost loop by default. Use break 2 to exit two levels at once. continue skips to the next iteration of the innermost loop, and continue 2 skips to the next iteration of the enclosing loop."
+    answer: "Use a brace range for a simple count, for i in {1..10}, or a C-style loop when you need arithmetic, for ((i=0; i<10; i++)). The brace range is fixed at parse time, so for i in {1..$n} does NOT work — use the C-style form when the bound is a variable."
+  - question: "What is the difference between a for loop and a while loop in bash?"
+    answer: "A for loop iterates a known list (files, a range, an array). A while loop runs until a condition changes, which is the right tool for reading a file line by line or polling until something is ready. Reading lines with a for loop word-splits the content; use while IFS= read -r line for that."
+  - question: "How do I loop over an array in bash?"
+    answer: "Use the quoted full-array expansion: for x in \"${arr[@]}\". The quotes and [@] keep each element as one item even if it contains spaces. Without quotes, \"${arr[@]}\" word-splits again and you lose the element boundaries."
+howToSteps:
+  - name: "Loop files with a glob, not ls"
+    text: "Write for f in *.log to iterate matching files in the current directory. The glob expands to a correctly-separated list, so filenames with spaces stay intact — unlike for f in $(ls)."
+  - name: "Quote the variable every time you use it"
+    text: "Reference the loop variable as \"$f\", with quotes. The dangerous word-splitting happens at the point of use, so an unquoted $f passed to cp or rm re-splits the filename."
+  - name: "Use a range or counter for numbers"
+    text: "For a fixed count use for i in {1..10}. When the upper bound is a variable, switch to the C-style form for ((i=0; i<n; i++)) because brace ranges are fixed before variables expand."
+  - name: "Guard the empty-glob case"
+    text: "Set shopt -s nullglob so a glob that matches nothing expands to nothing instead of the literal pattern, which stops the loop from running once with f set to the unmatched string like *.log."
 ---
 
-A for loop that iterates over filenames without quoting is the single most common way a bash script passes every test and then corrupts data in production. A backup script we reviewed processed 847 files correctly in a developer's home directory, where every filename was a tidy `report_2024.csv`. On the production share it silently skipped 23 files — the ones a user had named with spaces, like `Q3 forecast.xlsx` — because the loop read an unquoted variable and word-split each of those names into fragments that did not exist. The script reported success. The backup was missing the 23 most important files. Nobody noticed for a week.
+## The loop that backed up nothing for three weeks
 
-The fix is two habits, and once they are reflexes you never write the broken form again: loop over a glob, not over a parsed string, and quote every expansion.
+A nightly job looped `for f in $(ls /data/exports)` and copied each file to a backup volume. It ran green every night. Three weeks later we needed the `Q3 final.xlsx` export and it was not in the backup — not the current one, not any of the twenty-one before it. The loop had been splitting `Q3 final.xlsx` into `Q3` and `final.xlsx`, trying to copy two paths that did not exist, logging two harmless "no such file" lines, and moving on. The files without spaces backed up fine, which is exactly why nobody caught it.
 
-## The wrong pattern vs. the right pattern
+The bug was not `cp`. It was looping over parsed command output instead of a glob.
 
-Here is the broken form, copied almost verbatim from a highly-upvoted Stack Overflow answer:
-
-```bash
-#!/bin/bash
-# Script: process-files-WRONG.sh
-# Purpose: Demonstrates the unquoted-loop bug that skips files with spaces.
-# Usage: ./process-files-WRONG.sh
-set -euo pipefail
-
-DIR="/data/reports"
-
-# WRONG: parsing ls and leaving $file unquoted.
-# A name with a space splits into two words; the loop touches paths that do not exist.
-for file in $(ls "$DIR"); do
-  echo "Processing $file"
-done
-```
-
-And the form that survives real filenames:
+## Loop a glob — the form for files
 
 ```bash
 #!/bin/bash
-# Script: process-files-RIGHT.sh
-# Purpose: Iterate every file in a directory, including names with spaces.
-# Usage: ./process-files-RIGHT.sh
-set -euo pipefail
-
-CHECK="✓"
-
-DIR="/data/reports"
-
-# RIGHT: glob the directory so bash hands us each real path as one word,
-# and quote "$file" so a space inside the name never splits it.
-for file in "$DIR"/*; do
-  [[ -e "$file" ]] || continue   # the glob yields a literal '*' when the dir is empty
-  echo "$CHECK Processing $file"
-done
-```
-
-Two differences carry the entire fix. `"$DIR"/*` lets bash expand the glob into a list where each filename is already one element — no string-building, no word-splitting. And `"$file"` keeps that element intact when you use it. The `[[ -e "$file" ]] || continue` guard handles the one edge case of globbing: when a directory is empty, `*` expands to the literal string `*`, so you skip it rather than trying to process a file named `*`.
-
-## Looping over arrays
-
-When the list does not come from the filesystem, store it in an array and iterate the `[@]` form:
-
-```bash
-servers=("web-01" "db-prod 02" "cache-03")
-
-for host in "${servers[@]}"; do
-  echo "Connecting to $host"
-done
-```
-
-The distinction that bites people: `"${servers[@]}"` expands to three separate words — `web-01`, `db-prod 02`, `cache-03` — even though the middle element contains a space, because each array element is kept whole. `"${servers[*]}"` would instead join all three into a single string (`web-01 db-prod 02 cache-03`) separated by the first character of `IFS`. If `IFS` has been changed earlier in the script — and in production scripts it often has, for parsing CSV or tab-delimited data — `[*]` produces output you did not expect while `[@]` keeps behaving correctly. Use `[@]` for iteration; reserve `[*]` for the rare case where you genuinely want one joined string.
-
-## C-style for loop with a counter
-
-When you need an actual index rather than a list — processing `app.log.1` through `app.log.9`, numbering batches, counting retries — use the C-style form:
-
-```bash
-LOG_DIR="/var/log/app"
-MAX_ROTATED=9   # named, not a magic number: how many rotated logs to scan
-
-for ((i = 1; i <= MAX_ROTATED; i++)); do
-  log="$LOG_DIR/app.log.$i"
-  [[ -f "$log" ]] || continue
-  echo "Scanning rotated log $i: $log"
-done
-```
-
-Do not try to write `for i in {1..$MAX_ROTATED}`. Brace expansion runs *before* variable expansion, so `$MAX_ROTATED` is never substituted and the loop iterates once over the literal text `{1..$MAX_ROTATED}`. The C-style `(( ))` form evaluates the variable correctly, which is exactly why it exists.
-
-## Loop with break and continue
-
-`continue` skips the rest of the current iteration; `break` leaves the loop entirely. A real filtering example — process only `.conf` files, and stop after the first one that fails validation:
-
-```bash
-for file in "$CONFIG_DIR"/*; do
-  [[ "$file" == *.conf ]] || continue   # skip anything that is not a config file
-
-  if ! validate_config "$file"; then
-    echo "$CROSS Stopping: $file failed validation"
-    break                                # one bad config aborts the run
-  fi
-  echo "$CHECK $file is valid"
-done
-```
-
-`break` exits only the innermost loop. If this were nested inside another loop and you needed to escape both, `break 2` does it. The same applies to `continue 2`, which jumps to the next iteration of the *enclosing* loop.
-
-## While loop vs. for loop — when to use each
-
-Use a `for` loop when you have a finite, known list: files in a directory, elements of an array, a counter range. Use a `while` loop when you are consuming a stream whose length you do not know — most importantly, reading a file line by line:
-
-```bash
-while IFS= read -r line; do
-  echo "Line: $line"
-done < "$INPUT_FILE"
-```
-
-`for line in $(cat "$INPUT_FILE")` is always wrong, and it is wrong in two ways at once. It splits on every run of whitespace rather than on newlines, so a line containing spaces becomes several iterations and a blank line disappears. And it performs globbing, so a line that contains `*` expands to matching filenames in the current directory. The `while IFS= read -r` pattern fixes both: `IFS=` stops leading and trailing whitespace from being trimmed, and `-r` stops backslashes from being interpreted as escapes. Each iteration gets exactly one line, verbatim.
-
-## Complete production script
-
-This puts the safe patterns together: glob the directory, quote every expansion, count successes and failures with `$CHECK`/`$CROSS`, and report a final tally instead of dying on the first problem.
-
-```bash
-#!/bin/bash
-# Script: process-reports.sh
-# Purpose: Without safe quoting, files with spaces are skipped and the run reports false success.
-# Usage: ./process-reports.sh /path/to/reports
+# Script: backup-exports.sh
+# Purpose: copy export files to a backup dir without losing ones with spaces
+# Usage: ./backup-exports.sh
 set -euo pipefail
 
 CHECK="✓"
 CROSS="✗"
+SRC_DIR="/data/exports"
+DEST_DIR="/backup/exports"
+shopt -s nullglob   # an empty match expands to nothing, not the literal pattern
 
-REPORT_DIR="${1:?Usage: process-reports.sh <report-dir>}"   # fail fast if no dir given
-processed=0
-failed=0
-
-# Glob the directory so each path arrives as one word, spaces and all.
-for report in "$REPORT_DIR"/*.csv; do
-  # An empty match leaves the literal glob; skip it rather than process a file named '*.csv'.
-  [[ -e "$report" ]] || { echo "$CROSS No CSV files found in $REPORT_DIR"; break; }
-
-  # Quote "$report" everywhere it is used so a space in the name never splits it.
-  if process_single "$report"; then
-    echo "$CHECK Processed $report"
-    ((processed++))
+for f in "$SRC_DIR"/*.xlsx; do
+  if cp -- "$f" "$DEST_DIR/"; then
+    echo "$CHECK backed up: $(basename "$f")"
   else
-    echo "$CROSS Failed: $report"
-    ((failed++))
+    echo "$CROSS failed: $(basename "$f")"
   fi
 done
-
-echo "$CHECK Done: $processed processed, $failed failed"
-[[ "$failed" -eq 0 ]]   # non-zero exit if anything failed, so CI catches it
 ```
 
-The loop never builds a string of filenames, never calls `ls`, and quotes the path on every use. It collects failures into a count and exits non-zero if any file failed, so a calling pipeline or CI step sees the real result instead of a green check over a silent miss. That is the difference between a loop that works on your laptop and one that works on the server.
+`for f in "$SRC_DIR"/*.xlsx` lets bash expand the glob itself, which produces a correctly-separated list no matter what is in the names. Quoting `"$f"` on use is the other half — the split that bit us happens when the variable is *used*, not only in the loop header. The `--` tells `cp` to stop reading options, so a file named `-rf` cannot turn into a flag.
+
+## Loop a range or a counter — the form for numbers
+
+```bash
+# Fixed count, known at parse time
+for i in {1..5}; do
+  echo "$CHECK attempt $i"
+done
+
+# Variable bound — brace ranges DON'T expand variables, so use C-style
+attempts=5
+for ((i = 1; i <= attempts; i++)); do
+  echo "$CHECK attempt $i of $attempts"
+done
+```
+
+`{1..5}` is fixed before variables expand, so `{1..$attempts}` produces the literal string `{1..5}`-style garbage, not a range. The moment your bound is a variable, the C-style `for (( ... ))` is the correct tool.
+
+## Loop an array — quote the expansion
+
+```bash
+servers=("web-01" "db primary" "cache-02")
+for s in "${servers[@]}"; do
+  echo "$CHECK checking: $s"
+done
+```
+
+`"${servers[@]}"` with quotes and `[@]` keeps `db primary` as one element. Drop the quotes and you are back to word-splitting — the same bug, new disguise.
+
+The rule across all of these: glob over parse, quote on use. For reading a file's lines one at a time, a for loop is the wrong tool — see [read a file line by line](https://bashsnippets.xyz/snippets/bash-read-file-line-by-line). And wrap any loop that touches real files in [set -euo pipefail](https://bashsnippets.xyz/snippets/bash-error-handling) so a failure stops the script instead of looping past it.

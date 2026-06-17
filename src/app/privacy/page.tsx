@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       <h1 className="font-heading text-4xl font-extrabold text-text">
         Privacy Policy
       </h1>
-      <p className="mt-2 text-sm text-muted">Last updated: June 6, 2026.</p>
+      <p className="mt-2 text-sm text-muted">Last updated: June 17, 2026.</p>
 
       <section className="mt-10">
         <h2 className="mb-3 font-heading text-xl font-bold text-text">
@@ -128,6 +128,18 @@ export default function PrivacyPage() {
           <li>DigitalOcean affiliate program</li>
           <li>Namecheap affiliate program</li>
         </ul>
+        <p className="mt-3 text-sm leading-relaxed text-muted">
+          Google&apos;s use of advertising cookies is described at{' '}
+          <a
+            href="https://policies.google.com/technologies/partner-sites"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue transition-colors hover:text-text"
+          >
+            policies.google.com/technologies/partner-sites
+          </a>
+          .
+        </p>
       </section>
 
       <section className="mt-8">

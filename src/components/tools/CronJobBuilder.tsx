@@ -130,6 +130,161 @@ function nextRunTimes(
   return results.length === count ? results : null;
 }
 
+function joinAnd(items: string[]): string {
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
+
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function describeList(field: string, fmt: (n: number) => string): string {
+  const stepM = field.match(/^(.+)\/(\d+)$/);
+  if (stepM) {
+    const base = stepM[1];
+    const step = stepM[2];
+    if (base.includes('-')) {
+      const [a, b] = base.split('-');
+      return `every ${step} from ${fmt(Number(a))} to ${fmt(Number(b))}`;
+    }
+    return `every ${step}`;
+  }
+  const items = field.split(',').map((seg) => {
+    if (seg.includes('-')) {
+      const [a, b] = seg.split('-');
+      return `${fmt(Number(a))} through ${fmt(Number(b))}`;
+    }
+    return fmt(Number(seg));
+  });
+  return joinAnd(items);
+}
+
+function expandSimple(field: string): number[] | null {
+  if (field.includes('/') || field === '*') return null;
+  const out: number[] = [];
+  for (const seg of field.split(',')) {
+    if (seg.includes('-')) {
+      const [a, b] = seg.split('-').map(Number);
+      if (Number.isNaN(a) || Number.isNaN(b)) return null;
+      for (let i = a; i <= b; i++) out.push(i);
+    } else {
+      const n = Number(seg);
+      if (Number.isNaN(n)) return null;
+      out.push(n);
+    }
+  }
+  return out;
+}
+
+function describeTime(minF: string, hourF: string): string {
+  const minStep = minF.match(/^\*\/(\d+)$/);
+  const hourStep = hourF.match(/^\*\/(\d+)$/);
+  if (minF === '*' && hourF === '*') return 'Every minute';
+  if (minStep && hourF === '*') return `Every ${minStep[1]} minutes`;
+  if (minStep) {
+    return `Every ${minStep[1]} minutes during ${hourF === '*' ? 'every hour' : `hour ${describeList(hourF, (h) => pad2(h))}`}`;
+  }
+  if (hourF === '*') {
+    if (minF === '0') return 'At the top of every hour';
+    return `At ${describeList(minF, (n) => `${n} minute${n === 1 ? '' : 's'}`)} past every hour`;
+  }
+  if (hourStep) {
+    if (minF === '0') return `On the hour, every ${hourStep[1]} hours`;
+    return `At ${describeList(minF, (n) => pad2(n))} minutes past, every ${hourStep[1]} hours`;
+  }
+  const hours = expandSimple(hourF);
+  const mins = expandSimple(minF);
+  if (hours && mins && hours.length * mins.length <= 8) {
+    const times: string[] = [];
+    for (const h of hours) for (const m of mins) times.push(`${pad2(h)}:${pad2(m)}`);
+    return `At ${joinAnd(times)}`;
+  }
+  return `At ${describeList(minF, (n) => pad2(n))} past ${describeList(hourF, (h) => pad2(h))}:00`;
+}
+
+function describeCron(minF: string, hourF: string, domF: string, monthF: string, dowF: string): string {
+  try {
+    parseField(minF, 0, 59);
+    parseField(hourF, 0, 23);
+    parseField(domF, 1, 31);
+    parseField(monthF, 1, 12);
+    parseField(dowF, 0, 6);
+  } catch {
+    return '';
+  }
+  const parts: string[] = [describeTime(minF, hourF)];
+  const domEvery = domF === '*';
+  const dowEvery = dowF === '*';
+  if (!domEvery && dowEvery) {
+    parts.push(`on the ${describeList(domF, ordinal)} of the month`);
+  } else if (domEvery && !dowEvery) {
+    parts.push(`on ${describeList(dowF, (d) => DOW_NAMES[d % 7])}`);
+  } else if (!domEvery && !dowEvery) {
+    parts.push(`on the ${describeList(domF, ordinal)} and on ${describeList(dowF, (d) => DOW_NAMES[d % 7])}`);
+  }
+  if (monthF !== '*') {
+    parts.push(`in ${describeList(monthF, (m) => MONTH_NAMES[m - 1])}`);
+  }
+  return parts.join(', ');
+}
+
+const CRON_SHORTCUTS: Record<string, [string, string, string, string, string]> = {
+  '@yearly': ['0', '0', '1', '1', '*'],
+  '@annually': ['0', '0', '1', '1', '*'],
+  '@monthly': ['0', '0', '1', '*', '*'],
+  '@weekly': ['0', '0', '*', '*', '0'],
+  '@daily': ['0', '0', '*', '*', '*'],
+  '@midnight': ['0', '0', '*', '*', '*'],
+  '@hourly': ['0', '*', '*', '*', '*'],
+};
+
+interface DecodedCron {
+  description: string;
+  command: string;
+  runs: Date[] | null;
+  error: string | null;
+}
+
+function decodeCrontabLine(input: string): DecodedCron {
+  const trimmed = input.trim();
+  if (!trimmed) return { description: '', command: '', runs: null, error: null };
+  if (trimmed.startsWith('#')) {
+    return { description: '', command: '', runs: null, error: 'That line is a comment (starts with #)' };
+  }
+  if (trimmed.startsWith('@')) {
+    const m = trimmed.match(/^(@\w+)(?:\s+(.*))?$/);
+    if (!m) return { description: '', command: '', runs: null, error: 'Could not parse that shortcut' };
+    const key = m[1].toLowerCase();
+    const cmd = (m[2] || '').trim();
+    if (key === '@reboot') {
+      return { description: 'At system startup (once per boot)', command: cmd, runs: null, error: null };
+    }
+    const f = CRON_SHORTCUTS[key];
+    if (!f) return { description: '', command: '', runs: null, error: `Unknown shortcut: ${key}` };
+    return {
+      description: describeCron(f[0], f[1], f[2], f[3], f[4]),
+      command: cmd,
+      runs: nextRunTimes(f[0], f[1], f[2], f[3], f[4], 5),
+      error: null,
+    };
+  }
+  const tokens = trimmed.split(/\s+/);
+  if (tokens.length < 5) {
+    return { description: '', command: '', runs: null, error: 'Need 5 time fields: minute hour day month weekday' };
+  }
+  const [mi, ho, da, mo, dw] = tokens;
+  const command = tokens.slice(5).join(' ');
+  const description = describeCron(mi, ho, da, mo, dw);
+  if (!description) {
+    return { description: '', command: '', runs: null, error: 'Could not parse those 5 fields — check the ranges' };
+  }
+  return { description, command, runs: nextRunTimes(mi, ho, da, mo, dw, 5), error: null };
+}
+
 export default function CronJobBuilder() {
   const [minute, setMinute] = useState('0');
   const [hour, setHour] = useState('2');
@@ -151,6 +306,7 @@ export default function CronJobBuilder() {
     '<span style="color:#8b949e;font-style:italic;"># Add your command above to see the full crontab entry</span>',
   );
   const [currentRaw, setCurrentRaw] = useState('');
+  const [reverseInput, setReverseInput] = useState('');
   const [showToast, setShowToast] = useState(false);
   const { copied, copy } = useClipboard();
   const { copied: iconCopied, copy: copyIcon } = useClipboard();
@@ -442,6 +598,54 @@ export default function CronJobBuilder() {
             <strong className="text-text">Pro tip:</strong> Test your cron job manually before adding it to crontab. Run the full command (including redirects) in your shell to catch errors.
           </div>
         </div>
+      </div>
+
+      <div className="border-t border-border p-5">
+        <div className="mb-3.5 font-mono text-[11px] uppercase tracking-wide text-muted">{'// reverse — decode a crontab line'}</div>
+        <label htmlFor="inp-reverse" className="mb-1.5 block text-xs text-muted">
+          Paste a crontab line or shortcut to read its schedule in plain English
+        </label>
+        <input
+          type="text"
+          id="inp-reverse"
+          value={reverseInput}
+          onChange={(e) => setReverseInput(e.target.value)}
+          placeholder="0 2 * * * /home/user/backup.sh   ·   or @daily"
+          className="w-full rounded-md border border-border bg-bg3 px-3 py-2.5 font-mono text-[13px] text-text"
+        />
+        {reverseInput.trim() && (() => {
+          const decoded = decodeCrontabLine(reverseInput);
+          return (
+            <div className="mt-3">
+              {decoded.error ? (
+                <div className="rounded-md border-l-[3px] border-amber bg-bg2 px-3.5 py-3 font-mono text-xs text-amber">
+                  {decoded.error}
+                </div>
+              ) : (
+                <div className="rounded-md border border-border bg-bg2 p-3.5">
+                  <div className="text-sm font-semibold text-green">{decoded.description}</div>
+                  {decoded.command && (
+                    <div className="mt-2 font-mono text-xs text-muted">
+                      Runs: <span className="text-text">{decoded.command}</span>
+                    </div>
+                  )}
+                  {decoded.runs && decoded.runs.length > 0 && (
+                    <div className="mt-3">
+                      <div className="mb-1 text-[11px] text-muted">Next runs:</div>
+                      <div className="font-mono text-xs leading-relaxed text-text">
+                        {decoded.runs.map((d, i) => (
+                          <div key={i} className={i === 0 ? 'font-semibold text-green' : 'text-text'}>
+                            {formatRun(d)}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {showToast && (

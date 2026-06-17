@@ -21,6 +21,14 @@ const guides = [
     blurb:
       'You leave with a deploy script that fails loudly, rolls back automatically, and passes a health check before marking success — not one that ships broken builds under a green checkmark.',
   },
+  {
+    slug: 'bash-text-processing',
+    title: 'Bash Text Processing: find, grep, sed, and awk for Logs and Config Files',
+    description:
+      'The four commands that turn an unreadable log or a tree of config files into an answer — find to locate, grep to search, sed to transform, awk to summarize. The order matters, and the gotchas are the reason most one-liners do the wrong thing quietly.',
+    blurb:
+      'You leave with the pipeline order that keeps text processing boring: scope the blast radius with find, confirm the match with grep, transform with sed or awk under an undo, and verify before you trust it — plus the 2am incident one-liner that ranks your errors most-frequent-first.',
+  },
 ] as const;
 
 const STRONGEST_GUIDE = guides[0];

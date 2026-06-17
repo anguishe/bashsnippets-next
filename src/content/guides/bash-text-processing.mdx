@@ -1,0 +1,85 @@
+---
+title: "Bash Text Processing: find, grep, sed, and awk for Logs and Config Files"
+description: "The four commands that turn an unreadable log or a tree of config files into an answer — find to locate, grep to search, sed to transform, awk to summarize. The order matters, and the gotchas are the reason most one-liners do the wrong thing quietly."
+slug: bash-text-processing
+category: SYSADMIN
+datePublished: 2026-06-17
+dateModified: 2026-06-17
+---
+
+I once ran a single `sed -i` across a config tree to rename an API host, and it took down checkout on eleven services before the next deploy. The command worked. That was the problem. My pattern matched `api.internal` the way I wanted in the file I was looking at, and the way I very much did not want in the four files I had not looked at — health-check URLs, a comment, a sample block, and one place where the old host was deliberately pinned. No backup, no preview, no `find` to scope which files even got touched. Just `-i` writing over the originals across the whole tree, fast and silent.
+
+The lesson was not "sed is dangerous." The lesson was that text processing on a server is a pipeline with an order, and I had skipped the first three steps. You locate the right files with `find`. You confirm what matches with `grep`. You transform with `sed` or `awk`. You verify before you trust it. Do those in order and the work is boring. Skip to the transform and you find out which files you forgot about from someone in another channel asking why checkout is down.
+
+This is the pillar for that pipeline. Each command below has a snippet or an interactive builder that goes deeper; this guide is the sequencing and the reasoning that ties them together.
+
+## Step 1 — `find`: scope the blast radius before you touch anything
+
+Every transform starts with a list of files, and the most common mistake is letting that list be "everything in this directory and below, including the ones I didn't think about." `find` exists to make that list explicit and reviewable.
+
+```bash
+# List exactly which files a change would touch — and STOP there
+find /etc/myapp -type f -name "*.conf" -not -path "*/samples/*"
+```
+
+Read that output like a checklist. The `-not -path "*/samples/*"` is the part that would have saved me — the sample block had no business being rewritten. `find` also lets you scope by age (`-mtime +30` for files older than 30 days, which is exactly how the [delete old log files](https://bashsnippets.xyz/snippets/delete-old-log-files) snippet avoids nuking last night's log), by size, and by type. The flag combinations are where it gets fiddly, so the [find command builder](https://bashsnippets.xyz/tools/find-command-builder) assembles the exact invocation and explains each flag before you run it.
+
+The discipline: get `find` printing the right file list first. Only once that list is correct do you hand it to anything destructive.
+
+## Step 2 — `grep`: confirm the match, don't assume it
+
+`grep` answers "which lines actually match," and the gap between what you think matches and what does is where bugs live. Before any in-place edit, grep the exact pattern you are about to change so you can count the hits and eyeball them.
+
+```bash
+# How many lines, in which files, actually match?
+grep -rn "api.internal" /etc/myapp --include="*.conf"
+```
+
+`-r` recurses, `-n` prints line numbers so you can jump straight to each hit, and `--include` keeps grep from wandering into binaries. Two traps worth naming: the dot in `api.internal` is a regex wildcard, so it also matches `apiXinternal` — quote it and use `-F` for a fixed string when you mean a literal. And case matters; `-i` for case-insensitive when the data is inconsistent. The full flag set and a recursive search pattern are on the [search files for text with grep](https://bashsnippets.xyz/snippets/search-files-for-text-grep) snippet, and the [grep pattern builder](https://bashsnippets.xyz/tools/grep-pattern-builder) lets you test a pattern against sample text and watch what lights up before you commit to it.
+
+If the grep count and the files surprise you, stop. That surprise is the bug you were about to write to disk.
+
+## Step 3 — `sed`: transform in place, but always with an undo
+
+Now the transform. `sed` edits streams line by line, and `s/old/new/` is the substitution you will use ninety percent of the time. The flag that matters most is the one people skip: `-i.bak` writes the change in place **and** leaves a `.bak` copy of every original.
+
+```bash
+# Edit in place, but keep a .bak of each original so you can roll back
+sed -i.bak 's/api\.internal/api-v2.internal/g' /etc/myapp/app.conf
+```
+
+A few things that bite people. The `\.` escapes the dot so it is a literal, not a wildcard — the same trap as grep. The trailing `g` replaces every occurrence on a line, not the first; leave it off and you silently fix only the first hit. And when your text contains slashes (paths, URLs), switch the delimiter so you are not escaping a forest of them: `sed 's|/old/path|/new/path|g'`. Run it against one file with `-i.bak`, diff the result, and only then loop it over the `find` list from Step 1. If something is wrong, the rollback is a one-liner restoring the `.bak` files.
+
+## Step 4 — `awk`: when you need fields and totals, not just lines
+
+`grep` and `sed` work on lines and patterns. The moment you need a *column* — the 9th field of an access log, the sum of a byte count, a count grouped by status code — that is `awk`. It splits each line into fields (`$1`, `$2`, … `$NF` for the last) and runs a tiny program per line.
+
+```bash
+# Sum the response-size column (field 10) of an nginx access log
+awk '{ total += $10 } END { print total " bytes served" }' access.log
+
+# Count requests per HTTP status code (field 9)
+awk '{ codes[$9]++ } END { for (c in codes) print c, codes[c] }' access.log
+```
+
+The `END` block runs once after the last line, which is how you turn a million lines into one number. You do not need to learn all of awk — these two shapes (accumulate into a total, accumulate into a keyed array) cover most real log questions.
+
+## Putting it together: the incident pipeline
+
+Here is the move you will actually reach for at 2am when a service is throwing errors and you need to know what and how often, fast:
+
+```bash
+# Find today's logs, pull the errors, group and rank them
+find /var/log/myapp -name "*.log" -mtime -1 \
+  | xargs grep -h "ERROR" \
+  | awk '{ $1=""; $2=""; print }' \
+  | sort | uniq -c | sort -rn | head
+```
+
+Read it left to right: `find` scopes to today's log files, `grep` pulls the error lines, `awk` strips the timestamp columns so identical errors collapse together, and `sort | uniq -c | sort -rn` is the workhorse combo that counts duplicates and ranks them most-frequent-first. The top line is your incident. That pipeline has told me what was actually breaking more times than any dashboard.
+
+## Where this connects
+
+The order is the whole point: scope with `find`, confirm with `grep`, transform with `sed` or `awk`, verify before you trust it. The eleven-service outage happened because I started at the transform. Every one of those steps has somewhere to go deeper — the [find](https://bashsnippets.xyz/tools/find-command-builder) and [grep](https://bashsnippets.xyz/tools/grep-pattern-builder) builders for assembling the exact command, and [error handling with set -euo pipefail](https://bashsnippets.xyz/snippets/bash-error-handling) for wrapping any of this in a script that fails loudly instead of half-finishing.
+
+New to the site? The [25 Bash Scripts Every Linux Sysadmin Needs](https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs) guide is the widest single pass, and the full [snippet library](https://bashsnippets.xyz/snippets) and [tools](https://bashsnippets.xyz/tools) are the reference you come back to when you need just the command.

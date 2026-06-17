@@ -29,6 +29,7 @@ const toolComponents: Record<string, ComponentType> = {
   'shellcheck-error-decoder': withSkeleton(() => import('@/components/tools/ShellcheckErrorDecoder')),
   'rsync-command-builder': withSkeleton(() => import('@/components/tools/RsyncCommandBuilder')),
   'grep-pattern-builder': withSkeleton(() => import('@/components/tools/GrepPatternBuilder')),
+  'find-command-builder': withSkeleton(() => import('@/components/tools/FindCommandBuilder')),
 };
 
 interface ToolRendererProps {

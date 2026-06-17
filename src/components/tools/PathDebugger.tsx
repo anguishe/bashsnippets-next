@@ -9,7 +9,7 @@ const EXAMPLE_PATH =
 
 const VALID_PREFIXES = ['/usr', '/bin', '/sbin', '/home', '/opt', '/snap', '/var', '/etc', '/tmp'];
 
-type EntryStatus = 'exists' | 'missing' | 'duplicate' | 'empty' | 'unknown';
+type EntryStatus = 'exists' | 'missing' | 'duplicate' | 'empty' | 'unknown' | 'relative';
 
 interface PathRow {
   entry: string;
@@ -17,9 +17,11 @@ interface PathRow {
   note: string;
 }
 
-function classifyEntry(entry: string): 'empty' | 'missing' | 'exists' | 'unknown' {
+function classifyEntry(entry: string): 'empty' | 'relative' | 'missing' | 'exists' | 'unknown' {
   if (entry === '') return 'empty';
-  if (entry.charAt(0) !== '/') return 'missing';
+  // A non-absolute entry (".", "./bin", "../x", or any path not starting with /)
+  // is a security risk: PATH is resolved relative to the current working directory.
+  if (entry.charAt(0) !== '/') return 'relative';
   if (entry.includes('nonexistent') || entry.includes('..')) return 'missing';
   for (const prefix of VALID_PREFIXES) {
     if (entry.indexOf(prefix) === 0) return 'exists';
@@ -31,6 +33,7 @@ function badgeClass(status: EntryStatus): string {
   const map: Record<EntryStatus, string> = {
     exists: 'bg-green-dim text-green border-green',
     missing: 'bg-[#3d2f0d] text-amber border-amber',
+    relative: 'bg-[#2d1515] text-[#f85149] border-[#f85149]',
     duplicate: 'bg-bg3 text-muted border-border',
     empty: 'bg-bg3 text-muted border-border',
     unknown: 'bg-[#0d2a4a] text-blue border-blue',
@@ -43,7 +46,7 @@ export default function PathDebugger() {
   const [analyzed, setAnalyzed] = useState(false);
   const [error, setError] = useState('');
   const [rows, setRows] = useState<PathRow[]>([]);
-  const [stats, setStats] = useState({ total: 0, exist: 0, missing: 0, dupes: 0 });
+  const [stats, setStats] = useState({ total: 0, exist: 0, missing: 0, dupes: 0, risky: 0 });
   const [cleanedPath, setCleanedPath] = useState('');
   const [showToast, setShowToast] = useState(false);
   const { copied, copy } = useClipboard();
@@ -58,7 +61,7 @@ export default function PathDebugger() {
       setAnalyzed(true);
       setRows([]);
       setCleanedPath('');
-      setStats({ total: 0, exist: 0, missing: 0, dupes: 0 });
+      setStats({ total: 0, exist: 0, missing: 0, dupes: 0, risky: 0 });
       return;
     }
 
@@ -68,6 +71,7 @@ export default function PathDebugger() {
     let countExist = 0;
     let countMissing = 0;
     let countDupes = 0;
+    let countRisky = 0;
     const cleanedEntries: string[] = [];
 
     entries.forEach((entry, i) => {
@@ -75,17 +79,26 @@ export default function PathDebugger() {
       let note: string;
 
       if (entry !== '' && seen[entry] !== undefined) {
+        // The first occurrence wins when resolving a command; this copy never runs.
         status = 'duplicate';
-        note = `Duplicate of entry #${seen[entry]}`;
+        note = `Shadowed — entry #${seen[entry]} appears first and always wins`;
         countDupes++;
       } else {
         if (entry !== '') seen[entry] = i + 1;
         const cls = classifyEntry(entry);
 
         if (cls === 'empty') {
+          // A bare/empty PATH element is treated as "." by the shell — same CWD risk.
           status = 'empty';
-          note = 'Empty entry (bare colon in PATH)';
+          note = 'Empty entry (bare colon) — shell treats this as the current directory';
           countMissing++;
+        } else if (cls === 'relative') {
+          status = 'relative';
+          note =
+            i === 0
+              ? 'CRITICAL — relative path is first in PATH; a planted binary here shadows every system command'
+              : 'Security risk — relative path; a binary in the working directory can shadow real commands';
+          countRisky++;
         } else if (cls === 'missing') {
           status = 'missing';
           note = 'Likely invalid — verify on your system';
@@ -111,6 +124,7 @@ export default function PathDebugger() {
       exist: countExist,
       missing: countMissing,
       dupes: countDupes,
+      risky: countRisky,
     });
     setRows(resultRows);
     setCleanedPath(`export PATH=${cleanedEntries.join(':')}`);
@@ -221,7 +235,18 @@ export default function PathDebugger() {
                     <span className="rounded-full border border-border bg-bg3 px-3 py-1 font-mono text-[11px] font-semibold tracking-wide text-muted">
                       {stats.dupes} duplicate{stats.dupes === 1 ? '' : 's'}
                     </span>
+                    {stats.risky > 0 && (
+                      <span className="rounded-full border border-[#f85149] bg-[#2d1515] px-3 py-1 font-mono text-[11px] font-semibold tracking-wide text-[#f85149]">
+                        {stats.risky} security risk{stats.risky === 1 ? '' : 's'}
+                      </span>
+                    )}
                   </div>
+
+                  {stats.risky > 0 && (
+                    <div role="alert" className="mb-5 rounded-md border-l-[3px] border-[#f85149] bg-[#2d1515] px-3.5 py-3 font-mono text-xs leading-relaxed text-text">
+                      <strong className="text-[#f85149]">Security risk:</strong> a relative or empty PATH entry lets a binary in the current working directory shadow real system commands. Remove every non-absolute entry. The cleaned PATH below already drops them.
+                    </div>
+                  )}
 
                   <div className="mb-6 overflow-x-auto rounded-lg border border-border">
                     <table className="w-full border-collapse">
@@ -250,7 +275,7 @@ export default function PathDebugger() {
 
                   <div>
                     <div className="mb-2 font-mono text-[11px] uppercase tracking-widest text-green">
-                      Cleaned export PATH= (duplicates + missing removed)
+                      Cleaned export PATH= (duplicates, missing + relative entries removed)
                     </div>
                     <div className="relative rounded-md border border-border bg-bg3 p-3.5">
                       <pre className="whitespace-pre-wrap break-all pr-16 font-mono text-xs leading-relaxed text-text">

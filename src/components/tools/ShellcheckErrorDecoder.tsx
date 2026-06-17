@@ -147,6 +147,7 @@ export default function ShellcheckErrorDecoder() {
   const [entry, setEntry] = useState<ShellCheckEntry | null>(null);
   const [notFoundCode, setNotFoundCode] = useState('');
   const [multiCodes, setMultiCodes] = useState<string[]>([]);
+  const [textMatches, setTextMatches] = useState<string[]>([]);
   const [afterRaw, setAfterRaw] = useState('');
   const [disableRaw, setDisableRaw] = useState('');
   const [beforeHtml, setBeforeHtml] = useState('');
@@ -155,6 +156,7 @@ export default function ShellcheckErrorDecoder() {
   const { copied: disableCopied, copy: copyDisable } = useClipboard();
 
   const displayCode = useCallback((code: string) => {
+    setTextMatches([]);
     const found = SC_DATABASE[code];
     if (found) {
       setEntry(found);
@@ -183,6 +185,7 @@ export default function ShellcheckErrorDecoder() {
     if (!text) {
       setView('empty');
       setMultiCodes([]);
+      setTextMatches([]);
       if (typeof window !== 'undefined' && window.location.hash) {
         window.history.replaceState(null, '', window.location.pathname + window.location.search);
       }
@@ -197,6 +200,7 @@ export default function ShellcheckErrorDecoder() {
     if (codes.length > 1) {
       setView('empty');
       setMultiCodes(codes);
+      setTextMatches([]);
       return;
     }
 
@@ -205,11 +209,27 @@ export default function ShellcheckErrorDecoder() {
       setNotFoundCode(lone);
       setView('not-found');
       setMultiCodes([]);
+      setTextMatches([]);
       return;
     }
 
+    // No SC code in the input — fall back to a free-text search over titles,
+    // explanations and categories so users can search by symptom.
+    const q = text.toLowerCase();
+    const matches = Object.values(SC_DATABASE)
+      .filter(
+        (e) =>
+          e.code.toLowerCase().includes(q) ||
+          e.title.toLowerCase().includes(q) ||
+          e.explanation.toLowerCase().includes(q) ||
+          e.category.toLowerCase().includes(q),
+      )
+      .map((e) => e.code)
+      .slice(0, 12);
+
     setView('empty');
     setMultiCodes([]);
+    setTextMatches(matches);
   }, [displayCode, input]);
 
   useEffect(() => {
@@ -294,6 +314,27 @@ export default function ShellcheckErrorDecoder() {
                     className="rounded-md border border-border bg-bg2 px-2 py-1 font-mono text-xs text-text hover:border-green"
                   >
                     {code}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {textMatches.length > 0 && (
+            <div className="mb-4">
+              <div className="mb-1.5 text-[11px] text-muted">
+                {textMatches.length} match{textMatches.length === 1 ? '' : 'es'} — click to decode:
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {textMatches.map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => selectCode(code)}
+                    className="flex items-baseline gap-2 rounded-md border border-border bg-bg2 px-3 py-2 text-left font-mono text-xs text-text hover:border-green"
+                  >
+                    <span className="shrink-0 font-semibold text-green">{code}</span>
+                    <span className="truncate text-muted">{SC_DATABASE[code].title}</span>
                   </button>
                 ))}
               </div>
