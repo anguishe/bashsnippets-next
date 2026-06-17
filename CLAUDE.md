@@ -44,6 +44,18 @@ const mod = await import(`@/content/snippets/${slug}.mdx`);
 ```
 `generateStaticParams` uses `getAllSlugs()` from the registry, so **a slug missing from the registry will 404 even if the MDX file exists**.
 
+### Content: Guides
+
+Guides live at `/guides/<slug>`. Each guide is **its own static `page.tsx`** at `src/app/guides/<slug>/page.tsx` — there is no dynamic routing. Content is written directly as JSX inside the file, not MDX-driven. The index at `src/app/guides/page.tsx` maintains a hardcoded array of guide metadata.
+
+To add a new guide:
+1. Create `src/app/guides/<slug>/page.tsx` with `metadata`, schema JSON-LD, and JSX content
+2. Add the guide's metadata to the `guides` array in `src/app/guides/page.tsx`
+
+### Content: Snippet Category Pages
+
+Static category index pages live at `src/app/snippets/<category>/page.tsx` (e.g., `backup-and-recovery`, `disk-management`, `linux-security`, `server-monitoring`). Each lists relevant snippets inline. These are static pages — they do not use the `[slug]` dynamic route.
+
 ### Content: Tools
 
 Each tool requires:
@@ -52,11 +64,23 @@ Each tool requires:
 2. A React component in `src/components/tools/<Component>.tsx`, registered by slug in the `toolComponents` map in `ToolRenderer.tsx`
 3. No per-tool route file — the shared `src/app/tools/[slug]/page.tsx` renders `<ToolRenderer slug={slug} />` and dispatches by slug
 
-All tools are native React components rendered by `ToolRenderer` and registered by slug in the `toolComponents` map. The `ToolEmbed.tsx` iframe path has been removed — no `public/tool-content/*.html` files remain.
+All tools are native React client components rendered by `ToolRenderer` via `next/dynamic` with a skeleton loader. Tool components share utilities from `src/components/tools/shared/` (`useClipboard.ts`, `bashHighlight.ts`, `shellcheckData.ts`). `ToolEmbed.tsx` (iframe path) still exists but is not used by `ToolRenderer`.
 
 ### MDX Pipeline
 
 `next.config.ts` configures MDX with `remark-gfm`, `rehype-slug` (auto-IDs on headings), and `rehype-highlight` (syntax highlighting via highlight.js). Custom MDX components (CodeBlock with copy button, Callout, etc.) are registered in `MDXComponents.tsx` and passed as `components` to the dynamic import.
+
+### Snippet Frontmatter Data Flow
+
+`src/lib/mdx-frontmatter.ts` provides `loadSnippetFrontmatter(slug)`, which reads YAML frontmatter from an MDX file at build time via `gray-matter`. Fields available in frontmatter: `title`, `description`, `tags`, `quickAnswer`, `faq` (array of `{question, answer}`), `howToSteps` (array of `{name, text}`), `author`, `datePublished`, `dateModified`. These fields are optional — if present in frontmatter, the snippet registry can call `loadSnippetFrontmatter` and merge them. FAQ and HowTo data can therefore live in the MDX file rather than in the registry.
+
+### Scaffold Templates
+
+`src/templates/` contains reference templates — do not import them at runtime:
+- `SNIPPET_REGISTRY_ENTRY.ts` — copy the object into `src/lib/snippets.ts`
+- `SNIPPET_TEMPLATE.mdx` — starting point for a new MDX file
+- `TOOL_REGISTRY_ENTRY.ts` — copy the object into `src/lib/tools.ts`
+- `TOOL_COMPONENT_TEMPLATE.tsx` — starting point for a new tool component
 
 ### Affiliate Links
 
@@ -187,6 +211,7 @@ CROSS="✗"
 | Homepage | WebSite + Organization |
 | Snippet | TechArticle + BreadcrumbList + FAQPage |
 | Tool | WebApplication + BreadcrumbList + FAQPage |
+| Guide | TechArticle + BreadcrumbList |
 | Index pages | CollectionPage + BreadcrumbList |
 | About | WebPage + Person + BreadcrumbList |
 
