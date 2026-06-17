@@ -1,208 +1,187 @@
-# Contributing to BashSnippets.xyz
+# Contributing to BashSnippets
 
-This guide explains how to add new bash snippets and interactive tools to the site. You do not need to be a React expert — follow the templates and checklists below.
+How to work in `anguishe/bashsnippets-next` — local setup, the content pipelines, and the standards a change must meet before it ships.
 
-**Templates live in `src/templates/`:**
-
-| File | Purpose |
-| --- | --- |
-| `SNIPPET_TEMPLATE.mdx` | Full MDX page with frontmatter comments |
-| `SNIPPET_REGISTRY_ENTRY.ts` | Copy-paste block for `src/lib/snippets.ts` |
-| `TOOL_COMPONENT_TEMPLATE.tsx` | React tool UI skeleton |
-| `TOOL_REGISTRY_ENTRY.ts` | Copy-paste block for `src/lib/tools.ts` |
+> **Two companion docs own the details this file only summarizes:**
+> - **`CLAUDE.md`** — the canonical spec for code, architecture, registry shapes, and conventions. When this file and CLAUDE.md disagree, CLAUDE.md wins.
+> - **`BASHSNIPPETS_BIBLE.md`** — brand, monetization, and growth. Not needed for code changes.
+>
+> `REPO-STATE.md` is a dated ground-truth inventory snapshot — read it to understand the repo, don't treat it as live.
 
 ---
 
-## How to Add a New Snippet
+## Prerequisites
 
-A snippet needs **two files**: the MDX content and a registry entry.
+- **Node `>=20`** and **npm** (the repo uses `package-lock.json`; do not introduce pnpm/yarn).
+- A `main` branch push **auto-deploys to production on Vercel.** Treat `main` as live — work on branches and merge deliberately.
 
-### Step 1: Copy the MDX template
-
-1. Copy `src/templates/SNIPPET_TEMPLATE.mdx` to `src/content/snippets/your-snippet-slug.mdx`
-2. Replace every placeholder (`your-snippet-slug`, script names, thresholds, FAQ text)
-3. Read the `#` comments in the frontmatter — each field explains what to write
-
-**Required content (in order):**
-
-1. Frontmatter with all fields filled in
-2. Consequence-first intro — what breaks without the script
-3. Complete copy-paste bash script (`set -euo pipefail`, `CHECK`/`CROSS` variables)
-4. Plain-English explanation before or after the code
-5. Numbered setup steps
-6. Cron example (if the script can be scheduled)
-7. Tested on section (minimum 2 distros)
-8. FAQ section (3+ real questions — must match frontmatter `faq`)
-9. `<AffiliateBox partner="digitalocean" />` (required on every snippet)
-
-### Step 2: Add the registry entry
-
-1. Open `src/lib/snippets.ts`
-2. Copy the object from `src/templates/SNIPPET_REGISTRY_ENTRY.ts`
-3. Paste it into the `snippets` array (keep alphabetical or chronological order — match nearby entries)
-4. Make sure `slug` matches your MDX filename exactly
-
-**Important:** If the MDX file exists but the slug is missing from the registry, the page will **404**.
-
-### Step 3: Build and preview
+## Local setup
 
 ```bash
-npm run dev
+git clone https://github.com/anguishe/bashsnippets-next
+cd bashsnippets-next
+npm install
+npm run dev        # http://localhost:3000
 ```
 
-Open `http://localhost:3000/snippets/your-snippet-slug` and check:
-
-- Title, description, and Quick Answer render correctly
-- Code block has a copy button
-- FAQ appears at the bottom
-- No TypeScript errors in the terminal
-
----
-
-## How to Add a New Tool
-
-A tool needs **three changes**: a React component, a registry entry, and a renderer mapping.
-
-### Step 1: Create the React component
-
-1. Copy `src/templates/TOOL_COMPONENT_TEMPLATE.tsx` to `src/components/tools/YourToolName.tsx`
-2. Rename the default export function to match your tool (PascalCase)
-3. Replace placeholder input/output logic with your tool's behavior
-4. Keep the brand layout: input panel on the left, output on the right, green action button, copy button on output
-
-Shared utilities you can reuse:
-
-- `@/components/CopyButton` — copy affordance on code output
-- `@/components/tools/shared/useClipboard` — clipboard state hook
-- `@/components/tools/shared/bashHighlight` — syntax highlighting for bash output
-
-### Step 2: Register in ToolRenderer
-
-Open `src/components/tools/ToolRenderer.tsx` and add a line inside `toolComponents`:
-
-```ts
-'your-tool-slug': withSkeleton(() => import('@/components/tools/YourToolName')),
-```
-
-The key (`your-tool-slug`) must match the slug in `src/lib/tools.ts`.
-
-### Step 3: Add the registry entry
-
-1. Open `src/lib/tools.ts`
-2. Copy the object from `src/templates/TOOL_REGISTRY_ENTRY.ts`
-3. Paste it into the `tools` array
-4. Set `component` to the exact filename (without `.tsx`)
-
-The tool page at `/tools/[slug]` is generated automatically — you do not create a new route file.
-
-### Step 4: Build and preview
+## Commands
 
 ```bash
-npm run dev
+npm run dev      # local dev server
+npm run build    # next build && node scripts/generate-sitemap.mjs (regenerates public/sitemap.xml)
+npm run start    # serve the production build
+npm run lint     # next lint
 ```
 
-Open `http://localhost:3000/tools/your-tool-slug` and test every input, button, and copy action.
+**There is no test suite. `npm run build` is the verification gate** — TypeScript errors surface there, and it must pass with zero errors before any PR.
 
 ---
 
-## Brand Rules
+## Repo layout (the parts you'll touch)
 
-### Colors (dark theme only — never use light backgrounds)
-
-| Token | Hex | Use |
-| --- | --- | --- |
-| `--bg` | `#0d1117` | Page background |
-| `--bg2` | `#161b22` | Cards, panels, nav |
-| `--bg3` | `#1c2128` | Code blocks, inputs |
-| `--border` | `#30363d` | All borders |
-| `--green` | `#39d353` | Primary accent, action buttons |
-| `--amber` | `#e3b341` | Warnings |
-| `--blue` | `#58a6ff` | Links, info callouts |
-| `--muted` | `#8b949e` | Secondary text |
-| `--text` | `#e6edf3` | Body text |
-
-Use Tailwind classes where they exist (`bg-bg`, `text-green`, `border-border`, etc.) instead of hardcoding hex values in new components.
-
-### Fonts
-
-- **Syne** — all headings (h1–h4)
-- **IBM Plex Mono** — code, labels, tags, CLI output
-- System sans-serif — body paragraphs only
-
-### Voice
-
-- Lead with what **breaks** if the reader does not have this script or tool
-- Write like a senior sysadmin explaining to a competent junior
-- Never use: "simply", "just", "easy", "straightforward", "in this tutorial we will"
-- FAQ questions must be real searches — not filler
-
-### Design — do not use
-
-- Inter, Roboto, Arial, or Space Grotesk as heading fonts
-- Purple or lavender anywhere
-- Emoji as section icons
-- Cards with shadow but no visible border
-- Code blocks without a copy button
+```
+src/
+  app/                       App Router. layout.tsx = fonts + GA4 + AdSense + schemas.
+    snippets/[slug]/page.tsx   dynamic snippet route
+    tools/[slug]/page.tsx      dynamic tool route (renders <ToolRenderer/>)
+    guides/page.tsx            /guides index — guide list is a hardcoded array here
+  content/
+    snippets/<slug>.mdx      snippet bodies
+    guides/<slug>.mdx        guide bodies (MDX-backed guides only)
+  lib/
+    snippets.ts              snippet registry
+    tools.ts                 tool registry
+    mdx-frontmatter.ts       frontmatter parser + FaqItem/HowToStep types
+  components/
+    tools/ToolRenderer.tsx   slug → component map for tools
+    AffiliateBox.tsx         the ONLY place affiliate URLs live
+    MDXComponents.tsx        components usable inside MDX
+  templates/                 copy-paste scaffolds — start every new snippet/tool here
+public/
+  llms.txt                   hand-maintained; update it when you add pages
+  sitemap.xml                generated by scripts/generate-sitemap.mjs (do not hand-edit)
+scripts/generate-sitemap.mjs sole sitemap producer (postbuild)
+```
 
 ---
 
-## Testing Before You Push
+## Adding content
 
-Run these commands locally:
+### Add a snippet (2 files)
+
+1. **`src/content/snippets/<slug>.mdx`** — start from `src/templates/SNIPPET_TEMPLATE.mdx`. Frontmatter keys: `title, description, slug, tags, quickAnswer, faq, howToSteps, author, datePublished, dateModified`.
+   - `faq` → `{ question, answer }[]`
+   - `howToSteps` → `{ name, text }[]` — **the step key is `name:`, not `title:`.** `title:` silently drops the step from HowTo schema.
+2. **`src/lib/snippets.ts`** — add a registry entry (start from `src/templates/SNIPPET_REGISTRY_ENTRY.ts`). **The slug MUST match the MDX filename** — a slug missing from the registry 404s even if the MDX exists.
+3. `npm run build` → update `public/llms.txt` → IndexNow ping (see Shipping below).
+
+### Add a tool (native React — 3 files)
+
+This is the **only** path for new tools.
+
+1. **`src/lib/tools.ts`** — registry entry (start from `src/templates/TOOL_REGISTRY_ENTRY.ts`). Note the field shapes: `howToUse` is `string[]` (plain strings), the FAQ field is `faqs` (plural), and `component` is PascalCase and must match the ToolRenderer key.
+2. **`src/components/tools/<Name>.tsx`** — a `'use client'` component that takes **no props** (start from `src/templates/TOOL_COMPONENT_TEMPLATE.tsx`).
+3. **`src/components/tools/ToolRenderer.tsx`** — add one line to `toolComponents`:
+   ```ts
+   '<slug>': withSkeleton(() => import('@/components/tools/<Name>')),
+   ```
+4. `npm run build` → update `llms.txt` → IndexNow ping.
+
+> **Do not build new tools as iframes.** Three legacy tools (`bash-trap-builder`, `grep-pattern-builder`, `rsync-command-builder`) still render via `ToolEmbed` + `public/tool-content/*.html`. That path is kept alive for those three only — never extend it.
+
+### Add a guide (no registry — edit 4 things)
+
+Guides have no registry file and the `/guides` index list is a hardcoded array. **Use the MDX-backed pattern** (one guide currently uses inline-React JSX instead — don't copy that).
+
+1. `src/content/guides/<slug>.mdx` — the body.
+2. `src/app/guides/<slug>/page.tsx` — `generateMetadata` + JSON-LD (TechArticle + BreadcrumbList) that imports the MDX.
+3. Add the guide to the `guides` array in `src/app/guides/page.tsx`.
+4. Add the URL to `staticEntries` in `scripts/generate-sitemap.mjs`, then update `public/llms.txt`.
+
+---
+
+## Standards
+
+### Bash scripts (every script shown on the site)
 
 ```bash
-npm run dev      # preview in browser while editing
-npm run build    # catches TypeScript and MDX errors (required before pushing)
-npm run lint     # ESLint check
+#!/bin/bash
+# Script: descriptive-name.sh
+# Purpose: one sentence on WHAT BREAKS without this
+# Usage: ./script.sh [args]
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
 ```
 
-If `npm run build` fails, fix the errors before opening a pull request. There is no automated test suite — the build is the gate.
+- `set -euo pipefail` on line 4–5; `CHECK`/`CROSS` defined before use and used in all echo output.
+- Comments explain **why**, not what. Named variables for every threshold/path — no magic numbers. **Must be ShellCheck-clean.**
+
+### Code
+
+- Tailwind utility classes only — **no inline styles**, no new component where a class works.
+- Fonts come from `next/font/google` in `layout.tsx` (IBM Plex Mono `400/500/600`, Syne `400/600/700/800`). **Never add `<link>` font tags.**
+- Design tokens (`--bg`, `--green`, etc.) live in `src/app/globals.css` — use the variables, don't hardcode hex.
+- No `any` without an explanatory comment. No `console.log` in committed code.
+- Affiliate links **only** via `<AffiliateBox partner="digitalocean" />` / `partner="namecheap"`. Never inline a raw affiliate URL anywhere else.
+
+### Content voice
+
+Consequence-first: lead with what breaks, then the fix. Senior-sysadmin-to-competent-junior, first person. FAQs must be questions real users actually search. **Banned words:** *simply, just, easy, straightforward,* and tutorial intros like *"in this tutorial we will."*
+
+### Never do (AI-slop tells)
+
+Inter/Roboto/Arial/Space Grotesk headings · purple/violet/lavender · light backgrounds · emoji as icons or section markers · gradient text on headings · borderless (shadow-only) cards · missing hover states · a code block without a copy button · schema that doesn't match visible content · `SpecialAnnouncement` schema (retired).
+
+### SEO — required on every page
+
+`generateMetadata()` (title, description, canonical **without** trailing slash, og:image, og:type, twitter:card) · JSON-LD · BreadcrumbList. Snippet and tool pages also need a Quick Answer block (134–167 words, self-contained), question-format H2s, and a visible FAQ accordion + FAQPage JSON-LD.
+
+| Page | Schema |
+|---|---|
+| Snippet | TechArticle + BreadcrumbList + FAQPage + **HowTo** (when `howToSteps` present) |
+| Tool | WebApplication + BreadcrumbList + FAQPage + **HowTo** (when `howToUse` present) |
+| Guide | TechArticle + BreadcrumbList |
+| Index | CollectionPage + BreadcrumbList |
 
 ---
 
-## Sitemap and Indexing
+## Working rules (apply to every change)
 
-### Sitemap (automatic)
-
-The sitemap at `https://bashsnippets.xyz/sitemap.xml` is generated from the registries in `src/app/sitemap.ts`. When you add a slug to `src/lib/snippets.ts` or `src/lib/tools.ts`, the new URL is included automatically on the next deploy. **You do not edit sitemap XML by hand.**
-
-### After deploying new pages
-
-1. Confirm the build passed on Vercel
-2. Submit the new URL to IndexNow:
-
-```bash
-curl -X POST "https://yandex.com/indexnow" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "host": "bashsnippets.xyz",
-    "key": "a7fae2a4e86d4822ab3f636599173c8f",
-    "urlList": ["https://bashsnippets.xyz/snippets/YOUR-SLUG"]
-  }'
-```
-
-Replace the URL with your new snippet or tool path.
-
-3. Add the new page to `public/llms.txt`
-4. Inspect the URL in Google Search Console (optional but recommended)
+1. **Surface assumptions first.** State assumptions about structure/data/intent before editing. Unsure → read the file or ask.
+2. **Minimum viable change.** Smallest surgical edit. No drive-by refactors, renames, or cleanup.
+3. **No orthogonal changes.** Spot something broken out of scope? Note it in the PR — don't fix it inline.
+4. **Verify before done.** State what changed and the expected result, run `npm run build`, report the outcome.
 
 ---
 
-## Quick Checklist
+## Pull requests
 
-**New snippet:**
+- Branch off `main`; keep each PR to one logical change.
+- PR description: what changed, why, and the `npm run build` result.
+- **Before requesting merge:**
+  - [ ] `npm run build` passes with zero errors
+  - [ ] New snippet/tool slug matches its file and is in the registry
+  - [ ] Required schema + Quick Answer + FAQ present on new content pages
+  - [ ] No raw affiliate URLs; design tokens (not hardcoded hex); no `console.log`
+  - [ ] `public/llms.txt` updated for any new page
+- Merging to `main` deploys to production on Vercel automatically.
 
-- [ ] `src/content/snippets/[slug].mdx` created from template
-- [ ] Entry added to `src/lib/snippets.ts`
-- [ ] Slugs match everywhere
-- [ ] `npm run build` passes
-- [ ] FAQ in frontmatter matches visible FAQ section
-- [ ] DigitalOcean AffiliateBox present
+## Shipping (after merge / deploy)
 
-**New tool:**
+1. Confirm the Vercel deploy succeeded.
+2. IndexNow ping for each new URL:
+   ```bash
+   curl -X POST "https://yandex.com/indexnow" -H "Content-Type: application/json" \
+     -d '{"host":"bashsnippets.xyz","key":"a7fae2a4e86d4822ab3f636599173c8f","urlList":["https://bashsnippets.xyz/<path>"]}'
+   ```
+3. Submit the new URL(s) in Google Search Console (URL Inspection).
 
-- [ ] `src/components/tools/[Name].tsx` created from template
-- [ ] Slug mapped in `ToolRenderer.tsx`
-- [ ] Entry added to `src/lib/tools.ts`
-- [ ] `npm run build` passes
-- [ ] Copy button works on output
+The sitemap regenerates automatically during `npm run build` — never hand-edit `public/sitemap.xml`.
+
+---
+
+## Questions about *how the repo is built*?
+
+Read `CLAUDE.md`. It is the authoritative spec for architecture, exact registry types, and the MDX/tool/guide pipelines — this file is the practical workflow on top of it.
