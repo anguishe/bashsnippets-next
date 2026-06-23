@@ -1,0 +1,98 @@
+---
+title: "Stop a Hung Command with timeout"
+description: "A hung cron job is worse than a failed one — it never exits, never frees its lock, and the job silently stops running. Bound any command's runtime with timeout, escalate to SIGKILL, and read the exit code."
+slug: bash-timeout-command
+tags:
+  - timeout
+  - cron
+  - signals
+  - hang
+  - sysadmin
+quickAnswer: "A backup that normally finishes in seconds can hang forever — a dead socket, a database lock, a half-open TCP connection — and a hung command under cron is worse than a failed one: it never exits, so it never frees its lock and the job silently stops running. timeout bounds that. `timeout 5m mycommand` sends SIGTERM after five minutes and exits 124 if it had to step in. Add `-k 20s` and timeout escalates to SIGKILL twenty seconds later, for processes wedged in uninterruptible I/O that ignore SIGTERM. Read the exit code to tell the outcomes apart: 124 means it timed out, 137 means it was force-killed (128 + signal 9), anything else is the command's own code. timeout signals the process it launches, so for a pipeline, wrap it in `bash -c`. Pairing timeout with a lock is what keeps one hang from jamming a job for days."
+faq:
+  - question: "What exit code does timeout return when it kills the command?"
+    answer: "124 when the command was still running at the deadline and timeout sent SIGTERM. If you used -k and the command ignored SIGTERM, timeout sends SIGKILL after the grace period and the exit code becomes 137 (128 + signal 9). If the command finishes on its own before the deadline, you get the command's own exit code, untouched. So a successful, fast mysqldump returns 0; a slow one returns 124; a wedged one returns 137. The Bash Exit Code Lookup tool decodes any of these."
+  - question: "What does the -k option do?"
+    answer: "-k sets a kill-after grace period. By default timeout sends SIGTERM, which a well-behaved program catches and uses to clean up and exit. But a process stuck in uninterruptible I/O (disk or NFS), or one that traps and ignores SIGTERM, won't die. `timeout -k 20s 5m cmd` says: at 5 minutes send SIGTERM; if it's still alive 20 seconds later, send SIGKILL, which the kernel enforces and nothing can ignore. Without -k, a wedged process survives the timeout entirely."
+  - question: "How do I put a timeout on a whole pipeline or several commands?"
+    answer: "timeout runs a single command, so wrap the pipeline in a shell: `timeout 30s bash -c 'curl -s https://api.example.com | jq .status'`. timeout then signals that bash, which carries the pipeline. The same trick works for a sequence: `timeout 2m bash -c 'cmd1 && cmd2'`. Without the bash -c wrapper, timeout only sees the first word as the command and the rest as arguments to it."
+  - question: "Does timeout kill the child processes my command spawned?"
+    answer: "It signals the command it launched. If that command spawns children in the same process group and they exit when their parent does, they go too. But a command that double-forks or detaches its children can leave them running after timeout kills the parent. For those, run the work in its own session and signal the whole group — or simpler, prefer commands that manage their own children, and add tool-level timeouts (curl --max-time, ssh -o ConnectTimeout) so individual network calls can't hang in the first place."
+  - question: "Why use timeout if curl already has --max-time?"
+    answer: "Use both. A tool's own timeout (curl --max-time, ssh ConnectTimeout, mysqldump's net_read_timeout) is the graceful, specific limit — it knows what it's bounding and can fail cleanly. timeout is the outer hard stop that catches everything the tool's own limits miss: a hang inside a code path the tool author never timed out, a child process gone rogue, an I/O wait the tool can't interrupt. Belt and suspenders. The inner one usually fires; the outer one saves you the night it doesn't."
+howToSteps:
+  - name: "Decide the maximum runtime"
+    text: "Set a MAX_RUNTIME longer than the job's normal worst case but well under its cron interval — if it runs every 10 minutes, a 5-minute cap leaves headroom and still catches a hang."
+  - name: "Prefix the command with timeout"
+    text: "Write timeout -k \"$KILL_GRACE\" \"$MAX_RUNTIME\" before your command. -k escalates to SIGKILL if SIGTERM is ignored."
+  - name: "Run it inside an if so you can read the exit code"
+    text: "Put the timeout call in an if condition so set -euo pipefail doesn't abort before you inspect $?. Capture code=$? as the very first line of the else branch."
+  - name: "Branch on the exit code"
+    text: "Handle 124 (timed out), 137 (force-killed), and anything else (the command's own failure) separately so your logs say what actually happened."
+  - name: "Write output to a temp file, then mv on success"
+    text: "If the command writes a file, send it to a .partial path and mv it into place only after a clean exit. A timed-out run then never leaves a truncated, corrupt file masquerading as a good backup."
+author: Anguishe
+datePublished: 2026-06-22
+dateModified: 2026-06-22
+---
+
+The backup ran fine every night for fourteen months, and then it didn't run for nine days, and nothing told me. There was no error in the log, no failed-job alert, no bounced cron mail. The nightly `mysqldump` had simply hung — the database had a long-held lock from a runaway analytics query, the dump opened its transaction and sat there waiting for it, forever. Cron launched it at 2am, it never exited, and because I'd been smart enough to wrap it in a lock (so two dumps couldn't run at once), every subsequent night's run saw the lock still held by the zombie from the 9th and skipped quietly. The clever lock turned a one-night hang into a nine-day outage. I found it when I went to restore a table and discovered my newest "backup" was a `mysqldump` process that had been running since the previous Tuesday.
+
+The lesson is blunt: under cron, a hung command is worse than a failed one. A failed command exits, frees its lock, and the next run tries again. A hung command exits never. It holds resources, blocks its own future runs, and produces exactly zero signal because it never gets far enough to log anything. You cannot rely on a command to bound its own runtime — the whole problem is that it's stuck somewhere it can't time itself out of.
+
+So bound it from the outside.
+
+## Bounding the runtime
+
+```bash
+#!/bin/bash
+# Script: bounded-dump.sh
+# Purpose: Stop a hung command from running forever and jamming the cron slot
+# Usage: bounded-dump.sh
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+# Longer than the job's normal worst case, well under its cron interval.
+MAX_RUNTIME="5m"
+# After SIGTERM, wait this long, then SIGKILL — for processes wedged in I/O.
+KILL_GRACE="20s"
+
+DEST="/backup/mydb.sql"
+
+# In an `if` so set -e doesn't abort before we read the exit code.
+# Write to a .partial file so a timed-out run never leaves a corrupt "backup".
+if timeout -k "$KILL_GRACE" "$MAX_RUNTIME" \
+        mysqldump --single-transaction mydb > "$DEST.partial"; then
+    mv "$DEST.partial" "$DEST"
+    echo "$CHECK dump completed within $MAX_RUNTIME"
+else
+    code=$?
+    rm -f "$DEST.partial"
+    case "$code" in
+        124) echo "$CROSS dump exceeded $MAX_RUNTIME and was terminated (SIGTERM)" >&2 ;;
+        137) echo "$CROSS dump ignored SIGTERM and was force-killed (SIGKILL)" >&2 ;;
+        *)   echo "$CROSS dump failed with exit code $code" >&2 ;;
+    esac
+    exit "$code"
+fi
+```
+
+`timeout -k "$KILL_GRACE" "$MAX_RUNTIME" mysqldump ...` is the entire mechanism. At five minutes, `timeout` sends the dump a SIGTERM. A well-behaved program treats SIGTERM as "wrap up and exit." But the dump from my outage wasn't misbehaving — it was blocked in the kernel waiting on a lock, and a process in that state can't act on SIGTERM. That's what `-k 20s` is for: twenty seconds after the polite signal, `timeout` sends SIGKILL, which the kernel enforces unconditionally. Nothing survives SIGKILL.
+
+## Reading what happened
+
+The exit code is the difference between a useful log and a mystery. `124` means the command was still running at the deadline. `137` is `128 + 9` — it had to be force-killed because it ignored the first signal. Any other non-zero code is the command's own failure, and you should treat it differently. Collapsing all three into "backup failed" throws away the one piece of information that tells you whether you have a slow database, a wedged one, or a broken dump command. (If you ever forget which code means what, the [Bash Exit Code Lookup](/tools/bash-exit-code-lookup) decodes 124 and 137 directly.)
+
+<Callout type="warning">
+The `.partial` dance matters more than it looks. If you redirect straight to the real backup file and the command times out mid-write, you've replaced last night's good backup with a half-written, unrestorable file — and you won't know until you need it. Writing to a temp path and `mv`-ing only on a clean exit means a failed or timed-out run leaves the previous good backup untouched.
+</Callout>
+
+For commands that talk to the network, add the tool's own timeout as well — `curl --max-time`, `ssh -o ConnectTimeout`, a `net_read_timeout` on the dump. Those fire first and fail cleanly. `timeout` is the outer hard stop for the night the inner one doesn't.
+
+A timeout is what makes a lock safe. [Locking a job to a single instance with `flock`](/snippets/bash-flock-single-instance) stops overlap, but a hang inside the locked job holds that lock forever — which is precisely how my nine-day gap happened. Bound the runtime and the lock always gets released, on time, every time. The two together, plus [retrying transient failures with backoff](/snippets/bash-retry-with-backoff), are the core of an unattended job that fails loudly instead of disappearing. The [Hardened Cron Wrapper Generator](/tools/cron-wrapper-generator) composes all three, and [Bash Scripts That Survive Cron](/guides/bash-scripts-that-survive-cron) walks the whole decision.
+
+<AffiliateBox partner="digitalocean" />
+
+If you want to reproduce the hang safely, a $4 droplet, a deliberately slow `sleep 999`, and a `timeout 5s` is the cheapest way to watch all three exit codes for yourself. More of the library is at [bashsnippets.xyz](https://bashsnippets.xyz), including [killing a runaway process by name](/snippets/kill-a-process) when a hang escapes the timeout entirely.

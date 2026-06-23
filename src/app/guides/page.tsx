@@ -29,6 +29,14 @@ const guides = [
     blurb:
       'You leave with the pipeline order that keeps text processing boring: scope the blast radius with find, confirm the match with grep, transform with sed or awk under an undo, and verify before you trust it — plus the 2am incident one-liner that ranks your errors most-frequent-first.',
   },
+  {
+    slug: 'bash-scripts-that-survive-cron',
+    title: 'Bash Scripts That Survive Cron: Locking, Timeouts, and Retries',
+    description:
+      'A script that works when you run it isn\'t the same as one that survives unattended on cron. The three ways cron jobs die quietly — overlap, hang, transient failure — and the guards that stop each one.',
+    blurb:
+      'The three ways cron jobs die quietly — overlap, hang, transient failure — and the guard that stops each.',
+  },
 ] as const;
 
 const STRONGEST_GUIDE = guides[0];

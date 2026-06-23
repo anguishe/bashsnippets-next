@@ -1,0 +1,97 @@
+---
+title: "Bash Scripts That Survive Cron: Locking, Timeouts, and Retries"
+description: "A script that works when you run it isn't the same as one that survives unattended on cron. The three ways cron jobs die quietly — overlap, hang, transient failure — and the guards that stop each one."
+slug: bash-scripts-that-survive-cron
+author: Anguishe
+datePublished: 2026-06-22
+dateModified: 2026-06-22
+---
+
+## Bash Scripts That Survive Cron
+
+There is a gap between a script that works when you run it and a script that survives running unattended for a year. The first only has to succeed once, with you watching, on a good day. The second has to keep working through slow disks, hung sockets, recovering services, and reboots — with nobody watching, because the entire point of cron is that nobody is watching. Almost every script I've seen take down a server was fine in a manual run and fell apart the first time conditions weren't ideal and there was no human there to notice.
+
+Cron jobs die quietly in exactly three ways. They **overlap** — a run takes longer than its interval, and the next one starts on top of it. They **hang** — a command wedges on something and never exits. And they **fail on a transient error** — a blip that would have succeeded on a second try kills the run outright. This guide is about closing all three, in order, and knowing which jobs actually need which guard.
+
+There's a fourth problem underneath all of them, and it's the reason these failures stay invisible: by default, cron throws your output away.
+
+## Cron eats your output — fix that first
+
+When cron runs a job, anything it prints to stdout or stderr goes nowhere unless you've configured otherwise. No log, no record, no trace. So a job can fail every night for a month and the only signal is the absence of whatever it was supposed to produce — and you only notice that when you go looking, usually because something downstream broke.
+
+Two things turn cron from silent to legible. The first is `MAILTO` at the top of the crontab, which mails you any output a job produces (a job that succeeds silently mails nothing; a job that errors mails the error). The second, more reliable on a real server, is to redirect every job's output to a log file you control:
+
+```bash
+# In the crontab, capture both stdout and stderr with a timestamp wrapper
+*/5 * * * * /usr/local/bin/safe-sync.sh >> /var/log/sync.log 2>&1
+```
+
+The `2>&1` is the part people forget — it folds stderr into the same stream as stdout, so your errors land in the log instead of evaporating. Everything below assumes you've done this. A locked, time-bounded, retried job that still logs nothing is a job whose failures you'll discover by accident.
+
+## Overlap: lock it to one instance
+
+This is the failure that turns a transient slow patch into a self-inflicted outage. A sync scheduled every minute normally finishes in twenty seconds; one slow-disk afternoon it starts taking ninety, and cron launches a new copy every minute on top of the last, until a half-dozen copies are fighting over the same disk and the box's load climbs into the dozens. The disk recovers on its own in five minutes — but by then the pile-up has made everything worse.
+
+The guard is [`flock`](/snippets/bash-flock-single-instance): a kernel-held lock on an open file descriptor that lets exactly one copy run and makes the rest skip. Unlike a PID file, there's nothing to clean up — the kernel releases the lock automatically when the process exits, crashes, or is killed, so you never inherit a stale lock from a run that died badly. Keep the lock file in `/run/lock`, use `-n` to skip when a previous run is still going (or `-w` to wait a bounded number of seconds), and the overlap is gone.
+
+A lock by itself, though, has a sharp edge: if the locked job *hangs*, it holds the lock forever and every future run skips. The job stops running entirely, silently, which is how a clever lock turns a one-night hang into a multi-day outage. Which is the next problem.
+
+## Hang: bound the runtime
+
+A hung command is worse than a failed one, because a failed command at least exits and frees its lock. A backup that wedges on a held database lock, a `curl` against a dead socket, an `ssh` into a black hole — these never return. Under cron, "never returns" means the slot is jammed, the lock is held, and the job produces zero signal because it never gets far enough to log anything.
+
+[`timeout`](/snippets/bash-timeout-command) is the outside bound the command can't set on itself:
+
+```bash
+# SIGTERM at 5 minutes; if it's ignored (process stuck in I/O), SIGKILL 20s later
+timeout -k 20s 5m mysqldump --single-transaction mydb > /backup/mydb.sql.partial
+```
+
+`timeout` exits `124` when it had to step in, and `137` if the command ignored the polite SIGTERM and had to be force-killed — exit codes worth branching on, because "slow" and "wedged" are different problems. (The [Exit Code Lookup](/tools/bash-exit-code-lookup) decodes both.) The `-k` grace period matters specifically for processes stuck in uninterruptible I/O, which can't act on SIGTERM at all and need SIGKILL to die.
+
+`timeout` is what makes a lock safe. With both in place, a hang gets killed on a deadline, the lock always releases on time, and the job's failure becomes loud — a `124` in the log — instead of a silent gap.
+
+## Transient failure: retry with backoff
+
+Not every failure deserves to kill the run. A fresh database container that isn't accepting connections for its first six seconds, a service returning 503 during a rolling restart, a 429 that's explicitly asking you to back off and try again — these are *transient*. Treating the first one as fatal is how a normal six-second boot delay becomes a failed deploy at eleven at night.
+
+The guard is a bounded [retry with exponential backoff](/snippets/bash-retry-with-backoff): try the command, and on failure wait a delay that doubles each round, with a little jitter so parallel callers don't retry in lockstep, capped so a genuinely dead dependency fails fast instead of looping forever.
+
+```bash
+# Wait for the port to be ready before doing the work that depends on it
+retry 6 nc -z -w 2 db.internal 5432
+```
+
+The discipline that makes retries safe rather than dangerous: retry transient failures only. A 404 or a syntax error fails identically on every attempt, so retrying it just delays the real error and buries it under retry noise. When you can, branch on the exit code or HTTP status and loop only on the codes worth looping on.
+
+## Composing all three
+
+Locking, bounding, and retrying are independent guards, and the real value is in stacking them: a single run that can't overlap, can't hang, and rides out a blip — and tells you, by mail or log, when it finally does give up. That composition is mechanical enough to generate. The [Hardened Cron Wrapper Generator](/tools/cron-wrapper-generator) takes the command your job runs, lets you toggle lock / timeout / retry / logging / alert, and emits a ready-to-paste wrapper script plus the crontab line that calls it — the three snippets above, stitched into one file, ShellCheck-clean.
+
+If you'd rather start from a blank script with the structure already right, the [Bash Boilerplate Generator](/tools/bash-boilerplate-generator) gives you the `set -euo pipefail` skeleton with traps and argument parsing, and the [error-handling snippet](/snippets/bash-error-handling) explains why each line of that skeleton is there. The wrapper generator is for hardening *an existing command*; the boilerplate generator is for *writing a new script* from scratch.
+
+## Know when it broke
+
+The last guard is the one that closes the loop: when a job fails after its retries, something should tell you, on a channel you actually watch. The wrapper's email-alert option uses [mailx to send a failure alert](/snippets/bash-send-email-alert); for a service that should always be running, pair the job with [restart a service if it stopped](/snippets/restart-service-if-stopped) so detection and recovery are one step. The goal across all of this is the same: a job that fails *loudly* instead of disappearing.
+
+## Which job needs which guard
+
+Not every cron job needs all of this — wrapping a one-line `date` echo in flock and timeout is ceremony. The guards earn their place against specific risks:
+
+| Guard | Add it when the job… | Skip it when the job… |
+|---|---|---|
+| **Lock (flock)** | mutates shared state (a backup, a sync, a DB dump) and can run longer than its interval | is instant and idempotent, or can safely run twice at once |
+| **Timeout** | talks to the network, a database, or a remote host — anything that can hang | does only fast local computation that physically can't wedge |
+| **Retry** | depends on something that's *eventually* ready (a port, an API, a recovering service) | fails deterministically — retrying a 404 changes nothing |
+| **Logging** | always — cron discards output, and a guard whose failures you can't see is no guard | never; there is no good reason to fly blind |
+| **Alert** | failure needs human attention and the job runs unattended | failure is self-healing or surfaces obviously elsewhere |
+
+Start with logging on everything, add a lock to anything that mutates state, add a timeout to anything that touches the network, and add retries to anything with a dependency that boots or recovers on its own clock. That covers the overwhelming majority of the jobs that take servers down.
+
+<Callout type="info">
+The single highest-leverage change you can make today: add <code>{`>> /var/log/<job>.log 2>&1`}</code> to every line in your crontab. You can harden incrementally after that — but you can't fix what you can't see, and right now most of your cron failures are invisible.
+</Callout>
+
+<AffiliateBox partner="digitalocean" />
+
+The cleanest way to internalize this is to break it on purpose. Spin up a droplet, schedule a deliberately slow job at `*/1`, and watch the overlap pile up — then add `flock` and watch it stop. Add a `sleep 999` and watch `timeout` reap it. The whole library is at [bashsnippets.xyz](https://bashsnippets.xyz); the three snippets this guide composes are [flock](/snippets/bash-flock-single-instance), [timeout](/snippets/bash-timeout-command), and [retry with backoff](/snippets/bash-retry-with-backoff), and the [Hardened Cron Wrapper Generator](/tools/cron-wrapper-generator) assembles them for you.

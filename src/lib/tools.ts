@@ -434,6 +434,56 @@ export const tools: ToolMeta[] = [
     ],
     relatedSnippets: ['delete-old-log-files', 'search-files-for-text-grep'],
   },
+  {
+    slug: 'cron-wrapper-generator',
+    component: 'CronWrapperGenerator',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
+    title: 'Hardened Cron Wrapper Generator',
+    description:
+      'A bash script that runs long enough to overlap its own next run, or hangs forever on a dead socket, will take down a cron slot silently. Compose flock (single-instance lock), timeout (bounded runtime), and exponential-backoff retry into a hardened wrapper script — with timestamped logging and email-on-failure — in one tool.',
+    quickAnswer:
+      'Cron jobs fail in three quiet ways: they overlap when a run takes longer than its interval; they hang when a command blocks on a dead socket or lock and never exits; and they die on a transient blip that would have succeeded on a second try. This tool composes the three guards: flock holds a kernel lock so only one copy runs at a time (and the kernel frees it on crash or kill, no stale PID files), timeout sends SIGTERM at a deadline and SIGKILL after a grace period for processes stuck in uninterruptible I/O, and a retry loop with exponential backoff and jitter survives a flaky network or a not-yet-ready dependency without hammering the recovering service. Toggle any combination, set the schedule, and get a ShellCheck-clean wrapper script and the crontab line that calls it.',
+    category: 'generator',
+    howToUse: [
+      "Enter the command your cron job runs in the Command field. For a pipeline or multiple commands, enter  bash -c 'cmd1 && cmd2'.",
+      'Toggle Lock (flock) to prevent overlapping runs. Choose Skip if busy for frequent jobs where a missed run is harmless, or Wait then give up with a timeout for jobs that must eventually run.',
+      "Toggle Bound the runtime (timeout) and set Max runtime to longer than the job's normal worst case but well under its cron interval. Set SIGKILL grace to catch processes stuck in I/O.",
+      'Toggle Retry transient failures to survive a blip or a not-yet-ready dependency. Set max attempts and base delay — the backoff doubles each round up to a 30-second cap.',
+      'Toggle Timestamped logging to send output to a file instead of cron\'s mail. Set the log path or leave it blank to auto-generate from the job name.',
+      'Toggle Email alert on failure to send mail via mailx when the job fails after all retries. Requires mailx configured on the host.',
+      'Set the Cron schedule or build the expression in the Cron Job Builder tool.',
+      'Copy the wrapper tab for the full bash script — install it with sudo install -m 755. Copy the crontab tab for the line to paste into crontab -e.',
+    ],
+    faqs: [
+      {
+        question: 'What is the difference between this and the Cron Job Builder?',
+        answer:
+          "The Cron Job Builder builds the cron schedule expression — the five-field timing string. This tool builds the wrapper script that runs when the schedule fires. They're designed to be used together: build the schedule there, build the hardened script here, paste both into crontab -e.",
+      },
+      {
+        question: 'Why does the crontab line change when I turn on retry or alerting?',
+        answer:
+          'Lock and timeout are simple enough to inline directly on the crontab line — a one-liner with flock and timeout in front of the command. Retry and email alert require a bash function and mailx call, which can\'t fit on a crontab line. When either is on, the output switches to a wrapper script and a crontab line that calls it.',
+      },
+      {
+        question: 'What does SIGKILL grace mean?',
+        answer:
+          'timeout first sends SIGTERM — a polite signal a well-behaved program uses to clean up and exit. But a process blocked in uninterruptible I/O (disk or NFS) physically cannot act on SIGTERM. SIGKILL grace is how long timeout waits after SIGTERM before sending SIGKILL, which the kernel enforces unconditionally. Set it to 15–30 seconds.',
+      },
+      {
+        question: 'Should I use Skip if busy or Wait for the lock mode?',
+        answer:
+          'Skip if busy (-n) is right for frequent cron jobs where a missed run is harmless — a metrics push, a sync that catches up next minute. Wait then give up (-w) is for jobs that must run eventually but can tolerate a short queue. Never leave the lock in blocking mode with no timeout on a frequent schedule.',
+      },
+      {
+        question: 'Where should the lock file live?',
+        answer:
+          '/run/lock is the right location on any modern systemd system — it is a tmpfs cleared cleanly on reboot, so you never inherit a stale lock across a reboot. The tool generates the lock path from the job name automatically. Avoid /tmp: systemd-tmpfiles periodically deletes old files there and can delete a lock mid-run.',
+      },
+    ],
+    relatedSnippets: ['bash-flock-single-instance', 'bash-timeout-command', 'bash-retry-with-backoff'],
+  },
 ];
 
 export function getToolBySlug(slug: string): ToolMeta | undefined {

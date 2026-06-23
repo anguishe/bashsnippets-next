@@ -1,0 +1,106 @@
+---
+title: "Prevent Overlapping Cron Jobs with flock"
+description: "A cron job that runs long overlaps the next run and stacks copies until the box falls over. Lock it to a single instance with flock — a kernel-held lock that releases on crash, no stale PID files."
+slug: bash-flock-single-instance
+tags:
+  - flock
+  - cron
+  - locking
+  - concurrency
+  - sysadmin
+quickAnswer: "A cron job that overlaps itself is one of the quietest ways to take a server down. Schedule a sync every minute, hit one slow-disk day, and you suddenly have eight copies fighting over the same files. flock fixes this with a kernel-held lock on a file descriptor: open a lock file on a dedicated fd, call flock -n on it, and bail if another run already holds it. Because the lock lives on the open descriptor — not on the file existing — the kernel releases it automatically when the process exits, even on a crash or kill -9, so you never get the stale locks that plague PID-file checks. Use -n to skip this run when a previous one is still going, or -w to wait a set number of seconds. Keep the lock file in /run/lock, never /tmp, where temp-cleaners delete it mid-run."
+faq:
+  - question: "Does flock create the lock file for me?"
+    answer: "The shell redirection creates it, not flock. When you run `exec 200>/run/lock/job.lock`, the `>` opens (and creates) the file on file descriptor 200. flock then places an advisory lock on that open descriptor. The file is just an anchor — its mere existence is not the lock, which is why you should never `rm` it to 'release' the lock. The lock is the kernel's, attached to the descriptor, and it disappears the moment the descriptor closes."
+  - question: "Why does flock -n exit successfully when the lock is already held?"
+    answer: "It does not — `flock -n` itself returns exit code 1 when it cannot acquire the lock. What you choose to do with that failure is up to you. The common pattern for a frequent cron job is `flock -n 200 || exit 0`: treat 'someone else is already running' as a normal, non-error outcome and skip quietly. If you'd rather the skipped run register as a failure, `exit 1` instead, but then a busy minute will spam your MAILTO."
+  - question: "flock or a PID file — which should I use?"
+    answer: "flock, in almost every case. A PID file has a race between the check and the write, and it leaves a stale file behind when the process is killed or the box reboots mid-run, so your next run sees a 'lock' owned by a PID that no longer exists. flock has neither problem: the lock is atomic and the kernel drops it automatically when the holding process dies, however it dies. PID files only make sense when you need the PID itself for something else."
+  - question: "Where should the lock file live — /tmp, /var/lock, or /run/lock?"
+    answer: "/run/lock on any modern systemd system. It's a tmpfs that's cleared cleanly on reboot, which is exactly what you want for a lock. Avoid /tmp: systemd-tmpfiles and tmpreaper periodically delete old files there, and if your lock file is deleted while a long run holds it, a second run opens a brand-new file, locks that instead, and runs concurrently — the precise failure you were trying to prevent."
+  - question: "How do I make flock wait for the lock instead of skipping the run?"
+    answer: "Use `-w` with a timeout in seconds: `flock -w 30 200 || exit 1` waits up to 30 seconds for the lock, then gives up. Use this when the job must eventually run and a short queue is acceptable. Use `-n` (non-blocking) when runs are frequent and a skipped run is harmless because the next one will catch up — a sync or a metrics push, for example."
+howToSteps:
+  - name: "Choose a lock path under /run/lock"
+    text: "Pick a stable, predictable path like /run/lock/myjob.lock. Deriving it from the script name with $(basename \"$0\") keeps it unique per script without hardcoding."
+  - name: "Open the lock file on a dedicated descriptor"
+    text: "Run exec 200>\"$LOCK_FILE\" near the top of the script. This opens the file on fd 200 and keeps it open for the entire process, which is what the lock attaches to."
+  - name: "Acquire the lock non-blocking and bail if held"
+    text: "Call flock -n 200; if it fails, another copy is already running. Exit 0 to skip quietly, or exit 1 if you want the skip to register as a failure."
+  - name: "Run the real work"
+    text: "Everything after a successful flock runs as the single instance. Nothing extra is needed — the lock is held for as long as fd 200 stays open."
+  - name: "Let the lock release on exit"
+    text: "Do not rm the lock file or close the descriptor manually. When the process exits — normally, on error, on crash, or on kill -9 — the kernel closes fd 200 and releases the lock for you."
+author: Anguishe
+datePublished: 2026-06-22
+dateModified: 2026-06-22
+---
+
+A `*/1` rsync took our staging box to a load average of 41 one afternoon, and it took me longer than I want to admit to understand why. The sync normally finished in about twenty seconds. That day the backup target's NFS mount went sluggish, the sync started taking ninety seconds, and cron — which does not know or care whether the last run is still going — launched a fresh copy every single minute on top of it. Inside ten minutes there were a half-dozen rsyncs all reading the same tree off the same slow disk, each one making the disk slower, each new minute adding another. The box wasn't under attack. It was attacking itself, one polite copy at a time.
+
+The fix is to make the job refuse to run while a copy of itself is already running. People reach for a PID file first — write `$$` to `/var/run/job.pid`, check if it exists on the next run — and it almost works, until the day a run gets `kill -9`'d or the box reboots mid-job and leaves a stale PID file behind. Now every future run sees a "lock" pointing at a process that died on Tuesday, and the job never runs again. There's also a quiet race between checking the file and writing it. PID files are a lock you have to remember to clean up, and the times you most need the lock are exactly the times cleanup didn't happen.
+
+`flock` has none of that. The lock isn't a file you create and delete — it's a lock the kernel holds on an open file descriptor, and the kernel releases it automatically the instant that descriptor closes. The process exiting closes the descriptor. So does crashing. So does `kill -9`. There is no state to leave behind.
+
+## The single-instance pattern
+
+```bash
+#!/bin/bash
+# Script: backup-with-lock.sh
+# Purpose: Stop a cron job from overlapping itself when one run runs long
+# Usage: backup-with-lock.sh   (self-locking — safe to call from any */N cron)
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+# /run/lock is tmpfs, cleared cleanly on reboot. Never /tmp — temp-cleaners
+# delete files there, and a deleted lock mid-run lets a second copy run.
+LOCK_FILE="/run/lock/$(basename "$0").lock"
+
+# The > opens (and creates) the lock file on fd 200 and holds it open for the
+# whole script. The LOCK lives on this open descriptor, not on the file
+# existing — so never rm the file to "release" it.
+exec 200>"$LOCK_FILE"
+
+# -n = non-blocking: if a previous run still holds the lock, give up now
+# instead of queueing another copy behind it.
+if ! flock -n 200; then
+    echo "$CROSS $(date '+%F %T') previous run still active — skipping" >&2
+    exit 0
+fi
+
+echo "$CHECK $(date '+%F %T') lock acquired — starting"
+
+# --- the real work ---
+rsync -a --delete /data/ /mnt/backup/data/
+
+echo "$CHECK $(date '+%F %T') finished — kernel releases the lock on exit"
+```
+
+The two lines doing the work are `exec 200>"$LOCK_FILE"` and `flock -n 200`. The first opens the lock file on a descriptor that stays open for the life of the process. The second tries to grab the lock without waiting; if a sibling process already holds it, `flock` returns non-zero, we log it to stderr and exit `0` — a skipped run is normal, not an error, so we don't want it lighting up cron's mail.
+
+Notice there is no cleanup. No `trap` to remove a PID file, no `rm` at the end. When this script exits for any reason, fd 200 closes and the lock is gone. That "for any reason" is the whole point: the failure modes that strand a PID file are the ones `flock` shrugs off.
+
+## If you don't want to edit the script
+
+You can lock a command without touching it at all, straight from the crontab line:
+
+```bash
+# Skip the run if the last one is still going
+*/1 * * * * /usr/bin/flock -n /run/lock/sync.lock /usr/local/bin/sync.sh
+```
+
+`flock` runs `sync.sh` only if it can grab `/run/lock/sync.lock`; if a previous minute's run is still holding it, this minute's run exits immediately and does nothing. This is the fastest retrofit for a job that's already misbehaving — you don't even have to redeploy the script.
+
+<Callout type="warning">
+`-n` skips; `-w 30` waits up to 30 seconds then gives up. Pick `-n` for frequent jobs where a skipped run is harmless (a metrics push, a sync that catches up next minute), and `-w` for jobs that must eventually run but can tolerate a short queue. Never use a bare `flock` with no `-n` and no `-w` on a fast cron — that blocks forever, and your "skipped" runs quietly pile up as stuck processes.
+</Callout>
+
+The load-41 afternoon ended the moment I wrapped that rsync in `flock -n`. The slow NFS mount was still slow, but now exactly one sync ran at a time and the extras skipped harmlessly until the disk recovered. The interesting part is that locking didn't fix the slow disk — it stopped a transient slow disk from turning into a self-inflicted outage. That's the difference between a script that works when you run it and a script that survives unattended.
+
+A lock alone isn't enough, though. If the locked job itself *hangs* — a sync blocked on a dead socket that never returns — it holds the lock forever and every future run skips, so the job silently stops running and you find out days later. That's why locking pairs with [bounding a command's runtime with `timeout`](/snippets/bash-timeout-command), and with [retrying transient failures](/snippets/bash-retry-with-backoff) so a single network blip doesn't kill the run. The [Hardened Cron Wrapper Generator](/tools/cron-wrapper-generator) stitches all three together for you, and the full reasoning for which jobs need which guard is in [Bash Scripts That Survive Cron](/guides/bash-scripts-that-survive-cron).
+
+<AffiliateBox partner="digitalocean" />
+
+Need to test this on a real box without risking a production server? Spin up a throwaway droplet, schedule the job at `*/1`, and watch `flock` skip the overlaps. The rest of the unattended-automation toolkit is at [bashsnippets.xyz](https://bashsnippets.xyz) — the [Cron Job Builder](/tools/cron-job-builder) for the schedule itself, and [Bash error handling](/snippets/bash-error-handling) for the layer underneath all of this.

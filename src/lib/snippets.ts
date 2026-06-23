@@ -406,6 +406,36 @@ export const snippets: SnippetRegistryEntry[] = [
     datePublished: '2026-06-10',
     dateModified: '2026-06-10',
   },
+  {
+    slug: 'bash-flock-single-instance',
+    title: 'Prevent Overlapping Cron Jobs with flock',
+    description:
+      'A cron job that runs long overlaps the next run and stacks copies until the box falls over. Lock it to a single instance with flock — a kernel-held lock that releases on crash, no stale PID files.',
+    tags: ['flock', 'cron', 'locking', 'concurrency', 'sysadmin'],
+    difficulty: 'intermediate',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
+  },
+  {
+    slug: 'bash-timeout-command',
+    title: 'Stop a Hung Command with timeout',
+    description:
+      "A hung cron job is worse than a failed one — it never exits, never frees its lock, and the job silently stops running. Bound any command's runtime with timeout, escalate to SIGKILL, and read the exit code.",
+    tags: ['timeout', 'cron', 'signals', 'hang', 'sysadmin'],
+    difficulty: 'intermediate',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
+  },
+  {
+    slug: 'bash-retry-with-backoff',
+    title: 'Retry a Command with Exponential Backoff in Bash',
+    description:
+      'A deploy that dies on the first transient error wastes your night re-running it by hand. Retry with exponential backoff and jitter — and learn which failures to retry and which to fail fast on.',
+    tags: ['retry', 'backoff', 'resilience', 'devops', 'scripting'],
+    difficulty: 'intermediate',
+    datePublished: '2026-06-22',
+    dateModified: '2026-06-22',
+  },
 ];
 
 function mergeWithFrontmatter(snippet: SnippetRegistryEntry): SnippetMeta {

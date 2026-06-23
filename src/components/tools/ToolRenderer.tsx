@@ -30,6 +30,7 @@ const toolComponents: Record<string, ComponentType> = {
   'rsync-command-builder': withSkeleton(() => import('@/components/tools/RsyncCommandBuilder')),
   'grep-pattern-builder': withSkeleton(() => import('@/components/tools/GrepPatternBuilder')),
   'find-command-builder': withSkeleton(() => import('@/components/tools/FindCommandBuilder')),
+  'cron-wrapper-generator': withSkeleton(() => import('@/components/tools/CronWrapperGenerator')),
 };
 
 interface ToolRendererProps {
