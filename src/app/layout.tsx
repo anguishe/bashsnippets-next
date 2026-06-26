@@ -104,8 +104,10 @@ const organizationSchema = {
     'Free bash script library and interactive tools for Linux users, sysadmins, and DevOps engineers.',
   sameAs: [
     'https://www.youtube.com/@BashSnippets',
-    'https://www.tiktok.com/@BashSnippets',
+    'https://www.tiktok.com/@bashsnippets',
     'https://dev.to/bashsnippets',
+    'https://medium.com/@anguisheh1',
+    'https://coderlegion.com/user/BashSnippets',
     'https://github.com/anguishe/bash-scripts',
   ],
   founder: {

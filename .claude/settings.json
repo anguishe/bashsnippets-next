@@ -69,7 +69,13 @@
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('scripts',{}\\), indent=2\\)\\)\")",
       "Bash(grep -rn '\\\\.html`' /home/angsec/Projects/bashsnippets-next/src/)",
       "Bash(echo \"BUILD EXIT: $?\")",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "mcp__plugin_vercel_vercel__list_teams",
+      "mcp__plugin_vercel_vercel__list_projects",
+      "mcp__plugin_vercel_vercel__list_deployments",
+      "mcp__plugin_vercel_vercel__get_deployment",
+      "Bash(curl -sS -X POST https://yandex.com/indexnow -H 'Content-Type: application/json' -d '{\"host\":\"bashsnippets.xyz\",\"key\":\"a7fae2a4e86d4822ab3f636599173c8f\",\"urlList\":[\"https://bashsnippets.xyz/tools/find-command-builder\",\"https://bashsnippets.xyz/snippets/bash-for-loop-examples\",\"https://bashsnippets.xyz/snippets/bash-read-file-line-by-line\",\"https://bashsnippets.xyz/snippets/bash-functions-arguments\",\"https://bashsnippets.xyz/guides/bash-text-processing\"]}' -o /tmp/indexnow_body.txt -w 'HTTP_STATUS:%{http_code}\\\\n')",
+      "Bash(curl -s -w '\\\\nHTTP %{http_code}' -X POST https://yandex.com/indexnow -H 'Content-Type: application/json' -d '{\"host\":\"bashsnippets.xyz\",\"key\":\"a7fae2a4e86d4822ab3f636599173c8f\",\"urlList\":[ *)"
     ],
     "additionalDirectories": [
       "/home/angsec/Projects/bashsnippets-next",
