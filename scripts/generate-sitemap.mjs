@@ -3,22 +3,23 @@ import { resolve } from 'path';
 
 const SITE_URL = 'https://bashsnippets.xyz';
 
+// lastmod = real last content edit (git). Update ONLY when the page content changes.
 // Only static routes that have no registry entry belong here.
 const staticEntries = [
-  { url: `${SITE_URL}/`,                                          lastmod: '2026-06-03', changefreq: 'daily',   priority: 1.0  },
-  { url: `${SITE_URL}/snippets`,                                  lastmod: '2026-06-10', changefreq: 'daily',   priority: 0.9  },
-  { url: `${SITE_URL}/tools`,                                     lastmod: '2026-06-10', changefreq: 'daily',   priority: 0.9  },
-  { url: `${SITE_URL}/guides`,                                    lastmod: '2026-06-10', changefreq: 'weekly',  priority: 0.8  },
-  { url: `${SITE_URL}/starter-kit`,                               lastmod: '2026-06-08', changefreq: 'monthly', priority: 0.8  },
-  { url: `${SITE_URL}/about`,                                     lastmod: '2026-06-06', changefreq: 'monthly', priority: 0.5  },
-  { url: `${SITE_URL}/privacy`,                                   lastmod: '2026-06-06', changefreq: 'yearly',  priority: 0.3  },
-  { url: `${SITE_URL}/contact`,                                   lastmod: '2026-06-06', changefreq: 'yearly',  priority: 0.3  },
+  { url: `${SITE_URL}/`,                                          lastmod: '2026-06-15', changefreq: 'daily',   priority: 1.0  },
+  { url: `${SITE_URL}/snippets`,                                  lastmod: '2026-06-15', changefreq: 'daily',   priority: 0.9  },
+  { url: `${SITE_URL}/tools`,                                     lastmod: '2026-06-08', changefreq: 'daily',   priority: 0.9  },
+  { url: `${SITE_URL}/guides`,                                    lastmod: '2026-06-22', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/starter-kit`,                               lastmod: '2026-06-15', changefreq: 'monthly', priority: 0.8  },
+  { url: `${SITE_URL}/about`,                                     lastmod: '2026-06-15', changefreq: 'monthly', priority: 0.5  },
+  { url: `${SITE_URL}/privacy`,                                   lastmod: '2026-06-17', changefreq: 'yearly',  priority: 0.3  },
+  { url: `${SITE_URL}/contact`,                                   lastmod: '2026-06-10', changefreq: 'yearly',  priority: 0.3  },
   { url: `${SITE_URL}/terms`,                                     lastmod: '2026-06-06', changefreq: 'yearly',  priority: 0.3  },
-  { url: `${SITE_URL}/snippets/server-monitoring`,                lastmod: '2026-06-06', changefreq: 'weekly',  priority: 0.85 },
-  { url: `${SITE_URL}/snippets/backup-and-recovery`,              lastmod: '2026-06-06', changefreq: 'weekly',  priority: 0.85 },
-  { url: `${SITE_URL}/snippets/disk-management`,                  lastmod: '2026-06-06', changefreq: 'weekly',  priority: 0.85 },
-  { url: `${SITE_URL}/snippets/linux-security`,                   lastmod: '2026-06-06', changefreq: 'weekly',  priority: 0.85 },
-  { url: `${SITE_URL}/guides/bash-scripts-every-sysadmin-needs`,  lastmod: '2026-06-08', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/snippets/server-monitoring`,                lastmod: '2026-06-10', changefreq: 'weekly',  priority: 0.85 },
+  { url: `${SITE_URL}/snippets/backup-and-recovery`,              lastmod: '2026-06-15', changefreq: 'weekly',  priority: 0.85 },
+  { url: `${SITE_URL}/snippets/disk-management`,                  lastmod: '2026-06-10', changefreq: 'weekly',  priority: 0.85 },
+  { url: `${SITE_URL}/snippets/linux-security`,                   lastmod: '2026-06-10', changefreq: 'weekly',  priority: 0.85 },
+  { url: `${SITE_URL}/guides/bash-scripts-every-sysadmin-needs`,  lastmod: '2026-06-15', changefreq: 'weekly',  priority: 0.8  },
   { url: `${SITE_URL}/guides/bash-scripting-for-ci-cd-pipelines`, lastmod: '2026-06-10', changefreq: 'weekly',  priority: 0.8  },
   { url: `${SITE_URL}/guides/bash-text-processing`,               lastmod: '2026-06-17', changefreq: 'weekly',  priority: 0.8  },
   { url: `${SITE_URL}/guides/bash-scripts-that-survive-cron`,     lastmod: '2026-06-22', changefreq: 'weekly',  priority: 0.8  },

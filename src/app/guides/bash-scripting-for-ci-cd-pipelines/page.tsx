@@ -6,7 +6,7 @@ import { mdxComponents } from '@/components/MDXComponents';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: 'Bash Scripting for CI/CD Pipelines: GitHub Actions, Deploys, and Docker | BashSnippets.xyz',
+  title: { absolute: 'Bash Scripting for CI/CD Pipelines: GitHub Actions, Deploys, and Docker | BashSnippets.xyz' },
   description:
     'A pipeline reported every step green and deployed broken code, because the build step piped its output through tee and bash returned the exit code of tee — always zero — instead of the compiler that had just failed. The error was real, the logs showed it, and the pipeline shipped anyway.',
   alternates: {

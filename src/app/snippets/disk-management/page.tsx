@@ -7,7 +7,7 @@ import Link from 'next/link';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: 'Linux Disk Management Scripts — Find and Free Space Before the Disk Fills | BashSnippets.xyz',
+  title: { absolute: 'Linux Disk Management Scripts — Find and Free Space Before the Disk Fills | BashSnippets.xyz' },
   description:
     'Bash scripts for finding large files, cleaning up old logs, removing duplicate files, and monitoring disk usage on Linux. Prevent the disk-full outage before it happens.',
   alternates: {

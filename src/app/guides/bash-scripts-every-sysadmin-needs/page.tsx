@@ -6,7 +6,7 @@ import Breadcrumb from '@/components/Breadcrumb';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: '25 Bash Scripts Every Linux Sysadmin Needs | BashSnippets.xyz',
+  title: { absolute: '25 Bash Scripts Every Linux Sysadmin Needs | BashSnippets.xyz' },
   description:
     'The 25 bash scripts that prevent the most common server failures — disk full, SSL expiry, failed services, insecure permissions. Copy-paste ready, cron-schedulable, no installs required.',
   alternates: {

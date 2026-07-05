@@ -202,6 +202,21 @@ const nextConfig: NextConfig = {
         destination: '/contact',
         permanent: true,
       },
+      {
+        source: '/tools/index.html',
+        destination: '/tools',
+        permanent: true,
+      },
+      {
+        source: '/bash-scripts',
+        destination: '/snippets',
+        permanent: true,
+      },
+      {
+        source: '/bash-scripts/:path*',
+        destination: '/snippets',
+        permanent: true,
+      },
     ];
   },
 };

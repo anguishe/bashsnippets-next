@@ -7,7 +7,7 @@ import Link from 'next/link';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: 'Bash Server Monitoring Scripts — Watch Linux Without Buying Tools | BashSnippets.xyz',
+  title: { absolute: 'Bash Server Monitoring Scripts — Watch Linux Without Buying Tools | BashSnippets.xyz' },
   description:
     'Free bash scripts for monitoring disk space, website uptime, CPU/RAM, running services, SSL expiry, and system health. Copy-paste ready, cron-schedulable, no agents required.',
   alternates: {

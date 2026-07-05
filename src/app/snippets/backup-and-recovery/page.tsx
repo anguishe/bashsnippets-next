@@ -7,7 +7,7 @@ import Link from 'next/link';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: 'Linux Backup Bash Scripts — Automate Before You Need to Restore | BashSnippets.xyz',
+  title: { absolute: 'Linux Backup Bash Scripts — Automate Before You Need to Restore | BashSnippets.xyz' },
   description:
     'Bash scripts for automated file backups, MySQL database backups, and rsync remote backups. Cron-ready, incremental, and tested on Linux and macOS.',
   alternates: {

@@ -63,6 +63,11 @@ const faqItems = [
 
 const previewTools = [
   {
+    slug: 'path-debugger',
+    title: '$PATH Debugger',
+    description: 'Paste your $PATH to surface duplicate entries, dead directories, and ordering problems that cause command-not-found errors.',
+  },
+  {
     slug: 'bash-exit-code-lookup',
     title: 'Exit Code Lookup',
     description: 'Look up any exit code 0–255 and get a plain-English explanation.',
@@ -73,9 +78,29 @@ const previewTools = [
     description: 'Build cron expressions visually with human-readable output.',
   },
   {
+    slug: 'cron-wrapper-generator',
+    title: 'Cron Wrapper Generator',
+    description: 'Wrap a cron command with flock, timeout, and exponential-backoff retry so overlapping runs and hung jobs stop silently breaking your cron slot.',
+  },
+  {
+    slug: 'bash-boilerplate-generator',
+    title: 'Boilerplate Generator',
+    description: 'Generate a production-ready script header with set -euo pipefail, cleanup traps, and argument parsing before writing a single line of logic.',
+  },
+  {
     slug: 'chmod-permissions-builder',
     title: 'Chmod Builder',
     description: 'Permission matrix that outputs octal, symbolic, and chmod commands.',
+  },
+  {
+    slug: 'grep-pattern-builder',
+    title: 'grep Builder',
+    description: 'Build the exact grep command you need — recursive, case-insensitive, with context lines — and get a plain-English explanation for every flag.',
+  },
+  {
+    slug: 'shellcheck-error-decoder',
+    title: 'ShellCheck Decoder',
+    description: 'Enter any SC code to get the rule name, why it causes production failures, and a before/after fix example.',
   },
 ] as const;
 

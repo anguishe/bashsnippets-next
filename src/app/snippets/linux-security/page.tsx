@@ -7,7 +7,7 @@ import Link from 'next/link';
 const SITE_URL = 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: 'Linux Security Bash Scripts — Permissions, Keys, Ports, and Certificates | BashSnippets.xyz',
+  title: { absolute: 'Linux Security Bash Scripts — Permissions, Keys, Ports, and Certificates | BashSnippets.xyz' },
   description:
     'Bash scripts for auditing Linux server security: file permissions, SSH key setup, open port inventory, and SSL certificate monitoring.',
   alternates: {

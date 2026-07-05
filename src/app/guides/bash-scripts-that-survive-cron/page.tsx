@@ -14,7 +14,7 @@ const DESCRIPTION =
 const BREADCRUMB = 'Bash Scripts That Survive Cron';
 
 export const metadata: Metadata = {
-  title: `${TITLE} | BashSnippets.xyz`,
+  title: { absolute: `${TITLE} | BashSnippets.xyz` },
   description: DESCRIPTION,
   alternates: {
     canonical: `${SITE_URL}/guides/bash-scripts-that-survive-cron`,

@@ -11,7 +11,7 @@ const DESCRIPTION =
   'The four commands that turn an unreadable log or a tree of config files into an answer — find to locate, grep to search, sed to transform, awk to summarize. The order matters, and the gotchas are the reason most one-liners do the wrong thing quietly.';
 
 export const metadata: Metadata = {
-  title: `${TITLE} | BashSnippets.xyz`,
+  title: { absolute: `${TITLE} | BashSnippets.xyz` },
   description: DESCRIPTION,
   alternates: {
     canonical: `${SITE_URL}/guides/bash-text-processing`,

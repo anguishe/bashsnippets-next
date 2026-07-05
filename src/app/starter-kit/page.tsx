@@ -7,7 +7,7 @@ const SITE_URL = 'https://bashsnippets.xyz';
 const GUMROAD_URL = 'https://anguish0.gumroad.com/l/toolkit';
 
 export const metadata: Metadata = {
-  title: 'Production Bash Toolkit — Field Guide + Script System | BashSnippets.xyz',
+  title: { absolute: 'Production Bash Toolkit — Field Guide + Script System | BashSnippets.xyz' },
   description:
     'The Production Bash Toolkit: a 52-page PDF field guide plus a ZIP with a cohesive operational script system, bashlib.sh shared library, template.sh, README, LICENSE, and examples. ShellCheck-clean. $9 instant download.',
   alternates: {
