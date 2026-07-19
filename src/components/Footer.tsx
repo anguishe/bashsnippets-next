@@ -10,6 +10,7 @@ const footerLinks = [
   { href: '/contact', label: 'Contact' },
   { href: '/privacy', label: 'Privacy Policy' },
   { href: '/terms', label: 'Terms' },
+  { href: 'https://github.com/anguishe/bashsnippets', label: 'GitHub' },
 ] as const;
 
 export default function Footer() {
@@ -26,6 +27,7 @@ export default function Footer() {
             <Link
               href={href}
               className="text-muted transition-colors duration-150 hover:text-green"
+              rel={href.startsWith('http') ? 'noopener' : undefined}
             >
               {label}
             </Link>

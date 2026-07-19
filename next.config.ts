@@ -217,6 +217,26 @@ const nextConfig: NextConfig = {
         destination: '/snippets',
         permanent: true,
       },
+      {
+        source: '/snippets/backup-and-recovery',
+        destination: '/snippets',
+        permanent: true,
+      },
+      {
+        source: '/snippets/linux-security',
+        destination: '/snippets',
+        permanent: true,
+      },
+      {
+        source: '/snippets/disk-management',
+        destination: '/snippets',
+        permanent: true,
+      },
+      {
+        source: '/snippets/server-monitoring',
+        destination: '/snippets',
+        permanent: true,
+      },
     ];
   },
 };

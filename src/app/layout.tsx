@@ -108,7 +108,7 @@ const organizationSchema = {
     'https://dev.to/bashsnippets',
     'https://medium.com/@anguisheh1',
     'https://coderlegion.com/user/BashSnippets',
-    'https://github.com/anguishe/bash-scripts',
+    'https://github.com/anguishe/bashsnippets',
   ],
   founder: {
     '@type': 'Person',

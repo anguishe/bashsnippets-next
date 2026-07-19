@@ -1243,10 +1243,10 @@ export default function BashScriptsGuide() {
             ← All bash scripts
           </Link>
           <div className="flex gap-6">
-            <Link href="/snippets/server-monitoring" className="font-mono text-xs text-muted transition-colors hover:text-green">
+            <Link href="/snippets" className="font-mono text-xs text-muted transition-colors hover:text-green">
               Server Monitoring →
             </Link>
-            <Link href="/snippets/disk-management" className="font-mono text-xs text-muted transition-colors hover:text-green">
+            <Link href="/snippets" className="font-mono text-xs text-muted transition-colors hover:text-green">
               Disk Management →
             </Link>
           </div>

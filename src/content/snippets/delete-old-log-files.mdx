@@ -38,8 +38,8 @@ Paste this into a file called `cleanlog.sh`. Change `LOG_DIR` and `DAYS` to matc
 #!/bin/bash
 # Delete Old Log Files
 # find /var/log -name "*.log" -mtime +30 -delete removes every log file older than 30 days in one command.
-      Always run with -print instead of -delete first — it previews exactly which files will be removed
-      without touching anything. Swap to -delete when you're satisfied with the list.
+# Always run with -print instead of -delete first — it previews exactly which files will be removed
+# without touching anything. Swap to -delete when you're satisfied with the list.
 # SAFE: swap -delete for -print to preview first.
 #
 # USAGE: ./cleanlog.sh
@@ -223,4 +223,4 @@ Swap `-delete` for `-print` in your command. It prints the matching files to you
 
 Run: `find /path/to/folder -type f -mtime +30 -delete`. This finds all files modified more than 30 days ago and deletes them. Always test with `-print` before using `-delete`. For files that accumulate without an age-based pattern, the [find duplicate files](/snippets/find-duplicate-files) script identifies redundant copies by content hash.
 
-<p className="text-sm text-muted">Part of the <a href="/snippets/disk-management" className="text-blue hover:text-green transition-colors">Disk Management</a> collection</p>
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>

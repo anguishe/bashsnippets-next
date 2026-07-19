@@ -47,7 +47,7 @@ const aboutSchemas = [
       'https://www.youtube.com/@BashSnippets',
       'https://dev.to/bashsnippets',
       'https://www.tiktok.com/@BashSnippets',
-      'https://github.com/anguishe/bash-scripts',
+      'https://github.com/anguishe/bashsnippets',
     ],
   },
   {
@@ -107,6 +107,17 @@ export default function AboutPage() {
             fail on edge cases: the wrong partition, macOS <code className="font-mono text-xs text-green">df</code> output
             formatting, cron&apos;s minimal PATH. Rather than explain that again, I
             wrote it up once.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-muted">
+            Every script on the site lives in the open at{' '}
+            <a
+              href="https://github.com/anguishe/bashsnippets"
+              className="text-blue transition-colors hover:text-green"
+              rel="noopener"
+            >
+              github.com/anguishe/bashsnippets
+            </a>{' '}
+            — the same tested versions you read here, free to clone, read, and run.
           </p>
         </section>
 
@@ -224,7 +235,7 @@ export default function AboutPage() {
             dev.to/bashsnippets ↗
           </a>
           <a
-            href="https://github.com/anguishe/bash-scripts"
+            href="https://github.com/anguishe/bashsnippets"
             target="_blank"
             rel="noopener noreferrer"
             className="rounded border border-border px-4 py-2 font-mono text-xs text-muted transition-colors hover:border-green hover:text-green"
