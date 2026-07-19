@@ -3,7 +3,7 @@ import Breadcrumb from '@/components/Breadcrumb';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-const SITE_URL = 'https://bashsnippets.xyz';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 const GUMROAD_URL = 'https://anguish0.gumroad.com/l/toolkit';
 
 export const metadata: Metadata = {

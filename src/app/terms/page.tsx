@@ -1,7 +1,7 @@
 import Breadcrumb from '@/components/Breadcrumb';
 import type { Metadata } from 'next';
 
-const SITE_URL = 'https://bashsnippets.xyz';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
   title: 'Terms of Service',

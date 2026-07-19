@@ -1,6 +1,8 @@
 'use client';
 import { useEffect } from 'react';
 
+const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? 'ca-pub-5399156622542127';
+
 export default function AdSlot({
   slot,
   format = 'auto',
@@ -21,7 +23,7 @@ export default function AdSlot({
       <ins
         className="adsbygoogle"
         style={{ display: 'block' }}
-        data-ad-client="ca-pub-5399156622542127"
+        data-ad-client={ADSENSE_CLIENT}
         data-ad-slot={slot}
         data-ad-format={format}
         data-full-width-responsive="true"

@@ -1,6 +1,6 @@
 import { snippets } from '@/lib/snippets';
 
-const SITE_URL = 'https://bashsnippets.xyz';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 function escapeXml(text: string): string {
   return text

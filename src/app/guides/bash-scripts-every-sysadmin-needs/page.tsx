@@ -3,7 +3,7 @@ import Link from 'next/link';
 import AffiliateBox from '@/components/AffiliateBox';
 import Breadcrumb from '@/components/Breadcrumb';
 
-const SITE_URL = 'https://bashsnippets.xyz';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
   title: { absolute: '25 Bash Scripts Every Linux Sysadmin Needs | BashSnippets.xyz' },

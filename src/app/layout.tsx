@@ -6,6 +6,9 @@ import Footer from '@/components/Footer';
 import Nav from '@/components/Nav';
 import './globals.css';
 
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? 'G-6B01TGE8XS';
+const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? 'ca-pub-5399156622542127';
+
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
@@ -197,7 +200,7 @@ export default function RootLayout({
         <Footer />
         <CookieConsent />
         <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-6B01TGE8XS"
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
           strategy="afterInteractive"
         />
         <Script id="ga4-init" strategy="afterInteractive">
@@ -213,12 +216,12 @@ export default function RootLayout({
                 });
               }
               gtag('js', new Date());
-              gtag('config', 'G-6B01TGE8XS');
+              gtag('config', '${GA_ID}');
             })();
           `}
         </Script>
         <Script
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5399156622542127"
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
           strategy="lazyOnload"
           crossOrigin="anonymous"
         />

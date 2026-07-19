@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Breadcrumb from '@/components/Breadcrumb';
 import { mdxComponents } from '@/components/MDXComponents';
 
-const SITE_URL = 'https://bashsnippets.xyz';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 const TITLE =
   'Bash Text Processing: find, grep, sed, and awk for Logs and Config Files';

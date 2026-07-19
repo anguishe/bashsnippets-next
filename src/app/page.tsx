@@ -10,7 +10,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 
-const SITE_URL = 'https://bashsnippets.xyz';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 const homeTitle = 'Free Bash Script Library — Copy-Paste Scripts for Linux';
 const homeDescription =
