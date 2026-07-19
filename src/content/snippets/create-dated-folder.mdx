@@ -173,7 +173,7 @@ FULL="${DATE}_${NAME}"
 
 mkdir -p "$FULL"
 echo "✓ Created: $FULL"
-cd "$FULL"
+cd "$FULL" || exit 1
 ```
 
 <Callout type="info" title="Add it as an alias">

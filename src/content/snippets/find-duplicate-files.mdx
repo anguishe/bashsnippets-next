@@ -54,8 +54,8 @@ fi
 echo "Scanning for duplicates in $TARGET..."
 echo ""
 
-find "$TARGET" -type f \
-  | xargs -r md5sum 2>/dev/null \
+find "$TARGET" -type f -print0 \
+  | xargs -0 -r md5sum 2>/dev/null \
   | sort \
   | awk 'seen[$1]++'
 
@@ -130,8 +130,8 @@ If no argument is given, `$HOME/Downloads` is the default.
 ### Limit scan depth to avoid deep recursion
 
 ```bash
-find "$TARGET" -maxdepth 3 -type f \
-  | xargs -r md5sum 2>/dev/null \
+find "$TARGET" -maxdepth 3 -type f -print0 \
+  | xargs -0 -r md5sum 2>/dev/null \
   | sort \
   | awk 'seen[$1]++'
 ```
@@ -147,8 +147,8 @@ set -euo pipefail
 TARGET="${1:-$HOME/Downloads}"
 REPORT="/tmp/dupes_$(date +%Y%m%d_%H%M).txt"
 
-find "$TARGET" -type f \
-  | xargs -r md5sum 2>/dev/null \
+find "$TARGET" -type f -print0 \
+  | xargs -0 -r md5sum 2>/dev/null \
   | sort \
   | awk 'seen[$1]++' > "$REPORT"
 
