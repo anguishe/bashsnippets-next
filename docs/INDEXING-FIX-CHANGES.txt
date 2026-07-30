@@ -1,0 +1,73 @@
+INDEXING AUDIT — CHANGES MADE (2026-07-29)
+============================================
+
+DIAGNOSIS (from live-site probe + Google Search Console)
+---------------------------------------------------------
+Root cause is NOT technical. The site passed every technical indexing check:
+
+  - All 57 sitemap URLs return HTTP 200
+  - Self-referencing canonicals correct on snippet/tool/guide/index pages
+  - meta robots "index, follow" everywhere; noindex only on the 404 page (correct)
+  - robots.txt valid, references sitemap, allows Googlebot
+  - www -> apex 308, http -> https 308, trailing slash 308 (all single-hop)
+  - Content is server-rendered (snippet pages ~2,200 words in raw HTML,
+    tools 700-900, guides 1,700+) — no JS-rendering dependency
+  - No Vercel bot challenge (Googlebot/bingbot UAs get 200)
+  - bashsnippets-next.vercel.app 308s to production domain (no duplicate host)
+  - IndexNow key file, llms.txt, rss.xml all live
+  - Sitemap submitted in GSC: Success, 61 discovered, last read Jul 4
+
+GSC says why pages fail:
+  - 58 pages "Crawled - currently not indexed" (Google systems; validation FAILED)
+    = Google's quality/authority gate. It crawled everything and chose not to
+    index. Classic for a young .xyz domain whose 20 external backlinks ALL
+    point at the homepage (reddit 8, dev.to 7, coderlegion 3) with zero deep
+    links, and whose content has not changed since mid-June.
+  - 1 "Redirect error": https://bashsnippets.xyz/snippets — last crawled
+    May 12, 2026 (stale; page returns 200 today). Validation stuck "Started"
+    since 5/17. Needs a recrawl request.
+  - 3 "Page with redirect": legacy .html / www URLs. Expected. No action.
+  - The 3 pages indexed in early May de-indexed when Google recalibrated —
+    matches the authority-gate diagnosis, not a technical regression.
+
+Conclusion: waiting to publish new content until indexing resolves is
+backwards — the lack of fresh content and deep links IS the blocker.
+
+CODE CHANGES (this commit)
+--------------------------
+1. src/app/page.tsx
+   - Added "Long-Form Bash Guides" section (Section 5) between the Tools
+     preview and the FAQ: 4 guide cards with descriptive anchor text plus a
+     "See all guides" link.
+   - Why: the homepage is the ONLY indexed page, so it is the only page
+     passing internal PageRank. It linked 9 snippets and 8 tools in-content
+     but zero guides (guides were reachable only through sitewide nav/footer
+     boilerplate). Guides are the site's strongest content and now get
+     in-content links from the one page Google trusts.
+   - Also renumbered the section comments (FAQ -> 6, Affiliate -> 7).
+
+2. scripts/submit-indexnow.mjs  (new file)
+   - Bulk IndexNow submitter. Reads every <loc> from public/sitemap.xml and
+     POSTs the full list to api.indexnow.org (Bing, Yandex, Seznam, Naver).
+   - Replaces the manual single-URL curl in the post-deploy checklist.
+   - Usage: npm run indexnow            (all sitemap URLs)
+            npm run indexnow -- <url>   (specific URLs only)
+
+3. package.json
+   - Added script: "indexnow": "node scripts/submit-indexnow.mjs"
+
+VERIFICATION
+------------
+- npm run build: passes. 57 sitemap entries regenerated (33 snippets,
+  11 tools, 13 static/guides).
+- Prerendered homepage HTML (.next/server/app/index.html) contains the new
+  section and all 4 /guides/* links.
+
+NOT CHANGED (deliberately)
+--------------------------
+- No metadata, canonical, robots, or schema changes — all verified correct.
+- No sitemap logic changes — output verified correct.
+- The 3 "Page with redirect" entries — expected legacy redirects, no action.
+
+Everything else that will move indexing is off-repo:
+see docs/GSC-INDEXING-PLAYBOOK.md

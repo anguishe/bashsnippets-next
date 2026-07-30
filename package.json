@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build && node scripts/generate-sitemap.mjs",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "indexnow": "node scripts/submit-indexnow.mjs"
   },
   "engines": {
     "node": ">=20.0.0"

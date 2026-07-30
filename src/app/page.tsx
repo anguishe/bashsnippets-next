@@ -104,6 +104,33 @@ const previewTools = [
   },
 ] as const;
 
+const homeGuides = [
+  {
+    slug: 'bash-scripts-every-sysadmin-needs',
+    title: '25 Bash Scripts Every Linux Sysadmin Needs',
+    description:
+      'Disk-full outages, silent SSL expiry, dead services, permission holes — the scripts that prevent each failure, organized by failure mode.',
+  },
+  {
+    slug: 'bash-scripts-that-survive-cron',
+    title: 'Bash Scripts That Survive Cron: Locking, Timeouts, and Retries',
+    description:
+      'Overlapping runs, hung jobs, and silent 2am failures — the flock, timeout, and retry patterns that stop them.',
+  },
+  {
+    slug: 'bash-text-processing',
+    title: 'Bash Text Processing: find, grep, sed, and awk',
+    description:
+      'The four commands that answer "what broke and where" — patterns for logs and config files you can paste into a shell.',
+  },
+  {
+    slug: 'bash-scripting-for-ci-cd-pipelines',
+    title: 'Bash Scripting for CI/CD Pipelines',
+    description:
+      'GitHub Actions steps, deploy scripts, and Docker entrypoints that fail loudly in CI instead of silently in production.',
+  },
+] as const;
+
 
 export default function Home() {
   const featuredSnippets = snippets.slice(0, 9);
@@ -318,7 +345,52 @@ export default function Home() {
         </ScrollReveal>
       </section>
 
-      {/* Section 5 — FAQ */}
+      {/* Section 5 — Guides */}
+      <section
+        id="guides"
+        className="mx-auto max-w-4xl border-t border-border px-6 py-20"
+      >
+        <ScrollReveal>
+          <h2 className="mb-4 font-heading text-2xl font-bold text-text">
+            Long-Form Bash Guides
+          </h2>
+          <p className="mb-10 text-muted">
+            When a copy-paste script isn&apos;t enough — deep dives into the
+            failure modes behind cron jobs, CI/CD pipelines, text processing,
+            and server maintenance.
+          </p>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {homeGuides.map((guide) => (
+              <Link
+                key={guide.slug}
+                href={`/guides/${guide.slug}`}
+                className="group relative block overflow-hidden rounded-lg border border-border bg-bg2 p-5 no-underline transition-colors duration-150 hover:border-green"
+              >
+                <div className="absolute left-0 top-0 h-0.5 w-0 bg-green transition-all duration-300 group-hover:w-full" aria-hidden />
+                <span className="font-mono text-xs uppercase tracking-widest text-muted">
+                  guide
+                </span>
+                <p className="mt-1.5 font-heading text-base font-bold leading-snug text-text">
+                  {guide.title}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  {guide.description}
+                </p>
+              </Link>
+            ))}
+          </div>
+
+          <Link
+            href="/guides"
+            className="mt-8 inline-block text-sm text-blue transition-colors hover:text-text"
+          >
+            See all guides →
+          </Link>
+        </ScrollReveal>
+      </section>
+
+      {/* Section 6 — FAQ */}
       <section
         id="faq"
         className="mx-auto max-w-3xl border-t border-border px-6 py-20"
@@ -332,7 +404,7 @@ export default function Home() {
         </ScrollReveal>
       </section>
 
-      {/* Section 6 — Affiliate */}
+      {/* Section 7 — Affiliate */}
       <section className="mx-auto max-w-4xl border-t border-border px-6 py-10">
         <ScrollReveal>
           <AffiliateBox partner="digitalocean" />
