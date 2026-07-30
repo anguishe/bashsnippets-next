@@ -1,0 +1,35 @@
+GSC "REQUEST INDEXING" PRIORITY LIST
+=====================================
+Generated 2026-07-29. All 20 URLs verified HTTP 200 live at generation time.
+Method: GSC → URL Inspection → paste URL → "Request indexing" (one at a time).
+Quota is ~10-12/day. Order matters — most-linked-from-homepage first, since
+the homepage is currently the only indexed page passing internal PageRank.
+
+TODAY (10) — repair + hub pages + all guides + top money/tools
+--------------------------------------------------------------
+ 1  https://bashsnippets.xyz/snippets                                  (repair: stuck redirect error; confirmed 200 live)
+ 2  https://bashsnippets.xyz/guides                                    (hub page)
+ 3  https://bashsnippets.xyz/tools                                     (hub page)
+ 4  https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs  (flagship guide, now homepage-linked)
+ 5  https://bashsnippets.xyz/guides/bash-scripts-that-survive-cron     (guide, now homepage-linked)
+ 6  https://bashsnippets.xyz/guides/bash-text-processing               (guide, now homepage-linked)
+ 7  https://bashsnippets.xyz/guides/bash-scripting-for-ci-cd-pipelines (guide, now homepage-linked)
+ 8  https://bashsnippets.xyz/starter-kit                               (money page)
+ 9  https://bashsnippets.xyz/tools/cron-wrapper-generator              (strongest tool, most link-worthy)
+10  https://bashsnippets.xyz/tools/shellcheck-error-decoder           (strong tool)
+
+TOMORROW (10) — remaining homepage-linked tools + top snippets
+--------------------------------------------------------------
+11  https://bashsnippets.xyz/tools/bash-boilerplate-generator
+12  https://bashsnippets.xyz/tools/cron-job-builder
+13  https://bashsnippets.xyz/tools/chmod-permissions-builder
+14  https://bashsnippets.xyz/tools/grep-pattern-builder
+15  https://bashsnippets.xyz/tools/path-debugger
+16  https://bashsnippets.xyz/tools/bash-exit-code-lookup
+17  https://bashsnippets.xyz/snippets/disk-space-warning
+18  https://bashsnippets.xyz/snippets/automated-file-backup
+19  https://bashsnippets.xyz/snippets/check-ssl-certificate-expiry
+20  https://bashsnippets.xyz/snippets/rsync-remote-backup
+
+DAYS 3+ — remaining URLs from public/sitemap.xml, ~10/day, tools before
+snippets, never re-request a URL within a week.
