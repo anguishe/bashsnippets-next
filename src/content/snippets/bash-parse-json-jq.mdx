@@ -1,0 +1,90 @@
+---
+title: "Parse JSON in Bash with jq (Stop Using grep and cut on API Responses)"
+description: "How to read fields out of a JSON API response with jq — and why -r, // defaults, and -e are the three things that separate a reliable parse from one that breaks the next time the API reformats."
+slug: bash-parse-json-jq
+tags: [bash, jq, json, api, parsing]
+quickAnswer: "Parsing JSON with grep, cut, and sed feels fine until the API reformats its output — pretty-prints it, reorders keys, or ships a value containing your delimiter — and your pipeline silently pulls the wrong field or an empty string. JSON is not line-oriented, so line-oriented tools are guessing. jq is an actual JSON parser, and three flags do most of the work. -r prints raw strings instead of quoted ones, so a version like 1.2.3 comes back as 1.2.3 and not a quoted string that breaks every comparison. The // operator supplies a default when a key is missing, turning a null into a 0 you can handle. -e sets jq's exit code from the result, so your script can branch on whether a field was actually there. Add .array[] to iterate and select() to filter, and you can pull exactly what you need out of any response without a single regex."
+faq:
+  - question: "Why shouldn't I parse JSON with grep or cut?"
+    answer: "Because JSON has no line structure to rely on. grep '\"id\"' | cut -d: -f2 works only as long as every id sits alone on its own line with exactly one colon before it. The moment the API pretty-prints differently, reorders keys, nests the field, or a string value contains a colon or a brace, the regex matches the wrong thing — and it does so silently, returning a plausible-looking wrong value instead of an error. jq parses the document into a real structure first, so .id means the id no matter how the bytes are laid out."
+  - question: "What does the -r flag do in jq?"
+    answer: "-r (raw output) strips the surrounding quotes from string results. Without it, jq '.name' on {\"name\":\"web-01\"} prints \"web-01\" with the quotes included, so when you assign that to a variable and compare it to web-01 the comparison fails and file paths built from it are wrong. With -r you get web-01. Any time a jq value is going into a shell variable, a filename, or a comparison, you almost always want -r."
+  - question: "How do I set a default when a JSON field might be missing?"
+    answer: "Use the // operator: jq -r '.stargazers_count // 0' returns the count if the key exists and 0 if it is missing or null. Without it, a missing key prints the literal string null, which then poisons any arithmetic or comparison downstream. // is how you say 'use this field, but fall back to this value if it isn't there' in one expression."
+  - question: "How do I loop over a JSON array in bash with jq?"
+    answer: "Pipe the array through .array[] to emit one element per line, optionally filter with select(), then read the lines in bash. For example, jq -r '.items[]? | select(.active == true) | .id' prints the id of every active item, one per line, ready to feed into a while read loop. The ? after [] keeps jq from erroring if the array is absent."
+howToSteps:
+  - name: "Confirm jq is installed"
+    text: "Guard the script with command -v jq so it exits with a clear message on a box that doesn't have it, rather than failing with a confusing 'command not found' mid-pipeline."
+  - name: "Extract a single field with -r"
+    text: "Use jq -er '.field' to pull one value as a raw string; -e makes jq return non-zero when the field is null so you can branch on missing data instead of silently getting an empty string."
+  - name: "Provide a default for optional fields"
+    text: "Use the // operator, as in jq -r '.count // 0', so a missing or null key becomes a usable default instead of the literal string null."
+  - name: "Iterate and filter arrays"
+    text: "Emit array elements with .array[]?, narrow them with select(.key == value), and project the field you need, giving you one clean line per match to read in a loop."
+author: Anguishe
+datePublished: 2026-07-08
+dateModified: 2026-07-08
+---
+
+The wrong-turn theory was that the API was down. A teammate's deploy script had started tagging every release `latest` instead of the real version number, and we spent an hour blaming the registry before I looked at the actual parse. The script read the version out of a JSON response with `grep '"version"' | cut -d'"' -f4`. It had worked for two years. Then the API started pretty-printing its output with the version nested one level deeper under a `metadata` object, `grep` matched a *different* `"version"` field that happened to appear first — a schema version, always `"latest"` — and cut dutifully handed it back. No error. Just the wrong string, confidently, every time. That's the trap with regex on JSON: it doesn't fail, it lies.
+
+## Why regex on JSON is guessing
+
+`grep`, `cut`, `sed`, and `awk` are line-oriented tools, and JSON has no meaningful lines. `{"a":1,"b":2}` and the same object pretty-printed across six lines are identical data, but every line-based pattern you write depends on one specific layout. The API is free to change that layout any time — a new field, a reorder, a different indent, a value that contains a `"` or a `:` — and your pattern silently starts matching the wrong bytes. `jq` parses the whole document into a data structure first and then addresses it by *path*, so `.metadata.version` means that field regardless of how it's printed.
+
+## The three flags that matter
+
+```bash
+#!/bin/bash
+# Script: parse-json.sh
+# Purpose: Read fields out of a JSON API response with jq — grep/cut on JSON breaks the moment the API reformats, and it fails silently
+# Usage: ./parse-json.sh <owner/repo>
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+REPO="${1:?Usage: parse-json.sh <owner/repo>}"
+
+# Fail early and clearly on a box without jq, instead of a confusing error mid-pipeline.
+command -v jq >/dev/null 2>&1 || { echo "$CROSS jq is not installed (apt install jq / brew install jq)" >&2; exit 1; }
+
+response=$(curl -sS --max-time 30 "https://api.github.com/repos/${REPO}")
+
+# -e sets jq's exit code from the result: non-zero when .full_name is null/absent,
+# so a 404 or a rate-limit body branches here instead of returning an empty string.
+# -r prints the raw value, not a quoted "string" that breaks comparisons and paths.
+if ! name=$(printf '%s' "$response" | jq -er '.full_name'); then
+  echo "$CROSS no repo returned (rate limited or 404?)" >&2
+  exit 1
+fi
+
+# A missing key would print the literal 'null'; // supplies a real default instead.
+stars=$(printf '%s' "$response" | jq -r '.stargazers_count // 0')
+echo "$CHECK $name — $stars stars"
+
+# Iterate an array field. The ? after [] keeps jq quiet if 'topics' is absent.
+printf '%s' "$response" | jq -r '.topics[]? | "  - " + .'
+```
+
+`-r`, `//`, and `-e` are the whole game for scripting. `-r` because a quoted string is not the string you want in a variable. `//` because real APIs omit optional fields and `null` is not a number. `-e` because "the field wasn't there" and "the field was empty" are different problems and you want your script to tell them apart.
+
+## Filtering with select()
+
+When the response is a list and you only want some of it, `select()` is the filter:
+
+```bash
+# Every active item's id, one per line — ready for a while-read loop
+printf '%s' "$response" | jq -r '.items[]? | select(.active == true) | .id'
+```
+
+Piping that into `while IFS= read -r id; do …; done` is the clean way to act on each match. Building these expressions by hand gets fiddly fast, which is exactly what the [jq Filter Builder](/tools/jq-filter-builder) is for — paste a real response, click the fields you want, and copy the filter out.
+
+## Why jq over python -c
+
+The obvious alternative is `python3 -c 'import json,sys; print(json.load(sys.stdin)["name"])'`, and on a box that's guaranteed to have Python it's a fine fallback. I still reach for jq first because it's built for exactly this: the filters compose left to right like a shell pipe, `-r` and `//` and `select` are one token each instead of a line of Python, and it streams. The tradeoff is honest — jq is a dependency you have to install, and its syntax has a learning curve past the basics. For pulling a handful of fields out of an API response in a bash script, that curve pays for itself the first time an endpoint reformats and your jq path keeps working while a regex would have broken.
+
+The response you're parsing should already be a verified 2xx — see [making the request safely with curl](/snippets/bash-curl-api-requests). And when a parse fails because the API changed shape, that's exactly the kind of thing worth [alerting to Slack](/snippets/bash-slack-webhook-alerts) rather than discovering downstream.
+
+<AffiliateBox partner="digitalocean" />

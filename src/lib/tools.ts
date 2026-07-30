@@ -484,6 +484,48 @@ export const tools: ToolMeta[] = [
     ],
     relatedSnippets: ['bash-flock-single-instance', 'bash-timeout-command', 'bash-retry-with-backoff'],
   },
+  {
+    slug: 'jq-filter-builder',
+    component: 'JqFilterBuilder',
+    title: 'jq Filter Builder',
+    description:
+      'Build jq filters by clicking through a real JSON response. Generates the filter and the full curl … | jq command, with a live preview evaluated against your JSON in the browser.',
+    quickAnswer:
+      "jq filters are the fastest way to pull fields out of a JSON API response in a bash script, but the syntax is easy to get subtly wrong — a missing -r leaves quotes on your value, a forgotten // turns a missing key into the literal null, and a select() with the wrong quoting matches nothing. This builder removes the guesswork. Paste a real response (or load a sample), then click through the actual structure to build the path; the tool shows the jq filter and the full curl … | jq command, and evaluates the filter against your JSON live so you can see exactly what comes out before you run it. It covers the patterns people actually script: nested field access, array indexing, iterating an array with a select() filter and projecting one field, defaults, and raw output. No data leaves your browser — parsing and evaluation happen client-side.",
+    category: 'builder',
+    datePublished: '2026-07-08',
+    dateModified: '2026-07-08',
+    howToUse: [
+      'Paste a JSON response into the box on the left, or load one of the sample responses to start.',
+      'Click any field in the structure view to set the jq path — the filter and preview update as you click.',
+      "For array fields, tick 'iterate each element', then optionally add a select() filter and choose one field to output.",
+      'Toggle raw output (-r) when the value is going into a shell variable, and add a // default for fields that may be missing.',
+      'Copy the jq filter into your script, or copy the whole curl … | jq command to test it against the endpoint.',
+    ],
+    faqs: [
+      {
+        question: 'Does this run jq or send my JSON to a server?',
+        answer:
+          'No. The tool parses and evaluates your JSON entirely in the browser with JavaScript — nothing is uploaded and no jq binary is called remotely. The live preview mirrors what jq would output for the supported patterns, so you can paste a real (even sensitive) response safely and still see the result before running the command anywhere.',
+      },
+      {
+        question: 'Why does my extracted value come out wrapped in quotes?',
+        answer:
+          'That is jq printing a JSON string, quotes included. Turn on raw output (-r) and the quotes disappear. This matters the moment the value goes into a shell variable, a filename, or a comparison: "web-01" with the quotes will not equal web-01, so almost any value headed into bash wants -r.',
+      },
+      {
+        question: 'The filter looks right but the preview is empty — why?',
+        answer:
+          'Three common reasons: a select() filter matched no elements (jq would also output nothing), the path points at a key that does not exist in this response, or you used // empty as a default, which deliberately produces no output for a missing value. The note under the preview tells you which case you hit.',
+      },
+      {
+        question: 'Does this support the entire jq language?',
+        answer:
+          'No — it builds the common extraction patterns that cover most API scripting: field and nested access, array indexing, iteration with select() and projection, // defaults, and -r. Advanced jq (reduce, string interpolation, arithmetic, if/then/else, custom functions) is out of scope; the jq manual is the reference for those.',
+      },
+    ],
+    relatedSnippets: ['bash-parse-json-jq', 'bash-curl-api-requests', 'bash-slack-webhook-alerts'],
+  },
 ];
 
 export function getToolBySlug(slug: string): ToolMeta | undefined {
@@ -507,6 +549,8 @@ const TAG_TO_TOOL_SLUG: Record<string, string> = {
   permissions: 'chmod-permissions-builder',
   grep: 'grep-pattern-builder',
   'exit-code': 'bash-exit-code-lookup',
+  jq: 'jq-filter-builder',
+  json: 'jq-filter-builder',
 };
 
 export function getMatchingTool(tags: string[]): ToolMeta | undefined {

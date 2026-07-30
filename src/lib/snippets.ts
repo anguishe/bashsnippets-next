@@ -436,6 +436,36 @@ export const snippets: SnippetRegistryEntry[] = [
     datePublished: '2026-06-22',
     dateModified: '2026-06-22',
   },
+  {
+    slug: 'bash-curl-api-requests',
+    title: 'Make API Requests in Bash with curl (That Actually Fail When the API Does)',
+    description:
+      'A curl wrapper for bash that checks HTTP status, times out, and retries transient errors — because plain curl exits 0 on an HTTP 500 and silently poisons everything downstream.',
+    tags: ['bash', 'curl', 'api', 'http', 'devops'],
+    difficulty: 'intermediate',
+    datePublished: '2026-07-08',
+    dateModified: '2026-07-08',
+  },
+  {
+    slug: 'bash-parse-json-jq',
+    title: 'Parse JSON in Bash with jq (Stop Using grep and cut on API Responses)',
+    description:
+      'How to read fields out of a JSON API response with jq — and why -r, // defaults, and -e are the three things that separate a reliable parse from one that breaks the next time the API reformats.',
+    tags: ['bash', 'jq', 'json', 'api', 'parsing'],
+    difficulty: 'intermediate',
+    datePublished: '2026-07-08',
+    dateModified: '2026-07-08',
+  },
+  {
+    slug: 'bash-slack-webhook-alerts',
+    title: 'Send Slack Alerts from Bash with Incoming Webhooks (So Cron Jobs Stop Failing Silently)',
+    description:
+      'Post failure alerts to Slack from a bash script with a curl one-liner, a jq-built payload, and a trap on ERR — so a broken backup tells you the night it breaks instead of the day you need it.',
+    tags: ['bash', 'slack', 'webhook', 'alerting', 'devops'],
+    difficulty: 'intermediate',
+    datePublished: '2026-07-08',
+    dateModified: '2026-07-08',
+  },
 ];
 
 function mergeWithFrontmatter(snippet: SnippetRegistryEntry): SnippetMeta {

@@ -31,6 +31,7 @@ const toolComponents: Record<string, ComponentType> = {
   'grep-pattern-builder': withSkeleton(() => import('@/components/tools/GrepPatternBuilder')),
   'find-command-builder': withSkeleton(() => import('@/components/tools/FindCommandBuilder')),
   'cron-wrapper-generator': withSkeleton(() => import('@/components/tools/CronWrapperGenerator')),
+  'jq-filter-builder': withSkeleton(() => import('@/components/tools/JqFilterBuilder')),
 };
 
 interface ToolRendererProps {

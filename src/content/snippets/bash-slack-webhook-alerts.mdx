@@ -1,0 +1,96 @@
+---
+title: "Send Slack Alerts from Bash with Incoming Webhooks (So Cron Jobs Stop Failing Silently)"
+description: "Post failure alerts to Slack from a bash script with a curl one-liner, a jq-built payload, and a trap on ERR — so a broken backup tells you the night it breaks instead of the day you need it."
+slug: bash-slack-webhook-alerts
+tags: [bash, slack, webhook, alerting, devops]
+quickAnswer: "A cron job that fails silently is worse than no cron job — you're trusting a backup or a sync that quietly stopped running, and you find out at the worst possible moment. Email alerts are the usual answer and the usual problem: they land in a folder nobody reads. Slack incoming webhooks put the failure where the team actually looks. The mechanism is a single POST of a JSON payload to a secret webhook URL, so the two things that matter are building the JSON safely and keeping the URL out of your repo. Build the payload with jq -n rather than string-concatenating your error text, because a message with a quote, newline, or backslash will otherwise break the JSON or inject fields. Keep the webhook URL in an environment variable or a 0600 file, never committed. Wire it to a trap on ERR and every unhandled failure announces itself with the host, the script, and the line that died."
+faq:
+  - question: "How do I keep my Slack webhook URL out of my git repo?"
+    answer: "Treat it as the secret it is — anyone who has the URL can post to your channel. Put it in an environment variable that your cron entry or systemd unit sets, or in a file with 0600 permissions that the script reads, and add that file to .gitignore. Never hardcode it in the script itself, because the moment the script is committed the webhook is public, and webhooks can't be scoped down after the fact — you have to revoke and reissue."
+  - question: "Why build the Slack JSON payload with jq instead of echo?"
+    answer: "Because your alert text is untrusted input to a JSON document. An error message that contains a double quote, a newline, or a backslash — and real error messages do — will break a hand-built JSON string or, worse, inject unintended structure. jq -n --arg text \"$message\" '{text: $text}' escapes the value correctly no matter what characters it contains, so the payload is always valid JSON. String-concatenating variables into JSON is the same class of bug as building SQL with string concatenation."
+  - question: "How do I send a Slack alert automatically when my script fails?"
+    answer: "Set a trap on the ERR signal: trap 'slack_alert \"failed at line $LINENO\"' ERR. With set -e in effect, any command that exits non-zero and isn't explicitly handled fires the trap, which posts the failure — including the line number via $LINENO — before the script exits. You get an alert on every unhandled error without wrapping each command in an if statement."
+  - question: "Slack webhook, email, or a monitoring service for cron alerts?"
+    answer: "A Slack webhook is free, immediate, and lands where the team already looks, which is why it beats mailx alerts that rot in an inbox. A dead-man's-switch service like Healthchecks.io or Cronitor solves a different problem: it alerts when a job DOESN'T run at all, which a webhook fired from inside the job can't do because a job that never starts never posts. Many setups use both — the webhook for failures the job can see, the external check for the job going missing entirely."
+howToSteps:
+  - name: "Create an incoming webhook and store the URL as a secret"
+    text: "Add an Incoming Webhook to your Slack workspace, copy the URL, and put it in an environment variable or a 0600 file that is gitignored — never in the script."
+  - name: "Build the message payload with jq"
+    text: "Use jq -n --arg text \"$message\" '{text: $text}' so any quotes, newlines, or backslashes in the message are escaped into valid JSON instead of breaking the payload."
+  - name: "POST it and check the status"
+    text: "Send the payload with curl -X POST -H 'Content-Type: application/json', capture the HTTP status with -w '%{http_code}', and confirm Slack returned 200 rather than assuming it arrived."
+  - name: "Fire it automatically on failure"
+    text: "Add trap 'slack_alert \"failed at line $LINENO (exit $?)\"' ERR so any unhandled error posts to Slack with the failing line before the script exits."
+author: Anguishe
+datePublished: 2026-07-08
+dateModified: 2026-07-08
+---
+
+We found out the database backup had been failing for nine days when someone needed a two-day-old copy and there wasn't one. The job was in cron. It ran every night. It also `exit 1`-ed every night, because a disk had filled and the dump couldn't write — and cron did exactly what cron does with a failure, which is nothing you'll ever see. There was an email alert configured, technically. It went to an address that forwarded to a distribution list that everyone had muted in 2023. The lesson wasn't "add alerting." We *had* alerting. The lesson was that an alert nobody reads is decoration, and the only alert that counted was the one that showed up in the channel we stared at all day.
+
+## Why the webhook is the whole thing
+
+A Slack incoming webhook is a URL that turns an HTTP POST into a message in a channel. That's the entire mechanism: `curl` a JSON body to the URL, Slack posts it. Which means there are exactly two ways to get this wrong — send malformed JSON, or leak the URL — and the script below is built around not doing either.
+
+```bash
+#!/bin/bash
+# Script: slack-alert.sh
+# Purpose: Post a failure alert to Slack so a broken cron job tells you instead of failing silently for a week
+# Usage: SLACK_WEBHOOK_URL=... ./slack-alert.sh   (set the URL in the environment, never hardcode it)
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+# The webhook URL is a secret — anyone who has it can post to your channel.
+# Keep it in the environment or a 0600 file; never commit it.
+: "${SLACK_WEBHOOK_URL:?Set SLACK_WEBHOOK_URL in the environment}"
+HOST_SHORT="$(hostname -s)"
+
+slack_alert() {
+  local message="$1"
+  local level="${2:-error}"        # error | warn | info
+  local payload http_code
+
+  # Build the JSON with jq so a message containing quotes, newlines, or backslashes
+  # can't break the payload or inject fields. Never string-concat text into JSON.
+  payload=$(jq -n \
+    --arg text ":rotating_light: *${level^^}* on \`${HOST_SHORT}\`: ${message}" \
+    '{text: $text}')
+
+  # -o /dev/null discards Slack's "ok" body; -w gives us the status to check.
+  http_code=$(curl -sS --max-time 10 \
+    -X POST -H 'Content-Type: application/json' \
+    -d "$payload" \
+    -w '%{http_code}' -o /dev/null \
+    "$SLACK_WEBHOOK_URL") || { echo "$CROSS could not reach Slack" >&2; return 1; }
+
+  if [[ "$http_code" == "200" ]]; then
+    echo "$CHECK alert sent"
+  else
+    echo "$CROSS Slack returned $http_code" >&2
+    return 1
+  fi
+}
+
+# Any unhandled error fires an alert with the failing line number, then the script exits.
+trap 'slack_alert "script failed at line $LINENO (exit $?)"' ERR
+
+# --- your real work goes here; if it exits non-zero, Slack hears about it ---
+echo "$CHECK doing work..."
+```
+
+The `jq -n` line is the one people skip and regret. The first time an error message contains the path to a file with a `"` in the name, a hand-built `"{\"text\":\"$msg\"}"` produces invalid JSON, Slack rejects it with a 400, and now your alerting is the thing that's broken — quietly, of course. Letting jq build the object means the payload is correct for any input.
+
+## The trap is what makes it automatic
+
+Wiring `slack_alert` to `trap ... ERR` is the difference between alerting you remember to add and alerting that's always on. With `set -e`, any command that fails and isn't caught by an `if` or `||` trips the ERR trap, which posts the failure — with `$LINENO` telling you exactly which command died — before the script exits. You don't decorate every line with error handling; you set the trap once at the top and the whole script is covered.
+
+## What a webhook can't do
+
+A webhook fired from inside the job can only report failures the job is alive to see. If the box is down, cron is misconfigured, or the script never starts, nothing posts — and "nothing posted" looks identical to "everything's fine." That's the gap a dead-man's-switch fills: a service like Healthchecks.io expects a ping by a deadline and alerts when the ping *doesn't* arrive. The webhook and the external check cover opposite failure modes, which is why serious jobs use both. This script is the first half.
+
+To build alert payloads that carry real data from a response, you'll want [jq to construct the JSON](/snippets/bash-parse-json-jq), and to only alert on genuine failures you need [curl that actually detects them](/snippets/bash-curl-api-requests). The full fetch-parse-alert pattern lives in the [Shell Scripts That Talk to APIs](/guides/shell-scripts-that-talk-to-apis) guide.
+
+<AffiliateBox partner="digitalocean" />

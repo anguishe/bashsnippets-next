@@ -37,6 +37,14 @@ const guides = [
     blurb:
       'The three ways cron jobs die quietly — overlap, hang, transient failure — and the guard that stops each.',
   },
+  {
+    slug: 'shell-scripts-that-talk-to-apis',
+    title: 'Shell Scripts That Talk to APIs',
+    description:
+      'Make curl fail when the API fails, parse the response with jq instead of regex, and alert to Slack when it breaks — the reliable pattern for calling an HTTP API from bash.',
+    blurb:
+      'curl that fails loudly, jq that never lies, and a Slack alert when either breaks — in one script.',
+  },
 ] as const;
 
 const STRONGEST_GUIDE = guides[0];

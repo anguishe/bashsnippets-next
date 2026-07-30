@@ -1,0 +1,130 @@
+---
+title: "Shell Scripts That Talk to APIs"
+description: "The reliable pattern for calling an HTTP API from bash: make curl fail when the API fails, parse the response with jq instead of regex, and alert to Slack when it breaks — with a full fetch → parse → alert script."
+slug: shell-scripts-that-talk-to-apis
+datePublished: 2026-07-08
+dateModified: 2026-07-08
+---
+
+A status dashboard scraped a partner's health API every two minutes and lit up green the entire weekend the partner was down. Three separate bugs stacked on top of each other to make that happen, and every one of them is the kind of thing that looks fine in a code review. The `curl` call got a response, so bash was happy. The response was a `503` maintenance page, but the script pulled the status field out with a `grep` that matched a *different* `"status"` on the HTML error page and read it as `"ok"`. And there was no alerting on the scrape itself, because who needs to monitor the monitor. By Monday the partner had been offline for 61 hours and our board had been lying the whole time.
+
+Calling an API from a shell script is three problems wearing one trenchcoat: making the request, reading the response, and knowing when either one failed. Get any of the three wrong and the failure is silent — which is the worst kind, because silent failures are discovered by your users, not your tooling. Here's the pattern that closes all three gaps.
+
+## Why does curl succeed when the request failed?
+
+`curl` reports on the *transport*, not the HTTP result. If it reached the server and got a complete response back — any response, including a `500` or a `404` — it exits `0`. That's why `set -euo pipefail` doesn't protect you here: nothing failed, from bash's point of view. You have to make the status code a thing your script actually looks at.
+
+The move is to capture the body and the status code together and branch on the code:
+
+```bash
+response=$(curl -sS --connect-timeout 5 --max-time 30 -w $'\n%{http_code}' "$url")
+http_code="${response##*$'\n'}"   # last line
+body="${response%$'\n'*}"         # everything before it
+```
+
+Now `2xx` is success, `429` and `5xx` are transient and worth a retry, and any other `4xx` is your own broken request and should fail loudly instead of being retried into oblivion. The two timeouts matter as much as the status check: a short `--connect-timeout` so a dead host fails fast, and a hard `--max-time` so a server that accepts your connection and then hangs can't leave a cron job wedged until the next run piles up behind it.
+
+<Callout>
+The full wrapper — with the retry loop, the transient-vs-fatal split, and a clean non-zero exit when the API is genuinely down — is in <a href="/snippets/bash-curl-api-requests">Make API Requests in Bash with curl</a>. It's the foundation everything below builds on.
+</Callout>
+
+## Why regex on JSON eventually lies
+
+Once you have a verified `2xx` body, the next trap is reading fields out of it. `grep`, `cut`, and `sed` are line-oriented, and JSON has no meaningful lines — the same object can be minified onto one line or pretty-printed across twenty, and it's identical data. Every line-based pattern you write depends on one specific layout that the API is free to change without telling you. When it changes, your pattern doesn't error; it quietly matches the wrong bytes, which is exactly how our dashboard read `"ok"` off an error page.
+
+`jq` parses the document into a real structure and addresses it by path. Three flags carry most of the weight:
+
+```bash
+# -e sets the exit code from the result, so "missing" is a branch, not an empty string
+name=$(jq -er '.full_name' <<<"$body") || { echo "field missing"; exit 1; }
+
+# -r prints the raw value — without it "web-01" keeps its quotes and breaks comparisons
+region=$(jq -r '.region.name' <<<"$body")
+
+# // supplies a real default so a missing key becomes 0, not the literal null
+stars=$(jq -r '.stargazers_count // 0' <<<"$body")
+
+# select() filters a list; the trailing | .id projects one field per match
+jq -r '.items[]? | select(.active == true) | .id' <<<"$body"
+```
+
+`-r`, `//`, and `-e` are the difference between a parse that survives an API reformat and one that breaks the next time someone on the other end runs a linter. The [Parse JSON in Bash with jq](/snippets/bash-parse-json-jq) snippet goes deeper on each, including the `python -c` fallback and when it's the right call.
+
+Building `select()` and projection expressions by hand is fiddly, and a wrong quote silently matches nothing. That's what the [jq Filter Builder](/tools/jq-filter-builder) is for: paste the actual response, click the fields you want, and it shows the filter *and* evaluates it live against your JSON so you can see the output before you wire it into anything.
+
+## The failure nobody saw
+
+The third bug in the dashboard story wasn't a bug in the code at all — it was the absence of one. The scrape could fail and nothing would say so. Email alerts are the usual answer and the usual problem: they land in an inbox nobody reads. A Slack incoming webhook puts the failure where the team is already looking.
+
+The mechanism is a single `POST` of a JSON payload to a secret URL, so there are exactly two ways to get it wrong: send malformed JSON, or leak the URL. Build the payload with `jq` so an error message full of quotes and newlines can't break it, and wire it to a `trap` so you don't have to remember to call it:
+
+```bash
+: "${SLACK_WEBHOOK_URL:?set it in the environment, never in the script}"
+
+slack_alert() {
+  local payload
+  payload=$(jq -n --arg text ":rotating_light: $1" '{text: $text}')
+  curl -sS --max-time 10 -X POST -H 'Content-Type: application/json' \
+    -d "$payload" "$SLACK_WEBHOOK_URL" >/dev/null
+}
+
+trap 'slack_alert "scrape failed at line $LINENO (exit $?)"' ERR
+```
+
+With `set -e`, any unhandled non-zero exit fires the trap and posts the failure — with the line number — before the script dies. The full version, including the secret-handling and the 200-check, is in [Send Slack Alerts from Bash](/snippets/bash-slack-webhook-alerts).
+
+## Putting it together: fetch → parse → alert
+
+Here's the whole pattern in one script — request that fails on real failures, parse that doesn't lie, alert when either breaks:
+
+```bash
+#!/bin/bash
+# Script: api-check.sh — fetch a JSON endpoint, extract a field, alert on any failure
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+: "${SLACK_WEBHOOK_URL:?set it in the environment}"
+API_URL="https://api.example.com/v1/status"
+
+slack_alert() {
+  local payload
+  payload=$(jq -n --arg text ":rotating_light: api-check on $(hostname -s): $1" '{text: $text}')
+  curl -sS --max-time 10 -X POST -H 'Content-Type: application/json' \
+    -d "$payload" "$SLACK_WEBHOOK_URL" >/dev/null || true
+}
+trap 'slack_alert "failed at line $LINENO (exit $?)"' ERR
+
+# 1. Fetch, capturing status so a 5xx doesn't sail through as success
+response=$(curl -sS --connect-timeout 5 --max-time 30 -w $'\n%{http_code}' "$API_URL")
+http_code="${response##*$'\n'}"
+body="${response%$'\n'*}"
+[[ "$http_code" == 2* ]] || { echo "$CROSS HTTP $http_code" >&2; exit 1; }
+
+# 2. Parse with jq — -e turns a missing field into a real failure the trap catches
+healthy=$(jq -er '.healthy' <<<"$body")
+
+# 3. Act on the result
+if [[ "$healthy" == "true" ]]; then
+  echo "$CHECK service healthy"
+else
+  slack_alert "service reported unhealthy"
+  echo "$CROSS service unhealthy" >&2
+  exit 1
+fi
+```
+
+Every failure mode from the dashboard story is now covered: a `503` trips the status check, a reshaped response trips `jq -e`, and any of it posts to Slack before the script exits non-zero. Run it from cron and you'll hear about a problem the first time it happens, not the third day.
+
+## What this pattern still doesn't handle
+
+This is the reliable base, not the whole story. It fetches one page — it doesn't follow pagination cursors through a large result set. It sends a static bearer token if you add one; it doesn't refresh an OAuth token that expired mid-run. Its retry delay is fixed, so it ignores a `Retry-After` header that a well-behaved client would honor. And a webhook fired from inside the job can only report failures the job is alive to see — if the box is down or cron never fires, nothing posts, which is why a dead-man's-switch like Healthchecks.io belongs alongside it. Add those when the API in front of you demands them; skip them until it does.
+
+## Run it somewhere it'll actually run
+
+Scripts like this belong on a small always-on box, not your laptop that sleeps at night. A basic droplet is plenty to host a handful of cron-driven API checks.
+
+<AffiliateBox partner="digitalocean" />
+
+Start with the request layer in [Make API Requests in Bash with curl](/snippets/bash-curl-api-requests), keep the [jq Filter Builder](/tools/jq-filter-builder) open while you work out your filters, and the rest of the library is at [bashsnippets.xyz](/).

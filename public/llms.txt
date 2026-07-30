@@ -9,8 +9,8 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 ## What This Site Contains
 
 # keep in sync with snippets.ts count
-- 30 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
-- 10 interactive tools at /tools/ including script builders, command generators, and debuggers
+- 36 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
+- 12 interactive tools at /tools/ including script builders, command generators, and debuggers
 - Bash Boilerplate Generator tool
 - Beginner FAQ section covering the most common bash questions
 
@@ -58,6 +58,9 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [Prevent Overlapping Cron Jobs with flock](https://bashsnippets.xyz/snippets/bash-flock-single-instance) — A cron job that runs long overlaps the next run and stacks copies until the box falls over. Lock it to a single instance with flock — a kernel-held lock that releases on crash, no stale PID files.
 - [Stop a Hung Command with timeout](https://bashsnippets.xyz/snippets/bash-timeout-command) — A hung cron job is worse than a failed one — it never exits, never frees its lock, and the job silently stops running. Bound any command's runtime with timeout, escalate to SIGKILL, and read the exit code.
 - [Retry a Command with Exponential Backoff in Bash](https://bashsnippets.xyz/snippets/bash-retry-with-backoff) — A deploy that dies on the first transient error wastes your night re-running it by hand. Retry with exponential backoff and jitter — and learn which failures to retry and which to fail fast on.
+- [Make API Requests in Bash with curl](https://bashsnippets.xyz/snippets/bash-curl-api-requests) — A curl wrapper for bash that checks HTTP status, times out, and retries transient errors — because plain curl exits 0 on an HTTP 500 and silently poisons everything downstream.
+- [Parse JSON in Bash with jq](https://bashsnippets.xyz/snippets/bash-parse-json-jq) — How to read fields out of a JSON API response with jq — and why -r, // defaults, and -e are the three things that separate a reliable parse from one that breaks the next time the API reformats.
+- [Send Slack Alerts from Bash with Incoming Webhooks](https://bashsnippets.xyz/snippets/bash-slack-webhook-alerts) — Post failure alerts to Slack from a bash script with a curl one-liner, a jq-built payload, and a trap on ERR — so a broken backup tells you the night it breaks instead of the day you need it.
 
 ## Interactive Tools
 
@@ -72,6 +75,7 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [Bash trap & Signal Handler Builder](https://bashsnippets.xyz/tools/bash-trap-builder) — A script that exits without a trap leaves temp files, lock files, and background jobs behind every time it crashes. Build your trap block visually — pick signals, choose cleanup actions, copy the result.
 - [Find Command Builder](https://bashsnippets.xyz/tools/find-command-builder) — A find action placed before its filters runs on everything find walks — find -delete before -name empties the whole tree. Build find commands with tests ordered before actions, patterns quoted, and every flag explained.
 - [Hardened Cron Wrapper Generator](https://bashsnippets.xyz/tools/cron-wrapper-generator) — A bash script that runs long enough to overlap its next run, or hangs on a dead socket, takes down a cron slot silently. Compose flock, timeout, and exponential-backoff retry into a hardened wrapper script with timestamped logging.
+- [jq Filter Builder](https://bashsnippets.xyz/tools/jq-filter-builder) — Build jq filters by clicking through a real JSON response. Generates the filter and the full curl … | jq command, with a live preview evaluated against your JSON in the browser.
 
 ## Pillar Guides
 
@@ -79,6 +83,7 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [Bash Scripting for CI/CD Pipelines: GitHub Actions, Deploys, and Docker](https://bashsnippets.xyz/guides/bash-scripting-for-ci-cd-pipelines) — A pipeline reported every step green and deployed broken code, because the build step piped output through tee and bash returned the exit code of tee — always zero. This guide covers the four CI-specific failure modes, safe bash headers, secret validation, PIPESTATUS and pipefail, Docker entrypoints, atomic symlink deploys, and debugging with set -x.
 - [Bash Text Processing: find, grep, sed, and awk for Logs and Config Files](https://bashsnippets.xyz/guides/bash-text-processing) — The four commands that turn an unreadable log or a tree of config files into an answer — find to locate, grep to search, sed to transform, awk to summarize. The order matters, and the gotchas are the reason most one-liners do the wrong thing quietly.
 - [Bash Scripts That Survive Cron: Locking, Timeouts, and Retries](https://bashsnippets.xyz/guides/bash-scripts-that-survive-cron) — A script that works when you run it isn't the same as one that survives unattended on cron. The three ways cron jobs die quietly — overlap, hang, transient failure — and the guards that stop each one.
+- [Shell Scripts That Talk to APIs](https://bashsnippets.xyz/guides/shell-scripts-that-talk-to-apis) — Make curl fail when the API fails, parse the response with jq instead of regex, and alert to Slack when it breaks — the reliable pattern for calling an HTTP API from bash.
 
 ## Most important pages
 

@@ -1,0 +1,109 @@
+---
+title: "Make API Requests in Bash with curl (That Actually Fail When the API Does)"
+description: "A curl wrapper for bash that checks HTTP status, times out, and retries transient errors — because plain curl exits 0 on an HTTP 500 and silently poisons everything downstream."
+slug: bash-curl-api-requests
+tags: [bash, curl, api, http, devops]
+quickAnswer: "When a bash script calls an API with a plain curl, it trusts the network, and that trust is the bug. curl exits 0 as long as it received any response, so an HTTP 500 error page or a 429 rate-limit body sails through as if it were valid data, and every downstream step quietly processes garbage. The fix is to stop treating curl ran as the request succeeded. Capture the status code separately with -w '%{http_code}', split it from the body, and branch on it: 2xx is success, 5xx and 429 are transient and worth a retry, 4xx is your bug and should fail loudly. Add --connect-timeout and --max-time so a stalled endpoint can never wedge a cron job forever. The wrapper below fetches, checks status, retries transient failures, and returns non-zero when the API is genuinely down."
+faq:
+  - question: "Why does curl exit 0 even when the API returns a 500 error?"
+    answer: "curl's exit code reports the transport, not the HTTP result. If it resolved DNS, opened the connection, and got a complete response back, curl considers its job done and exits 0 — even if that response was a 500 or 404. To make your script react to HTTP status you either add the -f/--fail flag (which makes curl exit 22 on 4xx/5xx but throws the body away) or capture the code yourself with -w '%{http_code}' and branch on it, which is what the wrapper here does."
+  - question: "What is the difference between --connect-timeout and --max-time?"
+    answer: "--connect-timeout caps only the time spent establishing the TCP connection — useful when a host is unreachable and you don't want to wait the full OS default. --max-time caps the entire operation end to end, including the transfer. In a cron job you want both: a short connect timeout so a dead host fails fast, and a hard max-time so a server that accepts the connection but then stalls forever can't leave your job hung until the next run collides with it."
+  - question: "Which HTTP status codes are safe to retry?"
+    answer: "Retry 5xx (server errors) and 429 (rate limited) — those are transient and usually clear on their own. Do not blindly retry 4xx other than 429: a 400, 401, 403, or 404 means your request is wrong, and retrying it just hammers the endpoint with the same broken call. The wrapper retries 429 and 5xx with a delay and fails immediately on other 4xx so you find out it's your bug instead of masking it."
+howToSteps:
+  - name: "Set timeouts and retry limits as named variables"
+    text: "Define CONNECT_TIMEOUT, MAX_TIME, MAX_RETRIES, and RETRY_DELAY at the top so the thresholds are visible and tunable, not buried as magic numbers inside the curl call."
+  - name: "Capture the body and status code together"
+    text: "Use curl -w $'\\n%{http_code}' so the HTTP status is appended on its own line after the body, then split the last line off as the code and keep the rest as the body."
+  - name: "Branch on the status class"
+    text: "Return success on 2xx, retry on 429 and 5xx after a short sleep, and fail loudly on any other 4xx so a broken request surfaces instead of being retried forever."
+  - name: "Return non-zero when the API is down"
+    text: "After the retry budget is exhausted, return 1 so the calling script — and cron — knows the request genuinely failed rather than assuming empty output was fine."
+author: Anguishe
+datePublished: 2026-07-08
+dateModified: 2026-07-08
+---
+
+The nightly job had been "working" for a month. It pulled a price list from a partner API, wrote it to a file, and the rest of the pipeline built from that file. Then one morning every downstream price was zero. The partner had put their API behind a new gateway that returned a 502 HTML page during deploys — and our script had been faithfully saving that HTML, parsing nothing out of it, and writing zeros ever since the last time they deployed. `curl` had exited 0 every single night. Nothing in the logs looked wrong, because to bash, nothing *was* wrong. That's the ten minutes of feeling foolish I'm not proud of: the fix was one line I'd skipped because the happy path worked.
+
+## Why does curl succeed when the request failed?
+
+`curl`'s exit code answers one question: *did I get a response back?* It says nothing about *what* that response was. A 200 with your JSON and a 500 with an error page are both, to curl, a successful round trip. So `set -euo pipefail` won't save you here — the command didn't fail, it just returned something you didn't want. Any script that treats "curl ran" as "the API returned good data" is one bad deploy on the other end away from silently processing garbage.
+
+## The wrapper: check status, time out, retry
+
+```bash
+#!/bin/bash
+# Script: api-request.sh
+# Purpose: Call an HTTP API and FAIL when the API fails — curl exits 0 on HTTP 500 by default, which silently poisons everything downstream
+# Usage: ./api-request.sh <url>
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+API_URL="${1:?Usage: api-request.sh <url>}"
+CONNECT_TIMEOUT=5   # seconds allowed to establish the TCP connection
+MAX_TIME=30         # hard ceiling on the whole request so cron can't wedge
+MAX_RETRIES=3       # transient 5xx/429 get retried; other 4xx does not
+RETRY_DELAY=2       # seconds between retries
+
+api_get() {
+  local url="$1"
+  local attempt=1
+  local response http_code body
+
+  while (( attempt <= MAX_RETRIES )); do
+    # -w appends the status code on its own line after the body, so we can split them.
+    # The || guards the transport-level failures (DNS, refused, timeout) that DO set curl's exit code.
+    if ! response=$(curl -sS \
+          --connect-timeout "$CONNECT_TIMEOUT" \
+          --max-time "$MAX_TIME" \
+          -w $'\n%{http_code}' \
+          "$url"); then
+      echo "$CROSS transport error on attempt $attempt/$MAX_RETRIES" >&2
+      attempt=$(( attempt + 1 )); sleep "$RETRY_DELAY"; continue
+    fi
+
+    http_code="${response##*$'\n'}"   # last line is the status code
+    body="${response%$'\n'*}"         # everything before it is the body
+
+    case "$http_code" in
+      2*)
+        printf '%s' "$body"
+        echo "$CHECK $http_code OK" >&2
+        return 0
+        ;;
+      429|5*)
+        echo "$CROSS $http_code (attempt $attempt/$MAX_RETRIES) — retrying" >&2
+        attempt=$(( attempt + 1 )); sleep "$RETRY_DELAY"
+        ;;
+      *)
+        echo "$CROSS $http_code — not retryable, this is our request" >&2
+        echo "$body" >&2
+        return 1
+        ;;
+    esac
+  done
+
+  echo "$CROSS gave up after $MAX_RETRIES attempts" >&2
+  return 1
+}
+
+api_get "$API_URL"
+```
+
+The body goes to stdout so you can pipe it straight into `jq`; the status commentary goes to stderr so it doesn't pollute the data. Because `api_get` returns non-zero when the API is truly down, the caller can do `data=$(api_get "$url") || exit 1` and mean it.
+
+## Why not just use --fail?
+
+`curl --fail` is the blunt version of this: it makes curl exit 22 on 4xx/5xx so `set -e` trips. It's genuinely useful for a quick one-liner. The reason I don't reach for it in a real job is that `--fail` *discards the response body on error* — so when the API hands you a 400 with `{"error":"missing field x"}`, you get the exit code but not the message that tells you what's wrong. Capturing the code and body separately costs three extra lines and gives you something to log. And `--fail` still doesn't distinguish "retry this" (429/503) from "don't bother" (401/404), which is the distinction that actually keeps a flaky endpoint from paging you.
+
+## What this still doesn't cover
+
+This handles a single request. It does not walk paginated results, refresh an OAuth token that expired mid-run, or read a `Retry-After` header to back off politely (it uses a fixed delay). Those are real and worth adding when the API demands them — see the [Shell Scripts That Talk to APIs](/guides/shell-scripts-that-talk-to-apis) guide for the fuller pattern. But the status-code check and the timeouts are the two things that turn "silently wrong for a month" into "fails tonight, loudly."
+
+Once you've got a clean 2xx body, the next job is reading fields out of it without regex — that's [parsing JSON with jq](/snippets/bash-parse-json-jq). And when a request finally does fail for real, you want to hear about it: [send the failure to Slack](/snippets/bash-slack-webhook-alerts).
+
+<AffiliateBox partner="digitalocean" />
