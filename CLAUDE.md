@@ -91,7 +91,7 @@ Affiliate URLs are **hardcoded constants in `AffiliateBox.tsx`**, not a separate
 
 Update `AffiliateBox.tsx` if these ever change. Use `<AffiliateBox partner="digitalocean" />` or `partner="namecheap"` — never inline raw affiliate URLs elsewhere.
 
-> **AdSlot status (2026-06-14):** Ad units are flag-disabled in all components pending AdSense site approval. Remove the flag when approval email is received.
+> **AdSlot status (2026-08-09):** Ad units are gated by `NEXT_PUBLIC_ADS_ENABLED` (unset = no ads render). Slot IDs are placeholders until AdSense approval; on approval, create real units and set slot IDs + the env var in Vercel.
 
 ---
 

@@ -74,7 +74,7 @@ export default function AffiliateBox({ partner, headline, className = '' }: Affi
           <a
             href={config.href}
             target="_blank"
-            rel="noopener sponsored"
+            rel="sponsored nofollow noopener noreferrer"
             className="mt-4 inline-block rounded-md bg-green px-4 py-2 font-heading text-sm font-bold text-bg no-underline transition-colors hover:bg-[#2ea043]"
           >
             {config.label}

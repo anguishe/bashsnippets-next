@@ -10,13 +10,18 @@ export default function AdSlot({
   slot: string;
   format?: string;
 }) {
+  const adsEnabled = process.env.NEXT_PUBLIC_ADS_ENABLED === 'true';
+
   useEffect(() => {
+    if (!adsEnabled) return;
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
     } catch (e) {
       console.warn('[AdSense] Push failed:', e);
     }
-  }, []);
+  }, [adsEnabled]);
+
+  if (!adsEnabled) return null;
 
   return (
     <div className="my-6" style={{ minHeight: '90px', textAlign: 'center' }}>
