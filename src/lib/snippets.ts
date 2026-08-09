@@ -466,6 +466,26 @@ export const snippets: SnippetRegistryEntry[] = [
     datePublished: '2026-07-08',
     dateModified: '2026-07-08',
   },
+  {
+    slug: 'bash-sed-find-replace',
+    title: 'Find and Replace in Files with sed (Without Corrupting Half Your Tree)',
+    description:
+      'How to find and replace text in files with sed — in-place edits, GNU vs macOS -i, word boundaries, capture groups, and a safe bulk-replace script with a dry run.',
+    tags: ['sed', 'text-processing', 'find-replace', 'scripting', 'sysadmin'],
+    difficulty: 'beginner',
+    datePublished: '2026-08-09',
+    dateModified: '2026-08-09',
+  },
+  {
+    slug: 'bash-trap-cleanup',
+    title: 'Bash trap: Clean Up Temp Files on Exit (Even When the Script Dies)',
+    description:
+      'A script that dies mid-run leaves temp litter and half-written files behind. Use trap on EXIT with mktemp and an atomic mv so every path out of the script cleans up after itself.',
+    tags: ['trap', 'mktemp', 'cleanup', 'error-handling', 'cron-ready'],
+    difficulty: 'intermediate',
+    datePublished: '2026-08-09',
+    dateModified: '2026-08-09',
+  },
 ];
 
 function mergeWithFrontmatter(snippet: SnippetRegistryEntry): SnippetMeta {

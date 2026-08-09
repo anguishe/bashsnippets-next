@@ -98,6 +98,8 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [Find Large Files in Linux](https://bashsnippets.xyz/snippets/find-large-files-linux): Find the biggest files and directories when your disk hits 100% — du + find with exclude patterns.
 - [Kill Process on Port](https://bashsnippets.xyz/snippets/kill-process-on-port): Free a port blocked by EADDRINUSE — lsof/ss discovery, SIGTERM, then SIGKILL escalation.
 - [Rsync Remote Backup](https://bashsnippets.xyz/snippets/rsync-remote-backup): Push incremental offsite backups over SSH with rsync — resumable, compressed, cron-scheduled.
+- [Find and Replace in Files with sed](https://bashsnippets.xyz/snippets/bash-sed-find-replace): In-place sed edits done safely — GNU vs macOS -i, word boundaries, capture groups, and a bulk-replace script that dry-runs first.
+- [Bash trap: Clean Up Temp Files on Exit](https://bashsnippets.xyz/snippets/bash-trap-cleanup): trap on EXIT + mktemp + atomic mv — every path out of a script cleans up, and no consumer ever sees a half-written file.
 - [The Production Bash Toolkit](https://bashsnippets.xyz/starter-kit): Paid resource ($9, one-time) — 52-page PDF field guide plus a ZIP with an operational script system, 31-function bashlib.sh shared library, template.sh, and examples. ShellCheck-clean, MIT licensed.
 
 ## License

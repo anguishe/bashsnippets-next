@@ -297,6 +297,44 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Section 3.5 — New & Popular */}
+      <section className="mx-auto max-w-4xl border-t border-border px-6 py-16">
+        <ScrollReveal>
+          <h2 className="mb-4 font-heading text-2xl font-bold text-text">
+            New &amp; Popular
+          </h2>
+          <p className="mb-8 text-muted">
+            The latest additions and the pages readers use most.
+          </p>
+          <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {[
+              { href: '/snippets/bash-sed-find-replace', label: 'new', title: 'Find and Replace in Files with sed' },
+              { href: '/snippets/bash-trap-cleanup', label: 'new', title: 'Bash trap: Clean Up Temp Files on Exit' },
+              { href: '/starter-kit', label: 'toolkit', title: 'The Production Bash Toolkit ($9)' },
+              { href: '/snippets', label: 'library', title: 'All 38 Bash Snippets' },
+              { href: '/guides/bash-scripts-every-sysadmin-needs', label: 'guide', title: 'Bash Scripts Every Sysadmin Needs' },
+              { href: '/guides/bash-scripts-that-survive-cron', label: 'guide', title: 'Bash Scripts That Survive Cron' },
+              { href: '/tools/cron-wrapper-generator', label: 'tool', title: 'Hardened Cron Wrapper Generator' },
+              { href: '/tools/shellcheck-error-decoder', label: 'tool', title: 'ShellCheck Error Decoder' },
+            ].map((item) => (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className="group flex items-baseline gap-3 rounded-[8px] border border-border bg-bg2 px-4 py-3 no-underline transition-colors duration-150 hover:border-green"
+                >
+                  <span className="font-mono text-xs uppercase tracking-widest text-muted">
+                    {item.label}
+                  </span>
+                  <span className="font-heading text-sm font-bold text-text group-hover:text-green transition-colors duration-150">
+                    {item.title}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </ScrollReveal>
+      </section>
+
       {/* Section 4 — Tools Preview */}
       <section
         id="tools"

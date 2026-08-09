@@ -1,0 +1,147 @@
+---
+title: "Find and Replace in Files with sed (Without Corrupting Half Your Tree)"
+description: "How to find and replace text in files with sed — in-place edits, GNU vs macOS -i, word boundaries, capture groups, and a safe bulk-replace script with a dry run."
+slug: bash-sed-find-replace
+tags:
+  - sed
+  - text-processing
+  - find-replace
+  - scripting
+  - sysadmin
+quickAnswer: "To find and replace text in a file with sed, run sed -i 's/old/new/g' file.txt — the s command substitutes, the g flag replaces every occurrence on each line, and -i edits the file in place. On macOS and BSD, -i requires an argument, so use sed -i '' 's/old/new/g' file.txt or the edit silently fails. To replace across many files, feed sed only the files that actually match: grep -rl 'old' . | xargs sed -i 's/old/new/g'. Before any in-place run, do a dry run by dropping -i and piping through diff, because sed matches substrings, not words — replacing port will also rewrite support and transport unless you anchor the pattern with word boundaries. For patterns containing slashes, switch the delimiter: sed 's|/var/www|/srv/www|g'."
+faq:
+  - question: "Why does sed -i fail with 'invalid command code' or 'undefined label' on macOS?"
+    answer: "macOS ships BSD sed, where -i requires a backup-suffix argument. GNU sed accepts a bare -i; BSD sed reads the next word — your s/// expression — as the suffix and then chokes on the filename. Write sed -i '' 's/old/new/g' file (empty suffix, note the space) on macOS, or install GNU sed via brew install gnu-sed and call gsed. Scripts meant to run on both should detect which sed they have, which is exactly what the script on this page does."
+  - question: "How do I replace a string that contains slashes, like a file path?"
+    answer: "Change the delimiter. The s command accepts almost any character after the s, so instead of escaping every slash — s/\\/var\\/www/\\/srv\\/www/g — use a pipe or hash: sed 's|/var/www|/srv/www|g' or sed 's#/var/www#/srv/www#g'. Pick a delimiter that does not appear in either the pattern or the replacement. This is the single biggest readability win in day-to-day sed."
+  - question: "How do I make sed match a whole word only?"
+    answer: "Anchor the pattern with word boundaries. GNU sed supports \\b: sed 's/\\bport\\b/endpoint/g' replaces port but leaves support and transport alone. BSD/macOS sed uses \\< and \\> instead: sed 's/[[:<:]]port[[:>:]]/endpoint/g'. Without boundaries sed replaces every substring match, which is how a rename quietly rewrites the middle of unrelated words."
+  - question: "How do I do a dry run before letting sed edit files in place?"
+    answer: "Drop the -i and diff the output against the original: sed 's/old/new/g' file | diff file - shows exactly which lines would change and how. For a bulk run, loop the diff over grep -rl matches first and read the whole thing before re-running with -i. Thirty seconds of diff reading is the difference between a clean rename and restoring from backup."
+  - question: "Can sed replace text across multiple lines?"
+    answer: "Not with a plain s/// — sed processes one line at a time, so a pattern spanning a newline never matches. GNU sed can slurp the whole file with -z (NUL-separated input) for simple cases: sed -z 's/foo\\nbar/baz/'. For anything genuinely multi-line — collapsing blocks, rewriting stanzas — reach for awk or perl -0pe instead. Knowing where sed stops is as useful as knowing sed."
+howToSteps:
+  - name: "Test the pattern without -i"
+    text: "Run sed 's/old/new/g' file | diff file - and read every changed line. sed matches substrings, so this is where you catch port matching inside support."
+  - name: "Anchor the pattern if you mean a whole word"
+    text: "Use \\bword\\b on GNU sed or [[:<:]]word[[:>:]] on BSD so the replacement cannot land in the middle of a longer identifier."
+  - name: "Pick a clean delimiter for paths"
+    text: "If the pattern or replacement contains slashes, write s|old|new|g instead of escaping — s#...# and s|...| behave identically to s/.../."
+  - name: "Target only files that match"
+    text: "grep -rl 'old' . | xargs sed -i 's/old/new/g' edits only files containing the pattern, instead of rewriting the mtime of every file in the tree."
+  - name: "Keep a backup on the first in-place run"
+    text: "sed -i.bak 's/old/new/g' file writes file.bak next to the original. Delete the .bak files after you have confirmed the result — not before."
+author: Anguishe
+datePublished: 2026-08-09
+dateModified: 2026-08-09
+---
+
+The rename looked harmless: our config keys were moving from `port` to `listen_port`, and I had forty-one YAML files to update. One `sed -i 's/port/listen_port/g'` across the tree, commit, deploy to staging. Eleven minutes later staging was down and the deploy log was full of words that don't exist: `suplisten_port`, `translisten_port`, `relisten_port`. sed had done exactly what I asked — replaced the substring `port` everywhere it appeared, including inside `support`, `transport`, and `report`. The part I wasn't willing to repeat was explaining to the on-call why the incident channel was named `#suplisten_port-escalations` for an afternoon, because the rename had also walked through a JSON fixture that seeded our chat integration.
+
+The problem is that `sed` has no idea what a word is unless you tell it. The `s` command matches *substrings*. That's the trap in almost every find-and-replace horror story: not the tool, the unanchored pattern, applied in place, with no dry run, across more files than you looked at.
+
+Here is the same operation done so it can't bite.
+
+## The one-liner, done right
+
+The basic form everyone knows:
+
+```bash
+sed -i 's/old/new/g' file.txt
+```
+
+`s` substitutes, `g` replaces every occurrence on the line instead of only the first, `-i` writes the change back to the file. Three refinements turn it from a loaded gun into a tool:
+
+```bash
+# 1. Word boundaries — replace port, not sup·port
+sed -i 's/\bport\b/listen_port/g' config.yml
+
+# 2. A sane delimiter when the pattern has slashes
+sed -i 's|/var/www|/srv/www|g' nginx.conf
+
+# 3. A backup on the first run
+sed -i.bak 's/\bport\b/listen_port/g' config.yml
+```
+
+`\b` marks a word boundary on GNU sed, so the pattern only matches where `port` starts and ends as its own word. The delimiter after `s` is whatever character you put there — `|` and `#` are the usual picks when the pattern is a path, and they save you from the leaning-toothpick escape festival of `s/\/var\/www\/...`. And `-i.bak` leaves the original beside the edit, which costs nothing and has saved me more than once.
+
+One portability landmine before the script: on macOS and BSD, `-i` *requires* an argument. `sed -i 's/a/b/' file` on a Mac doesn't edit in place — BSD sed consumes your `s///` expression as the backup suffix and then fails on the filename with an error that mentions neither `-i` nor what you did wrong. The portable spelling is `sed -i '' 's/a/b/' file` on BSD, bare `-i` on GNU. A script that runs on both has to check.
+
+## A bulk replace that shows its work
+
+```bash
+#!/bin/bash
+# Script: safe-replace.sh
+# Purpose: Bulk find-and-replace that dry-runs first — because an unanchored
+#          sed -i across a tree rewrites substrings you never looked at
+# Usage: ./safe-replace.sh 'pattern' 'replacement' [path] [--apply]
+# Tested: Ubuntu 22.04 LTS, Fedora 39, macOS Ventura
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+PATTERN="${1:?usage: safe-replace.sh 'pattern' 'replacement' [path] [--apply]}"
+REPLACEMENT="${2:?missing replacement}"
+SEARCH_PATH="${3:-.}"
+MODE="${4:---dry-run}"
+
+# BSD sed (macOS) needs -i '' ; GNU sed needs bare -i. Detect once.
+if sed --version >/dev/null 2>&1; then
+  SED_INPLACE=(sed -i)          # GNU
+else
+  SED_INPLACE=(sed -i '')       # BSD/macOS
+fi
+
+# Only touch files that actually contain the pattern — everything else
+# keeps its mtime, which matters for build caches and rsync.
+mapfile -t FILES < <(grep -rl --exclude-dir=.git -- "$PATTERN" "$SEARCH_PATH" || true)
+
+if [ "${#FILES[@]}" -eq 0 ]; then
+  echo "$CROSS no files under $SEARCH_PATH match: $PATTERN"
+  exit 1
+fi
+
+echo "$CHECK ${#FILES[@]} file(s) match"
+
+if [ "$MODE" != "--apply" ]; then
+  # Dry run: show every line that would change, change nothing.
+  for f in "${FILES[@]}"; do
+    echo "--- $f"
+    sed "s|$PATTERN|$REPLACEMENT|g" "$f" | diff "$f" - || true
+  done
+  echo "$CHECK dry run only — re-run with --apply to edit in place"
+  exit 0
+fi
+
+for f in "${FILES[@]}"; do
+  "${SED_INPLACE[@]}" "s|$PATTERN|$REPLACEMENT|g" "$f"
+  echo "$CHECK edited $f"
+done
+```
+
+The shape of the script is the lesson. `grep -rl` builds the list of files that genuinely contain the pattern, so sed never touches — never even rewrites the modification time of — a file with nothing to change. The default mode is the dry run: every affected file gets a `diff` of what *would* happen, and nothing happens until you come back with `--apply`. That two-pass habit is what catches the `support` problem while it's still a diff on your screen instead of a corrupted tree in git status.
+
+Run it like this:
+
+```bash
+chmod +x safe-replace.sh
+./safe-replace.sh '\bport\b' 'listen_port' ./config          # read the diffs
+./safe-replace.sh '\bport\b' 'listen_port' ./config --apply  # then commit to it
+```
+
+<Callout type="warning">
+The replacement side has traps of its own. An unescaped `&` in the replacement expands to the *entire matched pattern* — `s/error/& (fatal)/` turns `error` into `error (fatal)`, which is occasionally what you want and usually a surprise. Escape it as `\&` when you mean a literal ampersand. Capture groups work the way you'd hope: `sed -E 's/(user)_([0-9]+)/\2_\1/'` swaps `user_42` to `42_user`.
+</Callout>
+
+## Where sed stops
+
+`s///` operates line by line, so a pattern that spans a newline will never match — that's `awk` or `perl -0pe` territory. And if you're parsing structured formats (JSON especially), field-aware tools beat regex surgery: [jq exists so you don't run sed on API responses](/snippets/bash-parse-json-jq). sed's home turf is exactly what this page covers: plain-text config, source trees, and logs, where line-oriented substitution is the natural unit of work.
+
+The staging outage ended with `git checkout -- .` and the rename redone with `\bport\b` — total damage one afternoon and some dignity. The habit that stuck: sed edits are cheap, but *reading the diff first* is cheaper.
+
+Finding the text before you replace it is half this job — [searching files with grep](/snippets/search-files-for-text-grep) covers the discovery side, and [bash string manipulation](/snippets/bash-string-manipulation) handles the cases where the text is already in a variable and sed is overkill. The wider toolkit — awk, cut, sort, and where each one wins — is in the [Bash Text Processing guide](/guides/bash-text-processing), and the [Grep Pattern Builder](/tools/grep-pattern-builder) will construct the anchored pattern for you interactively.
+
+<AffiliateBox partner="digitalocean" />
+
+Want a safe place to practice a tree-wide replace before doing it on anything real? A throwaway droplet with a cloned repo is the consequence-free sandbox. The rest of the library is at [bashsnippets.xyz](https://bashsnippets.xyz) — start with [error handling](/snippets/bash-error-handling), since `set -euo pipefail` is the reason the script above stops on the first surprise instead of plowing through forty more files.

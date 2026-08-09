@@ -1,0 +1,122 @@
+---
+title: "Bash trap: Clean Up Temp Files on Exit (Even When the Script Dies)"
+description: "A script that dies mid-run leaves temp litter and half-written files behind. Use trap on EXIT with mktemp and an atomic mv so every path out of the script cleans up after itself."
+slug: bash-trap-cleanup
+tags:
+  - trap
+  - mktemp
+  - cleanup
+  - error-handling
+  - cron-ready
+quickAnswer: "To clean up temp files when a bash script exits, register a cleanup function with trap: trap cleanup EXIT. The EXIT pseudo-signal fires on every way out of the script — normal completion, exit 1, a set -e abort, Ctrl-C, or a kill — so cleanup code runs exactly once no matter which path the script took. Pair it with mktemp, which creates a unique temp file (or directory with -d) that no parallel run can collide with: TMP_FILE=$(mktemp) followed immediately by trap 'rm -f \"$TMP_FILE\"' EXIT. Register the trap on the very next line after creating the resource, before any command that can fail. For output files, write to the temp path and mv it into place as the last step — mv on the same filesystem is atomic, so readers see either the complete old file or the complete new one, never a half-written state."
+faq:
+  - question: "What is the difference between trap on EXIT and trap on INT TERM?"
+    answer: "EXIT is a bash pseudo-signal that fires on every termination path: normal end of script, an explicit exit, a set -e failure, and after any real signal handler runs. INT (Ctrl-C) and TERM (kill's default) are actual signals. For cleanup, trap cleanup EXIT alone covers nearly everything, because bash runs the EXIT trap even when the script is dying from an unhandled INT or TERM. Trap INT or TERM separately only when you need signal-specific behavior — logging who killed you, or converting the signal into a specific exit code."
+  - question: "Why register the trap immediately after mktemp instead of at the top of the script?"
+    answer: "Because the gap is a leak. If the trap references $TMP_FILE but the variable is created three commands later, a failure in those three commands fires the trap with an empty variable — rm -f \"\" does nothing and the file never existed anyway, fine. But the reverse order is the real bug: create the file first, and any failure before the trap line exits without cleanup. The rule that removes all the thinking: resource on one line, trap on the next, nothing in between."
+  - question: "Does the EXIT trap run if the script is killed with kill -9?"
+    answer: "No. SIGKILL cannot be caught, blocked, or handled by any process, so no trap runs — the kernel removes the process outright. This is why kill -9 is the last resort, not the first: kill's default SIGTERM gives your EXIT trap a chance to clean up. Your defense against -9 and power loss is designing the cleanup to be repeatable: mktemp under /tmp (cleared on reboot or by tmpfiles aging) and atomic mv for outputs mean even an uncatchable death leaves nothing that corrupts the next run."
+  - question: "Why did my trap not fire — I set it inside a subshell?"
+    answer: "A trap only exists in the shell process that set it. Set a trap inside $( ) command substitution, a ( ) group, or a pipeline segment, and it fires when that subshell exits, not when your script does — and traps set in the parent do not automatically fire on a subshell's exit either. Set cleanup traps at the top level of the script. If a subshell creates its own temp resources, it needs its own trap inside the subshell."
+  - question: "How do I preserve the script's real exit code inside the cleanup function?"
+    answer: "Capture $? on the first line of the cleanup function: cleanup() { local code=$?; rm -f \"$TMP_FILE\"; exit \"$code\"; }. When the EXIT trap fires, $? holds the exit status the script was about to leave with. If cleanup runs commands before reading $?, you lose the original code — and a failing script that exits 0 because its cleanup succeeded is a monitoring blind spot that hides real failures from cron and CI."
+howToSteps:
+  - name: "Create temp resources with mktemp"
+    text: "TMP_FILE=$(mktemp) or TMP_DIR=$(mktemp -d). Never hardcode /tmp/myscript.tmp — two overlapping runs will fight over it, and predictable temp names in a world-writable directory are a security hole."
+  - name: "Register the cleanup trap on the next line"
+    text: "trap cleanup EXIT immediately after creating the resource, before any command that can fail. EXIT covers normal completion, set -e aborts, Ctrl-C, and kill."
+  - name: "Make cleanup capture the exit code first"
+    text: "First line of the function: local code=$?. Last line: exit \"$code\". Otherwise the cleanup's own success overwrites the script's failure status."
+  - name: "Write output to the temp path, not the final path"
+    text: "All generation happens against $TMP_FILE. The final destination is untouched while the script runs, so a mid-run death never leaves a half-written file where a consumer will find it."
+  - name: "Move into place as the last step"
+    text: "mv \"$TMP_FILE\" \"$FINAL_PATH\" — atomic on the same filesystem. After the mv, the file is gone from the trap's rm -f, which is why cleanup uses -f and stays silent."
+author: Anguishe
+datePublished: 2026-08-09
+dateModified: 2026-08-09
+---
+
+The report generator had been dying at 02:14 for eleven nights before anyone noticed, and the way we noticed was worse than the dying. It wrote its CSV straight to the export directory, a downstream loader picked that file up at 02:30, and the loader was perfectly happy with a file that ended mid-row — it loaded 40% of the data and reported success. Eleven days of a revenue dashboard quietly built on partial numbers. The generator's actual bug was a five-minute fix; the part that took a week was re-deriving which of the loaded days were poisoned, because nothing anywhere had *failed*. And when I finally logged into the box, `/tmp` had 300-odd orphaned working directories from every previous crash, which was the machine telling me the script had been exiting uncleanly for months and I hadn't listened.
+
+Two habits prevent the whole class of failure: every temporary resource gets a `trap` that removes it on *any* exit, and every output file is written somewhere else and moved into place atomically. Neither is more than four lines.
+
+## The pattern
+
+```bash
+#!/bin/bash
+# Script: nightly-report.sh
+# Purpose: Generate a CSV without ever exposing a half-written file to
+#          downstream consumers — and without littering /tmp on crashes
+# Usage: ./nightly-report.sh /var/exports/report.csv
+# Tested: Ubuntu 22.04 LTS, Fedora 39, macOS Ventura
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+FINAL_PATH="${1:?usage: nightly-report.sh /path/to/output.csv}"
+
+# mktemp gives a unique, race-free path — parallel runs can't collide,
+# and nothing can pre-plant a file at a name it guessed.
+TMP_FILE=$(mktemp)
+
+cleanup() {
+  # $? first, before any command overwrites it — this is the exit code
+  # the script was actually dying with.
+  local code=$?
+  rm -f "$TMP_FILE"
+  if [ "$code" -ne 0 ]; then
+    echo "$CROSS failed with exit $code — temp cleaned, $FINAL_PATH untouched" >&2
+  fi
+  exit "$code"
+}
+# Registered on the line after mktemp: from this point there is no way out
+# of the script that leaves the temp file behind (short of kill -9).
+trap cleanup EXIT
+
+# --- the real work writes ONLY to the temp path ---
+generate_report_rows > "$TMP_FILE"
+
+# Sanity gate: refuse to publish an implausibly small file. A truncated
+# output should fail loudly here, not get loaded downstream at 02:30.
+MIN_BYTES=1024
+if [ "$(wc -c < "$TMP_FILE")" -lt "$MIN_BYTES" ]; then
+  echo "$CROSS output under ${MIN_BYTES} bytes — refusing to publish" >&2
+  exit 1
+fi
+
+# mv on the same filesystem is atomic: consumers see the old complete file
+# or the new complete file, never anything in between.
+mv "$TMP_FILE" "$FINAL_PATH"
+echo "$CHECK published $FINAL_PATH"
+```
+
+Walk the failure paths and watch what happens. `generate_report_rows` dies halfway: `set -e` aborts the script, the EXIT trap fires, the partial file is deleted, and `$FINAL_PATH` still holds yesterday's complete report — the loader at 02:30 gets stale data, which is a monitoring alert, not silent corruption. Someone Ctrl-Cs it, or the box's shutdown sends SIGTERM: same story, the EXIT trap runs on the way down. The script finishes cleanly: `mv` has already relocated the temp file, `rm -f` in the trap finds nothing and says nothing, and the exit code passes through untouched because `cleanup` captured `$?` before doing anything else.
+
+That `local code=$?` line deserves a second look, because it's the subtlest bug in the pattern. The trap runs *your* commands, and those commands set `$?` like any others. Skip the capture, and a script that failed with exit 3 runs `rm -f` (which succeeds), and the trap's implicit return status becomes the script's status: `0`. Cron sees success. Your alerting sees success. The failure is invisible — which is precisely the disease this whole page is trying to cure.
+
+## Temp directories, multiple resources
+
+When the script needs several working files, don't juggle several traps — make one temp directory and remove it whole:
+
+```bash
+TMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+sort huge-input.txt   > "$TMP_DIR/sorted.txt"
+join "$TMP_DIR/sorted.txt" lookup.txt > "$TMP_DIR/joined.txt"
+```
+
+One resource, one trap, one `rm -rf` — and every intermediate file inherits the cleanup for free. This is also the fix for the 300 orphaned directories: they came from a script that did `mkdir /tmp/work.$$` with the cleanup at the *bottom* of the script, where half the failure paths never reached it. Cleanup that only runs on success isn't cleanup, it's decoration.
+
+<Callout type="warning">
+Two scoping rules save you a confused hour each. First, `EXIT` traps belong at the top level — a trap set inside `$( )` or `( )` lives and dies with that subshell, and the parent's trap doesn't fire when a subshell exits. Second, registering a second `trap ... EXIT` *replaces* the first, it doesn't stack. If two things need cleanup, put both in one function rather than setting two traps.
+</Callout>
+
+The one thing `trap` cannot save you from is `kill -9`, which no process can catch. That's not a reason to skip the trap — it's the reason the rest of the design is shaped the way it is: `mktemp` puts orphans where the OS eventually clears them, and atomic `mv` means even an uncatchable death can't publish a torn file. The trap handles every ordinary death; the architecture handles the extraordinary ones.
+
+This page is one leg of the unattended-script survival kit. [`set -euo pipefail`](/snippets/bash-error-handling) makes failures *stop* the script so the trap has something honest to report; [`timeout`](/snippets/bash-timeout-command) bounds a hang so the script dies (and cleans up) instead of blocking forever; [`flock`](/snippets/bash-flock-single-instance) keeps overlapping runs from stepping on each other's files. The [Hardened Cron Wrapper Generator](/tools/cron-wrapper-generator) assembles all of it around any command, and the full argument for why cron jobs need this armor is in [Bash Scripts That Survive Cron](/guides/bash-scripts-that-survive-cron).
+
+<AffiliateBox partner="digitalocean" />
+
+The cheapest way to trust this pattern is to break it on purpose: run the script on a scratch droplet, `kill` it mid-generate, and confirm `/tmp` is clean and the output file is still yesterday's. The rest of the library is at [bashsnippets.xyz](https://bashsnippets.xyz) — [Slack alerts from bash](/snippets/bash-slack-webhook-alerts) pairs naturally with this one, so the 02:14 death pages you at 02:14 instead of introducing itself through your dashboard.
