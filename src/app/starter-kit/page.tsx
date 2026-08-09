@@ -1,5 +1,6 @@
 import AffiliateBox from '@/components/AffiliateBox';
 import Breadcrumb from '@/components/Breadcrumb';
+import FaqTerminal from '@/components/FaqTerminal';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -36,6 +37,34 @@ export const metadata: Metadata = {
   },
 };
 
+const toolkitFaq = [
+  {
+    question: 'Can I use the toolkit commercially?',
+    answer:
+      'Yes. Everything ships under the MIT license — unlimited personal and commercial use, no attribution required. The LICENSE file in the ZIP spells out exactly what you are allowed to deploy.',
+  },
+  {
+    question: 'How is the toolkit delivered?',
+    answer:
+      'Instant download via Gumroad after purchase: one ZIP with the operational script system, bashlib.sh shared library, template.sh, README, LICENSE, and worked examples, plus the 52-page PDF field guide.',
+  },
+  {
+    question: 'How is this different from the free snippets and the GitHub repo?',
+    answer:
+      'The free snippets and the GitHub scripts each solve one problem at a time. The toolkit is a cohesive operational system: interconnected scripts that share the 31-function bashlib.sh library, the same strict-mode conventions, and one deployment baseline you copy to every new host.',
+  },
+  {
+    question: 'What systems does it run on?',
+    answer:
+      'Tested on Ubuntu 22.04+, Debian 12, and macOS with Homebrew bash. Every file passes ShellCheck with no suppressions, so it drops into repos with existing shell lint gates without carve-outs.',
+  },
+  {
+    question: 'Is this a subscription?',
+    answer:
+      'No. One-time $9 purchase, instant download, no recurring charges.',
+  },
+];
+
 const starterKitSchemas = [
   {
     '@context': 'https://schema.org',
@@ -43,12 +72,31 @@ const starterKitSchemas = [
     name: 'The Production Bash Toolkit',
     description:
       'A 52-page PDF field guide plus a ZIP containing a cohesive operational bash script system, bashlib.sh shared library, template.sh, README, LICENSE, and examples. ShellCheck-clean.',
+    image: 'https://bashsnippets.xyz/ogimage.png',
+    url: `${SITE_URL}/starter-kit`,
+    brand: {
+      '@type': 'Brand',
+      name: 'BashSnippets',
+    },
     offers: {
       '@type': 'Offer',
       price: '9.00',
       priceCurrency: 'USD',
       availability: 'https://schema.org/InStock',
+      url: `${SITE_URL}/starter-kit`,
     },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: toolkitFaq.map((f) => ({
+      '@type': 'Question',
+      name: f.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: f.answer,
+      },
+    })),
   },
   {
     '@context': 'https://schema.org',
@@ -300,6 +348,13 @@ export default function StarterKitPage() {
             Instant download · MIT License · No subscription
           </p>
         </div>
+
+        <section className="mt-10">
+          <h2 className="mb-6 font-heading text-xl font-bold text-text">
+            Frequently Asked Questions
+          </h2>
+          <FaqTerminal items={toolkitFaq} label="faq — toolkit" />
+        </section>
 
         <AffiliateBox
           partner="digitalocean"

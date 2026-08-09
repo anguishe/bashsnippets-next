@@ -13,6 +13,7 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - 12 interactive tools at /tools/ including script builders, command generators, and debuggers
 - Bash Boilerplate Generator tool
 - Beginner FAQ section covering the most common bash questions
+- The same scripts as a clonable MIT repo at https://github.com/anguishe/bashsnippets — ShellCheck-clean, each linked back to its line-by-line explanation on the site
 
 ## Script Categories
 
@@ -97,6 +98,7 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [Find Large Files in Linux](https://bashsnippets.xyz/snippets/find-large-files-linux): Find the biggest files and directories when your disk hits 100% — du + find with exclude patterns.
 - [Kill Process on Port](https://bashsnippets.xyz/snippets/kill-process-on-port): Free a port blocked by EADDRINUSE — lsof/ss discovery, SIGTERM, then SIGKILL escalation.
 - [Rsync Remote Backup](https://bashsnippets.xyz/snippets/rsync-remote-backup): Push incremental offsite backups over SSH with rsync — resumable, compressed, cron-scheduled.
+- [The Production Bash Toolkit](https://bashsnippets.xyz/starter-kit): Paid resource ($9, one-time) — 52-page PDF field guide plus a ZIP with an operational script system, 31-function bashlib.sh shared library, template.sh, and examples. ShellCheck-clean, MIT licensed.
 
 ## License
 
