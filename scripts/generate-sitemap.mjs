@@ -12,9 +12,6 @@ const staticEntries = [
   { url: `${SITE_URL}/guides`,                                    lastmod: '2026-06-22', changefreq: 'weekly',  priority: 0.8  },
   { url: `${SITE_URL}/starter-kit`,                               lastmod: '2026-06-15', changefreq: 'monthly', priority: 0.8  },
   { url: `${SITE_URL}/about`,                                     lastmod: '2026-06-15', changefreq: 'monthly', priority: 0.5  },
-  { url: `${SITE_URL}/privacy`,                                   lastmod: '2026-06-17', changefreq: 'yearly',  priority: 0.3  },
-  { url: `${SITE_URL}/contact`,                                   lastmod: '2026-06-10', changefreq: 'yearly',  priority: 0.3  },
-  { url: `${SITE_URL}/terms`,                                     lastmod: '2026-06-06', changefreq: 'yearly',  priority: 0.3  },
   { url: `${SITE_URL}/guides/bash-scripts-every-sysadmin-needs`,  lastmod: '2026-06-15', changefreq: 'weekly',  priority: 0.8  },
   { url: `${SITE_URL}/guides/bash-scripting-for-ci-cd-pipelines`, lastmod: '2026-06-10', changefreq: 'weekly',  priority: 0.8  },
   { url: `${SITE_URL}/guides/bash-text-processing`,               lastmod: '2026-06-17', changefreq: 'weekly',  priority: 0.8  },
@@ -35,8 +32,13 @@ function parseRegistry(filePath) {
     .map(m => ({ date: m[1], index: m.index }));
 
   return slugs
-    .map(s => ({ slug: s.slug, dateModified: dates.find(d => d.index > s.index)?.date }))
-    .filter(e => e.dateModified);
+    .map((s, i) => ({
+      slug: s.slug,
+      dateModified: dates.find(d => d.index > s.index)?.date,
+      // entry body = text up to the next slug; `noindex: true` there excludes it from the sitemap
+      noindex: /noindex:\s*true/.test(content.slice(s.index, slugs[i + 1]?.index)),
+    }))
+    .filter(e => e.dateModified && !e.noindex);
 }
 
 const snippets = parseRegistry('src/lib/snippets.ts');

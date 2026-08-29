@@ -7,7 +7,6 @@ import Nav from '@/components/Nav';
 import './globals.css';
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? 'G-6B01TGE8XS';
-const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? 'ca-pub-5399156622542127';
 
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
@@ -220,11 +219,6 @@ export default function RootLayout({
             })();
           `}
         </Script>
-        <Script
-          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
-          strategy="lazyOnload"
-          crossOrigin="anonymous"
-        />
       </body>
     </html>
   );

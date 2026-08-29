@@ -140,6 +140,7 @@ export async function generateMetadata({
   return {
     title: displayTitle,
     description: snippet.description,
+    ...(snippet.noindex && { robots: { index: false, follow: true } }),
     alternates: {
       canonical: `${SITE_URL}/snippets/${snippet.slug}`,
     },
