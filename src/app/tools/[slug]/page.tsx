@@ -1,5 +1,3 @@
-import AffiliateBox from '@/components/AffiliateBox';
-import ToolkitCTA from '@/components/ToolkitCTA';
 import FaqTerminal from '@/components/FaqTerminal';
 import ToolRenderer from '@/components/tools/ToolRenderer';
 import { getSnippetBySlug } from '@/lib/snippets';
@@ -86,24 +84,9 @@ function buildSchemas(
         }
       : null;
 
-  const howTo =
-    tool.howToUse.length > 0
-      ? {
-          '@context': 'https://schema.org',
-          '@type': 'HowTo',
-          name: `How to use the ${tool.title}`,
-          step: tool.howToUse.map((text, i) => ({
-            '@type': 'HowToStep',
-            position: i + 1,
-            text,
-          })),
-        }
-      : null;
-
   return [
     softwareApplication,
     breadcrumb,
-    ...(howTo ? [howTo] : []),
     ...(faqSchema ? [faqSchema] : []),
   ];
 }
@@ -217,12 +200,6 @@ export default async function ToolPage({ params }: PageProps) {
             ))}
           </ol>
         </section>
-
-        {/* Section 4: Affiliate boxes */}
-        <AffiliateBox partner="digitalocean" className="mt-10" />
-        <AffiliateBox partner="namecheap" />
-
-        <ToolkitCTA className="mt-10" />
 
         {/* Section 5: FAQ */}
         {tool.faqs.length > 0 && (

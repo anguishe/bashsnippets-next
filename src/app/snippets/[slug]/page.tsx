@@ -1,6 +1,4 @@
 import AdSlot from '@/components/AdSlot';
-import AffiliateBox from '@/components/AffiliateBox';
-import ToolkitCTA from '@/components/ToolkitCTA';
 import FaqTerminal from '@/components/FaqTerminal';
 import { mdxComponents } from '@/components/MDXComponents';
 import { getSnippetWordCount } from '@/lib/mdx-frontmatter';
@@ -100,25 +98,8 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string, wordCount: nu
         }
       : null;
 
-  const howToSchema =
-    snippet.howToSteps?.length
-      ? {
-          '@context': 'https://schema.org',
-          '@type': 'HowTo',
-          name: snippet.title,
-          description: snippet.description,
-          step: snippet.howToSteps.map((step, i) => ({
-            '@type': 'HowToStep',
-            position: i + 1,
-            name: step.name,
-            text: step.text,
-          })),
-        }
-      : null;
-
   const schemas: object[] = [articleSchema, breadcrumbSchema];
   if (snippet.faq?.length && faqSchema) schemas.push(faqSchema);
-  if (snippet.howToSteps?.length && howToSchema) schemas.push(howToSchema);
   return schemas.map((schema) => JSON.stringify(schema));
 }
 
@@ -287,11 +268,6 @@ export default async function SnippetPage({ params }: PageProps) {
             </Link>
           </div>
         </div>
-
-        <AffiliateBox partner="digitalocean" />
-        <AffiliateBox partner="namecheap" />
-
-        <ToolkitCTA className="mt-10" />
 
         <section className="mt-12">
           <h2 className="mb-6 font-heading text-xl font-bold text-text">
