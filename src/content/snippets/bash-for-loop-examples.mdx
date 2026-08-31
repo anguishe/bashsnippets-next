@@ -4,7 +4,7 @@ description: "A for loop over the output of ls word-splits on filenames with spa
 slug: bash-for-loop-examples
 tags: [bash, loops, for, scripting, beginner]
 quickAnswer: "A bash for loop repeats a block of code once per item in a list. The safe forms are: loop a glob directly (for f in *.log) to iterate files, which handles spaces and special characters correctly; loop a brace range (for i in {1..10}) or a C-style counter (for ((i=0; i<10; i++))) for numbers; and loop an array with the quoted expansion (for x in \"${items[@]}\") so each element stays intact. The form to avoid is for f in $(ls) — command substitution word-splits on whitespace, so a file named report final.txt becomes two loop iterations, report and final.txt, and the real file is never touched. Always quote the loop variable when you use it (\"$f\"), because the split happens at use, not only at the loop header. Glob over parse, quote on use, and the loop stops surprising you."
-author: Anguishe
+author: "Travis"
 datePublished: 2026-06-17
 dateModified: 2026-06-17
 faq:

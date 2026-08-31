@@ -31,7 +31,7 @@ howToSteps:
     text: "When attempt reaches max_attempts, log the final failure to stderr and return 1 so the caller's set -e or its own error handling can react."
   - name: "Call it on transient operations"
     text: "Use it to wait for a port (retry 6 nc -z db 5432), to survive a flaky download, or to ride out a recovering API — never on deterministic failures like a 404."
-author: Anguishe
+author: "Travis"
 datePublished: 2026-06-22
 dateModified: 2026-06-22
 ---

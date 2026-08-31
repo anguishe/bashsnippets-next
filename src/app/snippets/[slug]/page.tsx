@@ -39,7 +39,15 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string, wordCount: nu
     author: {
       '@type': 'Person',
       name: snippet.author,
+      alternateName: 'Anguishe',
       '@id': `${SITE_URL}/about`,
+      url: `${SITE_URL}/about`,
+      sameAs: [
+        'https://github.com/anguishe',
+        'https://www.youtube.com/@BashSnippets',
+        'https://dev.to/bashsnippets',
+        'https://medium.com/@anguisheh1',
+      ],
     },
     publisher: {
       '@type': 'Organization',

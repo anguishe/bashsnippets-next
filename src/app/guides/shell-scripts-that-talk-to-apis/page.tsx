@@ -50,7 +50,8 @@ const techArticleSchema = {
   dateModified: '2026-07-08',
   author: {
     '@type': 'Person',
-    name: 'Anguishe',
+    name: 'Travis',
+    alternateName: 'Anguishe',
     url: `${SITE_URL}/about`,
   },
   publisher: {

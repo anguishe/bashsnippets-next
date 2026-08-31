@@ -10,13 +10,13 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 export const metadata: Metadata = {
   title: 'About BashSnippets — Bash Script Author & Linux Developer',
   description:
-    `BashSnippets is a free bash script library built by a self-taught Linux developer. ${snippets.length} tested scripts, ${tools.length} browser tools, zero logins. Learn who built it and how.`,
+    `BashSnippets is a free bash script library built by Travis, a self-taught Linux developer. ${snippets.length} tested scripts, ${tools.length} browser tools, zero logins. Learn who built it and how.`,
   alternates: {
     canonical: `${SITE_URL}/about`,
   },
   openGraph: {
     title: 'About BashSnippets — Bash Script Author & Linux Developer',
-    description: `BashSnippets is a free bash script library built by a self-taught Linux developer. ${snippets.length} tested scripts, ${tools.length} browser tools, zero logins.`,
+    description: `BashSnippets is a free bash script library built by Travis, a self-taught Linux developer. ${snippets.length} tested scripts, ${tools.length} browser tools, zero logins.`,
     url: `${SITE_URL}/about`,
     type: 'website',
     images: [{ url: 'https://bashsnippets.xyz/ogimage.png', width: 1200, height: 630, alt: 'About BashSnippets — Bash Script Library' }],
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'About BashSnippets — Bash Script Author & Linux Developer',
-    description: `BashSnippets is a free bash script library built by a self-taught Linux developer. ${snippets.length} tested scripts, ${tools.length} browser tools, zero logins.`,
+    description: `BashSnippets is a free bash script library built by Travis, a self-taught Linux developer. ${snippets.length} tested scripts, ${tools.length} browser tools, zero logins.`,
   },
 };
 
@@ -34,20 +34,24 @@ const aboutSchemas = [
     '@type': 'WebPage',
     name: 'About BashSnippets',
     url: `${SITE_URL}/about`,
-    description: `BashSnippets is a free bash script library built by a self-taught Linux developer. ${snippets.length} tested scripts, ${tools.length} browser tools, zero logins.`,
+    description: `BashSnippets is a free bash script library built by Travis, a self-taught Linux developer. ${snippets.length} tested scripts, ${tools.length} browser tools, zero logins.`,
     isPartOf: { '@type': 'WebSite', name: 'BashSnippets.xyz', url: SITE_URL },
   },
   {
     '@context': 'https://schema.org',
     '@type': 'Person',
-    name: 'Anguishe',
+    name: 'Travis',
+    alternateName: 'Anguishe',
     url: `${SITE_URL}/about`,
     email: 'anguisheh1@gmail.com',
+    jobTitle: 'Linux developer & bash script author',
+    worksFor: { '@id': `${SITE_URL}/#organization` },
     sameAs: [
+      'https://github.com/anguishe',
       'https://www.youtube.com/@BashSnippets',
       'https://dev.to/bashsnippets',
+      'https://medium.com/@anguisheh1',
       'https://www.tiktok.com/@BashSnippets',
-      'https://github.com/anguishe/bashsnippets',
     ],
   },
   {
@@ -87,8 +91,9 @@ export default function AboutPage() {
             Who runs it
           </h2>
           <p className="text-sm leading-relaxed text-muted">
-            BashSnippets is a free bash script library run by a self-taught Linux
-            developer based in Florida. Started on Ubuntu in 2013, moved through
+            BashSnippets is a free bash script library run by Travis — a
+            self-taught Linux developer based in Florida, publishing here and on
+            dev.to under the handle Anguishe. Started on Ubuntu in 2013, moved through
             Debian and Fedora as different jobs demanded different environments,
             and picked up enough bash along the way to automate the repetitive
             parts of sysadmin work.

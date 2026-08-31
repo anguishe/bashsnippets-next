@@ -31,7 +31,7 @@ howToSteps:
     text: "Everything after a successful flock runs as the single instance. Nothing extra is needed — the lock is held for as long as fd 200 stays open."
   - name: "Let the lock release on exit"
     text: "Do not rm the lock file or close the descriptor manually. When the process exits — normally, on error, on crash, or on kill -9 — the kernel closes fd 200 and releases the lock for you."
-author: Anguishe
+author: "Travis"
 datePublished: 2026-06-22
 dateModified: 2026-06-22
 ---

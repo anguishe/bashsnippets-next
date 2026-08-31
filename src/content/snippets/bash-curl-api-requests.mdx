@@ -20,7 +20,7 @@ howToSteps:
     text: "Return success on 2xx, retry on 429 and 5xx after a short sleep, and fail loudly on any other 4xx so a broken request surfaces instead of being retried forever."
   - name: "Return non-zero when the API is down"
     text: "After the retry budget is exhausted, return 1 so the calling script — and cron — knows the request genuinely failed rather than assuming empty output was fine."
-author: Anguishe
+author: "Travis"
 datePublished: 2026-07-08
 dateModified: 2026-07-08
 ---

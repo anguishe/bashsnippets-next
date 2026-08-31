@@ -4,7 +4,7 @@ description: "A function reused the variable name 'target' without declaring it 
 slug: bash-functions-arguments
 tags: [bash, functions, arguments, scripting, intermediate]
 quickAnswer: "A bash function is defined with name() { ...; } and receives arguments as positional parameters: $1, $2, and so on, with $@ for all of them, $# for the count, and $0 still the script name. Two rules prevent the worst bugs. First, declare every variable a function uses with local, because bash variables are global by default — a function that sets target= without local overwrites a target in the caller's scope, which is how a cleanup routine ends up deleting the wrong path. Second, return is an exit status, not a value: it only carries 0–255 and wraps around above that, so return 300 hands back 44. To return real data, echo it and capture with command substitution: result=$(my_func arg). Use return only for success or failure. For scripts with flags rather than fixed positions, parse with getopts instead of reading $1 by hand."
-author: Anguishe
+author: "Travis"
 datePublished: 2026-06-17
 dateModified: 2026-06-17
 faq:

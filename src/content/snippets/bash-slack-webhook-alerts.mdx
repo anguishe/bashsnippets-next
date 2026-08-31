@@ -22,7 +22,7 @@ howToSteps:
     text: "Send the payload with curl -X POST -H 'Content-Type: application/json', capture the HTTP status with -w '%{http_code}', and confirm Slack returned 200 rather than assuming it arrived."
   - name: "Fire it automatically on failure"
     text: "Add trap 'slack_alert \"failed at line $LINENO (exit $?)\"' ERR so any unhandled error posts to Slack with the failing line before the script exits."
-author: Anguishe
+author: "Travis"
 datePublished: 2026-07-08
 dateModified: 2026-07-08
 ---

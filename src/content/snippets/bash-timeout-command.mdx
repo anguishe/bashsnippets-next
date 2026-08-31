@@ -31,7 +31,7 @@ howToSteps:
     text: "Handle 124 (timed out), 137 (force-killed), and anything else (the command's own failure) separately so your logs say what actually happened."
   - name: "Write output to a temp file, then mv on success"
     text: "If the command writes a file, send it to a .partial path and mv it into place only after a clean exit. A timed-out run then never leaves a truncated, corrupt file masquerading as a good backup."
-author: Anguishe
+author: "Travis"
 datePublished: 2026-06-22
 dateModified: 2026-06-22
 ---

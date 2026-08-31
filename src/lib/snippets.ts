@@ -6,7 +6,7 @@ import {
 
 const DEFAULT_PUBLISHED_TIME = '2026-05-01';
 const DEFAULT_MODIFIED_TIME = '2026-05-22';
-const DEFAULT_AUTHOR = 'Anguishe';
+const DEFAULT_AUTHOR = 'Travis';
 
 export type { FaqItem, HowToStep };
 

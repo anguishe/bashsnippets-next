@@ -43,8 +43,8 @@ export const metadata: Metadata = {
     'shell scripts',
     'sysadmin scripts',
   ],
-  authors: [{ name: 'Anguishe', url: 'https://bashsnippets.xyz/about' }],
-  creator: 'Anguishe',
+  authors: [{ name: 'Travis', url: 'https://bashsnippets.xyz/about' }],
+  creator: 'Travis',
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -114,8 +114,15 @@ const organizationSchema = {
   ],
   founder: {
     '@type': 'Person',
-    name: 'Anguishe',
+    name: 'Travis',
+    alternateName: 'Anguishe',
     url: 'https://bashsnippets.xyz/about',
+    sameAs: [
+      'https://github.com/anguishe',
+      'https://www.youtube.com/@BashSnippets',
+      'https://dev.to/bashsnippets',
+      'https://medium.com/@anguisheh1',
+    ],
   },
 };
 

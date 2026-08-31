@@ -31,7 +31,7 @@ howToSteps:
     text: "All generation happens against $TMP_FILE. The final destination is untouched while the script runs, so a mid-run death never leaves a half-written file where a consumer will find it."
   - name: "Move into place as the last step"
     text: "mv \"$TMP_FILE\" \"$FINAL_PATH\" — atomic on the same filesystem. After the mv, the file is gone from the trap's rm -f, which is why cleanup uses -f and stays silent."
-author: Anguishe
+author: "Travis"
 datePublished: 2026-08-09
 dateModified: 2026-08-09
 ---

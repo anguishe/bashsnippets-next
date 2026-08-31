@@ -31,7 +31,7 @@ howToSteps:
     text: "grep -rl 'old' . | xargs sed -i 's/old/new/g' edits only files containing the pattern, instead of rewriting the mtime of every file in the tree."
   - name: "Keep a backup on the first in-place run"
     text: "sed -i.bak 's/old/new/g' file writes file.bak next to the original. Delete the .bak files after you have confirmed the result — not before."
-author: Anguishe
+author: "Travis"
 datePublished: 2026-08-09
 dateModified: 2026-08-09
 ---
