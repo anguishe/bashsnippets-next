@@ -153,15 +153,60 @@ about step 4 (there is no "Data Settings" menu; filters live under *Data collect
 modification*). Property **BashSnippets**, account 393326874, property 535459693. Stream
 `bash-snippets`, stream ID **14771755386**, measurement ID **G-6B01TGE8XS**.
 
-1. `curl -s ifconfig.me` — note your public IP first, you will need it in step 4
-2. https://analytics.google.com → **Admin** (bottom left) → under **Property settings** expand
+#### Your addresses, resolved 2026-09-01
+
+`curl -s ifconfig.me` on this box returns an **IPv6** address, because the machine prefers IPv6 and
+that is what reaches Google. You have both, and **you need a condition for each**:
+
+| | Address | Value to enter |
+|---|---|---|
+| IPv4 | `98.183.50.212` (`curl -s -4 ifconfig.me`) | `98.183.50.212/32` |
+| IPv6 | `2600:8807:8783:b900::7428` (`curl -s -6 ifconfig.me`) | `2600:8807:8783:b900::/64` |
+
+**Do not enter the full IPv6 address.** `ip -6 addr show wlan1` reports it with
+`valid_lft 79353sec` — about 22 hours. It is leased, and the interface-identifier half (`::7428`)
+can change when that lease renews, at which point a `/128` rule silently stops matching and you are
+back to unfiltered data with no warning and nothing visibly broken. The `/64` your ISP delegates
+(`2600:8807:8783:b900::`) is the stable half, and a `/64` is one subnet — it will not catch anyone
+else.
+
+(Privacy extensions are **off** here — `net.ipv6.conf.wlan1.use_tempaddr = 0` — so this is not
+RFC 4941 address rotation. Lease renewal on its own is reason enough to match the prefix.)
+
+Chrome on this machine will usually reach Google over IPv6, so **the IPv6 condition is the one that
+will actually fire.** The IPv4 one covers the times v6 is not available.
+
+#### Steps
+
+1. https://analytics.google.com → **Admin** (bottom left) → under **Property settings** expand
    **Data collection and modification** → **Data streams**
-3. Click the **bash-snippets** stream → scroll to the **Google tag** panel → **Configure tag
-   settings** → **Show all** → **Define internal traffic**
-4. **Create** → rule name `internal`, `traffic_type` value `internal`, match type
-   **IP address equals**, value = the IP from step 1 → **Create**
-5. Back to **Admin → Data collection and modification → Data filters** → open the
-   **Internal Traffic** filter → change state *Testing* → **Active** → Save
+2. Click the **bash-snippets** stream → scroll to the **Google tag** panel → **Configure tag
+   settings** → **Show more** at the foot of the *Settings* card → **Define internal traffic**
+3. **Create** (top right). The form is: *Rule name*, *traffic_type value*, then one
+   *Match type* / *Value* row with an **Add condition** button beneath it.
+4. **Rule name:** `Travis home`. Leave **traffic_type value** as the prefilled `internal`.
+5. First condition — leave match type on its default, **IP address is in range (CIDR notation)**
+   (placeholder reads `Example: 192.0.2.0/24`) — and enter:
+
+   ```
+   2600:8807:8783:b900::/64
+   ```
+
+6. Click **Add condition**, keep the same CIDR match type, and enter:
+
+   ```
+   98.183.50.212/32
+   ```
+
+7. **Create** (top right; it stays greyed out until the name and both values are filled)
+8. Then **Admin → Data collection and modification → Data filters** → open the
+   **Internal Traffic** filter → state *Testing* → **Active** → Save
+
+Verified in the console 2026-09-01: **there are no internal traffic rules yet** — the panel reads
+*"No rules yet. Click Create to begin."* This creates rather than overwrites.
+
+**Re-check if your ISP hands you a different prefix.** `curl -s -6 ifconfig.me` should keep starting
+with `2600:8807:8783:b900`. If it stops doing that, the rule has quietly stopped matching.
 
 Note the date you activate it. Sessions before and after are not comparable, and the re-check in
 §2.4 needs to know that.
