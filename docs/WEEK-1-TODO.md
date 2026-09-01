@@ -7,9 +7,11 @@ purpose — if nothing else in the 13-week plan ever ships, the site is still pe
 
 > **Amended 2026-09-01.** The 2026-08-28 audit's claim that Bing had zero index was wrong — Bing
 > shows 52 indexed pages, 737 impressions / 6 M and 111 Copilot citations. See
-> `docs/INDEXING-AUDIT-2026-09-01.md`. Two consequences here: **§2 was promoted to first and is
-> now done** (it was time-boxed by Bing's recrawl; nothing else was), and **§5 is done**. §1, §3
-> and §4 are unchanged, except for two factual corrections to §1 marked below.
+> `docs/INDEXING-AUDIT-2026-09-01.md`. Status after that session: **§1, §2 and §5 are done and
+> deployed** (commits `eb8bdf5`, `96d0083`). §2 was promoted ahead of §1 because it was
+> time-boxed by Bing's recrawl and nothing else was. **§3 (reprice) and §4 (delete the ad stack)
+> are what remain.** §1 shipped with two corrections to what this document originally said —
+> marked below.
 
 ---
 
@@ -24,34 +26,32 @@ does not exist.** Everything else (price, citations, cross-posts) is a multiplie
 
 ---
 
-## 1. Register ToolkitCTA and place it in the detail layouts — 2.0 h ⭐ KEYSTONE
+## 1. Register ToolkitCTA and place it in the detail layouts — 2.0 h ⭐ KEYSTONE ✅ DONE 2026-09-01
 
-**Do this one first. If you only do one thing, this is it.**
-
-- [ ] Add `ToolkitCTA` to the export object in `src/components/MDXComponents.tsx:39-47`
-      (verified 2026-09-01: still `pre, code, h1, h2, h3, AffiliateBox, Callout`). Optional if you
-      take the layout route below — it only buys the ability to place the CTA mid-MDX later.
-- [ ] Place it in `src/app/snippets/[slug]/page.tsx` detail layout — covers all 38 snippets in one edit
-- [ ] ⚠️ **There is no guide layout.** Guides are 5 standalone `page.tsx` files under
+- [x] `ToolkitCTA` added to the `mdxComponents` export in `src/components/MDXComponents.tsx`.
+- [x] Placed in `src/app/snippets/[slug]/page.tsx`, directly after `</article>` — **38 snippets**.
+- [x] ⚠️ **There was no guide layout.** Guides are 5 standalone `page.tsx` files under
       `src/app/guides/<slug>/` with content written as JSX — no `layout.tsx`, no `template.tsx`,
-      no dynamic route (see CLAUDE.md → *Content: Guides*). Create
-      **`src/app/guides/layout.tsx`**: one new file that wraps the `/guides` index and all 5
-      guides. Five per-file insertions is the fallback, not the plan.
-- [ ] ⚠️ **Tools were missed.** The 8/28 de-monetization also stripped `ToolkitCTA` from the tool
-      template; `src/app/tools/[slug]/page.tsx` has no CTA today, and Bing sends real impressions
-      to `shellcheck-error-decoder` (34), `bash-trap-builder` (10), `find-command-builder` (8),
-      `bash-boilerplate-generator` (13), `chmod-permissions-builder` (11). One edit, 12 pages.
-- [ ] Add a GA4 outbound-click event on the Gumroad link **and** on every CTA render
+      no dynamic route (see CLAUDE.md → *Content: Guides*). Fixed by creating
+      **`src/app/guides/layout.tsx`**, one new file wrapping the `/guides` index and all 5 guides.
+- [x] ⚠️ **Tools had been missed by this plan entirely.** The 8/28 de-monetization also stripped
+      `ToolkitCTA` from the tool template. Placed in `src/app/tools/[slug]/page.tsx` before the
+      Related Snippets block — **12 tools**. Bing sends real impressions there:
+      `shellcheck-error-decoder` 34, `bash-boilerplate-generator` 13, `chmod-permissions-builder`
+      11, `bash-trap-builder` 10, `find-command-builder` 8.
+- [x] GA4 events: `ToolkitCTA` is now a client component firing `toolkit_cta_view` on render and
+      `toolkit_cta_click` on click, both tagged with a `placement` (`snippet` / `tool` / `guide` /
+      `home` / `snippets-index` / `tools-index`). The Gumroad link on `/starter-kit` fires
+      `toolkit_purchase_click` via the new `TrackedOutboundLink`. `src/lib/track.ts` wraps `gtag`
+      and no-ops until GA4 has loaded, which is also the consent gate.
 
 Do NOT insert it per-MDX-file. One layout edit covers everything and never drifts; 38 insertions
 create 38 places to forget.
 
-Current placement, verified 2026-09-01: `ToolkitCTA` renders on `/` (`page.tsx:450`),
-`/tools` (`tools/page.tsx:125`) and `/snippets` (`snippets/page.tsx:230`) only — three hub pages,
-zero detail pages.
-
-**Verify:** `curl -s https://bashsnippets.xyz/snippets/bash-trap-cleanup | grep -c starter-kit`
-returns > 0, and the same for a guide URL.
+**Verified live 2026-09-01 after deploy** — `curl … | grep -c 'Get the Toolkit'` returns 1 on
+every one of **38/38 snippets, 12/12 tools, 5/5 guides** plus the `/guides` index. The
+"`grep -rl "starter-kit" src/content/snippets/` returns 0 of 38" that opens this document is
+now 38 of 38.
 
 ---
 
@@ -64,11 +64,14 @@ returns > 0, and the same for a guide URL.
 - [x] Add the 12 restored URLs back to `public/llms.txt` — done, and while in there: removed 5
       duplicate snippet entries left by the 8/31 rebuild, and corrected the two "26 snippets"
       counts to 38. File now lists 38 unique snippets, no dupes.
-- [ ] **Deploy, then IndexNow-ping the 12 URLs** (`npm run indexnow -- <urls>`) — not yet done,
-      and this is the half that matters. Bing is the engine that reads it.
-- [ ] Bing WMT → URL Submission for the six with measured signal: `create-dated-folder`,
-      `bash-for-loop-examples`, `quick-system-info-report`, `kill-a-process`,
-      `bash-read-file-line-by-line`, `bash-functions-arguments`.
+- [x] **Deployed 2026-09-01** (commit `96d0083`, live in ~40 s). All 12 verified live:
+      `robots: index, follow`, present in `sitemap.xml`, CTA rendering.
+- [x] **IndexNow: HTTP 200 on both submissions** — the 12 URLs explicitly, then the full 61-URL
+      sitemap per the post-deploy convention. Bing Webmaster Tools → IndexNow confirms all 12
+      logged at 12:29, source `Self`.
+- [ ] *Optional, low value:* Bing WMT → URL Submission for the six with measured signal. Skipped —
+      IndexNow already reached the same crawler and returned 200, so this only burns daily quota.
+      Do it only if the 12 are still un-recrawled in a week.
 
 The 12 slugs: `quick-system-info-report`, `search-files-for-text-grep`, `bash-if-else-examples`,
 `create-dated-folder`, `kill-a-process`, `bash-for-loop-examples`, `bash-read-file-line-by-line`,

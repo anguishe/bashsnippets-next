@@ -165,18 +165,40 @@ weeks means re-earning positions 3.5–4.6 from scratch.
 | Real author identity (Travis) | Keep | Genuine E-E-A-T improvement, unaffected by the Bing error. |
 | Cross-posting shelved | Keep shelved **for now** | The link-profile facts are independently true. But note this decision also descends from the disproven premise — revisit once Bing/Copilot growth is confirmed over another 3–4 weeks. |
 
-### Do, in order
+### Done, in order (all on 2026-09-01)
 
-1. **Delete the 12 `noindex: true` flags** in `src/lib/snippets.ts`; `npm run build` (sitemap
-   returns to 61); add the 12 URLs back to `public/llms.txt`; deploy.
-2. **`npm run indexnow -- <the 12 URLs>`** immediately after deploy. Bing is the engine that
-   reads it.
-3. **Bing WMT → URL Submission** for the 6 with signal, prioritising `create-dated-folder`,
-   `bash-for-loop-examples`, `quick-system-info-report`, `kill-a-process`.
-4. **Do not spend GSC "Request indexing" quota on these 12.** Google has never indexed a content
+1. ✅ **Deleted the 12 `noindex: true` flags** in `src/lib/snippets.ts`; `npm run build` regenerated
+   `public/sitemap.xml` at 61 entries; the 12 restored to `public/llms.txt` — which also lost 5
+   duplicate entries left by the 8/31 rebuild and had its stale "26 snippets" counts corrected to
+   38. Build and lint clean.
+2. ✅ **Shipped the week-1 keystone in the same push** — `ToolkitCTA` registered in
+   `mdxComponents` and placed via the snippet detail layout (38), the tool detail layout (12) and
+   a new `src/app/guides/layout.tsx` (5 guides + index), with GA4 `toolkit_cta_view` /
+   `toolkit_cta_click` / `toolkit_purchase_click` events. Every restored page now carries a path
+   to the product, which is the entire reason restoring them is worth anything.
+3. ✅ **Deployed** — commits `eb8bdf5` and `96d0083`, live in ~40 s. All 12 verified live:
+   `index, follow`, in the sitemap, CTA rendering. 38/38 snippets, 12/12 tools, 5/5 guides.
+4. ✅ **IndexNow: HTTP 200 twice** — the 12 URLs explicitly, then the full 61-URL sitemap per the
+   post-deploy convention. Bing WMT → IndexNow confirms all 12 received at 12:29, source `Self`.
+5. ⏭️ **Bing WMT URL Submission — skipped deliberately.** IndexNow already reached the same
+   crawler and was accepted; manual submission only burns the daily quota. Revisit only if the 12
+   are still un-recrawled in a week.
+6. **Do not spend GSC "Request indexing" quota on these 12.** Google has never indexed a content
    page; the quota is better spent on tools and guides — or not at all.
-5. **Re-check in 3 weeks:** Bing Site Explorer indexed count (baseline 52), AI Performance
-   citations (baseline 111 / 6 M), Bing impressions (baseline 737 / 6 M).
+
+### Re-check in 3 weeks, against these baselines
+
+| Metric | Baseline 2026-09-01 |
+|---|---|
+| Bing Site Explorer, indexed | 52 |
+| Bing impressions / clicks, 6 M | 737 / 14 |
+| Copilot citations, 6 M | 111 across 13 pages |
+| Legacy `.html` share of impressions | 24.6 % (should fall) |
+| GSC indexed | 1 |
+| GA4 sessions, 3 M | 116 (~27 non-Direct) |
+
+New this deploy: `toolkit_cta_view` and `toolkit_cta_click` by `placement` in GA4 will, for the
+first time, say whether the product path converts at all — and which page type it converts on.
 
 ### Two findings the 8/28 audit dismissed that are worth acting on
 
