@@ -340,9 +340,11 @@ CTA a reader never loads."*
 - **The PATH/env candidate is dead.** *"why does my script work interactively but fail in cron"* —
   PATH, environment, TTY, locale — has **zero** query volume here. Not one PATH or env query
   appears in 409. It was a plausible guess and it was wrong; do not write it on instinct.
-- **Still open, with real signal:** the hung/stuck job. *"i need the exact cli commands to check
-  for a hung job"* sits at **position 1.00**, and *"chceking if a url is unreachable or timed out
-  in bash"* at 7.33. Nothing covers diagnosis of a wedged process end to end.
+- **The hung/stuck job — ✅ written 2026-09-01, `/guides/diagnose-a-hung-process`.** *"i need the
+  exact cli commands to check for a hung job"* sits at **position 1.00**, with *"chceking if a url
+  is unreachable or timed out in bash"* adjacent at 7.33. Kept deliberately clear of the cron
+  guide: that one is *prevention* (timeout, flock, retry), this is *diagnosis on the morning it
+  already hung*. They cross-link both ways.
 - **Also open:** service watchdog — *"set cron job to check service status and restart if not
   running"* (pos 2.00), *"bash script check service status and restart if down"*, *"bash command to
   monitor and restart a service"*, *"bash script to detect service names and restart
@@ -357,7 +359,7 @@ snippet** on the citation channel.
 
 ⚠️ **`scripts/generate-sitemap.mjs` hardcodes guide URLs.** Snippets and tools are generated from
 their registries; guides are a literal list. A new guide is silently absent from the sitemap until
-you add a line there. Sitemap is 62 as of the strict-mode guide.
+you add a line there. Sitemap is **63** as of the hung-process guide.
 
 **Manual — before writing each one:**
 
