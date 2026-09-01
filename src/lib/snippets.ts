@@ -23,7 +23,19 @@ export const REPO_URL = 'https://github.com/anguishe/bashsnippets';
  * must actually push. Verify after adding one:
  *   curl -sI https://github.com/anguishe/bashsnippets/blob/main/scripts/<slug>.sh
  */
-const NO_REPO_SCRIPT = new Set(['bash-error-handling', 'kill-a-process']);
+// Slugs with no .sh in github.com/anguishe/bashsnippets. Verified against the live
+// repo 2026-09-01 — the five below 404'd on production after 1c6a800 shipped. Remove a
+// slug from this set only after confirming its script is actually pushed.
+const NO_REPO_SCRIPT = new Set([
+  'bash-error-handling',
+  'kill-a-process',
+  // missing scripts — push to the repo, then delete from this list
+  'bash-curl-api-requests',
+  'bash-parse-json-jq',
+  'bash-sed-find-replace',
+  'bash-slack-webhook-alerts',
+  'bash-trap-cleanup',
+]);
 
 export function getRepoScriptUrl(slug: string): string | null {
   return NO_REPO_SCRIPT.has(slug) ? null : `${REPO_URL}/blob/main/scripts/${slug}.sh`;
