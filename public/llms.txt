@@ -11,7 +11,7 @@ Travis — self-taught Linux developer based in Florida, publishing here and on 
 # keep in sync with the sitemap: 38 indexable snippets, 12 tools, 5 guides
 - 38 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
 - 12 interactive tools at /tools/ including script builders, command generators, and debuggers
-- 6 pillar guides at /guides/ covering cron survival, CI/CD, text processing, APIs, bash strict mode, and the sysadmin script set
+- 7 pillar guides at /guides/ covering cron survival, CI/CD, text processing, APIs, bash strict mode, hung-process diagnosis, and the sysadmin script set
 - The same scripts as a clonable MIT repo at https://github.com/anguishe/bashsnippets — ShellCheck-clean, each linked back to its line-by-line explanation on the site
 
 ## Script Categories
@@ -88,6 +88,7 @@ Travis — self-taught Linux developer based in Florida, publishing here and on 
 - [Bash Scripts That Survive Cron: Locking, Timeouts, and Retries](https://bashsnippets.xyz/guides/bash-scripts-that-survive-cron) — A script that works when you run it isn't the same as one that survives unattended on cron. The three ways cron jobs die quietly — overlap, hang, transient failure — and the guards that stop each one.
 - [Shell Scripts That Talk to APIs](https://bashsnippets.xyz/guides/shell-scripts-that-talk-to-apis) — Make curl fail when the API fails, parse the response with jq instead of regex, and alert to Slack when it breaks — the reliable pattern for calling an HTTP API from bash.
 - [The Safe Bash Script Template: What set -euo pipefail Actually Changes](https://bashsnippets.xyz/guides/safe-bash-script-template) — Strict mode is three separate flags, not one incantation. errexit is fully disabled inside any function called from an if condition; local x=$(cmd) discards the failure because the exit status is local's; and the ERR trap does not fire inside functions at all without set -E (errtrace), so the script exits 1 and reports nothing. Covers each flag's real behaviour, the EXIT-trap rule that $? must be captured on the handler's first line, and the assembled template.
+- [Diagnosing a Hung Process: The Commands to Run Before You Kill It](https://bashsnippets.xyz/guides/diagnose-a-hung-process) — A hung job never exits and never logs. The ps STAT letter splits the cases: S sleeps interruptibly and answers signals, D is uninterruptible kernel I/O and cannot be killed at all — which is every "kill -9 isn't working" report. Read /proc/PID/wchan and /proc/PID/syscall without root (/proc/PID/stack needs it), resolve the syscall number from unistd_64.h, read Send-Q/Recv-Q and SYN-SENT from ss -tnp, and capture the whole state before killing, because kill -9 skips EXIT traps and destroys the evidence.
 
 ## Most important pages
 
