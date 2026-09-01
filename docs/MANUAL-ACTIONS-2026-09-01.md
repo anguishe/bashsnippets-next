@@ -218,7 +218,21 @@ No manual step. Pure code:
 2. Replace `page.tsx` with the same wrapper the other four use.
 3. `npm run build` — the route must stay at the identical URL, and the sitemap must stay at 61.
 4. `curl -s https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs | grep -c 'Get the Toolkit'`
-   → expect 1. It picks up `ToolkitCTA` and `EmailCapture` from the shared layout for free.
+   → expect 1, the same as before the migration.
+
+⚠️ **Correction to this item as first written.** It claimed the migration would make the guide
+"pick up `ToolkitCTA` and `EmailCapture` from the shared layout for free". That is wrong — checked
+against production 2026-09-01, the JSX guide already renders `ToolkitCTA` (1 occurrence, identical
+to the migrated guides), because `src/app/guides/layout.tsx` wraps the whole `/guides` route
+segment regardless of how each page renders its body. `EmailCapture` is 0 on *every* guide, JSX and
+MDX alike, for the unrelated reason in §1.7.
+
+So the real value here is narrower than advertised: one content pipeline instead of two, and a
+`CLAUDE.md` that stops describing guides in a way that is false for one of the five. There is **no
+functional gain and no revenue-path gain** — weigh it against writing the guides in §2.3, which is
+the growth lever. Its cost is not trivial either: 25 `<ScriptEntry>` invocations (several taking
+JSX in the `description` prop) and 7 `<SectionDivider>`s must move to `src/components/` and be
+registered in `mdxComponents`, then 1254 lines transcribed with real drift risk.
 
 Do this **before** 2.3 — writing new guides against the MDX pipeline is cheaper than writing them
 against two pipelines.
