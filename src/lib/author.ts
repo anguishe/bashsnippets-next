@@ -5,6 +5,8 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 export const AUTHOR = {
   name: 'Travis',
   alternateName: 'Anguishe',
+  // '@id' lets every page's Person node resolve to one entity in the graph
+  '@id': `${SITE_URL}/about`,
   url: `${SITE_URL}/about`,
   sameAs: [
     'https://github.com/anguishe',

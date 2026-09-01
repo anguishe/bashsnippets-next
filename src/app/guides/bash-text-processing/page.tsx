@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Breadcrumb from '@/components/Breadcrumb';
 import { mdxComponents } from '@/components/MDXComponents';
+import { AUTHOR } from '@/lib/author';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
@@ -47,12 +48,7 @@ const techArticleSchema = {
   url: `${SITE_URL}/guides/bash-text-processing`,
   datePublished: '2026-06-17',
   dateModified: '2026-06-17',
-  author: {
-    '@type': 'Person',
-    name: 'Travis',
-    alternateName: 'Anguishe',
-    url: `${SITE_URL}/about`,
-  },
+  author: { '@type': 'Person', ...AUTHOR },
   publisher: {
     '@type': 'Organization',
     name: 'BashSnippets.xyz',

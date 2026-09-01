@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Breadcrumb from '@/components/Breadcrumb';
 import { mdxComponents } from '@/components/MDXComponents';
+import { AUTHOR } from '@/lib/author';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
@@ -50,12 +51,7 @@ const techArticleSchema = {
   url: `${SITE_URL}/guides/bash-scripts-that-survive-cron`,
   datePublished: '2026-06-22',
   dateModified: '2026-06-22',
-  author: {
-    '@type': 'Person',
-    name: 'Travis',
-    alternateName: 'Anguishe',
-    url: `${SITE_URL}/about`,
-  },
+  author: { '@type': 'Person', ...AUTHOR },
   publisher: {
     '@type': 'Organization',
     name: 'BashSnippets.xyz',

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import AffiliateBox from '@/components/AffiliateBox';
 import Breadcrumb from '@/components/Breadcrumb';
+import { AUTHOR } from '@/lib/author';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
@@ -46,12 +47,7 @@ const techArticleSchema = {
   url: `${SITE_URL}/guides/bash-scripts-every-sysadmin-needs`,
   datePublished: '2026-06-06',
   dateModified: '2026-06-06',
-  author: {
-    '@type': 'Person',
-    name: 'Travis',
-    alternateName: 'Anguishe',
-    url: `${SITE_URL}/about`,
-  },
+  author: { '@type': 'Person', ...AUTHOR },
   publisher: {
     '@type': 'Organization',
     name: 'BashSnippets.xyz',

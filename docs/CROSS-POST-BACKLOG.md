@@ -12,26 +12,29 @@ so anything in the sitemap with no matching canonical has never been cross-poste
 | Already cross-posted | 23 |
 | **Never cross-posted (this file)** | **20** |
 | dev.to articles live | 37 |
-| dev.to canonicals still pointing at legacy URLs | 18 |
+| dev.to canonicals still pointing at legacy URLs | **0** (all repaired 2026-08-31) |
+| Drafts written and waiting to post | 10 of 20 (see `docs/cross-posts/`) |
 | Medium posts (RSS shows most recent 10) | 10+ |
 | CoderLegion | JS-rendered profile, not machine-countable — verify by hand |
 
 ---
 
-## ⚠️ Do this BEFORE posting anything new
+## ✅ Pre-flight — COMPLETED 2026-08-31
 
-### 1. Fix 18 stale dev.to canonicals
+### 1. ~~Fix 18 stale dev.to canonicals~~ — DONE
 
-These dev.to articles canonicalize to URLs that now 308-redirect (`.html` or trailing slash).
-A canonical pointing at a redirect is a wasted signal — Google discards it.
+Ran `scripts/fix-devto-canonicals.mjs` with the `DEVTO_API_KEY` now in `.env.local`.
+17 of 18 rewrote cleanly. The 18th (`/tools/` on article 3629119) returned
+`422 Canonical url has already been taken` — another article already holds
+`https://bashsnippets.xyz/tools`, so that duplicate was self-canonicalized to its own
+dev.to URL instead.
 
-A script already exists and has **never been run** (no `DEVTO_API_KEY` in `.env.local`):
+**Verified: 0 stale canonicals remain across all 37 articles.** Re-run any time to confirm —
+the script is idempotent and prints `ok` per article:
 
 ```bash
-# 1. Get a key: https://dev.to/settings/extensions  → "DEV Community API Keys" → Generate
-# 2. Run it (idempotent, prints one line per article):
 cd ~/Projects/bashsnippets-next
-DEVTO_API_KEY=xxxxx node scripts/fix-devto-canonicals.mjs
+export $(grep DEVTO_API_KEY .env.local) && node scripts/fix-devto-canonicals.mjs
 ```
 
 Articles it will rewrite:
@@ -57,10 +60,11 @@ Articles it will rewrite:
 | The Bash $PATH Debugger I Run Whenever I Get "Command Not  | `/tools/path-debugger.html` | `/tools/path-debugger` |
 | I Got Tired of Googling ShellCheck Errors. So I Built a De | `/tools/shellcheck-error-decoder.html` | `/tools/shellcheck-error-decoder` |
 
-### 2. ⚠️ 6 dev.to articles now canonicalize to pages we NOINDEXED on Aug 28
+### 2. ~~6 dev.to articles canonicalize to pages we NOINDEXED~~ — ALREADY RESOLVED
 
-This is a new conflict created by the Aug 28 pruning commit. The article tells Google
-"the real version is over there" — and that page now says `noindex`. Net effect: neither ranks.
+Checked live 2026-08-31: all six already self-canonicalize to their own dev.to URLs, so
+recommendation **(a)** was effectively in place before this file was written. No action taken,
+none needed. Original analysis kept below for the record.
 
 | dev.to article | canonical → noindexed page |
 |---|---|
@@ -95,7 +99,8 @@ Ordered by priority: guides (highest authority, longest) → tools (most linkabl
 - **Meta description (reuse as the dev.to intro):**
   > The 25 bash scripts that prevent the most common server failures — disk full, SSL expiry, failed services, insecure permissions. Copy-paste ready, cron-schedulable, no installs required.
 - **Suggested tags:** `bash, linux, devops, tutorial`
-- **Source content:** `~/Projects/bashsnippets-next/src/content/guides/bash-scripts-every-sysadmin-needs.mdx`
+- **Source content:** `~/Projects/bashsnippets-next/src/app/guides/bash-scripts-every-sysadmin-needs/page.tsx`
+  (this guide is pure JSX — there is **no** `.mdx` file for it, unlike guides 2 and 3)
 - **Post to:** dev.to ✅ · CoderLegion (excerpt + link only) · Medium ✅
 
 #### 2. Bash Text Processing: find, grep, sed, and awk for Logs and Config Files | BashSnippets.xyz
