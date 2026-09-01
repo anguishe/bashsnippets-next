@@ -30,6 +30,14 @@ const guides = [
       'You leave with the pipeline order that keeps text processing boring: scope the blast radius with find, confirm the match with grep, transform with sed or awk under an undo, and verify before you trust it — plus the 2am incident one-liner that ranks your errors most-frequent-first.',
   },
   {
+    slug: 'diagnose-a-hung-process',
+    title: 'Diagnosing a Hung Process: The Commands to Run Before You Kill It',
+    description:
+      'A hung job never exits, never logs, and never tells you why. The exact commands to find out what it is blocked on — process state, wchan, syscall, open files, sockets — and why killing it first destroys the only evidence you had.',
+    blurb:
+      'The state letter tells you which kind of stuck: S responds to signals, D cannot be killed at all — which is every "kill -9 is not working" report there has ever been. Read wchan and the syscall without root, check the socket queues, and capture the lot before you kill it.',
+  },
+  {
     slug: 'safe-bash-script-template',
     title: 'The Safe Bash Script Template: What set -euo pipefail Actually Changes',
     description:

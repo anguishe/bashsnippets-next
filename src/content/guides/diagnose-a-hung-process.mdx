@@ -1,0 +1,232 @@
+---
+title: "Diagnosing a Hung Process: The Commands to Run Before You Kill It"
+description: "A hung job never exits, never logs, and never tells you why. The exact commands to find out what it is blocked on — process state, wchan, syscall, open files, sockets — and why killing it first destroys the only evidence you had."
+slug: diagnose-a-hung-process
+author: "Travis"
+datePublished: 2026-09-01
+dateModified: 2026-09-01
+---
+
+## Diagnosing a Hung Process
+
+A crashed job leaves you something to read. A hung job leaves you nothing. It does not exit, so no exit code is recorded. It does not error, so nothing lands in the log. The cron entry that should have finished at 02:15 is still sitting there at 09:00 with its output file half written, and the only thing you actually know is that it has not moved.
+
+The instinct is to kill it and run it again. That is also the one action that guarantees you will be back here next week, because everything that would have told you *why* it hung lives inside the process, and `kill -9` throws all of it away. The process is not the problem. It is the evidence.
+
+This is the order to work through, from the cheapest command to the most invasive, with what each answer rules out. Every command below was run on Linux 7.1 / bash 5.3 as an unprivileged user, and where something needs root or extra permissions it says so.
+
+## First question: is it hung, or is it slow?
+
+These look identical from the outside and have nothing else in common. The difference is whether the process is burning CPU.
+
+```bash
+# Watch accumulated CPU time over a few seconds
+ps -o pid,etime,time,stat,comm -p "$PID"
+sleep 5
+ps -o pid,etime,time,stat,comm -p "$PID"
+```
+
+`etime` is wall-clock age; `time` is CPU consumed. If `time` is climbing, the process is *working* — it may be doing something stupid, like an accidental O(n²) loop over a growing file, but it is not blocked and none of the blocking diagnostics below apply. If `etime` climbs and `time` does not move at all, it is genuinely waiting on something, and the rest of this page is about finding out what.
+
+## The state letter tells you which kind of stuck
+
+```bash
+ps -o pid,stat,wchan:24,comm -p "$PID"
+```
+
+```
+    PID STAT WCHAN                    COMMAND
+ 232470 SN   hrtimer_nanosleep        sleep
+```
+
+`STAT` is the important column. From the `ps` man page, the states you will actually meet:
+
+| Code | Meaning | What it tells you |
+|---|---|---|
+| `R` | running or runnable | Not blocked. It is slow, not hung — go back a section. |
+| `S` | interruptible sleep | Waiting on something, and **it will respond to signals.** The common case. |
+| `D` | uninterruptible sleep (usually I/O) | Blocked in the kernel on I/O. **`kill -9` will not touch it.** |
+| `T` | stopped by job control signal | Someone or something sent it `SIGSTOP`. It is paused, not stuck. `kill -CONT` resumes it. |
+| `Z` | defunct (zombie) | Already dead. It is waiting for its parent to reap it — your problem is the *parent*, not this. |
+
+Trailing letters are modifiers, not states: `N` is low priority (niced), `<` high priority, `L` has pages locked, `s` is a session leader, `+` is in the foreground process group. `SN` above is "sleeping, niced" — one state, one modifier.
+
+Three of these end the investigation immediately. `R` means it is not hung. `T` means it was stopped, most often by a stray `SIGSTOP` or a debugger that went away, and `kill -CONT "$PID"` fixes it. `Z` means the process is already gone and the bug is in whatever forked it and never called `wait()`.
+
+The interesting split is `S` versus `D`.
+
+## `D` state is different, and it is why `kill -9` sometimes does nothing
+
+An uninterruptible sleep is a process blocked inside a kernel call that cannot be interrupted — classically a read or write against storage that is not answering. An NFS mount whose server went away, a failing disk retrying a sector, a device that has stopped responding.
+
+**A process in `D` cannot be killed.** Not with `SIGTERM`, not with `SIGKILL`. Signals are delivered when a process returns to user space, and this one never does. `kill -9` appears to succeed — `kill` returns 0, because it queued the signal — and the process stays exactly where it is. Every "kill -9 isn't working" report is this.
+
+There is no command that fixes `D` state. It clears when the I/O completes or the kernel gives up on the device, or it clears at reboot. What you can do is find out *which* device, so you fix the real fault instead of fighting the symptom:
+
+```bash
+# Where in the kernel is it parked?
+cat "/proc/$PID/wchan"; echo
+
+# Which mounts are involved — a hung NFS mount shows up here
+cat "/proc/$PID/mountinfo" | awk '{print $5, $9}' | sort -u
+```
+
+If `wchan` names something like `nfs_wait_on_request` or an I/O wait, stop looking at the process. The process is fine. The storage under it is not.
+
+## What it is blocked on, without root
+
+Two files under `/proc` answer this and neither needs privileges for your own processes.
+
+```bash
+# Kernel function the process is sleeping in
+cat "/proc/$PID/wchan"; echo
+# -> hrtimer_nanosleep
+
+# The syscall it is currently in: first field is the syscall NUMBER
+cat "/proc/$PID/syscall"
+# -> 230 0x0 0x0 0x7ffd4a71f3e0 ...
+```
+
+`wchan` is usually enough on its own — `hrtimer_nanosleep` means it is in a `sleep`, `futex_wait` means it is waiting on a lock, anything with `sock` or `tcp` in the name means it is waiting on the network.
+
+To turn the syscall number into a name, the header on the box is the authority:
+
+```bash
+grep -w "$(awk '{print $1}' "/proc/$PID/syscall")" \
+  /usr/include/x86_64-linux-gnu/asm/unistd_64.h
+# -> #define __NR_clock_nanosleep 230
+```
+
+`230` is `clock_nanosleep` on x86_64, which matches the `hrtimer_nanosleep` above — the process is asleep on a timer, exactly as expected for `sleep 300`. On a genuinely hung job you are looking for `read`, `write`, `futex`, `connect`, `recvfrom` or `flock` instead, and each points somewhere specific.
+
+`/proc/$PID/stack` gives the full kernel stack and is the best of these — but it **requires root**. As an ordinary user it returns `Permission denied`, so it is a `sudo` command or nothing.
+
+## What it has open
+
+The syscall says *what kind* of wait. The file descriptors say *on what*.
+
+```bash
+# Every fd, resolved to its target
+ls -l "/proc/$PID/fd"
+
+# Same thing with more detail, and works across processes you own
+lsof -p "$PID"
+```
+
+Read this against the syscall. Blocked in `read` with fd 3 pointing at a FIFO means it is waiting on a pipe nobody is writing to. Blocked in `flock` means another instance holds the lock — which is [`flock` doing its job](/snippets/bash-flock-single-instance), not a bug, and the question becomes why the previous run never finished. Blocked in `write` with the fd on a full filesystem is a [disk-space problem](/snippets/disk-space-warning) wearing a hang costume.
+
+## If it is the network
+
+A hung `curl`, a hung database client and a hung API call all look the same from `ps`. The socket table separates them:
+
+```bash
+ss -tnp | grep "pid=$PID"
+```
+
+```
+State  Recv-Q Send-Q      Local Address:Port      Peer Address:Port  Process
+ESTAB  0      0           192.168.0.233:36740     74.125.138.95:443  users:(("chrome",pid=7021,fd=249))
+```
+
+The queue columns are the diagnosis:
+
+- **`Send-Q` large and not draining** — you have written data the peer is not acknowledging. The far end is gone or wedged; the packets are stacked up locally.
+- **`Recv-Q` large** — data has arrived that your process has not read. The far end did its job; your process is stuck somewhere else and this is a symptom, not the cause.
+- **`SYN-SENT`** — the connection was never established at all. DNS resolved to something that is not answering, or a firewall is dropping rather than rejecting. This is the state that hangs forever with no timeout set, because a dropped packet produces no error, only silence.
+- **No row at all** — it is not the network. Go back to `wchan`.
+
+That last case is the whole argument for `--connect-timeout` and `--max-time` on every `curl` in a script; a request that hangs in `SYN-SENT` will otherwise outlive the cron interval that started it. The wrapper that does this properly is in [curl API requests that fail correctly](/snippets/bash-curl-api-requests).
+
+## `strace`, and why it may refuse
+
+`strace -p "$PID"` shows syscalls live, and on a hang it usually prints one line and then stops — which *is* the answer, because that line is the call it is stuck in.
+
+Two things get in the way, and both look like a broken tool:
+
+```bash
+# 1. It may not be installed. It is not on a minimal server by default.
+command -v strace || echo "install it: apt install strace / dnf install strace"
+
+# 2. Yama may forbid attaching to a process that is not your child
+cat /proc/sys/kernel/yama/ptrace_scope
+```
+
+`ptrace_scope` of `0` allows attaching to any process you own. `1` — the default on Ubuntu and several others — permits attaching only to direct children, so `strace -p` on a cron job you did not start fails with `Operation not permitted` even as the owner. `sudo strace -p` gets around it. So does raising the sysctl, but do not do that on a production box to debug one process.
+
+Because `strace` stops the process on every syscall, it is genuinely slow on a busy one. On a hung process this costs nothing — it is not making syscalls, that is the problem.
+
+## Kill it in the right order
+
+Once you have the evidence, escalate deliberately. Each signal is a different question.
+
+```bash
+kill -TERM "$PID"      # 1. ask it to clean up and exit — traps run
+sleep 5
+
+kill -QUIT "$PID"      # 2. for a JVM: dumps every thread stack to its stdout
+sleep 5
+
+kill -KILL "$PID"      # 3. last resort: no cleanup, no traps, temp files stay
+```
+
+`SIGTERM` first, always. A script with [a cleanup trap on EXIT](/snippets/bash-trap-cleanup) removes its temp files and releases its lock on `TERM`. `SIGKILL` skips all of that — traps do not run, `mktemp` files are orphaned, and a lock file written the naive way is left behind to block the next run.
+
+`SIGQUIT` in the middle is worth knowing: on a JVM it triggers a full thread dump rather than killing anything, which on a hung Java process is the single most useful command available. On most other programs it terminates and writes a core.
+
+And if the process is in `D`, none of these do anything. That is not the signal failing; it is the state.
+
+## Capture everything first
+
+All of the above in one pass, so the evidence survives the kill:
+
+```bash
+#!/bin/bash
+# Script: hung-report.sh
+# Purpose: Snapshot everything about a stuck process before it gets killed — kill -9 destroys the only evidence of why it hung
+# Usage: ./hung-report.sh <PID> [OUTPUT_DIR]
+set -Eeuo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+PID="${1:?usage: hung-report.sh <PID> [OUTPUT_DIR]}"
+OUT_DIR="${2:-/tmp/hung-$PID-$(date +%Y%m%d-%H%M%S)}"
+
+[ -d "/proc/$PID" ] || { echo "$CROSS no such process: $PID" >&2; exit 1; }
+
+mkdir -p "$OUT_DIR"
+
+# Two samples a few seconds apart — the only way to tell blocked from merely slow
+ps -o pid,ppid,etime,time,stat,wchan:32,args -p "$PID" >  "$OUT_DIR/ps.txt" 2>&1
+sleep 5
+ps -o pid,ppid,etime,time,stat,wchan:32,args -p "$PID" >> "$OUT_DIR/ps.txt" 2>&1
+
+# Readable without privileges; || true because the process may exit mid-capture
+cat "/proc/$PID/wchan"    > "$OUT_DIR/wchan.txt"   2>&1 || true
+cat "/proc/$PID/syscall"  > "$OUT_DIR/syscall.txt" 2>&1 || true
+cat "/proc/$PID/status"   > "$OUT_DIR/status.txt"  2>&1 || true
+ls -l "/proc/$PID/fd"     > "$OUT_DIR/fd.txt"      2>&1 || true
+
+# Sockets, and the child tree — a wrapper often hangs because its child did
+ss -tnp 2>/dev/null | grep -F "pid=$PID" > "$OUT_DIR/sockets.txt" || true
+pstree -pl "$PID"         > "$OUT_DIR/pstree.txt"  2>&1 || true
+
+# Needs root; captured only if we have it, never fails the run
+[ "$(id -u)" -eq 0 ] && cat "/proc/$PID/stack" > "$OUT_DIR/stack.txt" 2>&1 || true
+
+echo "$CHECK captured to $OUT_DIR"
+echo "  state:   $(awk '/^State:/ {print $2, $3}' "/proc/$PID/status" 2>/dev/null || echo gone)"
+echo "  blocked: $(cat "/proc/$PID/wchan" 2>/dev/null || echo unknown)"
+```
+
+Run that, *then* kill. It takes five seconds and it is the difference between fixing the cause and rediscovering it next month.
+
+Note the `|| true` on every capture: the process can exit while you are reading `/proc`, and with `set -e` a disappearing file would abort the script partway through and leave you with a half-collected report — the one outcome worse than no report. Why that idiom is needed, and what it costs, is in [the safe bash script template](/guides/safe-bash-script-template).
+
+## Stop it happening again
+
+Diagnosis is the part you do once. The fix is making the next hang impossible to sit undetected for seven hours.
+
+Bound the runtime so a wedged command dies on its own rather than waiting for a human — [`timeout`](/snippets/bash-timeout-command) sends `TERM` at a deadline and `KILL` after a grace period. Set explicit `--connect-timeout` and `--max-time` on every network call. Take a lock so a hung run cannot be joined by the next scheduled one and turn one stuck process into forty — [`flock`](/snippets/bash-flock-single-instance). And have the job say something when it dies, because a hang you find out about at 02:15 costs minutes and one you find at 09:00 costs the morning: [Slack webhook alerts](/snippets/bash-slack-webhook-alerts).
+
+The three ways unattended jobs die quietly — overlap, hang, transient failure — and the guard for each are worked through in [Bash Scripts That Survive Cron](/guides/bash-scripts-that-survive-cron). This page is what to do on the morning you did not have those guards in place yet.
