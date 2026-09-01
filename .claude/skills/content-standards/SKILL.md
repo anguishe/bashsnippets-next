@@ -24,9 +24,11 @@ Every snippet MDX file at `src/content/snippets/[slug].mdx` must contain:
 8.  Cron scheduling example — if the script is automatable
 9.  Tested on — Ubuntu 22.04 LTS, Fedora 39, macOS Ventura (minimum 2 distros)
 10. FAQ section — 3–5 real questions (not filler)
-11. <AffiliateBox provider="digitalocean" /> — always
-12. <AffiliateBox provider="namecheap" /> — if deployment/domain relevant
-13. Related snippets — 3 minimum, using relatedSlugs from front matter
+11. Related snippets — 3 minimum, using relatedSlugs from front matter
+
+NOTE: there is NO affiliate box and NO ad slot. Both were removed site-wide on
+2026-09-01 (commit 1a2cf79) and must not be re-added. The toolkit CTA is placed by
+the detail LAYOUT, never per-MDX-file — you do not add it here.
 ```
 
 ---
@@ -112,14 +114,16 @@ echo "$CHECK Disk at ${USAGE}% — within ${THRESHOLD}% threshold"
 
 ## TOOLS ARCHITECTURE (read before adding new tools)
 
-Tools live as standalone HTML in `public/tool-content/` and are embedded via `ToolEmbed.tsx`.
+Tools are native React client components rendered by `ToolRenderer.tsx`, which
+dispatches by slug via `next/dynamic`. (`ToolEmbed.tsx` and `public/tool-content/`
+are the OLD iframe path — still present, no longer used. Do not add tools there.)
 
 **When adding a new tool:**
 
-1. Create: `public/tool-content/[tool-slug].html`
-   - Self-contained HTML — all CSS and JS inline in the file
-   - Uses brand CSS variables (reference existing tools for the pattern)
-   - Must work in an iframe with no external dependencies that could fail
+1. Create: `src/components/tools/<Component>.tsx`
+   - A client component; shared helpers live in `src/components/tools/shared/`
+     (`useClipboard.ts`, `bashHighlight.ts`, `shellcheckData.ts`)
+   - Register it by slug in the `toolComponents` map in `ToolRenderer.tsx`
 
 2. Register: Add to `src/lib/tools.ts`
    ```ts
@@ -137,30 +141,21 @@ Tools live as standalone HTML in `public/tool-content/` and are embedded via `To
 
 ---
 
-## AFFILIATE BOX USAGE
+## MONETIZATION — ONE PRODUCT, NOTHING ELSE
 
-Read `src/components/AffiliateBox.tsx` first to confirm current prop names.
-Based on current repo, usage should be:
+**Do not add ads or affiliate links.** `AffiliateBox.tsx` and `AdSlot.tsx` were
+deleted on 2026-09-01 along with all 22 and 4 of their call sites, `public/ads.txt`,
+and every ad/affiliate clause in `/privacy` and `/terms`. Writing `<AffiliateBox …>`
+into an MDX file now breaks the build.
 
-```tsx
-// DigitalOcean — required on ALL snippet and tool pages
-<AffiliateBox
-  provider="digitalocean"
-  headline="Need a VPS to run these scripts?"
-  body="DigitalOcean gives new accounts $200 free credit — enough to run a server for 4 months."
-  cta="Get $200 Free →"
-  href="https://m.do.co/c/7a196437764c"
-/>
+The only commercial surface is the Production Bash Toolkit:
 
-// Namecheap — add when topic involves deployment, hosting, domains
-<AffiliateBox
-  provider="namecheap"
-  headline="Need a domain for your project?"
-  body="Register with Namecheap — free WHOIS privacy included on all domains."
-  cta="Check Domain Prices →"
-  href="https://namecheap.pxf.io/c/7260430/1632743/5618"
-/>
-```
+- `ToolkitCTA` — registered in `MDXComponents.tsx` and placed by the three detail
+  layouts (snippets, tools, guides). **Never insert it per-MDX-file.**
+- In-content prose links to `/starter-kit`, where they genuinely fit the topic.
+- `EmailCapture` — Buttondown, on the same three layouts.
+
+See `CLAUDE.md → Monetization` and `docs/INDEXING-AUDIT-2026-09-01.md`.
 
 ---
 
@@ -193,8 +188,8 @@ Ask before generating:
 4. Which existing snippets should it link back to?
 
 Then generate:
-1. `public/tool-content/[slug].html` — standalone, self-contained HTML
-2. Registry entry for `src/lib/tools.ts`
+1. `src/components/tools/<Component>.tsx` — client component
+2. Registry entry for `src/lib/tools.ts`, plus the `toolComponents` map in `ToolRenderer.tsx`
 3. Confirmation of file locations
 
 ## SLASH COMMAND: /content-check <file>
@@ -224,8 +219,9 @@ Voice & Quality
 [ ] Script has CHECK/CROSS variables
 
 Monetization
-[ ] DigitalOcean AffiliateBox present
-[ ] Namecheap AffiliateBox present (flag if missing, note if topic warrants it)
+[ ] NO <AffiliateBox> anywhere (FAIL if present — removed site-wide 2026-09-01)
+[ ] NO <AdSlot> anywhere (FAIL if present)
+[ ] ToolkitCTA NOT hand-placed in the MDX (the layout does it)
 
 SEO / AEO
 [ ] Front matter has all required fields
@@ -233,3 +229,27 @@ SEO / AEO
 [ ] H2 headings are question-format
 [ ] faq array matches visible FAQ content
 ```
+
+---
+
+## GUIDES ARE NOT SNIPPETS
+
+The required-sections checklist above is for `src/content/snippets/*.mdx`. Guides at
+`src/content/guides/*.mdx` do not use Quick Answer, Prerequisites, How to Run, Tested
+On, or a `faq` array, and `/content-check` should not fail them for it.
+
+A guide is prose that answers an operational failure question, with code in service of
+the argument. What still applies: the voice rules, the bash code standard for any full
+script shown, consequence-first framing, and the monetization rules.
+
+Guide front matter is only: `title`, `description`, `slug`, `author`, `datePublished`,
+`dateModified`.
+
+Each guide also needs a wrapper at `src/app/guides/<slug>/page.tsx` (metadata,
+TechArticle + BreadcrumbList JSON-LD, MDX loader) and an entry in the hardcoded
+`guides` array in `src/app/guides/page.tsx`. `src/app/guides/layout.tsx` supplies the
+toolkit CTA and email capture to every guide — do not add them per-file.
+
+**Why guides matter disproportionately:** on 2026-09-01 Bing AI Performance attributed
+53 of 103 Copilot citations to two guides, versus 2–8 each for snippets. Guides earn
+roughly 7x a snippet on the citation channel.

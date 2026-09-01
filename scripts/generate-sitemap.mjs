@@ -17,6 +17,7 @@ const staticEntries = [
   { url: `${SITE_URL}/guides/bash-text-processing`,               lastmod: '2026-06-17', changefreq: 'weekly',  priority: 0.8  },
   { url: `${SITE_URL}/guides/bash-scripts-that-survive-cron`,     lastmod: '2026-06-22', changefreq: 'weekly',  priority: 0.8  },
   { url: `${SITE_URL}/guides/shell-scripts-that-talk-to-apis`,    lastmod: '2026-07-08', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/guides/safe-bash-script-template`,          lastmod: '2026-09-01', changefreq: 'weekly',  priority: 0.8  },
 ];
 
 /**

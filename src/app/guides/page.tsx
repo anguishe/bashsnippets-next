@@ -30,6 +30,14 @@ const guides = [
       'You leave with the pipeline order that keeps text processing boring: scope the blast radius with find, confirm the match with grep, transform with sed or awk under an undo, and verify before you trust it — plus the 2am incident one-liner that ranks your errors most-frequent-first.',
   },
   {
+    slug: 'safe-bash-script-template',
+    title: 'The Safe Bash Script Template: What set -euo pipefail Actually Changes',
+    description:
+      'Strict mode is three separate promises, not one incantation — and there are places every one of them silently does nothing. What each flag really does, where errexit gives up, and the ERR trap that tells you which line died.',
+    blurb:
+      'The flag missing from almost every pasted strict-mode line is the E. Without set -E your ERR trap never fires inside a function, so the script exits 1 and tells you nothing — plus the local x=$(cmd) that swallows a failure whole, and the template that closes both gaps.',
+  },
+  {
     slug: 'bash-scripts-that-survive-cron',
     title: 'Bash Scripts That Survive Cron: Locking, Timeouts, and Retries',
     description:

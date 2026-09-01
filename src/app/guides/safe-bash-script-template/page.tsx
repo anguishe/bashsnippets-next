@@ -1,0 +1,149 @@
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import Breadcrumb from '@/components/Breadcrumb';
+import { mdxComponents } from '@/components/MDXComponents';
+import { AUTHOR } from '@/lib/author';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
+
+const TITLE =
+  'The Safe Bash Script Template: What set -euo pipefail Actually Changes';
+const DESCRIPTION =
+  'Strict mode is three separate promises, not one incantation — and there are places every one of them silently does nothing. What each flag really does, where errexit gives up, and the ERR trap that tells you which line died.';
+
+// Breadcrumb last crumb uses the short form per the task brief.
+const BREADCRUMB = 'The Safe Bash Script Template';
+
+export const metadata: Metadata = {
+  title: { absolute: `${TITLE} | BashSnippets.xyz` },
+  description: DESCRIPTION,
+  alternates: {
+    canonical: `${SITE_URL}/guides/safe-bash-script-template`,
+  },
+  openGraph: {
+    title: `${TITLE} | BashSnippets.xyz`,
+    description: DESCRIPTION,
+    url: `${SITE_URL}/guides/safe-bash-script-template`,
+    type: 'article',
+    publishedTime: '2026-09-01T00:00:00Z',
+    images: [
+      {
+        url: `${SITE_URL}/ogimage.png`,
+        width: 1200,
+        height: 630,
+        alt: TITLE,
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${TITLE} | BashSnippets.xyz`,
+    description: DESCRIPTION,
+    images: [`${SITE_URL}/ogimage.png`],
+  },
+};
+
+const techArticleSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'TechArticle',
+  headline: TITLE,
+  description: DESCRIPTION,
+  url: `${SITE_URL}/guides/safe-bash-script-template`,
+  datePublished: '2026-09-01',
+  dateModified: '2026-09-01',
+  author: { '@type': 'Person', ...AUTHOR },
+  publisher: {
+    '@type': 'Organization',
+    name: 'BashSnippets.xyz',
+    url: SITE_URL,
+  },
+  image: `${SITE_URL}/ogimage.png`,
+  inLanguage: 'en',
+  articleSection: 'Guides',
+  keywords: [
+    'set -euo pipefail',
+    'bash strict mode',
+    'trap ERR',
+    'set -E errtrace',
+    'bash error handling',
+    'safe bash script template',
+    'bash cleanup trap',
+    'pipefail',
+  ].join(', '),
+};
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
+    { '@type': 'ListItem', position: 2, name: 'Guides', item: `${SITE_URL}/guides` },
+    {
+      '@type': 'ListItem',
+      position: 3,
+      name: BREADCRUMB,
+      item: `${SITE_URL}/guides/safe-bash-script-template`,
+    },
+  ],
+};
+
+export default async function SafeBashScriptTemplateGuide() {
+  const getContent = async () => {
+    try {
+      const mod = await import('@/content/guides/safe-bash-script-template.mdx');
+      return mod.default;
+    } catch (error) {
+      console.error('[MDX] Failed to load guide: safe-bash-script-template', error);
+      return null;
+    }
+  };
+
+  const Content = await getContent();
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(techArticleSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+
+      <main className="mx-auto max-w-4xl px-6 py-16">
+        <Breadcrumb
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Guides', href: '/guides' },
+            { label: BREADCRUMB },
+          ]}
+        />
+
+        <h1 className="font-heading text-4xl font-extrabold leading-tight text-text md:text-5xl">
+          {TITLE}
+        </h1>
+
+        <div className="mt-4 flex flex-wrap items-center gap-4 font-mono text-xs text-muted">
+          <span>Published: September 1, 2026</span>
+          <span aria-hidden>·</span>
+          <span>10 min read</span>
+        </div>
+
+        <article className="prose-snippet mt-10">
+          {Content ? (
+            <Content components={mdxComponents} />
+          ) : (
+            <p className="text-muted">Content temporarily unavailable.</p>
+          )}
+        </article>
+
+        <div className="mt-12 border-t border-border pt-8">
+          <Link href="/guides" className="font-mono text-sm text-muted transition-colors hover:text-text">
+            ← All guides
+          </Link>
+        </div>
+      </main>
+    </>
+  );
+}

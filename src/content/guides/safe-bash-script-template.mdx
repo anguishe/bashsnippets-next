@@ -1,0 +1,259 @@
+---
+title: "The Safe Bash Script Template: What set -euo pipefail Actually Changes"
+description: "Strict mode is three separate promises, not one incantation — and there are places every one of them silently does nothing. What each flag really does, where errexit gives up, and the ERR trap that tells you which line died."
+slug: safe-bash-script-template
+author: "Travis"
+datePublished: 2026-09-01
+dateModified: 2026-09-01
+---
+
+## The Safe Bash Script Template
+
+Most bash scripts in production start with a line somebody pasted in years ago and nobody has re-read since: `set -euo pipefail`. It is treated as a single incantation that makes bash safe. It is not one thing. It is three separate flags making three separate promises, each with its own list of situations where it quietly declines to keep them — and a fourth flag, the one nobody pastes, that decides whether you find out.
+
+The failure this causes is specific and nasty. A script with strict mode at the top exits non-zero on a bad night. Cron records the failure. Somebody looks at the log and sees nothing — no line number, no failing command, no context — because the thing that died was inside a function, and the trap that was supposed to report it never ran. The script was "safe." The incident still took two hours.
+
+This guide is what each flag actually does, the places each one silently does nothing, and the template that closes the gaps. Every behaviour below was checked against bash 5.3; where a claim depends on the version, it says so.
+
+## Three flags, three different promises
+
+`set -e` (`errexit`) says: if a command fails and nobody is checking, exit immediately instead of running the next line against a broken state. That last clause is the whole problem, and it gets its own section.
+
+`set -u` (`nounset`) says: expanding a variable that was never set is an error, not an empty string. Without it, a typo in a variable name silently expands to nothing — which is how `rm -rf "$BUILD_DIR/"` becomes `rm -rf /` when `BUILD_DIR` is actually spelled `BUILDDIR`.
+
+`set -o pipefail` says: a pipeline's exit status is the rightmost non-zero status, not the status of the last command alone. Without it, a pipeline is only as honest as its final element:
+
+```bash
+set -e
+false | true      # exit status 0 — the failure on the left is discarded
+echo "still running"
+```
+
+That runs. Add `pipefail` and it doesn't:
+
+```bash
+set -eo pipefail
+false | true      # exit status 1 — errexit now has something to act on
+echo "never printed"
+```
+
+This matters most for the shape everyone writes without thinking: `curl … | jq …`. Without `pipefail`, curl can fail completely and `jq` can parse the empty result into something harmless, and your script proceeds as though the API answered.
+
+## Where errexit silently does nothing
+
+`set -e` only fires for a command whose failure nobody is inspecting. Bash defines "inspecting" broadly, and every one of these is exempt:
+
+- the condition of `if`, `while`, or `until`
+- any command in an `&&` or `||` list except the final one
+- any command negated with `!`
+
+So this exits, because `false` is last:
+
+```bash
+set -e
+true && false     # exits 1
+```
+
+and this does not, because `false` is not last:
+
+```bash
+set -e
+false && true     # keeps going
+echo "reached"
+```
+
+That is defensible. What surprises people is that the exemption is not limited to the command being tested — **it applies to everything inside a function called in that position**:
+
+```bash
+set -e
+f() {
+  false
+  echo "INSIDE f, after a failed command"   # this prints
+}
+if f; then echo "f returned true"; fi       # so does this
+echo "survived"
+```
+
+All three lines run. Inside `f`, errexit is disabled for the entire call because `f` appears in an `if` condition. A helper function that is careful and strict when you call it directly becomes unguarded the moment somebody wraps it in a conditional — and nothing warns you.
+
+### The `local` trap that eats your exit status
+
+This is the one that costs the most debugging time, and it looks completely innocent:
+
+```bash
+set -euo pipefail
+f() {
+  local x=$(false)          # does NOT trigger errexit
+  echo "still here"         # prints
+}
+f                           # script exits 0
+```
+
+`local`, `declare`, `export` and `readonly` are commands in their own right. When you write `local x=$(cmd)`, the exit status of that line is the status of `local` — which succeeded, because it did declare the variable. The failure of `cmd` is discarded before errexit ever sees it.
+
+Split the declaration from the assignment and the failure is yours again:
+
+```bash
+set -euo pipefail
+f() {
+  local x                   # declare
+  x=$(false)                # assign — exit status is the command substitution's
+  echo "never printed"
+}
+f                           # script exits 1
+```
+
+Two lines instead of one, everywhere you capture output into a local. It is worth it. This is also why [ShellCheck](/tools/shellcheck-error-decoder) warns about masked return values — the warning is not pedantry, it is this bug.
+
+## nounset, and the variable that is only unbound in staging
+
+`set -u` turns an unset variable into an immediate error. The trouble is that "unset" is environment-dependent: a variable that is always present on your laptop and in production because it lives in a profile can be missing in a container, a CI runner, or a cron environment — three places nobody tests interactively.
+
+When a variable is legitimately optional, say so explicitly rather than turning the flag off:
+
+```bash
+LOG_LEVEL="${LOG_LEVEL:-info}"      # default if unset OR empty
+RETRIES="${RETRIES-3}"              # default only if unset; empty stays empty
+: "${API_TOKEN:?API_TOKEN must be set}"   # fail loudly, with a message you wrote
+```
+
+The third form is the one to reach for with anything the script cannot invent a sane default for. It fails at the top with a sentence a human can act on, instead of forty lines later with `unbound variable`.
+
+One version note, because it still circulates as folklore: expanding `"$@"` with no positional arguments used to trip `nounset` in bash before 4.4. On 4.4 and later — which is anything you are realistically running — `"$@"` on an empty argument list is fine, and `for a in "$@"` on zero arguments iterates zero times without error. You do not need `${1:-}` guards for that case any more.
+
+## The ERR trap, and the flag nobody pastes
+
+Here is the gap that produces the two-hour incident. `trap … ERR` fires on the same conditions that would make errexit exit, so it looks like the natural place to print a diagnostic. But by default, **the ERR trap is not inherited by shell functions, command substitutions, or subshells**:
+
+```bash
+set -euo pipefail
+trap 'echo "TRAP FIRED at line $LINENO"' ERR
+f() { false; }
+f
+```
+
+That script exits 1 and prints **nothing**. Errexit did its job. The trap never ran, because the failure happened one level down inside `f`. You get a non-zero exit code and no idea where it came from — which is precisely the log entry that tells you nothing at 03:00.
+
+The fix is `set -E` (`errtrace`), which makes the ERR trap inherit into functions and subshells:
+
+```bash
+set -Eeuo pipefail
+trap 'echo "TRAP FIRED at line $LINENO"' ERR
+f() { false; }
+f                    # now prints TRAP FIRED, then exits 1
+```
+
+`-E` is the flag missing from almost every pasted strict-mode line on the internet. If you take one thing from this page, take the `E`.
+
+A real handler should name the command, not only the line. Bash keeps the pieces in `BASH_SOURCE`, `BASH_LINENO`, `FUNCNAME` and `BASH_COMMAND`:
+
+```bash
+on_err() {
+  local code=$?                      # capture FIRST — see below
+  local line=${BASH_LINENO[0]}
+  echo "$CROSS failed: '${BASH_COMMAND}' (line ${line}, exit ${code})" >&2
+}
+trap on_err ERR
+```
+
+One caveat worth knowing before you go looking for a ghost: with `-E` set, a failure inside an explicit subshell fires the trap **twice** — once in the subshell and once in the parent as the subshell's own non-zero status propagates. That is expected, not a bug in your handler. If duplicate alerts matter, guard on a flag or move the work out of the subshell.
+
+## Cleanup that runs on every exit path
+
+The ERR trap tells you what broke. The EXIT trap is what guarantees you do not leave a mess behind, and it runs on *every* termination — success, failure, or `exit` called anywhere in the script.
+
+The rule that makes or breaks it: **capture `$?` on the first line of the handler**, before any other command overwrites it.
+
+```bash
+cleanup() {
+  local code=$?          # right here, before anything else runs
+  rm -f "$TMP_FILE"
+  exit "$code"
+}
+trap cleanup EXIT
+```
+
+Move that `local code=$?` even one line down and it reports 0 forever, because the preceding `rm` succeeded:
+
+```bash
+cleanup() {
+  rm -f "$TMP_FILE"
+  local code=$?          # this is rm's status, not the script's
+  echo "exited with $code"   # always 0
+}
+```
+
+The full pattern — `mktemp`, trap on the next line, write only to the temp path, atomic `mv` at the end — is worked through in [trap cleanup on exit](/snippets/bash-trap-cleanup). The short version is that `mktemp` gives you a race-free path, the trap guarantees it is removed on any exit short of `kill -9`, and `mv` on the same filesystem is atomic, so consumers see the old complete file or the new complete file and never a half-written one.
+
+## The template, assembled
+
+```bash
+#!/bin/bash
+# Script: template.sh
+# Purpose: Strict-mode skeleton that reports which line died and cleans up after itself
+# Usage: ./template.sh <required-arg>
+set -Eeuo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+: "${1:?usage: template.sh <required-arg>}"
+LOG_LEVEL="${LOG_LEVEL:-info}"
+
+TMP_FILE=$(mktemp)
+
+cleanup() {
+  local code=$?
+  rm -f "$TMP_FILE"
+  exit "$code"
+}
+trap cleanup EXIT
+
+on_err() {
+  local code=$?
+  echo "$CROSS failed: '${BASH_COMMAND}' (line ${BASH_LINENO[0]}, exit ${code})" >&2
+}
+trap on_err ERR
+
+# --- real work below; capture into locals in two steps, never one ---
+main() {
+  local output
+  output=$(some_command)        # declare, then assign
+  printf '%s\n' "$output" > "$TMP_FILE"
+  echo "$CHECK done"
+}
+
+main "$@"
+```
+
+`set -Eeuo pipefail` rather than `set -euo pipefail`. Both traps registered before any work happens. `$?` captured on the first line of each handler. Locals declared and assigned separately. That is the whole difference between a script that exits 1 and a script that tells you why.
+
+If you would rather not type it, the [bash boilerplate generator](/tools/bash-boilerplate-generator) emits this shape with your own script name and arguments filled in, and the [trap builder](/tools/bash-trap-builder) will assemble the handler for a specific set of signals.
+
+## When to leave strict mode off
+
+Strict mode is not free, and there are scripts where it is the wrong default.
+
+Interactive scripts that expect commands to fail — a health checker that runs twenty probes and reports which ones failed — spend more effort fighting `set -e` with `|| true` than they would spend checking exit codes deliberately. Once a script is more `|| true` than logic, the flag is not helping.
+
+`.bashrc` and other sourced files should never set it. They run in your interactive shell, and `errexit` there means a single failed command closes your terminal.
+
+And anything where a non-zero exit is data rather than an error — `grep -q` used as a test, `diff` used to detect a change — needs explicit handling either way:
+
+```bash
+if grep -q "$PATTERN" "$FILE"; then
+  echo "$CHECK found"
+else
+  echo "$CROSS not found"     # a normal outcome, not a failure
+fi
+```
+
+The escape hatch when you genuinely want to ignore one failure is `|| true`, and it is fine in small doses. What it costs is the exit status: `out=$(grep -c nothing "$FILE" || true)` gives you `0` on no-match and `0` on a genuinely broken grep, and you can no longer tell those apart. Use it where the distinction does not matter, and check the status explicitly where it does.
+
+## Where this connects
+
+Strict mode is the floor, not the building. It makes failures *stop* the script; it does not make the script survive the conditions that caused them. The next layer up is bounding and repeating work: [`timeout`](/snippets/bash-timeout-command) so a wedged command dies instead of blocking until someone notices, [`flock`](/snippets/bash-flock-single-instance) so overlapping runs cannot step on each other's files, and [retry with backoff](/snippets/bash-retry-with-backoff) so a transient blip does not kill a whole run.
+
+Put together, those are what separate a script that works when you run it from one that runs unattended for a year — the full argument is in [Bash Scripts That Survive Cron](/guides/bash-scripts-that-survive-cron). If the script's home is a pipeline rather than a crontab, the CI-specific version of these failures — exit codes swallowed by the runner, secrets in the environment, `set -e` behaving differently inside a `docker exec` — is in [Bash Scripting for CI/CD Pipelines](/guides/bash-scripting-for-ci-cd-pipelines).
+
+And when the ERR trap does fire on a box nobody is watching, something has to carry the message: [Slack webhook alerts](/snippets/bash-slack-webhook-alerts) wires an alert straight into the handler above, so the failing line reaches you at 03:00 instead of waiting in a log you read on Thursday.
