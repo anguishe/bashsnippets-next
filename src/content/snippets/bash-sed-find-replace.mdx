@@ -142,6 +142,4 @@ The staging outage ended with `git checkout -- .` and the rename redone with `\b
 
 Finding the text before you replace it is half this job — [searching files with grep](/snippets/search-files-for-text-grep) covers the discovery side, and [bash string manipulation](/snippets/bash-string-manipulation) handles the cases where the text is already in a variable and sed is overkill. The wider toolkit — awk, cut, sort, and where each one wins — is in the [Bash Text Processing guide](/guides/bash-text-processing), and the [Grep Pattern Builder](/tools/grep-pattern-builder) will construct the anchored pattern for you interactively.
 
-<AffiliateBox partner="digitalocean" />
-
 Want a safe place to practice a tree-wide replace before doing it on anything real? A throwaway droplet with a cloned repo is the consequence-free sandbox. The rest of the library is at [bashsnippets.xyz](https://bashsnippets.xyz) — start with [error handling](/snippets/bash-error-handling), since `set -euo pipefail` is the reason the script above stops on the first surprise instead of plowing through forty more files.

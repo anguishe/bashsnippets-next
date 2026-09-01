@@ -117,6 +117,4 @@ The one thing `trap` cannot save you from is `kill -9`, which no process can cat
 
 This page is one leg of the unattended-script survival kit. [`set -euo pipefail`](/snippets/bash-error-handling) makes failures *stop* the script so the trap has something honest to report; [`timeout`](/snippets/bash-timeout-command) bounds a hang so the script dies (and cleans up) instead of blocking forever; [`flock`](/snippets/bash-flock-single-instance) keeps overlapping runs from stepping on each other's files. The [Hardened Cron Wrapper Generator](/tools/cron-wrapper-generator) assembles all of it around any command, and the full argument for why cron jobs need this armor is in [Bash Scripts That Survive Cron](/guides/bash-scripts-that-survive-cron).
 
-<AffiliateBox partner="digitalocean" />
-
 The cheapest way to trust this pattern is to break it on purpose: run the script on a scratch droplet, `kill` it mid-generate, and confirm `/tmp` is clean and the output file is still yesterday's. The rest of the library is at [bashsnippets.xyz](https://bashsnippets.xyz) — [Slack alerts from bash](/snippets/bash-slack-webhook-alerts) pairs naturally with this one, so the 02:14 death pages you at 02:14 instead of introducing itself through your dashboard.

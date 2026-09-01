@@ -112,6 +112,4 @@ That eleven-o'clock deploy never paged me again once the migration waited for th
 
 Retries are the third leg of an unattended job that survives. [Locking with `flock`](/snippets/bash-flock-single-instance) stops a slow run from stacking; [`timeout`](/snippets/bash-timeout-command) stops a hung run from jamming the lock; retries stop a transient blip from killing the run outright. The [Hardened Cron Wrapper Generator](/tools/cron-wrapper-generator) wires the retry loop into a full wrapper alongside the other two, and [Bash Scripts That Survive Cron](/guides/bash-scripts-that-survive-cron) is the end-to-end version.
 
-<AffiliateBox partner="digitalocean" />
-
 Want to test the wait-for-port pattern for real? Bring up a droplet, start a service on a delay, and watch `retry` poll the port until it opens. The rest of the library is at [bashsnippets.xyz](https://bashsnippets.xyz) — the [website up-check](/snippets/check-if-website-is-up) and [restart a service if it stopped](/snippets/restart-service-if-stopped) pair naturally with this one.

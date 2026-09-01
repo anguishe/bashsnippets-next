@@ -1,4 +1,3 @@
-import AffiliateBox from '@/components/AffiliateBox';
 import Breadcrumb from '@/components/Breadcrumb';
 import { snippets } from '@/lib/snippets';
 import { tools } from '@/lib/tools';
@@ -198,14 +197,6 @@ export default function AboutPage() {
             client-side, with a few still embedding a standalone HTML page in an
             iframe.
           </p>
-        </section>
-
-        <section className="mt-10">
-          <h2 className="mb-4 font-heading text-xl font-bold text-text">
-            Recommended hosting &amp; domains
-          </h2>
-          <AffiliateBox partner="digitalocean" className="!my-6" />
-          <AffiliateBox partner="namecheap" className="!my-6" />
         </section>
 
         <section className="mt-8">

@@ -1,6 +1,4 @@
-import AdSlot from '@/components/AdSlot';
 import Breadcrumb from '@/components/Breadcrumb';
-import AffiliateBox from '@/components/AffiliateBox';
 import ToolkitCTA from '@/components/ToolkitCTA';
 import FaqTerminal from '@/components/FaqTerminal';
 import ScrollReveal from '@/components/ScrollReveal';
@@ -279,8 +277,6 @@ export default function Home() {
           </div>
         </ScrollReveal>
 
-        <AdSlot slot="AUTO" format="auto" />
-
         <div className="mt-10 flex flex-wrap gap-3">
           <Link
             href="/snippets"
@@ -442,12 +438,10 @@ export default function Home() {
         </ScrollReveal>
       </section>
 
-      {/* Section 7 — Affiliate */}
+      {/* Section 7 — Toolkit */}
       <section className="mx-auto max-w-4xl border-t border-border px-6 py-10">
         <ScrollReveal>
-          <AffiliateBox partner="digitalocean" />
-          <AffiliateBox partner="namecheap" className="mt-4" />
-          <ToolkitCTA className="mt-10" placement="home" />
+          <ToolkitCTA placement="home" />
         </ScrollReveal>
       </section>
     </>

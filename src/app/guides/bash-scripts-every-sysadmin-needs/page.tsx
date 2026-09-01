@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import AffiliateBox from '@/components/AffiliateBox';
 import Breadcrumb from '@/components/Breadcrumb';
 import { AUTHOR } from '@/lib/author';
 
@@ -611,13 +610,6 @@ export default function BashScriptsGuide() {
           linkLabel="Full script with signal escalation and safety confirmation"
         />
 
-        {/* Affiliate after #10 */}
-        <AffiliateBox
-          partner="digitalocean"
-          headline="Running these scripts on a VPS? DigitalOcean Droplets start at $4/mo — $200 free credit for new accounts."
-          className="my-10"
-        />
-
         <ScriptEntry
           num={11}
           title="Kill Process on Port"
@@ -1226,13 +1218,6 @@ export default function BashScriptsGuide() {
             </details>
           </div>
         </section>
-
-        {/* Affiliate at end */}
-        <AffiliateBox
-          partner="digitalocean"
-          headline="Put these scripts to work on a real server — DigitalOcean Droplets from $4/mo with $200 free credit."
-          className="mt-14"
-        />
 
         {/* Footer nav */}
         <div className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-8">

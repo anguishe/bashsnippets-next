@@ -1,4 +1,3 @@
-import AdSlot from '@/components/AdSlot';
 import FaqTerminal from '@/components/FaqTerminal';
 import { mdxComponents } from '@/components/MDXComponents';
 import EmailCapture from '@/components/EmailCapture';
@@ -233,8 +232,6 @@ export default async function SnippetPage({ params }: PageProps) {
           </div>
         )}
 
-        <AdSlot slot="SLOT_ABOVE_CONTENT" />
-
         <article className="prose-snippet mx-auto max-w-3xl">
           {Content ? (
             <Content components={mdxComponents} />
@@ -261,8 +258,6 @@ export default async function SnippetPage({ params }: PageProps) {
         <ToolkitCTA className="mx-auto my-12 max-w-3xl" placement="snippet" />
 
         <EmailCapture className="mx-auto my-12 max-w-3xl" placement="snippet" />
-
-        <AdSlot slot="SLOT_MID_CONTENT" />
 
         <div className="my-10 flex items-start gap-4 rounded-lg border border-border bg-bg2 p-5">
           <Image
@@ -318,8 +313,6 @@ export default async function SnippetPage({ params }: PageProps) {
             <FaqTerminal items={snippet.faq} label="faq — snippet" />
           </section>
         )}
-
-        <AdSlot slot="SLOT_BELOW_CONTENT" />
 
         <div className="mt-12 flex items-center justify-between border-t border-border pt-8 text-xs text-muted">
           <Link href="/snippets" className="transition-colors hover:text-text">

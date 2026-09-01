@@ -51,7 +51,6 @@ howToSteps:
 author: "Travis"
 ---
 
-
 ## What Breaks Without This Script
 
 When `/var/log` fills silently, nginx stops writing access logs, MySQL cannot flush transactions, and your next deploy fails mid-write — with no alert until users report errors. A full disk does not send a polite warning; it corrupts in-progress work and takes down every service that still needs to write bytes. This script reads usage with `df`, compares it against a threshold you control, and exits non-zero when you are running out of room — so cron or your monitoring stack can act before the crash.
@@ -169,7 +168,3 @@ Yes. Use `df -P "$TARGET"` for POSIX output if `awk` reads the wrong column on m
 ### How do I schedule this with cron?
 
 Run `crontab -e` and add `0 * * * * /full/path/to/your-script.sh`. Always use absolute paths in cron.
-
-<AffiliateBox partner="digitalocean" />
-
-<AffiliateBox partner="namecheap" />

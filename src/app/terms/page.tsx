@@ -6,7 +6,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 export const metadata: Metadata = {
   title: 'Terms of Service',
   description:
-    'Terms of service for BashSnippets.xyz — script license, disclaimers, affiliates, and advertising.',
+    'Terms of service for BashSnippets.xyz — script license, disclaimers, and paid products.',
   alternates: {
     canonical: `${SITE_URL}/terms`,
   },
@@ -62,27 +62,16 @@ export default function TermsPage() {
 
       <section className="mt-8">
         <h2 className="mb-3 font-heading text-xl font-bold text-text">
-          Affiliate Disclosure
+          Advertising and Affiliates
         </h2>
         <p className="text-sm leading-relaxed text-muted">
-          Some outbound links (DigitalOcean, Namecheap) are affiliate links.
-          BashSnippets.xyz may earn a commission if you click and make a
-          purchase, at no extra cost to you. Affiliate relationships do not
-          affect the script content published on this site.
-        </p>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="mb-3 font-heading text-xl font-bold text-text">
-          Third-Party Advertising
-        </h2>
-        <p className="text-sm leading-relaxed text-muted">
-          Google AdSense serves advertisements on this site and may set cookies
-          subject to your consent choice. See our{' '}
+          This site carries no advertising and no affiliate links. The only
+          commercial offer is the Production Bash Toolkit, which is made and
+          sold by BashSnippets.xyz. See our{' '}
           <a href="/privacy" className="text-blue transition-colors hover:text-text">
             Privacy Policy
           </a>{' '}
-          for details on advertising cookies and tracking.
+          for what is tracked.
         </p>
       </section>
 

@@ -6,13 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**BashSnippets.xyz** — a free bash script library and interactive tools site targeting Linux developers, sysadmins, and DevOps engineers. Monetized via AdSense, DigitalOcean and Namecheap affiliates, and a planned Gumroad product. Traffic goal: Mediavine Journey qualification (10k sessions/mo).
+**BashSnippets.xyz** — a free bash script library and interactive tools site targeting Linux developers, sysadmins, and DevOps engineers. Monetized by **one owned product**: the Production Bash Toolkit on Gumroad. No ads, no affiliates — both were removed on 2026-09-01 (see `docs/INDEXING-AUDIT-2026-09-01.md`). Revenue goal: paid conversions from the toolkit CTA, tracked in GA4 as `toolkit_cta_view` / `toolkit_cta_click` / `toolkit_purchase_click`.
 
 - **Live site:** https://bashsnippets.xyz
 - **Repo:** anguishe/bashsnippets-next
 - **Stack:** Next.js 15, React 18, TypeScript, Tailwind CSS, MDX (via @next/mdx)
 - **Hosting:** Vercel (auto-deploys on push to main)
-- **Analytics:** GA4 G-6B01TGE8XS | AdSense ca-pub-5399156622542127
+- **Analytics:** GA4 G-6B01TGE8XS (no AdSense — the account and loader are gone)
 
 ---
 
@@ -87,16 +87,15 @@ All tools are native React client components rendered by `ToolRenderer` via `nex
 - `TOOL_REGISTRY_ENTRY.ts` — copy the object into `src/lib/tools.ts`
 - `TOOL_COMPONENT_TEMPLATE.tsx` — starting point for a new tool component
 
-### Affiliate Links
+### Monetization — one product, nothing else
 
-Affiliate URLs are **hardcoded constants in `AffiliateBox.tsx`**, not a separate lib file:
+**Do not add ads or affiliate links to this site.** Removed 2026-09-01: `AffiliateBox.tsx` (22 call sites), `AdSlot.tsx` (4 call sites), `public/ads.txt`, and every ad/affiliate clause in `/privacy` and `/terms`. Consent Mode keeps `ad_storage` / `ad_user_data` / `ad_personalization` **denied on every path** — the keys stay present because Consent Mode v2 requires them, not because ads may come back.
 
-- DigitalOcean: `https://m.do.co/c/7a196437764c`
-- Namecheap: `https://namecheap.pxf.io/c/7260430/1632743/5618`
+The only commercial surface is the Production Bash Toolkit:
 
-Update `AffiliateBox.tsx` if these ever change. Use `<AffiliateBox partner="digitalocean" />` or `partner="namecheap"` — never inline raw affiliate URLs elsewhere.
-
-> **AdSlot status (2026-08-09):** Ad units are gated by `NEXT_PUBLIC_ADS_ENABLED` (unset = no ads render). Slot IDs are placeholders until AdSense approval; on approval, create real units and set slot IDs + the env var in Vercel.
+- `ToolkitCTA` — registered in `MDXComponents.tsx`, placed by the three detail layouts (snippets, tools, guides). Never insert it per-MDX-file.
+- In-content prose links to `/starter-kit` — 14 content files.
+- `EmailCapture` — Buttondown, renders `null` unless `NEXT_PUBLIC_BUTTONDOWN_USERNAME` is set.
 
 ---
 

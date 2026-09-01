@@ -1,4 +1,3 @@
-import AffiliateBox from '@/components/AffiliateBox';
 import TrackedOutboundLink from '@/components/TrackedOutboundLink';
 import Breadcrumb from '@/components/Breadcrumb';
 import FaqTerminal from '@/components/FaqTerminal';
@@ -355,12 +354,6 @@ export default function StarterKitPage() {
           </h2>
           <FaqTerminal items={toolkitFaq} label="faq — toolkit" />
         </section>
-
-        <AffiliateBox
-          partner="digitalocean"
-          headline="Need somewhere to run the toolkit? DigitalOcean droplets from $4/mo."
-          className="!my-10"
-        />
 
         <p className="mt-12 text-sm text-muted">
           <Link href="/snippets" className="text-blue hover:text-text">

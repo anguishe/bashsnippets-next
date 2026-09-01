@@ -5,7 +5,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
-  description: 'Privacy policy for BashSnippets.xyz — analytics, cookies, and affiliates.',
+  description: 'Privacy policy for BashSnippets.xyz — analytics, cookies, and third-party services.',
   alternates: {
     canonical: `${SITE_URL}/privacy`,
   },
@@ -41,10 +41,9 @@ export default function PrivacyPage() {
         <h2 className="mb-3 font-heading text-xl font-bold text-text">Cookies</h2>
         <p className="text-sm leading-relaxed text-muted">
           This site may set cookies from Google Analytics 4 (measurement and
-          traffic tracking) and Google AdSense (advertising). Third-party
-          advertisers may also set cookies when ads are displayed. You can block
-          cookies in your browser settings; the site will still work for reading
-          scripts and using tools.
+          traffic tracking). The site serves no advertising and sets no
+          advertising cookies. You can block cookies in your browser settings;
+          the site will still work for reading scripts and using tools.
         </p>
       </section>
 
@@ -53,9 +52,9 @@ export default function PrivacyPage() {
           Data Retention
         </h2>
         <p className="text-sm leading-relaxed text-muted">
-          Google Analytics 4 retains data for 14 months by default. AdSense data
-          is retained per Google&apos;s policies. Your consent choices are stored
-          in your browser (localStorage and a cookie) until you clear them.
+          Google Analytics 4 retains data for 14 months by default. Your consent
+          choices are stored in your browser (localStorage and a cookie) until
+          you clear them.
         </p>
       </section>
 
@@ -84,37 +83,12 @@ export default function PrivacyPage() {
 
       <section className="mt-8">
         <h2 className="mb-3 font-heading text-xl font-bold text-text">
-          How to Opt Out of Advertising Cookies
+          How to opt out
         </h2>
         <p className="text-sm leading-relaxed text-muted">
           Choose &quot;Necessary only&quot; or &quot;Reject all&quot; on the
-          cookie banner when you first visit the site. You can also manage Google
-          ad personalization at{' '}
-          <a
-            href="https://adssettings.google.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue transition-colors hover:text-text"
-          >
-            adssettings.google.com
-          </a>
-          .
-        </p>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="mb-3 font-heading text-xl font-bold text-text">
-          Affiliate disclosure
-        </h2>
-        <p className="text-sm leading-relaxed text-muted">
-          Some links are affiliate links. We earn a commission if you click and
-          make a purchase, at no extra cost to you. We only link to services we
-          use or recommend.
-        </p>
-        <p className="mt-3 text-sm leading-relaxed text-muted">
-          This site participates in the DigitalOcean affiliate program and the
-          Namecheap affiliate program. If you click an affiliate link and make a
-          purchase, we may receive a commission at no additional cost to you.
+          cookie banner when you first visit the site. That is the only
+          tracking this site does.
         </p>
       </section>
 
@@ -123,22 +97,13 @@ export default function PrivacyPage() {
           Third parties
         </h2>
         <ul className="list-disc space-y-2 pl-6 text-sm leading-relaxed text-muted">
-          <li>Google Analytics (traffic measurement)</li>
-          <li>Google AdSense (advertising)</li>
-          <li>DigitalOcean affiliate program</li>
-          <li>Namecheap affiliate program</li>
+          <li>Google Analytics 4 (traffic measurement)</li>
+          <li>Buttondown (email list — only if you submit the form)</li>
+          <li>Gumroad (checkout — only if you buy the toolkit)</li>
         </ul>
         <p className="mt-3 text-sm leading-relaxed text-muted">
-          Google&apos;s use of advertising cookies is described at{' '}
-          <a
-            href="https://policies.google.com/technologies/partner-sites"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue transition-colors hover:text-text"
-          >
-            policies.google.com/technologies/partner-sites
-          </a>
-          .
+          There are no advertising or affiliate partners. The site carries no
+          ads and no affiliate links.
         </p>
       </section>
 

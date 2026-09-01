@@ -215,9 +215,9 @@ export default function RootLayout({
               var match = document.cookie.match(/(?:^|; )bs_consent=([^;]*)/);
               if (match && match[1] === 'all') {
                 gtag('consent', 'update', {
-                  ad_storage: 'granted',
-                  ad_user_data: 'granted',
-                  ad_personalization: 'granted',
+                  ad_storage: 'denied',
+                  ad_user_data: 'denied',
+                  ad_personalization: 'denied',
                   analytics_storage: 'granted'
                 });
               }

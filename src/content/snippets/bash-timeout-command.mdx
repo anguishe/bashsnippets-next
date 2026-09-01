@@ -93,6 +93,4 @@ For commands that talk to the network, add the tool's own timeout as well — `c
 
 A timeout is what makes a lock safe. [Locking a job to a single instance with `flock`](/snippets/bash-flock-single-instance) stops overlap, but a hang inside the locked job holds that lock forever — which is precisely how my nine-day gap happened. Bound the runtime and the lock always gets released, on time, every time. The two together, plus [retrying transient failures with backoff](/snippets/bash-retry-with-backoff), are the core of an unattended job that fails loudly instead of disappearing. The [Hardened Cron Wrapper Generator](/tools/cron-wrapper-generator) composes all three, and [Bash Scripts That Survive Cron](/guides/bash-scripts-that-survive-cron) walks the whole decision.
 
-<AffiliateBox partner="digitalocean" />
-
 If you want to reproduce the hang safely, a $4 droplet, a deliberately slow `sleep 999`, and a `timeout 5s` is the cheapest way to watch all three exit codes for yourself. More of the library is at [bashsnippets.xyz](https://bashsnippets.xyz), including [killing a runaway process by name](/snippets/kill-a-process) when a hang escapes the timeout entirely.

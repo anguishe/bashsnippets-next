@@ -86,5 +86,3 @@ Piping that into `while IFS= read -r id; do …; done` is the clean way to act o
 The obvious alternative is `python3 -c 'import json,sys; print(json.load(sys.stdin)["name"])'`, and on a box that's guaranteed to have Python it's a fine fallback. I still reach for jq first because it's built for exactly this: the filters compose left to right like a shell pipe, `-r` and `//` and `select` are one token each instead of a line of Python, and it streams. The tradeoff is honest — jq is a dependency you have to install, and its syntax has a learning curve past the basics. For pulling a handful of fields out of an API response in a bash script, that curve pays for itself the first time an endpoint reformats and your jq path keeps working while a regex would have broken.
 
 The response you're parsing should already be a verified 2xx — see [making the request safely with curl](/snippets/bash-curl-api-requests). And when a parse fails because the API changed shape, that's exactly the kind of thing worth [alerting to Slack](/snippets/bash-slack-webhook-alerts) rather than discovering downstream.
-
-<AffiliateBox partner="digitalocean" />

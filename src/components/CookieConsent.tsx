@@ -41,10 +41,12 @@ function updateGtagConsent(value: ConsentValue): void {
   ).gtag;
   if (typeof gtag !== 'function') return;
 
+  // Consent Mode v2 requires the ad_* signals to be present, not omitted.
+  // The site carries no ads, so they stay denied on every path.
   gtag('consent', 'update', {
-    ad_storage: 'granted',
-    ad_user_data: 'granted',
-    ad_personalization: 'granted',
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
     analytics_storage: 'granted',
   });
 }
@@ -96,8 +98,8 @@ export default function CookieConsent() {
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <p className="font-mono text-sm leading-relaxed text-text">
-          We use cookies for site analytics and advertising. You can accept
-          all, or limit us to strictly necessary cookies only.{' '}
+          We use cookies for site analytics only — no ads, no ad tracking.
+          You can accept, or limit us to strictly necessary cookies.{' '}
           <Link
             href="/privacy"
             className="text-blue underline-offset-2 hover:underline"

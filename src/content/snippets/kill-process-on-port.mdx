@@ -27,7 +27,6 @@ datePublished: "2026-06-06"
 dateModified: "2026-06-06"
 ---
 
-
 ## What Does the Kill Process on Port Script Look Like?
 
 You run `npm start` or `python manage.py runserver` and get slapped with `EADDRINUSE: address already in use :::3000`. Something is squatting on the port — maybe a crashed dev server that didn't clean up, maybe a background process you forgot about. This script finds it and kills it without forcing you to remember `lsof` flags.
@@ -196,8 +195,6 @@ ExecStart=/usr/bin/node /app/server.js
 This ensures a clean port before your application attempts to bind.
 
 <p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
-
-<AffiliateBox partner="digitalocean" headline="Test port-bound services on a clean box — DigitalOcean droplets from $4/mo." />
 
 ## Related Scripts
 

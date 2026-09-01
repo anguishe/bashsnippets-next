@@ -29,7 +29,6 @@ datePublished: "2026-06-06"
 dateModified: "2026-06-06"
 ---
 
-
 ## What Does the Rsync Remote Backup Script Look Like?
 
 A local-only backup dies with the machine. Whether it's disk failure, ransomware, or an accidental `rm -rf`, data stored only on one host has a single point of failure. This script pushes an incremental mirror to a remote server over SSH — transferring only the bytes that changed since the last run.
@@ -232,8 +231,6 @@ Cron runs without your interactive shell environment. The script must reference 
 </Callout>
 
 <p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
-
-<AffiliateBox partner="digitalocean" headline="rsync your backups to a DigitalOcean droplet or Spaces — offsite in one command." />
 
 ## Related Scripts
 

@@ -105,5 +105,3 @@ The body goes to stdout so you can pipe it straight into `jq`; the status commen
 This handles a single request. It does not walk paginated results, refresh an OAuth token that expired mid-run, or read a `Retry-After` header to back off politely (it uses a fixed delay). Those are real and worth adding when the API demands them — see the [Shell Scripts That Talk to APIs](/guides/shell-scripts-that-talk-to-apis) guide for the fuller pattern. But the status-code check and the timeouts are the two things that turn "silently wrong for a month" into "fails tonight, loudly."
 
 Once you've got a clean 2xx body, the next job is reading fields out of it without regex — that's [parsing JSON with jq](/snippets/bash-parse-json-jq). And when a request finally does fail for real, you want to hear about it: [send the failure to Slack](/snippets/bash-slack-webhook-alerts).
-
-<AffiliateBox partner="digitalocean" />

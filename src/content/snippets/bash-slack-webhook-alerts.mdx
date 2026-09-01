@@ -92,5 +92,3 @@ Wiring `slack_alert` to `trap ... ERR` is the difference between alerting you re
 A webhook fired from inside the job can only report failures the job is alive to see. If the box is down, cron is misconfigured, or the script never starts, nothing posts — and "nothing posted" looks identical to "everything's fine." That's the gap a dead-man's-switch fills: a service like Healthchecks.io expects a ping by a deadline and alerts when the ping *doesn't* arrive. The webhook and the external check cover opposite failure modes, which is why serious jobs use both. This script is the first half.
 
 To build alert payloads that carry real data from a response, you'll want [jq to construct the JSON](/snippets/bash-parse-json-jq), and to only alert on genuine failures you need [curl that actually detects them](/snippets/bash-curl-api-requests). The full fetch-parse-alert pattern lives in the [Shell Scripts That Talk to APIs](/guides/shell-scripts-that-talk-to-apis) guide.
-
-<AffiliateBox partner="digitalocean" />
