@@ -93,6 +93,10 @@ URL Inspection still reported *Indexed successfully* for `create-dated-folder` a
 
 ## 3. Reprice $9 → $29 single, add $79 five-seat team — 1.5 h
 
+> ⚠️ **The line-number table below is stale after commit `1a2cf79`**, which deleted lines from
+> `starter-kit/page.tsx` and `page.tsx` and moved three of the eleven sites. Corrected table and
+> the Gumroad steps: `docs/MANUAL-ACTIONS-2026-09-01.md` §2.1.
+
 ⚠️ **The price is hardcoded in 11 places, not 4.** All 11 re-verified at these exact lines on
 2026-09-01 — the table is correct as written. (`grep '\$9'` also hits
 `src/content/guides/bash-text-processing.mdx:62`; that is an awk `$9` field reference, not a price.)
@@ -121,12 +125,16 @@ this is a judgment call, not arithmetic, and the downside at current volume is z
 
 ---
 
-## 4. Delete the dead ad stack — 0.5 h
+## 4. Delete the dead ad stack — 0.5 h ✅ DONE 2026-09-01
 
-- [ ] Delete `src/components/AdSlot.tsx`
-- [ ] Remove 4 call sites: `src/app/page.tsx:1` (import) + `:282`; `src/app/snippets/[slug]/page.tsx:1` (import) + `:233`, `:243`, `:300`
-- [ ] Delete `public/ads.txt`
-- [ ] Rewrite the goal line in `CLAUDE.md` — "Traffic goal: Mediavine Journey qualification (10k sessions/mo)" → a product-revenue target
+- [x] Deleted `src/components/AdSlot.tsx`
+- [x] Removed all 4 call sites in `src/app/page.tsx` and `src/app/snippets/[slug]/page.tsx`
+- [x] Deleted `public/ads.txt`
+- [x] Rewrote the `CLAUDE.md` goal line — the Mediavine 10k target is gone, replaced with the
+      product-only model and an explicit do-not-re-add note
+
+Shipped in commit `1a2cf79` together with the affiliate strip. See the addendum at the end of this
+document — the item came in far larger than 0.5 h.
 
 The AdSense loader was already removed from `layout.tsx`, so these units would render empty 90px
 boxes if `NEXT_PUBLIC_ADS_ENABLED` were ever flipped. Ads top out around $4–8/month for this
@@ -195,3 +203,34 @@ Two amendments, 2026-09-01:
 
 `anguisheh1@gmail.com` is published in the `/about` `Person` schema and visible on `/about`,
 `/contact`, `/terms`, `/privacy`. Swapping it for a domain alias needs an address only you can create.
+
+
+---
+
+## Addendum 2026-09-01 — item 4 grew
+
+Item 4 was scoped as "delete dead code, expect no indexing effect". Executing it surfaced work the
+plan had not accounted for, all shipped in `1a2cf79`:
+
+- **The affiliate strip was never finished.** The 9/01 audit's verdict was "restore the toolkit CTA;
+  leave affiliates out". Commit `1c6a800` did the first half and said so in its own message —
+  12 content files still carried `AffiliateBox`. There were **22 call sites across 17 files**, not
+  12: 12 indexable MDX files, 9 on app pages (`/`, `/about`, `/tools`, `/starter-kit`, the sysadmin
+  guide), and 2 seeds in `SNIPPET_TEMPLATE.mdx` that would have regrown the problem one new snippet
+  at a time. Checked first that no raw affiliate hrefs existed outside `AffiliateBox.tsx`, so
+  deleting the component removed every affiliate link rather than most of them.
+- **The legal copy went false the moment the links came out.** `/privacy` advertised AdSense cookies
+  and both affiliate programs; `/terms` carried an Affiliate Disclosure and a Third-Party
+  Advertising section; the cookie banner said "analytics and advertising". All rewritten.
+- **Consent Mode was granting ad signals.** `CookieConsent.tsx` and the returning-visitor restore in
+  `layout.tsx` both granted `ad_storage`, `ad_user_data` and `ad_personalization`. Now denied on
+  every path — the keys stay present because Consent Mode v2 requires them, not because ads may
+  come back.
+
+Nothing in the product path was touched: `ToolkitCTA` still on 38/38 snippets, 12/12 tools,
+5/5 guides; the 14 in-content `/starter-kit` links and `EmailCapture` are intact. Build clean at
+70 static pages, lint clean, sitemap still 61, and the built output contains zero occurrences of
+`m.do.co`, `namecheap.pxf.io`, `adsbygoogle` or `ca-pub-`.
+
+**Remaining from this document: item 3 only.** Manual steps for it, and for everything after it,
+are in `docs/MANUAL-ACTIONS-2026-09-01.md`.
