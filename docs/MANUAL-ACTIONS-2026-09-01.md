@@ -116,7 +116,7 @@ This is not cosmetic. The kill signal for the whole project is measured in **ema
    until a new build runs. Vercel → Deployments → ⋯ → Redeploy.
 5. Verify: reload a snippet page, submit a test address, confirm it lands in Buttondown.
 
-### 1.8 ⬜ Push 5 missing scripts to the scripts repo
+### 1.8 ✅ Push 5 missing scripts to the scripts repo — done 2026-09-01
 
 `getRepoScriptUrl()` is an exclusion list, and five snippets linked to `.sh` files that were never
 pushed — they 404'd from live indexable pages the moment `1c6a800` deployed. Stopgapped in
@@ -131,16 +131,17 @@ Missing from `~/Projects/bashsnippets` (which holds 31 of 38):
 - `bash-slack-webhook-alerts`
 - `bash-trap-cleanup`
 
-Steps:
+**Done** — scripts repo `9fbe0de`, site `1a47e16` reverted in the follow-up commit. All five
+extracted from their MDX, given the house `Explained line-by-line` header, ShellCheck-clean at
+`-S style`, and run before commit. All five now return 200; `NO_REPO_SCRIPT` is back to the two
+deliberate exclusions. README table 31 → 36 rows.
 
-1. Extract each script from `src/content/snippets/<slug>.mdx` into
-   `~/Projects/bashsnippets/scripts/<slug>.sh`
-2. Match the site's bash standard: shebang, `# Script:` / `# Purpose:` / `# Usage:` header,
-   `set -euo pipefail` on line 4 or 5, `CHECK`/`CROSS` defined before use
-3. `shellcheck scripts/<slug>.sh` — must be clean, the site claims ShellCheck-clean
-4. Commit and push to `github.com/anguishe/bashsnippets`
-5. Confirm: `curl -s -o /dev/null -w '%{http_code}' https://github.com/anguishe/bashsnippets/blob/main/scripts/<slug>.sh` → 200
-6. Delete those slugs from `NO_REPO_SCRIPT` in `src/lib/snippets.ts`, build, push, re-verify
+One judgment call worth knowing about: `bash-trap-cleanup.sh` calls `generate_report_rows` on the
+site as a stand-in for the reader's own query, which would have died with *command not found* on a
+clone — against that repo's README promise of "clone it, read it, run it". Added it as a
+clearly-marked stub emitting sample CSV, deliberately sized past the script's own 1024-byte sanity
+gate so a plain run demonstrates the publish path rather than the refusal path. The site page is
+unchanged; only the repo copy carries the stub.
 
 ### 1.9 ⬜ GA4 — internal traffic filter
 
