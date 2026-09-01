@@ -143,7 +143,7 @@ clearly-marked stub emitting sample CSV, deliberately sized past the script's ow
 gate so a plain run demonstrates the publish path rather than the refusal path. The site page is
 unchanged; only the repo copy carries the stub.
 
-### 1.9 ⬜ GA4 — internal traffic filter
+### 1.9 ✅ GA4 — internal traffic filter — DONE, activated 2026-09-01
 
 Flagged in week-1 §5 and still not done. 89 of 116 sessions are Direct with no filter configured,
 so an unknown share of your only analytics baseline is you and Vercel previews.
@@ -208,8 +208,23 @@ Verified in the console 2026-09-01: **there are no internal traffic rules yet** 
 **Re-check if your ISP hands you a different prefix.** `curl -s -6 ifconfig.me` should keep starting
 with `2600:8807:8783:b900`. If it stops doing that, the rule has quietly stopped matching.
 
-Note the date you activate it. Sessions before and after are not comparable, and the re-check in
-§2.4 needs to know that.
+**ACTIVATED 2026-09-01.** Verified in the console the same day, not just reported:
+
+- Rule `Travis Home` exists, `traffic_type` = `internal`, with **both** conditions saved on
+  *IP address is in range (CIDR notation)* — `2600:8807:8783:b900::/64` and `98.183.50.212/32`.
+- **Admin → Data filters → Internal Traffic → Exclude → `Active`.** Not left on *Testing*, which is
+  the usual way this silently does nothing.
+
+**2026-09-01 is now a hard break in the GA4 series.** Sessions before and after are not comparable:
+everything before includes Travis and Vercel previews, everything after excludes them. The 116
+sessions / 3 months baseline is a *pre-filter* number. Expect the post-filter rate to be lower and
+do not read the drop as lost traffic — it is the filter working. §2.4 must state which side of
+2026-09-01 any figure comes from.
+
+Loose end, not chased: the Google tag panel shows *Tag quality: Needs Attention — 1 issue*. Could
+not open the detail (the overlay is not reachable from the accessibility tree). Almost certainly
+the same "no data received in 48 hours" condition documented above rather than a distinct fault,
+but that is an assumption, not a verified finding. Worth one click next time someone is in there.
 
 > ⚠️ **Read this before you trust any GA4 number.** The stream currently shows the banner *"Data
 > collection isn't active for your website."* Checked 2026-09-01: this is **not a broken tag.**
