@@ -10,7 +10,8 @@ Code-side work is already committed. Follow the convention in `~/Downloads/MANUA
 
 ## PHASE 1 — ship the de-monetization
 
-Commit `1a2cf79` is **local and unpushed**. Pushing to `main` auto-deploys to Vercel in ~40 s.
+**Done 2026-09-01.** `1a2cf79`, `90374ac` and `1a47e16` are pushed and live; deploy takes ~40–50 s.
+Items 1.4 through 1.9 below are still open.
 
 ### 1.1 ✅ Deploy — done 2026-09-01
 
@@ -96,22 +97,22 @@ whether either has an unpaid balance worth withdrawing before you forget the acc
 
 ### 1.7 ⬜ Buttondown — CONFIRMED: `EmailCapture` is invisible on production
 
-`EmailCapture` is `if (!USERNAME) return null`. `NEXT_PUBLIC_BUTTONDOWN_USERNAME` is **not** in
-`.env.local`, and there is no Vercel CLI on this box to check production — so the form you shipped
-in `1c6a800` may be invisible on the live site right now.
+`EmailCapture` is `if (!USERNAME) return null`, and `NEXT_PUBLIC_BUTTONDOWN_USERNAME` is set
+neither in `.env.local` nor in Vercel. Checked against production after the 2026-09-01 deploy:
+`curl -s https://bashsnippets.xyz/snippets/bash-error-handling | grep -c buttondown` returns **0**.
+The form renders nothing.
 
-Checked after the 2026-09-01 deploy: `curl … | grep -c buttondown` returns **0** on a live snippet
-page. The var is not set in Vercel and the form renders nothing. This blocks the kill signal in
-[[bashsnippets-monetization-pivot]] — that clock is measured in email signups and is not running.
+This is not cosmetic. The kill signal for the whole project is measured in **email signups by
+~2026-10-15** — with no form on the page, that clock is not running and the signal cannot fire.
 
 1. https://buttondown.com → sign up / log in → **Settings → Basics** → copy your username
    (the `buttondown.com/<username>` slug, not your email).
-3. Vercel → project → **Settings → Environment Variables** → Add:
+2. Vercel → project → **Settings → Environment Variables** → Add:
    - Key `NEXT_PUBLIC_BUTTONDOWN_USERNAME`, Value `<your slug>`, all three environments.
-4. Add the same line to local `.env.local`.
-5. **Redeploy** — this is a `NEXT_PUBLIC_` var, so it is inlined at build time and will not appear
+3. Add the same line to local `.env.local`.
+4. **Redeploy** — this is a `NEXT_PUBLIC_` var, so it is inlined at build time and will not appear
    until a new build runs. Vercel → Deployments → ⋯ → Redeploy.
-6. Verify: reload a snippet page, submit a test address, confirm it lands in Buttondown.
+5. Verify: reload a snippet page, submit a test address, confirm it lands in Buttondown.
 
 ### 1.8 ⬜ Push 5 missing scripts to the scripts repo
 
