@@ -12,7 +12,7 @@ Code-side work is already committed. Follow the convention in `~/Downloads/MANUA
 
 Commit `1a2cf79` is **local and unpushed**. Pushing to `main` auto-deploys to Vercel in ~40 s.
 
-### 1.1 ⬜ Deploy
+### 1.1 ✅ Deploy — done 2026-09-01
 
 ```bash
 cd ~/Projects/bashsnippets-next
@@ -22,7 +22,7 @@ git push origin main
 
 Watch the deploy at https://vercel.com — it is done when the production alias flips.
 
-### 1.2 ⬜ Verify live — do not skip, this is the whole point of the commit
+### 1.2 ✅ Verify live — done 2026-09-01, all checks passed
 
 ```bash
 # 1. No affiliate links anywhere. Expect 0 for all three.
@@ -49,7 +49,7 @@ curl -s https://bashsnippets.xyz/sitemap.xml | grep -c '<loc>'
 If (1) or (2) is non-zero, the CDN is still serving a cached page — wait 60 s and re-run before
 assuming the commit failed.
 
-### 1.3 ⬜ IndexNow
+### 1.3 ✅ IndexNow — done 2026-09-01, HTTP 200, 61 URLs
 
 Repo convention is to submit the full sitemap after every deploy.
 
@@ -94,15 +94,17 @@ The links are gone from the site. The accounts are not.
 **No action is strictly required.** Neither program obliges you to keep links live. Do check
 whether either has an unpaid balance worth withdrawing before you forget the accounts exist.
 
-### 1.7 🔵 Buttondown — `EmailCapture` renders nothing until this is done
+### 1.7 ⬜ Buttondown — CONFIRMED: `EmailCapture` is invisible on production
 
 `EmailCapture` is `if (!USERNAME) return null`. `NEXT_PUBLIC_BUTTONDOWN_USERNAME` is **not** in
 `.env.local`, and there is no Vercel CLI on this box to check production — so the form you shipped
 in `1c6a800` may be invisible on the live site right now.
 
-1. **Check first:** load https://bashsnippets.xyz/snippets/bash-error-handling and look for the
-   email form. If it renders, the var is already set in Vercel and you can skip the rest.
-2. If not: https://buttondown.com → sign up / log in → **Settings → Basics** → copy your username
+Checked after the 2026-09-01 deploy: `curl … | grep -c buttondown` returns **0** on a live snippet
+page. The var is not set in Vercel and the form renders nothing. This blocks the kill signal in
+[[bashsnippets-monetization-pivot]] — that clock is measured in email signups and is not running.
+
+1. https://buttondown.com → sign up / log in → **Settings → Basics** → copy your username
    (the `buttondown.com/<username>` slug, not your email).
 3. Vercel → project → **Settings → Environment Variables** → Add:
    - Key `NEXT_PUBLIC_BUTTONDOWN_USERNAME`, Value `<your slug>`, all three environments.
@@ -111,7 +113,33 @@ in `1c6a800` may be invisible on the live site right now.
    until a new build runs. Vercel → Deployments → ⋯ → Redeploy.
 6. Verify: reload a snippet page, submit a test address, confirm it lands in Buttondown.
 
-### 1.8 ⬜ GA4 — internal traffic filter
+### 1.8 ⬜ Push 5 missing scripts to the scripts repo
+
+`getRepoScriptUrl()` is an exclusion list, and five snippets linked to `.sh` files that were never
+pushed — they 404'd from live indexable pages the moment `1c6a800` deployed. Stopgapped in
+`1a47e16` by adding them to `NO_REPO_SCRIPT`, so the links no longer render. That hides the
+symptom; these five snippet pages now have no script link at all.
+
+Missing from `~/Projects/bashsnippets` (which holds 31 of 38):
+
+- `bash-curl-api-requests`
+- `bash-parse-json-jq`
+- `bash-sed-find-replace`
+- `bash-slack-webhook-alerts`
+- `bash-trap-cleanup`
+
+Steps:
+
+1. Extract each script from `src/content/snippets/<slug>.mdx` into
+   `~/Projects/bashsnippets/scripts/<slug>.sh`
+2. Match the site's bash standard: shebang, `# Script:` / `# Purpose:` / `# Usage:` header,
+   `set -euo pipefail` on line 4 or 5, `CHECK`/`CROSS` defined before use
+3. `shellcheck scripts/<slug>.sh` — must be clean, the site claims ShellCheck-clean
+4. Commit and push to `github.com/anguishe/bashsnippets`
+5. Confirm: `curl -s -o /dev/null -w '%{http_code}' https://github.com/anguishe/bashsnippets/blob/main/scripts/<slug>.sh` → 200
+6. Delete those slugs from `NO_REPO_SCRIPT` in `src/lib/snippets.ts`, build, push, re-verify
+
+### 1.9 ⬜ GA4 — internal traffic filter
 
 Flagged in week-1 §5 and still not done. 89 of 116 sessions are Direct with no filter configured,
 so an unknown share of your only analytics baseline is you and Vercel previews.
