@@ -94,8 +94,28 @@ The links are gone from the site. The accounts are not.
 | DigitalOcean (`m.do.co/c/7a196437764c`) | https://www.digitalocean.com/referral-program | Leave the account open. Zero cost, and the referral link still works if you ever put it in a newsletter instead of on-site. |
 | Namecheap (`namecheap.pxf.io/…`) | Impact.com dashboard | Same — leave open. |
 
-**No action is strictly required.** Neither program obliges you to keep links live. Do check
-whether either has an unpaid balance worth withdrawing before you forget the accounts exist.
+**Inbox audited 2026-09-01 — there is no affiliate income to collect.** Searched
+`anguisheh1@gmail.com` four ways:
+
+| Search | Result |
+|---|---|
+| `from:(impact.com OR impactradius.com OR pxf.io)` | **11 emails, zero earnings.** All program marketing, contract-terms changes, and the May 4 *"Welcome Aboard!"* enrolment. |
+| `from:digitalocean.com (referral OR earned OR credit OR payout OR commission)` | **11 emails, zero earnings.** All onboarding and newsletters. |
+| `from:(paypal.com OR tipalti.com OR payoneer.com OR wise.com)` + payout subjects | **0 results.** No processor has ever sent this address a payment. |
+| broad `payout / you earned / commission earned / deposit` | Only Bugcrowd and unrelated mail. |
+
+So no payout was ever *issued*. One caveat before calling the balance zero: both programs hold
+earnings below a payout threshold without emailing anything, so a few dollars could be sitting in
+either dashboard silently. Email proves nothing was *sent*; only the dashboards prove nothing is
+*owed*. Given the site never ranked on Google and the affiliate boxes sat on pages with 737 total
+Bing impressions in six months, a genuine zero is the likely answer.
+
+One unrelated thing the search turned up: **DigitalOcean account credit on the BashSnippets team
+expired 2026-08-03** (their "Credit is expiring soon" mail, Jul 3). That was promotional credit
+DigitalOcean gave you, not affiliate earnings, and it is already gone.
+
+**No action required.** Neither program obliges you to keep links live. If you want certainty on
+the balance rather than the payout, it is one login each.
 
 ### 1.7 ⬜ Buttondown — CONFIRMED: `EmailCapture` is invisible on production
 
