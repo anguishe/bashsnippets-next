@@ -73,15 +73,17 @@ to submit.
 
 No redeploy is needed — nothing reads them.
 
-### 1.5 ⬜ Google AdSense — close it out
+### 1.5 ✅ Google AdSense — closed out 2026-09-01
 
-The account (`ca-pub-5399156622542127`) was never approved and the site now serves no ads.
+`ca-pub-5399156622542127` was never approved, and the site now serves no ads. Travis closed the
+AdSense account out for bashsnippets on 2026-09-01.
 
-1. https://adsense.google.com → **Sites** → remove `bashsnippets.xyz`
-2. Decide: leave the AdSense account dormant, or close it (Account → Account information → Close
-   account). **Recommendation: leave it dormant.** Closing is irreversible and costs nothing to keep.
-3. If a Google policy email arrives about `ads.txt` disappearing, ignore it — the file was removed
-   on purpose and the site is no longer in the program.
+**This is now irreversible in practice** — re-entering AdSense would mean a fresh application and
+re-approval, on top of re-adding the loader, the slots and the `ads.txt` this repo deleted. That is
+the intended outcome, not a loss: see `CLAUDE.md → Monetization` and the 2026-08-31 pivot decision.
+
+If a Google policy email arrives about `ads.txt` disappearing, ignore it — the file was removed on
+purpose and the site is out of the program.
 
 ### 1.6 ⬜ Affiliate programs — decide, then act
 
