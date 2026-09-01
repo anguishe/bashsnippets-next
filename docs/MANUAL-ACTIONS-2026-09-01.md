@@ -148,15 +148,35 @@ unchanged; only the repo copy carries the stub.
 Flagged in week-1 §5 and still not done. 89 of 116 sessions are Direct with no filter configured,
 so an unknown share of your only analytics baseline is you and Vercel previews.
 
-1. https://analytics.google.com → property **BashSnippets (535459693)**
-2. **Admin → Data Streams →** the web stream **→ Configure tag settings → Show all → Define internal traffic**
-3. **Create** → Rule name `internal`, `traffic_type` value `internal`, match **IP address equals**
-   your home IP (`curl -s ifconfig.me` to get it)
-4. **Admin → Data Settings → Data Filters** → the `Internal Traffic` filter → set state from
-   *Testing* to **Active**
+**Menu path verified in the live console 2026-09-01** — the version first written here was wrong
+about step 4 (there is no "Data Settings" menu; filters live under *Data collection and
+modification*). Property **BashSnippets**, account 393326874, property 535459693. Stream
+`bash-snippets`, stream ID **14771755386**, measurement ID **G-6B01TGE8XS**.
 
-Note the date you activate it. Sessions before and after are not comparable, and the 3-week
-re-check in §2.4 needs to know that.
+1. `curl -s ifconfig.me` — note your public IP first, you will need it in step 4
+2. https://analytics.google.com → **Admin** (bottom left) → under **Property settings** expand
+   **Data collection and modification** → **Data streams**
+3. Click the **bash-snippets** stream → scroll to the **Google tag** panel → **Configure tag
+   settings** → **Show all** → **Define internal traffic**
+4. **Create** → rule name `internal`, `traffic_type` value `internal`, match type
+   **IP address equals**, value = the IP from step 1 → **Create**
+5. Back to **Admin → Data collection and modification → Data filters** → open the
+   **Internal Traffic** filter → change state *Testing* → **Active** → Save
+
+Note the date you activate it. Sessions before and after are not comparable, and the re-check in
+§2.4 needs to know that.
+
+> ⚠️ **Read this before you trust any GA4 number.** The stream currently shows the banner *"Data
+> collection isn't active for your website."* Checked 2026-09-01: this is **not a broken tag.**
+> The gtag script loads on the live site, `G-6B01TGE8XS` resolves in the HTML, and `gtag('js')` /
+> `gtag('config')` run unconditionally. GA4 has simply received nothing for 48 hours because
+> nobody visited — the Home report for the last 7 days shows **1 active user, 9 events, 1 new
+> user**, with a single blip around Aug 26–27 and flat zero after. Google shows that banner
+> whenever a property goes 48 hours without a hit.
+>
+> The consequence for §2.4: `toolkit_cta_view` / `toolkit_cta_click` will have almost no volume to
+> read on 2026-09-22. Treat a zero there as "no traffic", not as "the CTA does not convert" —
+> those are different findings and only one of them justifies changing the CTA.
 
 ---
 
@@ -248,11 +268,36 @@ prose, with the reasoning in the text rather than in a code block. Read the Bing
 *"anything this channel is meant to earn has to live in the prose a model carries away, not in a
 CTA a reader never loads."*
 
-Candidate queries in the same shape (verify demand before writing, do not just trust this list):
+**Demand was checked in Bing WMT on 2026-09-01, and it rewrote this list.** 6M: 737 impressions,
+14 clicks, **409 keywords**. What the data actually says:
 
-- "why does my bash script work interactively but fail in cron/systemd" — PATH, env, TTY, locale
-- "bash script hangs forever in CI — timeouts, retries, and killing the right process group"
-- "safely handling secrets in shell scripts" — env vs file vs vault, what leaks into `ps` and logs
+- **Biggest cluster on the property is strict mode + `trap ERR`** — ~34 impressions across 11
+  queries, several at position 1.75–3.00: *"bash safe script template set -eeuo pipefail cleanup
+  trap examples"*, *"bash trap err set -euo pipefail subshell functions diagnostic handler"*,
+  *"how set -eeuo pipefail changes error handling in bash"*, *"bash trap with local variable
+  unbound staging"*, *"bash manual trap err pipefail official"*. **✅ Written 2026-09-01 —
+  `/guides/safe-bash-script-template`.**
+- **The PATH/env candidate is dead.** *"why does my script work interactively but fail in cron"* —
+  PATH, environment, TTY, locale — has **zero** query volume here. Not one PATH or env query
+  appears in 409. It was a plausible guess and it was wrong; do not write it on instinct.
+- **Still open, with real signal:** the hung/stuck job. *"i need the exact cli commands to check
+  for a hung job"* sits at **position 1.00**, and *"chceking if a url is unreachable or timed out
+  in bash"* at 7.33. Nothing covers diagnosis of a wedged process end to end.
+- **Also open:** service watchdog — *"set cron job to check service status and restart if not
+  running"* (pos 2.00), *"bash script check service status and restart if down"*, *"bash command to
+  monitor and restart a service"*, *"bash script to detect service names and restart
+  automatically"*. ~10 impressions, and only the `restart-service-if-stopped` snippet serves it.
+- Already covered, do not duplicate: the flock/cron-overlap cluster (~31 impressions) belongs to
+  the cron guide; the CI cluster belongs to the CI/CD guide.
+
+**Why guides and not more snippets** — AI Performance, same day: 103 citations total, of which
+`/guides/bash-scripts-that-survive-cron` has **43** and `/guides/bash-scripting-for-ci-cd-pipelines`
+has **10**. Two guides = 53 of 103. Snippets earn 2–8 each. A guide is worth roughly **7x a
+snippet** on the citation channel.
+
+⚠️ **`scripts/generate-sitemap.mjs` hardcodes guide URLs.** Snippets and tools are generated from
+their registries; guides are a literal list. A new guide is silently absent from the sitemap until
+you add a line there. Sitemap is 62 as of the strict-mode guide.
 
 **Manual — before writing each one:**
 
