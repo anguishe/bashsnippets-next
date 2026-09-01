@@ -1,4 +1,5 @@
 import AffiliateBox from '@/components/AffiliateBox';
+import TrackedOutboundLink from '@/components/TrackedOutboundLink';
 import Breadcrumb from '@/components/Breadcrumb';
 import FaqTerminal from '@/components/FaqTerminal';
 import type { Metadata } from 'next';
@@ -336,14 +337,13 @@ export default function StarterKitPage() {
         </section>
 
         <div className="mt-10">
-          <a
+          <TrackedOutboundLink
             href={GUMROAD_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+            event="toolkit_purchase_click"
             className="inline-block rounded-md bg-green px-6 py-3 font-mono text-sm font-semibold text-bg no-underline transition-colors hover:bg-[#2ea043]"
           >
             Get the Production Bash Toolkit — $9 →
-          </a>
+          </TrackedOutboundLink>
           <p className="mt-3 font-mono text-xs text-muted">
             Instant download · MIT License · No subscription
           </p>

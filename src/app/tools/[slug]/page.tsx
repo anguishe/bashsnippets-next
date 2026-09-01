@@ -1,4 +1,5 @@
 import FaqTerminal from '@/components/FaqTerminal';
+import ToolkitCTA from '@/components/ToolkitCTA';
 import ToolRenderer from '@/components/tools/ToolRenderer';
 import { getSnippetBySlug } from '@/lib/snippets';
 import { getAllToolSlugs, getToolBySlug, type ToolMeta } from '@/lib/tools';
@@ -210,6 +211,8 @@ export default async function ToolPage({ params }: PageProps) {
             <FaqTerminal items={tool.faqs} label="faq — tool" />
           </section>
         )}
+
+        <ToolkitCTA className="mt-12" placement="tool" />
 
         {/* Section 6: Related snippets */}
         {relatedSnippets.length > 0 && (

@@ -2,6 +2,7 @@ import type { ComponentPropsWithoutRef } from 'react';
 import AffiliateBox from './AffiliateBox';
 import Callout from './Callout';
 import CodeBlock from './CodeBlock';
+import ToolkitCTA from './ToolkitCTA';
 
 function Code({
   className,
@@ -44,4 +45,5 @@ export const mdxComponents = {
   h3: H3,
   AffiliateBox,
   Callout,
+  ToolkitCTA,
 };

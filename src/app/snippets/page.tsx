@@ -227,7 +227,7 @@ export default function SnippetsPage() {
           })}
         </div>
 
-        <ToolkitCTA className="mt-14" />
+        <ToolkitCTA className="mt-14" placement="snippets-index" />
       </main>
     </>
   );

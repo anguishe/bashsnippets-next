@@ -447,7 +447,7 @@ export default function Home() {
         <ScrollReveal>
           <AffiliateBox partner="digitalocean" />
           <AffiliateBox partner="namecheap" className="mt-4" />
-          <ToolkitCTA className="mt-10" />
+          <ToolkitCTA className="mt-10" placement="home" />
         </ScrollReveal>
       </section>
     </>

@@ -1,10 +1,23 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect } from 'react';
+import { track } from '@/lib/track';
 
 interface ToolkitCTAProps {
   className?: string;
+  /** Where this CTA rendered — snippet, tool, guide, hub. Sent with both GA4 events. */
+  placement?: string;
 }
 
-export default function ToolkitCTA({ className = '' }: ToolkitCTAProps) {
+export default function ToolkitCTA({
+  className = '',
+  placement = 'unknown',
+}: ToolkitCTAProps) {
+  useEffect(() => {
+    track('toolkit_cta_view', { placement });
+  }, [placement]);
+
   return (
     <div
       className={`rounded-lg border border-border bg-bg2 px-6 py-5 ${className}`.trim()}
@@ -21,6 +34,7 @@ export default function ToolkitCTA({ className = '' }: ToolkitCTAProps) {
       </p>
       <Link
         href="/starter-kit"
+        onClick={() => track('toolkit_cta_click', { placement })}
         className="mt-4 inline-block rounded-md bg-green px-5 py-2.5 font-heading text-sm font-bold text-bg no-underline transition-colors hover:bg-[#2ea043]"
       >
         Get the Toolkit →

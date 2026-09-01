@@ -1,3 +1,4 @@
+import { AUTHOR } from '@/lib/author';
 import {
   loadSnippetFrontmatter,
   type FaqItem,
@@ -6,7 +7,7 @@ import {
 
 const DEFAULT_PUBLISHED_TIME = '2026-05-01';
 const DEFAULT_MODIFIED_TIME = '2026-05-22';
-const DEFAULT_AUTHOR = 'Travis';
+const DEFAULT_AUTHOR = AUTHOR.name;
 
 export type { FaqItem, HowToStep };
 
@@ -23,7 +24,7 @@ export interface SnippetMeta {
   publishedTime?: string;
   modifiedTime?: string;
   youtubeShortId?: string;
-  /** ponytail: true = robots noindex,follow + excluded from sitemap (aggregate-quality pruning, 2026-08-28). Flip to re-index. */
+  /** ponytail: true = robots noindex,follow + excluded from sitemap. Currently unused — the 2026-08-28 prune of 12 pages was reverted 2026-09-01 (docs/INDEXING-AUDIT-2026-09-01.md). Lever kept, not the policy. */
   noindex?: boolean;
   faq: FaqItem[];
   howToSteps: HowToStep[];
@@ -86,7 +87,6 @@ export const snippets: SnippetRegistryEntry[] = [
   },
   {
     slug: 'quick-system-info-report',
-    noindex: true,
     title: 'Quick System Info Report',
     description:
       'Guessing server state during an outage costs response time. One bash script snapshots hostname, uptime, CPU load, RAM, disk usage, and IP address in one run — no extra packages.',
@@ -99,7 +99,6 @@ export const snippets: SnippetRegistryEntry[] = [
   },
   {
     slug: 'search-files-for-text-grep',
-    noindex: true,
     title: 'Search Files for Text with grep',
     description:
       'Opening files manually to find a pattern across a codebase wastes time. grep -rn searches every file recursively and returns every match with filename and line number.',
@@ -137,7 +136,6 @@ export const snippets: SnippetRegistryEntry[] = [
   },
   {
     slug: 'bash-if-else-examples',
-    noindex: true,
     title: 'Bash If/Else Examples',
     description:
       'Comparison operator mistakes in bash scripts cause silent logic failures on unexpected input. Covers if/else, elif, integer and string test operators, file condition checks, and quoting safety.',
@@ -150,7 +148,6 @@ export const snippets: SnippetRegistryEntry[] = [
   },
   {
     slug: 'create-dated-folder',
-    noindex: true,
     title: 'Create a Dated Folder',
     description:
       'Backup directories without timestamps overwrite previous runs and sort unpredictably. date +%Y-%m-%d auto-names folders so ls sorts them chronologically — no packages needed.',
@@ -163,7 +160,6 @@ export const snippets: SnippetRegistryEntry[] = [
   },
   {
     slug: 'kill-a-process',
-    noindex: true,
     title: 'Kill a Process with pkill and pgrep',
     description:
       'The ps/grep/copy-PID/kill workflow takes four steps every time you need to stop a process. pkill by name collapses that to one command — pgrep -l previews matches before terminating.',
@@ -332,7 +328,6 @@ export const snippets: SnippetRegistryEntry[] = [
   },
   {
     slug: 'bash-for-loop-examples',
-    noindex: true,
     title: 'Bash For Loop Examples',
     description:
       'A for loop over the output of ls word-splits on filenames with spaces and silently skips files. Loop over a glob, a range, an array, or command output the safe way — with the quoting that stops the loop from doing the wrong thing quietly.',
@@ -345,7 +340,6 @@ export const snippets: SnippetRegistryEntry[] = [
   },
   {
     slug: 'bash-read-file-line-by-line',
-    noindex: true,
     title: 'Read a File Line by Line in Bash',
     description:
       'A while-read loop silently dropped the last server in a monitoring list because the file had no trailing newline — and that was the server that went down. Read a file line by line the correct way: while IFS= read -r line, with the guard that catches the missing final line.',
@@ -358,7 +352,6 @@ export const snippets: SnippetRegistryEntry[] = [
   },
   {
     slug: 'bash-functions-arguments',
-    noindex: true,
     title: 'Bash Functions and Arguments',
     description:
       "A function reused the variable name 'target' without declaring it local, overwrote the caller's variable, and the cleanup step deleted the wrong directory. Write bash functions that take arguments, return values, and don't leak state — with the local keyword that stops a function from clobbering its caller.",
@@ -371,7 +364,6 @@ export const snippets: SnippetRegistryEntry[] = [
   },
   {
     slug: 'bash-functions',
-    noindex: true,
     title: 'Bash Functions: Return Values, Local Scope, and Reusable Logic',
     description:
       'A bash function cannot return a string with return — that keyword sets an exit code only. Use echo plus command substitution or namerefs to return data, and local on every variable to stop silent global collisions.',
@@ -384,7 +376,6 @@ export const snippets: SnippetRegistryEntry[] = [
   },
   {
     slug: 'bash-arrays',
-    noindex: true,
     title: 'Bash Arrays: Indexed, Associative, Append, and Safe Iteration',
     description:
       'Storing a list as a space-separated string breaks the moment one element contains a space, splitting one item into two. Arrays make the space a non-event — covering indexed and associative arrays, append, length, slicing, and safe iteration.',
@@ -397,7 +388,6 @@ export const snippets: SnippetRegistryEntry[] = [
   },
   {
     slug: 'bash-argument-parsing',
-    noindex: true,
     title: 'Bash Argument Parsing: Positional Args, getopts, and Long Flags',
     description:
       'A script that reads $1 as a value will accept --env as that value and deploy nowhere, silently. Parse arguments properly with positional defaults, getopts for short flags, and a while+case loop for GNU-style long flags.',
@@ -410,7 +400,6 @@ export const snippets: SnippetRegistryEntry[] = [
   },
   {
     slug: 'bash-string-manipulation',
-    noindex: true,
     title: 'Bash String Manipulation: Substrings, Replace, and Parameter Expansion',
     description:
       'Field-counting with cut -d/ -f3 returns the wrong slice the moment a URL gains an s for https. Parameter expansion matches on pattern boundaries with no subshell — substrings, prefix/suffix stripping, replace, case conversion, and defaults.',

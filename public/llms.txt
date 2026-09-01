@@ -1,41 +1,36 @@
 # BashSnippets
 
-> Free bash script examples for Linux, DevOps, and sysadmin automation. Copy-paste ready scripts with plain-English explanations. Written by Anguishe — a Linux self-taught user who built this site after learning bash from scratch.
+> Free bash script examples for Linux, DevOps, and sysadmin automation. Copy-paste ready scripts with plain-English explanations. Written by Travis — a self-taught Linux developer who built this site after learning bash from scratch on his own servers.
 
 ## Author
 
-Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu 22.04 LTS and macOS Ventura. Contact: Anguisheh1@gmail.com
+Travis — self-taught Linux developer based in Florida, publishing here and on dev.to under the handle Anguishe. Every script on this site was tested personally on Debian/Ubuntu and Fedora before it was published. Author page: https://bashsnippets.xyz/about
 
 ## What This Site Contains
 
-# keep in sync with snippets.ts count
-- 36 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
+# keep in sync with the sitemap: 38 indexable snippets, 12 tools, 5 guides
+- 38 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
 - 12 interactive tools at /tools/ including script builders, command generators, and debuggers
-- Bash Boilerplate Generator tool
-- Beginner FAQ section covering the most common bash questions
+- 5 pillar guides at /guides/ covering cron survival, CI/CD, text processing, APIs, and the sysadmin script set
 - The same scripts as a clonable MIT repo at https://github.com/anguishe/bashsnippets — ShellCheck-clean, each linked back to its line-by-line explanation on the site
 
 ## Script Categories
 
-- Automation & File Management: backup scripts, file renaming, log cleanup, dated folders, duplicate file detection
-- Monitoring & Alerts: disk space, CPU/RAM, website uptime, service watchdog
+- Automation & File Management: backup scripts, log cleanup, duplicate file detection, remote rsync backups
+- Monitoring & Alerts: disk space, CPU/RAM, website uptime, service watchdog, SSL expiry, email and Slack alerts
 - Database: MySQL backup with retention
-- Process Management: kill by name, service restart
-- Best Practices: error handling templates (set -euo pipefail), safe script boilerplate
-- Search & Text: grep patterns, file content search
+- Process Management: port conflicts, service restart, hung-command timeouts
+- Cron Reliability: flock single-instance locking, timeouts, exponential-backoff retry, trap cleanup
+- APIs: curl wrappers that fail correctly, jq parsing, Slack incoming webhooks
+- Best Practices: error handling templates (set -euo pipefail), safe script boilerplate, sed bulk edits
 
 ## All Snippet Pages
 
 - [Disk Space Warning Script](https://bashsnippets.xyz/snippets/disk-space-warning) — Copy a disk space warning bash script using df, thresholds, cron, and email alerts. Monitor Linux servers and prevent full drives.
 - [Automated File Backup](https://bashsnippets.xyz/snippets/automated-file-backup) — Accidental deletion or disk failure permanently destroys data with no undo on Linux. Timestamps each cp -r run with a date string so backups never overwrite each other.
 - [Delete Old Log Files](https://bashsnippets.xyz/snippets/delete-old-log-files) — Unmanaged log files silently fill /var/log until disk writes fail and services crash. find -mtime deletes .log files older than N days — preview with -print before removing from production.
-- [Quick System Info Report](https://bashsnippets.xyz/snippets/quick-system-info-report) — Guessing server state during an outage costs response time. One bash script snapshots hostname, uptime, CPU load, RAM, disk usage, and IP address in one run — no extra packages.
-- [Search Files for Text with grep](https://bashsnippets.xyz/snippets/search-files-for-text-grep) — Opening files manually to find a pattern across a codebase wastes time. grep -rn searches every file recursively and returns every match with filename and line number.
 - [Check If Website Is Up](https://bashsnippets.xyz/snippets/check-if-website-is-up) — Discovering a site is down from a user complaint means hours of lost traffic already gone. curl -s alerts on any non-200 HTTP status code — cron-schedulable for five-minute checks.
 - [Bash Error Handling with set -euo pipefail](https://bashsnippets.xyz/snippets/bash-error-handling) — Bash silently continues after failed commands by default — a broken cd followed by rm -rf destroys the wrong directory. set -euo pipefail exits on first failure before damage spreads.
-- [Bash If/Else Examples](https://bashsnippets.xyz/snippets/bash-if-else-examples) — Comparison operator mistakes in bash scripts cause silent logic failures on unexpected input. Covers if/else, elif, integer and string test operators, file condition checks, and quoting safety.
-- [Create a Dated Folder](https://bashsnippets.xyz/snippets/create-dated-folder) — Backup directories without timestamps overwrite previous runs and sort unpredictably. date +%Y-%m-%d auto-names folders so ls sorts them chronologically — no packages needed.
-- [Kill a Process with pkill and pgrep](https://bashsnippets.xyz/snippets/kill-a-process) — The ps/grep/copy-PID/kill workflow takes four steps every time you need to stop a process. pkill by name collapses that to one command — pgrep -l previews matches before terminating.
 - [File Permissions Security Audit](https://bashsnippets.xyz/snippets/file-permissions-security) — World-writable files on a web server let any compromised script overwrite your application. find -perm 777 audits them and correct chmod 644/755 patterns restore safe permissions.
 - [Monitor CPU and RAM Usage](https://bashsnippets.xyz/snippets/monitor-cpu-ram-usage) — A runaway process consuming 100% CPU goes undetected until the server becomes unresponsive. top -bn1 and free -m measure CPU and RAM in scripts so cron can alert before impact.
 - [Send Email Alerts from Bash](https://bashsnippets.xyz/snippets/bash-send-email-alert) — Monitoring scripts without email alerts mean failures go unnoticed until users report them. Wraps mailx or curl SMTP into a reusable alert function with per-run deduplication to prevent inbox flooding.
@@ -49,19 +44,26 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [Check SSL Certificate Expiry with Bash](https://bashsnippets.xyz/snippets/check-ssl-certificate-expiry) — A bash script that connects to any domain over TLS, reads the certificate, and tells you how many days until it expires — before the site goes dark.
 - [List All Open Ports on Linux](https://bashsnippets.xyz/snippets/list-open-ports-linux) — A bash script that maps every port your server is listening on, along with the process name holding it open — the first step in any security audit.
 - [Docker Cleanup Bash Script — Reclaim Disk Space from Docker Garbage](https://bashsnippets.xyz/snippets/docker-prune-cleanup) — A bash script that removes stopped containers, unused images, dangling volumes, and build cache from Docker — with a disk-usage report before and after.
-- [Bash For Loop Examples](https://bashsnippets.xyz/snippets/bash-for-loop-examples) — A for loop over the output of ls word-splits on filenames with spaces and silently skips files. Loop over a glob, a range, an array, or command output the safe way — with the quoting that stops the loop from doing the wrong thing quietly.
-- [Bash Functions: Return Values, Local Scope, and Reusable Logic](https://bashsnippets.xyz/snippets/bash-functions) — A bash function cannot return a string with return — that keyword sets an exit code only. Use echo plus command substitution or namerefs to return data, and local on every variable to stop silent global collisions.
-- [Bash Arrays: Indexed, Associative, Append, and Safe Iteration](https://bashsnippets.xyz/snippets/bash-arrays) — Storing a list as a space-separated string breaks the moment one element contains a space, splitting one item into two. Arrays make the space a non-event — covering indexed and associative arrays, append, length, slicing, and safe iteration.
-- [Bash Argument Parsing: Positional Args, getopts, and Long Flags](https://bashsnippets.xyz/snippets/bash-argument-parsing) — A script that reads $1 as a value will accept --env as that value and deploy nowhere, silently. Parse arguments properly with positional defaults, getopts for short flags, and a while+case loop for GNU-style long flags.
-- [Bash String Manipulation: Substrings, Replace, and Parameter Expansion](https://bashsnippets.xyz/snippets/bash-string-manipulation) — Field-counting with cut -d/ -f3 returns the wrong slice the moment a URL gains an s for https. Parameter expansion matches on pattern boundaries with no subshell — substrings, prefix/suffix stripping, replace, case conversion, and defaults.
-- [Read a File Line by Line in Bash](https://bashsnippets.xyz/snippets/bash-read-file-line-by-line) — A while-read loop silently dropped the last server in a monitoring list because the file had no trailing newline — and that was the server that went down. Read a file line by line the correct way: while IFS= read -r line, with the guard that catches the missing final line.
-- [Bash Functions and Arguments](https://bashsnippets.xyz/snippets/bash-functions-arguments) — A function reused the variable name 'target' without declaring it local, overwrote the caller's variable, and the cleanup step deleted the wrong directory. Write bash functions that take arguments, return values, and don't leak state — with the local keyword that stops a function from clobbering its caller.
 - [Prevent Overlapping Cron Jobs with flock](https://bashsnippets.xyz/snippets/bash-flock-single-instance) — A cron job that runs long overlaps the next run and stacks copies until the box falls over. Lock it to a single instance with flock — a kernel-held lock that releases on crash, no stale PID files.
 - [Stop a Hung Command with timeout](https://bashsnippets.xyz/snippets/bash-timeout-command) — A hung cron job is worse than a failed one — it never exits, never frees its lock, and the job silently stops running. Bound any command's runtime with timeout, escalate to SIGKILL, and read the exit code.
 - [Retry a Command with Exponential Backoff in Bash](https://bashsnippets.xyz/snippets/bash-retry-with-backoff) — A deploy that dies on the first transient error wastes your night re-running it by hand. Retry with exponential backoff and jitter — and learn which failures to retry and which to fail fast on.
 - [Make API Requests in Bash with curl](https://bashsnippets.xyz/snippets/bash-curl-api-requests) — A curl wrapper for bash that checks HTTP status, times out, and retries transient errors — because plain curl exits 0 on an HTTP 500 and silently poisons everything downstream.
 - [Parse JSON in Bash with jq](https://bashsnippets.xyz/snippets/bash-parse-json-jq) — How to read fields out of a JSON API response with jq — and why -r, // defaults, and -e are the three things that separate a reliable parse from one that breaks the next time the API reformats.
 - [Send Slack Alerts from Bash with Incoming Webhooks](https://bashsnippets.xyz/snippets/bash-slack-webhook-alerts) — Post failure alerts to Slack from a bash script with a curl one-liner, a jq-built payload, and a trap on ERR — so a broken backup tells you the night it breaks instead of the day you need it.
+- [Find and Replace in Files with sed](https://bashsnippets.xyz/snippets/bash-sed-find-replace) — In-place sed edits done safely — GNU vs macOS -i, word boundaries, capture groups, and a bulk-replace script that dry-runs first.
+- [Bash trap: Clean Up Temp Files on Exit](https://bashsnippets.xyz/snippets/bash-trap-cleanup) — A script that dies mid-run leaves temp litter and half-written files behind. trap on EXIT with mktemp and an atomic mv so every path out of the script cleans up after itself.
+- [Quick System Info Report](https://bashsnippets.xyz/snippets/quick-system-info-report) — Guessing server state during an outage costs response time. One bash script snapshots hostname, uptime, CPU load, RAM, disk usage, and IP address in one run — no extra packages.
+- [Search Files for Text with grep](https://bashsnippets.xyz/snippets/search-files-for-text-grep) — Opening files manually to find a pattern across a codebase wastes time. grep -rn searches every file recursively and returns every match with filename and line number.
+- [Bash If/Else Examples](https://bashsnippets.xyz/snippets/bash-if-else-examples) — Comparison operator mistakes in bash scripts cause silent logic failures on unexpected input. Covers if/else, elif, integer and string test operators, file condition checks, and quoting safety.
+- [Create a Dated Folder](https://bashsnippets.xyz/snippets/create-dated-folder) — Backup directories without timestamps overwrite previous runs and sort unpredictably. date +%Y-%m-%d auto-names folders so ls sorts them chronologically — no packages needed.
+- [Kill a Process with pkill and pgrep](https://bashsnippets.xyz/snippets/kill-a-process) — The ps/grep/copy-PID/kill workflow takes four steps every time you need to stop a process. pkill by name collapses that to one command — pgrep -l previews matches before terminating.
+- [Bash For Loop Examples](https://bashsnippets.xyz/snippets/bash-for-loop-examples) — A for loop over the output of ls word-splits on filenames with spaces and silently skips files. Loop over a glob, a range, an array, or command output the safe way — with the quoting that stops the loop from doing the wrong thing quietly.
+- [Read a File Line by Line in Bash](https://bashsnippets.xyz/snippets/bash-read-file-line-by-line) — A while-read loop silently drops the last line of a file with no trailing newline. Read a file line by line the correct way: while IFS= read -r line, with the guard that catches the missing final line.
+- [Bash Functions and Arguments](https://bashsnippets.xyz/snippets/bash-functions-arguments) — A function that reuses a variable name without declaring it local overwrites the caller and the cleanup step deletes the wrong directory. Write bash functions that take arguments, return values, and do not leak state.
+- [Bash Functions: Return Values, Local Scope, and Reusable Logic](https://bashsnippets.xyz/snippets/bash-functions) — A bash function cannot return a string with return — that keyword sets an exit code only. Use echo plus command substitution or namerefs to return data, and local on every variable to stop silent global collisions.
+- [Bash Arrays: Indexed, Associative, Append, and Safe Iteration](https://bashsnippets.xyz/snippets/bash-arrays) — Storing a list as a space-separated string breaks the moment one element contains a space, splitting one item into two. Arrays make the space a non-event — indexed and associative arrays, append, length, slicing, and safe iteration.
+- [Bash Argument Parsing: Positional Args, getopts, and Long Flags](https://bashsnippets.xyz/snippets/bash-argument-parsing) — A script that reads $1 as a value will accept --env as that value and deploy nowhere, silently. Parse arguments properly with positional defaults, getopts for short flags, and a while+case loop for GNU-style long flags.
+- [Bash String Manipulation: Substrings, Replace, and Parameter Expansion](https://bashsnippets.xyz/snippets/bash-string-manipulation) — Field-counting with cut -d/ -f3 returns the wrong slice the moment a URL gains an s for https. Parameter expansion matches on pattern boundaries with no subshell — substrings, prefix/suffix stripping, replace, case conversion, and defaults.
 
 ## Interactive Tools
 
@@ -95,11 +97,6 @@ Anguishe — Linux user, bash scripter. Tested every script personally on Ubuntu
 - [Bash Boilerplate Generator](https://bashsnippets.xyz/tools/bash-boilerplate-generator): Generate a production-ready bash script template with error handling and argument parsing.
 - [Rsync Command Builder](https://bashsnippets.xyz/tools/rsync-command-builder): Build rsync commands visually with archive, compress, delete, SSH, and exclude pattern toggles.
 - [grep Pattern Builder](https://bashsnippets.xyz/tools/grep-pattern-builder): Build grep commands from toggles — recursive, case-insensitive, context lines, file type filters — with a plain-English explanation for every output.
-- [Find Large Files in Linux](https://bashsnippets.xyz/snippets/find-large-files-linux): Find the biggest files and directories when your disk hits 100% — du + find with exclude patterns.
-- [Kill Process on Port](https://bashsnippets.xyz/snippets/kill-process-on-port): Free a port blocked by EADDRINUSE — lsof/ss discovery, SIGTERM, then SIGKILL escalation.
-- [Rsync Remote Backup](https://bashsnippets.xyz/snippets/rsync-remote-backup): Push incremental offsite backups over SSH with rsync — resumable, compressed, cron-scheduled.
-- [Find and Replace in Files with sed](https://bashsnippets.xyz/snippets/bash-sed-find-replace): In-place sed edits done safely — GNU vs macOS -i, word boundaries, capture groups, and a bulk-replace script that dry-runs first.
-- [Bash trap: Clean Up Temp Files on Exit](https://bashsnippets.xyz/snippets/bash-trap-cleanup): trap on EXIT + mktemp + atomic mv — every path out of a script cleans up, and no consumer ever sees a half-written file.
 - [The Production Bash Toolkit](https://bashsnippets.xyz/starter-kit): Paid resource ($9, one-time) — 52-page PDF field guide plus a ZIP with an operational script system, 31-function bashlib.sh shared library, template.sh, and examples. ShellCheck-clean, MIT licensed.
 
 ## License

@@ -1,6 +1,8 @@
 import AdSlot from '@/components/AdSlot';
 import FaqTerminal from '@/components/FaqTerminal';
 import { mdxComponents } from '@/components/MDXComponents';
+import ToolkitCTA from '@/components/ToolkitCTA';
+import { AUTHOR } from '@/lib/author';
 import { getSnippetWordCount } from '@/lib/mdx-frontmatter';
 import {
   getAllSlugs,
@@ -36,19 +38,7 @@ function generateSnippetSchema(snippet: SnippetMeta, slug: string, wordCount: nu
     description: snippet.description,
     keywords: snippet.tags.join(', '),
     wordCount,
-    author: {
-      '@type': 'Person',
-      name: snippet.author,
-      alternateName: 'Anguishe',
-      '@id': `${SITE_URL}/about`,
-      url: `${SITE_URL}/about`,
-      sameAs: [
-        'https://github.com/anguishe',
-        'https://www.youtube.com/@BashSnippets',
-        'https://dev.to/bashsnippets',
-        'https://medium.com/@anguisheh1',
-      ],
-    },
+    author: { '@type': 'Person', ...AUTHOR, name: snippet.author },
     publisher: {
       '@type': 'Organization',
       name: 'BashSnippets.xyz',
@@ -250,6 +240,8 @@ export default async function SnippetPage({ params }: PageProps) {
             <p className="text-muted">Content temporarily unavailable.</p>
           )}
         </article>
+
+        <ToolkitCTA className="mx-auto my-12 max-w-3xl" placement="snippet" />
 
         <AdSlot slot="SLOT_MID_CONTENT" />
 
