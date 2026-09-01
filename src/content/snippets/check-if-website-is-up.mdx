@@ -190,6 +190,8 @@ The email variation uses the `mail` command. Install it first: `sudo apt install
 
 </Callout>
 
+An uptime check that silently stops running is worse than no check at all, because you trust it. Making the monitor prove it ran — a lock, a bounded runtime, a timestamped log, and an alert that escalates when the check itself goes quiet — is the operational layer collected in [The Production Bash Toolkit](/starter-kit).
+
 ## Frequently Asked Questions
 
 ### How do I check if a website is up using bash?

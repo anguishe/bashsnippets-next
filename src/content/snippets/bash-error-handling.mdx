@@ -225,6 +225,8 @@ trap 'rm -f /tmp/lockfile.pid' EXIT
 | set +e | — | Turn off -e temporarily for a block |
 | set +x | — | Turn off debug mode |
 
+`set -euo pipefail` is the first line of a production script, not the whole of one. The rest — an ERR trap that reports which line died and with what exit code, cleanup that runs whether the script succeeds or crashes, and logging that makes a 3am failure readable without a re-run — is assembled in [The Production Bash Toolkit](/starter-kit).
+
 ## Frequently Asked Questions
 
 ### What does set -euo pipefail do in bash?

@@ -101,6 +101,7 @@ The load-41 afternoon ended the moment I wrapped that rsync in `flock -n`. The s
 
 A lock alone isn't enough, though. If the locked job itself *hangs* — a sync blocked on a dead socket that never returns — it holds the lock forever and every future run skips, so the job silently stops running and you find out days later. That's why locking pairs with [bounding a command's runtime with `timeout`](/snippets/bash-timeout-command), and with [retrying transient failures](/snippets/bash-retry-with-backoff) so a single network blip doesn't kill the run. The [Hardened Cron Wrapper Generator](/tools/cron-wrapper-generator) stitches all three together for you, and the full reasoning for which jobs need which guard is in [Bash Scripts That Survive Cron](/guides/bash-scripts-that-survive-cron).
 
-<AffiliateBox partner="digitalocean" />
 
 Need to test this on a real box without risking a production server? Spin up a throwaway droplet, schedule the job at `*/1`, and watch `flock` skip the overlaps. The rest of the unattended-automation toolkit is at [bashsnippets.xyz](https://bashsnippets.xyz) — the [Cron Job Builder](/tools/cron-job-builder) for the schedule itself, and [Bash error handling](/snippets/bash-error-handling) for the layer underneath all of this.
+
+`flock` is one guard out of the set an unattended job needs. The others are a bounded runtime, retries on transient failures, cleanup that runs on every exit path, and logging you can actually read at 3am. Those are assembled as one operational system — a 31-function `bashlib.sh`, a `template.sh` that starts every new job with all of them wired, and a 52-page field guide — in [The Production Bash Toolkit](/starter-kit).

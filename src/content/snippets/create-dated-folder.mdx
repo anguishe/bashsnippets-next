@@ -166,6 +166,7 @@ The `-p` flag creates any missing parent directories. If `~/projects/` doesn't e
 # Create a dated folder with an optional name
 # USAGE: ./mkdate.sh [optional-name]
 # EXAMPLE: ./mkdate.sh deployment → creates 2026-05-03_deployment
+set -euo pipefail
 
 DATE=$(date +%Y-%m-%d)
 NAME="${1:-folder}"       # ← uses "folder" if no argument given
@@ -240,6 +241,8 @@ Using MM-DD-YYYY (like 05-13-2026) means folders sort by month, not chronologica
 Adding an alias in the terminal only lasts for that session. You must add it to `~/.bashrc` (or `~/.zshrc`) AND run `source ~/.bashrc` for it to survive a reboot.
 
 </Callout>
+
+Dated folders solve naming. They do not solve the run that dies halfway and leaves a half-written directory that looks complete to the next script down the chain. A `trap` that cleans up on every exit path, plus writing to a temp name and moving atomically once the work is done, are part of the operational layer in [The Production Bash Toolkit](/starter-kit).
 
 ## Frequently Asked Questions
 

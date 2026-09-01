@@ -205,6 +205,8 @@ A backup on the same physical disk as your source files won't save you from a dr
 
 </Callout>
 
+A backup script that fails quietly is indistinguishable from one that works — until the restore. Verifying the copy completed, locking against overlapping runs, writing to a temp path and moving atomically so no consumer ever reads a half-written archive, and logging enough to prove last night finished: that is the layer [The Production Bash Toolkit](/starter-kit) standardises across every job on the box.
+
 ## Frequently Asked Questions
 
 ### How do I automatically back up files in Linux?

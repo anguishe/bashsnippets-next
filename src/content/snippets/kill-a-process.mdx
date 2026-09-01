@@ -192,6 +192,8 @@ Avoid force-killing processes named `init`, `systemd`, `kernel`, or anything you
 | pkill -f string | Matches against the full command line string, not just the binary name |
 | pkill -u user | Kills all processes owned by the specified user |
 
+`pkill` ends a process. It does not tell you why the process needed ending. When a job has to be killed on a schedule, the fix is upstream: a lock so runs cannot overlap, a `timeout` so a hung run reaps itself, and an ERR trap that reports the failure instead of leaving you to find it. [The Production Bash Toolkit](/starter-kit) composes those three into a single wrapper.
+
 ## Frequently Asked Questions
 
 ### What is the difference between kill and pkill in Linux?

@@ -36,6 +36,7 @@ Paste this into `monitor.sh`. Adjust `THRESHOLD` and `LOG_FILE` if you want a di
 
 ```bash
 #!/bin/bash
+set -euo pipefail
 
 CHECK="✓"
 CROSS="✗"
@@ -46,10 +47,12 @@ LOG_FILE="/var/log/resource-monitor.log"
 DATE=$(date '+%Y-%m-%d %H:%M:%S')
 
 # --- CPU Usage ---
-CPU=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1 | cut -d',' -f1 | xargs printf "%.0f")
+CPU=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1 | cut -d',' -f1 | xargs printf "%.0f" || true)
+[ -n "$CPU" ] || { echo "$CROSS could not parse CPU from top output (non-English locale?)"; exit 1; }
 
 # --- RAM Usage ---
-RAM=$(free | awk '/Mem:/ {printf "%.0f", $3/$2*100}')
+RAM=$(free | awk '/Mem:/ {printf "%.0f", $3/$2*100}' || true)
+[ -n "$RAM" ] || { echo "$CROSS could not parse RAM from free output"; exit 1; }
 
 echo "[$DATE] CPU: ${CPU}% | RAM: ${RAM}%"
 
@@ -249,6 +252,8 @@ Writing to a log file is pointless if nobody checks it. Combine this with the [S
 On older kernels, `free` may not show "available" memory correctly. The $3/$2 calculation can overstate usage because Linux aggressively caches disk reads in RAM. On modern Ubuntu (18.04+), this is handled correctly.
 
 </Callout>
+
+Sampling CPU and RAM takes six lines. Making the sampler survive a year of unattended cron takes considerably more — no overlapping runs, no silent death on a hung `free`, a log with timestamps you can correlate against the incident, and an alert that fires once rather than every minute. [The Production Bash Toolkit](/starter-kit) is that scaffolding, as a library and a script template.
 
 ## Frequently Asked Questions
 

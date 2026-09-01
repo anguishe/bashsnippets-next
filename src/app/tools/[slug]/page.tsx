@@ -1,4 +1,5 @@
 import FaqTerminal from '@/components/FaqTerminal';
+import EmailCapture from '@/components/EmailCapture';
 import ToolkitCTA from '@/components/ToolkitCTA';
 import ToolRenderer from '@/components/tools/ToolRenderer';
 import { getSnippetBySlug } from '@/lib/snippets';
@@ -213,6 +214,8 @@ export default async function ToolPage({ params }: PageProps) {
         )}
 
         <ToolkitCTA className="mt-12" placement="tool" />
+
+        <EmailCapture className="mt-12" placement="tool" />
 
         {/* Section 6: Related snippets */}
         {relatedSnippets.length > 0 && (

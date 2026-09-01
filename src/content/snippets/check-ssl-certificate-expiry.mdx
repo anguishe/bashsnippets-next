@@ -148,6 +148,8 @@ Run the script manually against a domain you know the expiry for, and verify the
 
 </Callout>
 
+An expiry check is only as good as the plumbing around it: the lock that stops overlapping runs, the log that proves last night's check happened, the alert that still reaches you when the mail host is the thing that died. That plumbing is what [The Production Bash Toolkit](/starter-kit) standardises — one shared library and one script template, instead of re-deriving it per monitor.
+
 ## Frequently Asked Questions
 
 ### Does this work with Let's Encrypt certificates?
@@ -169,7 +171,6 @@ Replace `443` with `465` for SMTP+TLS, `8443` for alternate HTTPS, `636` for LDA
 
 <p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
 
-<AffiliateBox partner="digitalocean" headline="Monitor SSL expiry on your DigitalOcean droplets — catch the silent failure before browsers do." />
 
 ## Related Scripts
 

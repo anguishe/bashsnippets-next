@@ -46,15 +46,20 @@ const mod = await import(`@/content/snippets/${slug}.mdx`);
 
 ### Content: Guides
 
-Guides live at `/guides/<slug>`. Each guide is **its own static `page.tsx`** at `src/app/guides/<slug>/page.tsx` — there is no dynamic routing. Content is written directly as JSX inside the file, not MDX-driven. The index at `src/app/guides/page.tsx` maintains a hardcoded array of guide metadata.
+Guides live at `/guides/<slug>`. Each guide is **its own static `page.tsx`** at `src/app/guides/<slug>/page.tsx` — there is no dynamic routing. The `page.tsx` holds metadata, JSON-LD and the page shell; **the prose is MDX at `src/content/guides/<slug>.mdx`**, rendered through `mdxComponents`. The index at `src/app/guides/page.tsx` maintains a hardcoded array of guide metadata.
+
+`src/app/guides/layout.tsx` wraps the index and all 5 guides — it is the only single-edit reach across every guide, since there is no dynamic route. The toolkit CTA and email capture live there.
 
 To add a new guide:
-1. Create `src/app/guides/<slug>/page.tsx` with `metadata`, schema JSON-LD, and JSX content
-2. Add the guide's metadata to the `guides` array in `src/app/guides/page.tsx`
+1. Create `src/content/guides/<slug>.mdx` with the prose
+2. Create `src/app/guides/<slug>/page.tsx` with `metadata`, schema JSON-LD, and the MDX loader
+3. Add the guide's metadata to the `guides` array in `src/app/guides/page.tsx`
 
 ### Content: Snippet Category Pages
 
-Static category index pages live at `src/app/snippets/<category>/page.tsx` (e.g., `backup-and-recovery`, `disk-management`, `linux-security`, `server-monitoring`). Each lists relevant snippets inline. These are static pages — they do not use the `[slug]` dynamic route.
+**Removed 2026-07-18.** The four thin category pages (`backup-and-recovery`, `disk-management`,
+`linux-security`, `server-monitoring`) were consolidated into `/snippets` and 301'd in
+`next.config.ts`. Do not recreate them.
 
 ### Content: Tools
 

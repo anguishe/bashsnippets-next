@@ -32,6 +32,7 @@ Save as `service-watchdog.sh`. Set `SERVICE` to any unit from `systemctl list-un
 
 ```bash
 #!/bin/bash
+set -euo pipefail
 
 CHECK="✓"
 CROSS="✗"
@@ -216,6 +217,8 @@ For watchdogs that restart services on a remote host over SSH, the [SSH key setu
 Cron runs with a minimal environment and no TTY. If `sudo systemctl start` prompts for a password, the job fails silently. Add a `sudoers` rule for the cron user: `cron_user ALL=(ALL) NOPASSWD: /bin/systemctl start servicename`.
 
 </Callout>
+
+A watchdog that restarts a service is one crash-loop away from hiding the real problem. Bounding the restart count, logging every intervention with a timestamp, and escalating when the count climbs is the difference between a watchdog and a cover-up. [The Production Bash Toolkit](/starter-kit) implements that logic once, as a shared library, rather than per service.
 
 ## Frequently Asked Questions
 

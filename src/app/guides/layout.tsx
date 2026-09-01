@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import EmailCapture from '@/components/EmailCapture';
 import ToolkitCTA from '@/components/ToolkitCTA';
 
 /**
@@ -10,8 +11,9 @@ export default function GuidesLayout({ children }: { children: ReactNode }) {
   return (
     <>
       {children}
-      <div className="mx-auto max-w-4xl px-6 pb-16">
+      <div className="mx-auto flex max-w-4xl flex-col gap-6 px-6 pb-16">
         <ToolkitCTA placement="guide" />
+        <EmailCapture placement="guide" />
       </div>
     </>
   );

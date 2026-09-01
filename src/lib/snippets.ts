@@ -11,6 +11,25 @@ const DEFAULT_AUTHOR = AUTHOR.name;
 
 export type { FaqItem, HowToStep };
 
+export const REPO_URL = 'https://github.com/anguishe/bashsnippets';
+
+/**
+ * Snippets that are explainers, not standalone scripts — they have no file in the
+ * scripts repo by design (the repo README says so too). Everything else links to
+ * `scripts/<slug>.sh`.
+ *
+ * ponytail: an exclusion list, not an inclusion list, so adding a snippet never
+ * silently drops the repo link. The cost is that a new snippet links to a file you
+ * must actually push. Verify after adding one:
+ *   curl -sI https://github.com/anguishe/bashsnippets/blob/main/scripts/<slug>.sh
+ */
+const NO_REPO_SCRIPT = new Set(['bash-error-handling', 'kill-a-process']);
+
+export function getRepoScriptUrl(slug: string): string | null {
+  return NO_REPO_SCRIPT.has(slug) ? null : `${REPO_URL}/blob/main/scripts/${slug}.sh`;
+}
+
+
 export interface SnippetMeta {
   slug: string;
   title: string;

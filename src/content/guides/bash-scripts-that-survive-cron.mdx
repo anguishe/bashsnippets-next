@@ -92,6 +92,7 @@ Start with logging on everything, add a lock to anything that mutates state, add
 The single highest-leverage change you can make today: add <code>{`>> /var/log/<job>.log 2>&1`}</code> to every line in your crontab. You can harden incrementally after that — but you can't fix what you can't see, and right now most of your cron failures are invisible.
 </Callout>
 
-<AffiliateBox partner="digitalocean" />
 
 The cleanest way to internalize this is to break it on purpose. Spin up a droplet, schedule a deliberately slow job at `*/1`, and watch the overlap pile up — then add `flock` and watch it stop. Add a `sleep 999` and watch `timeout` reap it. The whole library is at [bashsnippets.xyz](https://bashsnippets.xyz); the three snippets this guide composes are [flock](/snippets/bash-flock-single-instance), [timeout](/snippets/bash-timeout-command), and [retry with backoff](/snippets/bash-retry-with-backoff), and the [Hardened Cron Wrapper Generator](/tools/cron-wrapper-generator) assembles them for you.
+
+Every guard in this guide — `flock`, `timeout`, retry with backoff, `trap` cleanup, and logging that survives the run — is implemented once as a shared `bashlib.sh` in [The Production Bash Toolkit](/starter-kit), alongside a `template.sh` that starts each new job with all five already wired and a 52-page field guide covering the failure modes this page does not.

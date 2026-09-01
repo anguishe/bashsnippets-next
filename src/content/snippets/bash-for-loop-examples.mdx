@@ -88,3 +88,5 @@ done
 `"${servers[@]}"` with quotes and `[@]` keeps `db primary` as one element. Drop the quotes and you are back to word-splitting — the same bug, new disguise.
 
 The rule across all of these: glob over parse, quote on use. For reading a file's lines one at a time, a for loop is the wrong tool — see [read a file line by line](https://bashsnippets.xyz/snippets/bash-read-file-line-by-line). And wrap any loop that touches real files in [set -euo pipefail](https://bashsnippets.xyz/snippets/bash-error-handling) so a failure stops the script instead of looping past it.
+
+Quoting correctly stops the loop doing the wrong thing quietly. Making the whole script survive unattended is a separate layer — strict mode, an ERR trap that names the failing line, cleanup on every exit, and a log worth reading afterwards. That layer is collected as `bashlib.sh` and a ready-made `template.sh` in [The Production Bash Toolkit](/starter-kit).

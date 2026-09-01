@@ -139,6 +139,8 @@ A package update, a misconfigured service, or a developer leaving a debug endpoi
 
 </Callout>
 
+An audit tells you what is listening. It does not tell you what to do at 3am when the answer is a service nobody remembers installing. The layer that turns a one-off audit into a standing control — locking so the weekly run cannot overlap, a log that proves it ran, an alert path that fails loudly instead of silently — is packaged as a reusable `bashlib.sh` and script template in [The Production Bash Toolkit](/starter-kit).
+
 ## Frequently Asked Questions
 
 ### What is the difference between ss and netstat?
@@ -160,7 +162,6 @@ Only LISTEN state entries matter here. Ephemeral ports (32768–60999) used for 
 
 <p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
 
-<AffiliateBox partner="digitalocean" headline="Running a public-facing droplet? Audit open ports before you open firewall rules." />
 
 ## Related Scripts
 

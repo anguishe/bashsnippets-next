@@ -1,10 +1,12 @@
 import AdSlot from '@/components/AdSlot';
 import FaqTerminal from '@/components/FaqTerminal';
 import { mdxComponents } from '@/components/MDXComponents';
+import EmailCapture from '@/components/EmailCapture';
 import ToolkitCTA from '@/components/ToolkitCTA';
 import { AUTHOR } from '@/lib/author';
 import { getSnippetWordCount } from '@/lib/mdx-frontmatter';
 import {
+  getRepoScriptUrl,
   getAllSlugs,
   getRelatedSnippets,
   getSnippetBySlug,
@@ -241,7 +243,24 @@ export default async function SnippetPage({ params }: PageProps) {
           )}
         </article>
 
+        {getRepoScriptUrl(slug) && (
+          <p className="mx-auto mt-8 max-w-3xl font-mono text-xs text-muted">
+            Raw script, MIT licensed:{' '}
+            <a
+              href={getRepoScriptUrl(slug) as string}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue transition-colors hover:text-green"
+            >
+              scripts/{slug}.sh
+            </a>{' '}
+            on GitHub
+          </p>
+        )}
+
         <ToolkitCTA className="mx-auto my-12 max-w-3xl" placement="snippet" />
+
+        <EmailCapture className="mx-auto my-12 max-w-3xl" placement="snippet" />
 
         <AdSlot slot="SLOT_MID_CONTENT" />
 

@@ -303,3 +303,5 @@ Finally, capture output without losing exit codes. The naive `./deploy.sh | tee 
 - [ ] Deploy script preserves the previous release for rollback
 - [ ] Health check runs after deploy; the script fails if the check fails
 - [ ] Tested on the same runner OS (Ubuntu 22.04 / 24.04) the pipeline actually uses
+
+The failure modes that take down a cron job take down a pipeline stage for the same reasons, and the fixes are the same: strict mode, a bounded runtime, retries on transient network calls, and cleanup that runs whether the stage passes or fails. [The Production Bash Toolkit](/starter-kit) ships those as a library you drop into the repo — `bashlib.sh`, `template.sh`, and worked examples — rather than something each pipeline re-implements.

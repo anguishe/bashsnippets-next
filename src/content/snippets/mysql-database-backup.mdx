@@ -36,6 +36,7 @@ Copy this into `mysql-backup.sh`, edit the configuration block, then make it exe
 
 ```bash
 #!/bin/bash
+set -euo pipefail
 
 CHECK="✓"
 CROSS="✗"

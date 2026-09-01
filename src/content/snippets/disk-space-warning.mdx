@@ -236,6 +236,8 @@ The `-P` flag forces POSIX output (one line per filesystem).
 | `tr -d '%'` | Deletes `%` characters so `85%` becomes `85` for numeric compare |
 | `[ "$USAGE" -gt "$THRESHOLD" ]` | True when usage is greater than your threshold |
 
+A threshold check is the cheap half. The half that decides whether you hear about a full disk at 4am or from a user at 9am is everything around it: a lock so the cron run cannot stack, a timeout so a hung `df` on a dead NFS mount does not wedge the job forever, and an alert path that reports its own failure. [The Production Bash Toolkit](/starter-kit) ships that as a library you source, not a pattern you retype.
+
 ## Frequently Asked Questions
 
 ### How do I check disk space in Linux with bash?
