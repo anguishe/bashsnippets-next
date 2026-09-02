@@ -140,6 +140,12 @@ const homeGuides = [
       'S answers signals, D cannot be killed at all — read wchan and the syscall without root, check the socket queues, and capture the evidence before kill -9 destroys it.',
   },
   {
+    slug: 'auto-restart-linux-service',
+    title: 'Auto-Restart a Stopped Service on Linux',
+    description:
+      'Crashed, stopped on purpose, or running but not answering — three kinds of "down", and the systemd Restart=, reset-failed, and probe-based watchdog that handles each without a restart loop.',
+  },
+  {
     slug: 'shell-scripts-that-talk-to-apis',
     title: 'Shell Scripts That Talk to APIs',
     description:

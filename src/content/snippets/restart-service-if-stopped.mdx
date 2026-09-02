@@ -22,9 +22,14 @@ howToSteps:
     text: "Run: chmod +x service-watchdog.sh then add * * * * * /path/service-watchdog.sh to crontab"
 author: "Travis"
 datePublished: "2026-05-22"
-dateModified: "2026-06-03"
+dateModified: "2026-09-01"
 ---
 
+<Callout type="info" title="This script handles one of the three kinds of “down”">
+
+`systemctl is-active` tells you whether the unit is running. It does not tell you whether the service is *answering*, whether someone stopped it on purpose, or why `systemctl start` is refusing with "start request repeated too quickly". The full guide covers all three, the exit code 4 that makes a watchdog restart a unit that does not exist, and a watchdog that alerts once per outage: [Auto-Restart a Stopped Service on Linux](/guides/auto-restart-linux-service).
+
+</Callout>
 
 ## The Script
 

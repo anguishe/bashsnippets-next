@@ -275,7 +275,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['systemd', 'monitor', 'cron-ready'],
     difficulty: 'intermediate',
     datePublished: '2026-05-22',
-    dateModified: '2026-06-03',
+    dateModified: '2026-09-01',
   },
   {
     slug: 'find-large-files-linux',

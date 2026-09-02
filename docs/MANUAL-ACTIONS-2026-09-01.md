@@ -402,7 +402,7 @@ CTA a reader never loads."*
   is unreachable or timed out in bash"* adjacent at 7.33. Kept deliberately clear of the cron
   guide: that one is *prevention* (timeout, flock, retry), this is *diagnosis on the morning it
   already hung*. They cross-link both ways.
-- **Also open:** service watchdog — *"set cron job to check service status and restart if not
+- **✅ Written 2026-09-01 (late) — `/guides/auto-restart-linux-service`.** Was open as: service watchdog — *"set cron job to check service status and restart if not
   running"* (pos 2.00), *"bash script check service status and restart if down"*, *"bash command to
   monitor and restart a service"*, *"bash script to detect service names and restart
   automatically"*. ~10 impressions, and only the `restart-service-if-stopped` snippet serves it.

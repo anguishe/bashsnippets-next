@@ -4,7 +4,7 @@
 has to reconstruct it from git log and five dated audits again. Update the status board and the
 changelog at the end of every session that ships or decides anything.
 
-Last updated: **2026-09-01 (evening)**. Owner: Travis. Maintained by Claude Code.
+Last updated: **2026-09-01 (late evening)**. Owner: Travis. Maintained by Claude Code.
 
 Companion files: `CLAUDE.md` (architecture + rules), `CONTRIBUTING.md` (workflow),
 `OWNERSHIP.md` (accounts), `docs/MANUAL-ACTIONS-2026-09-01.md` (human steps with evidence),
@@ -45,8 +45,8 @@ Secondary: fewer than 15 Gumroad outbound clicks in six weeks across 63 pages. T
 | 2.2 | Migrate `bash-scripts-every-sysadmin-needs` JSX → MDX | ⏸ **PARKED**, reconfirmed 2026-09-01 | tidiness only; no traffic or revenue effect |
 | 2.3a | Guide: safe bash script template (strict mode + trap ERR) | ✅ 2026-09-01 | `/guides/safe-bash-script-template` |
 | 2.3b | Guide: diagnose a hung process | ✅ 2026-09-01 | `/guides/diagnose-a-hung-process` |
-| 2.3c | Guide: service watchdog (check + restart) | ⬜ **next** | §4 content queue |
-| 2.3d | Guide: list open ports on Linux (definitive) | ⬜ queued | §4 — the biggest cluster on the property |
+| 2.3c | Guide: service watchdog (check + restart) | ✅ 2026-09-01 | `/guides/auto-restart-linux-service` — built on the Aug-6 lightdm incident + today's wpa_supplicant kills |
+| 2.3d | Guide: list open ports on Linux (definitive) | ⬜ **next** | §4 — the biggest cluster on the property |
 | 2.3e | Per-code ShellCheck pages (SC2086 …) | ⬜ queued | §4 |
 | 2.4 | Three-week re-check against baselines | ⏳ due **2026-09-22** | §3 baselines, MANUAL-ACTIONS §2.4 |
 | — | Docs baseline (this file, README, CLAUDE, CONTRIBUTING, OWNERSHIP, archive) | ✅ 2026-09-01 | this commit |
@@ -70,7 +70,7 @@ Secondary: fewer than 15 Gumroad outbound clicks in six weeks across 63 pages. T
 | GSC | 1 indexed (homepage), 71 crawled-not-indexed, 26 discovered-not-indexed; 4 queries, all brand | GSC `sc-domain`, authuser=0 |
 | GA4, Jun 1 – Sep 1 | 116 sessions (Direct 89, Organic Social 12, Referral 11, Organic Search 3, AI Assistant 1) — **pre-filter** | GA4 535459693 |
 | Backlinks | 137, ~100 % self-posted UGC, ~100 % to `/`; zero earned | GSC + Bing |
-| Sitemap / llms.txt | 63 URLs / 38 snippets + 12 tools + 7 guides | repo |
+| Sitemap / llms.txt | 64 URLs / 38 snippets + 12 tools + 8 guides | repo |
 | Gumroad | 0 paying customers ever | Gumroad inbox |
 | Email signups | 0 (form live since 2026-09-01) | Buttondown |
 
@@ -116,7 +116,7 @@ in the text not the code block, cross-linked both ways with the snippets it supe
 `guides/page.tsx`, a line in `scripts/generate-sitemap.mjs`) **plus** `homeGuides` in `src/app/page.tsx`
 and `public/llms.txt`. Then `npm run indexnow -- <url>`.
 
-1. **Service watchdog guide** (2.3c). 13 queries / 19 impressions; "set cron job to check service
+1. ✅ **Service watchdog guide** (2.3c) — shipped 2026-09-01 as `/guides/auto-restart-linux-service`. Was: 13 queries / 19 impressions; "set cron job to check service
    status and restart if not running" sits at position 2.00; "how to monitor a service and restart if
    stopped in linux" at 2.00. Only `restart-service-if-stopped` serves it. Cover: `systemctl is-active`
    vs `is-failed`, why `Restart=on-failure` in the unit beats a cron poller and when it doesn't,
@@ -229,6 +229,7 @@ rewritten, because rewriting would have invalidated commit IDs other docs cite.
 
 ## 11. Changelog
 
+- **2026-09-01 (late)** — Shipped 2.3c: `/guides/auto-restart-linux-service` (3.5k words, script ShellCheck-clean and every branch exercised live on this box; opens on the real Aug-6 lightdm/ollama GPU race and today's wpa_supplicant SIGKILLs from the journal). `restart-service-if-stopped` snippet now links to it. Sitemap 64. Next: 2.3d open-ports guide.
 - **2026-09-01 (evening)** — Docs baseline: created this file; rewrote `README.md`, `OWNERSHIP.md`,
   `.env.local.example`; fixed stale claims in `CLAUDE.md`, `CONTRIBUTING.md`, both skills, `llms.txt`;
   archived 9 superseded docs to `docs/archive/`; deleted `REPO-STATE.md`, the stale IndexNow key file
