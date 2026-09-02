@@ -91,11 +91,28 @@ URL Inspection still reported *Indexed successfully* for `create-dated-folder` a
 
 ---
 
-## 3. Reprice $9 → $29 single, add $79 five-seat team — 1.5 h
+## 3. Reprice $9 → $29 single, add $79 five-seat team — ❌ KILLED 2026-09-01
 
-> ⚠️ **The line-number table below is stale after commit `1a2cf79`**, which deleted lines from
-> `starter-kit/page.tsx` and `page.tsx` and moved three of the eleven sites. Corrected table and
-> the Gumroad steps: `docs/MANUAL-ACTIONS-2026-09-01.md` §2.1.
+> **Travis's decision, 2026-09-01: the price stays at $9. Period.** Do not reopen this without
+> him raising it first.
+>
+> **The reason it was killed is the reason it should never have been queued.** This document's own
+> justification below reads *"There is no conversion history at $9 to reprice from."* That was an
+> understatement. Checked the Gumroad notifications in `anguisheh1@gmail.com` on 2026-09-01: there
+> are exactly **two** emails, both dated Jun 8 2026, both for the same order — **total $0.00,
+> customer Travis**. That is the author downloading his own product to test checkout.
+>
+> **There has never been a paying customer at any price.** So the proposal was to change a number
+> that has never been tested, based on nothing, and then measure the result against a baseline of
+> zero. A price experiment needs a conversion rate to move; this one had no denominator. Zero sales
+> at $9 and zero sales at $29 are the same reading and neither tells you anything.
+>
+> The binding constraint is demand, not price. 116 GA4 sessions over three months, of which ~27 are
+> not Travis, and Google has never served a content page. Nothing monetises at any number until
+> that changes, which is what §2.3 (guides) and the email capture in §1.7 are actually for.
+>
+> The rest of this section is kept as the record of what was proposed and why it was dropped.
+> Nothing below should be executed.
 
 ⚠️ **The price is hardcoded in 11 places, not 4.** All 11 re-verified at these exact lines on
 2026-09-01 — the table is correct as written. (`grep '\$9'` also hits

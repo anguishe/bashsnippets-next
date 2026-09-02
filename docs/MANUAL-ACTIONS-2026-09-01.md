@@ -272,9 +272,19 @@ but that is an assumption, not a verified finding. Worth one click next time som
 
 ## PHASE 2 — in order
 
-### 2.1 Reprice $9 → $29, add a $79 five-seat tier
+### 2.1 ❌ KILLED — the price stays at $9
 
-Week-1 §3. **Code side is ~15 minutes; the Gumroad side is the part only you can do.**
+**Travis's decision, 2026-09-01: $9 stays. Period.** No Gumroad change, no code change, no
+$79 tier. Do not reopen without him raising it.
+
+**Why, on the evidence:** the Gumroad notifications in `anguisheh1@gmail.com` contain exactly two
+emails, both Jun 8 2026, both the same order — **$0.00, customer Travis**. A self-purchase to test
+checkout. **There has never been a paying customer at any price.** Repricing would have moved an
+untested number and then measured it against a baseline of zero; zero sales at $9 and zero at $29
+read identically. The constraint is demand — 116 sessions / 3 months, ~27 not Travis, no Google
+content impressions ever — and price is downstream of that.
+
+Everything below is kept as the record of what was proposed. **Do not execute it.**
 
 ⚠️ The line numbers in `docs/WEEK-1-TODO.md` §3 are **stale after commit `1a2cf79`** — that commit
 deleted lines from `starter-kit/page.tsx` and `page.tsx`. Re-verified 2026-09-01 **after** the strip:
@@ -315,11 +325,17 @@ disagree:
 **This is a judgment call, not arithmetic** — there is no conversion history at $9 to reprice from.
 It reverses in 30 minutes if it is wrong, and at 116 sessions / 3 months the downside is zero.
 
-### 2.2 Migrate `bash-scripts-every-sysadmin-needs` to MDX
+### 2.2 ⏸ PARKED — migrate `bash-scripts-every-sysadmin-needs` to MDX
+
+**Parked 2026-09-01.** Pure tidiness: no functional gain, no revenue gain, no indexing gain, set
+against 1254 lines of hand-transcription and 25 `<ScriptEntry>` invocations that carry JSX in their
+props. It earns priority only if someone is about to write new guides against that file, and the
+last two guides were written as MDX without touching it.
 
 The last JSX guide — 1254 lines in `src/app/guides/bash-scripts-every-sysadmin-needs/page.tsx`,
-while the other four are 146–189-line wrappers over `src/content/guides/*.mdx`. `CLAUDE.md` already
-claims all guides are MDX, so today the doc is wrong.
+while the other five are 146–189-line wrappers over `src/content/guides/*.mdx`. `CLAUDE.md` already
+claims all guides are MDX, so today the doc is wrong — that inaccuracy is the only live cost, and
+it is now noted in `CLAUDE.md` itself instead.
 
 No manual step. Pure code:
 

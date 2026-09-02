@@ -48,12 +48,15 @@ const mod = await import(`@/content/snippets/${slug}.mdx`);
 
 Guides live at `/guides/<slug>`. Each guide is **its own static `page.tsx`** at `src/app/guides/<slug>/page.tsx` — there is no dynamic routing. The `page.tsx` holds metadata, JSON-LD and the page shell; **the prose is MDX at `src/content/guides/<slug>.mdx`**, rendered through `mdxComponents`. The index at `src/app/guides/page.tsx` maintains a hardcoded array of guide metadata.
 
-`src/app/guides/layout.tsx` wraps the index and all 5 guides — it is the only single-edit reach across every guide, since there is no dynamic route. The toolkit CTA and email capture live there.
+`src/app/guides/layout.tsx` wraps the index and all **7** guides — it is the only single-edit reach across every guide, since there is no dynamic route. The toolkit CTA and email capture live there.
 
-To add a new guide:
+**One exception:** `bash-scripts-every-sysadmin-needs` has **no MDX file**. It is still 1254 lines of JSX inside its own `page.tsx`, with four components (`C`, `CodeBlock`, `SectionDivider`, `ScriptEntry`) defined locally in that file. Migrating it is parked deliberately — see `docs/MANUAL-ACTIONS-2026-09-01.md` §2.2. It still inherits the layout, so it has the CTA and email capture like every other guide.
+
+To add a new guide — **all four steps, the fourth is easy to miss**:
 1. Create `src/content/guides/<slug>.mdx` with the prose
 2. Create `src/app/guides/<slug>/page.tsx` with `metadata`, schema JSON-LD, and the MDX loader
 3. Add the guide's metadata to the `guides` array in `src/app/guides/page.tsx`
+4. **Add a line to `scripts/generate-sitemap.mjs`.** Snippets and tools are generated from their registries; **guide URLs are a hardcoded list**. Skip this and the guide builds, renders and links correctly while being silently absent from `sitemap.xml`. Then update `public/llms.txt` and its guide count.
 
 ### Content: Snippet Category Pages
 
@@ -90,6 +93,8 @@ All tools are native React client components rendered by `ToolRenderer` via `nex
 ### Monetization — one product, nothing else
 
 **Do not add ads or affiliate links to this site.** Removed 2026-09-01: `AffiliateBox.tsx` (22 call sites), `AdSlot.tsx` (4 call sites), `public/ads.txt`, and every ad/affiliate clause in `/privacy` and `/terms`. Consent Mode keeps `ad_storage` / `ad_user_data` / `ad_personalization` **denied on every path** — the keys stay present because Consent Mode v2 requires them, not because ads may come back.
+
+**The price is $9 and stays $9** (Travis, 2026-09-01). A proposal to move it to $29 with a $79 team tier was killed: Gumroad has recorded exactly one order ever — $0.00, Travis, a self-purchase to test checkout — so there has never been a paying customer at any price, and there is no conversion rate for a price change to move. The constraint is demand, not price. Do not reopen without Travis raising it.
 
 The only commercial surface is the Production Bash Toolkit:
 
