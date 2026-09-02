@@ -1,0 +1,441 @@
+---
+title: "List Open Ports on Linux: With the Process, Without Root, and Without netstat"
+description: "\"List open ports\" is three questions — what is listening, who owns it, and is it reachable — and each needs a different command. ss with the filters and flags that matter, the -e trick that names the owning service without root, /proc/net/tcp by hand, lsof and fuser for the PID, nc and /dev/tcp for one port, what docker-proxy hides, and a CSV audit script that alerts once when a new listener appears."
+slug: open-ports-linux
+author: "Travis"
+datePublished: 2026-09-01
+dateModified: 2026-09-01
+---
+
+## List Open Ports on Linux
+
+The dev server for this site has been coming up on port 3001 for months. Next.js wants 3000, finds it taken, and moves up one without complaint, so I never looked. Tonight I did:
+
+```bash
+ss -ltnp 'sport = :3000'
+```
+
+```text
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess
+LISTEN 0      4096         0.0.0.0:3000       0.0.0.0:*
+LISTEN 0      4096            [::]:3000          [::]:*
+```
+
+Something is listening on every interface, and the `Process` column is empty. Not because there is no process — because I am not root, and `ss` only names sockets owned by my own user. The snippet answer is "run it with `sudo`". The better answer is one flag:
+
+```bash
+ss -ltnpe 'sport = :3000'
+```
+
+```text
+LISTEN 0      4096   0.0.0.0:3000 0.0.0.0:* ino:20816 sk:2002 cgroup:/system.slice/docker.service <->
+```
+
+`-e` prints the socket's owning **cgroup**, and the cgroup is the systemd unit. Port 3000 belongs to `docker.service` — which, one `docker ps` later, is a `docker-proxy` publishing an Open WebUI container's 8080 as host port 3000. No root needed, no guessing, and the answer to a question I had been silently working around since spring.
+
+That is the shape of this whole page. "List open ports" is not one question. It is three, and the command that answers one of them is usually the wrong tool for the other two.
+
+## The three questions hiding in "list open ports"
+
+| You actually want to know | Ask with | Needs root? |
+|---|---|---|
+| **What** is listening, on which address | `ss -ltun` | no |
+| **Who** owns it — which process, which service | `ss -ltunp` (own sockets), `ss -ltune` (any socket, by unit), `lsof`, `fuser` | for other users' PIDs, yes; for the owning unit, no |
+| **Whether** it is reachable, from here or from outside | `nc -zv`, bash's `/dev/tcp`, `nmap` from another host | no |
+
+Everything below was run on this box — iproute2 7.1.0, kernel 7.1.5, bash 5.3.9 — as an unprivileged user unless it says `sudo`, with the output pasted as it came out. The two `sudo` blocks are pasted from a root shell on the same machine.
+
+## `ss`: the command that is always there
+
+`ss` ships in iproute2, which every Linux distribution installs because `ip` lives in the same package. If a box has a network stack, it has `ss`. Start here:
+
+```bash
+ss -ltn
+```
+
+```text
+State  Recv-Q Send-Q Local Address:Port  Peer Address:Port
+LISTEN 0      4096         0.0.0.0:3000       0.0.0.0:*
+LISTEN 0      511        127.0.0.1:45789      0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:5355       0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*
+LISTEN 0      4096       127.0.0.1:9050       0.0.0.0:*
+LISTEN 0      4096       127.0.0.1:41919      0.0.0.0:*
+```
+
+`-l` listening sockets only, `-t` TCP, `-n` numeric — no reverse DNS, no `/etc/services` lookup, which is the difference between the command returning now and returning in thirty seconds on a box with a slow resolver. Add `-u` for UDP (`ss -ltun`), where "listening" shows as `UNCONN` because UDP has no connection state to be in.
+
+The **address column matters more than the port.** Reading the rows above:
+
+| Local Address | Meaning |
+|---|---|
+| `0.0.0.0:3000` | every IPv4 interface — reachable from the network if nothing upstream blocks it |
+| `[::]:3000` | every IPv6 interface. On Linux this often also accepts IPv4 unless `v6only` is set; `ss -e` shows `v6only:1` when it is |
+| `*:11434` | dual-stack wildcard — both families on one socket |
+| `127.0.0.1:9050` | loopback only. Reachable from this machine, from nowhere else, whatever the firewall says |
+| `127.0.0.53%lo:53` | loopback with an interface scope (`%lo`) — systemd-resolved's stub resolver, pinned to `lo` |
+
+Two `Recv-Q`/`Send-Q` numbers on a `LISTEN` row mean something different from the same columns on a connection. On a listener, `Send-Q` is the **accept backlog** the program asked for (capped by `net.core.somaxconn`) and `Recv-Q` is how many connections are currently queued waiting for `accept()`. `511` is what Node and Chromium ask for; `4096` is the systemd and docker-proxy default. A `Recv-Q` that sits near `Send-Q` is a server that is not accepting fast enough — which is the socket-level signature of the hung-but-`active` service in [Auto-Restart a Stopped Service](/guides/auto-restart-linux-service).
+
+**Filters** are the part of `ss` almost nobody uses and the reason to stop piping it through `grep`:
+
+```bash
+ss -Hltn 'sport = :3000'                 # one port, no header (-H) — the form a script wants
+ss -Hltn 'sport >= :1024'                # unprivileged ports only
+ss -Htn state established                # every live connection, no listeners
+ss -Htn state established '( dport = :443 )'   # outbound HTTPS right now
+```
+
+```text
+0      0                    192.168.0.233:37638                        104.18.19.125:443
+0      0                    192.168.0.233:37096                         216.198.79.1:443
+0      0                    192.168.0.233:55348                        104.18.19.125:443
+```
+
+`-H` drops the header so the output pipes straight into `awk` or `wc -l`. On this machine `ss -Htn state established | wc -l` is 54 while I write this, which is a browser and two agents, and the same count on a web server tells you how busy it is without opening a single log.
+
+## Without netstat
+
+`netstat` is in `net-tools`, which most distributions stopped installing by default years ago. This box happens to have it; a minimal Debian, Alpine, or container image will not. Every `netstat` invocation people remember has an `ss` twin, and the flags mostly carry over:
+
+| You typed | Use instead | Note |
+|---|---|---|
+| `netstat -tulpn` | `ss -tulpn` | identical letters |
+| `netstat -an` | `ss -tan` (TCP) / `ss -uan` (UDP) | `-a` is all states, not only listening |
+| `netstat -tln \| grep :80` | `ss -Hltn 'sport = :80'` | filter, not grep |
+| `netstat -s` | `ss -s` | summary counters |
+| `netstat -r` | `ip route` | routing moved to `ip`, not `ss` |
+| `netstat -i` | `ip -s link` | interface counters, same |
+
+The one thing `netstat` still does that `ss` does not is print the `Program name` column in a fixed-width table that lines up. If you are scripting, `ss -H` with a filter is the cleaner input anyway, and the audit script at the end shows the parse.
+
+## With the process
+
+This is the question the empty `Process` column was hiding. Three tools answer it, and they need root for different reasons.
+
+**`ss -p`, as root, names every socket:**
+
+```bash
+sudo ss -ltnpe | head -12
+```
+
+```text
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess
+LISTEN 0      4096         0.0.0.0:3000       0.0.0.0:*    users:(("docker-proxy",pid=2372,fd=7)) ino:20816 sk:2002 cgroup:/system.slice/docker.service <->
+LISTEN 0      511        127.0.0.1:45789      0.0.0.0:*    users:(("cursor",pid=343941,fd=56)) uid:1000 ino:1977871 sk:2003 cgroup:/user.slice/user-1000.slice/user@1000.service/app.slice/app-org.chromium.Chromium-5954.scope <->
+LISTEN 0      4096         0.0.0.0:5355       0.0.0.0:*    users:(("systemd-resolve",pid=864,fd=14)) uid:969 ino:3046 sk:2004 cgroup:/system.slice/systemd-resolved.service <->
+LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*    users:(("systemd-resolve",pid=864,fd=21)) uid:969 ino:3059 sk:2005 cgroup:/system.slice/systemd-resolved.service <->
+LISTEN 0      4096       127.0.0.1:9050       0.0.0.0:*    users:(("tor",pid=1064,fd=6)) ino:14180 sk:2006 cgroup:/system.slice/system-tor.slice/tor@default.service <->
+LISTEN 0      4096       127.0.0.1:41919      0.0.0.0:*    users:(("containerd",pid=1051,fd=12)) ino:9912 sk:2007 cgroup:/system.slice/containerd.service <->
+LISTEN 0      511        127.0.0.1:38733      0.0.0.0:*    users:(("openclaw-gatewa",pid=1132,fd=24)) uid:1000 ino:23204 sk:2009 cgroup:/user.slice/user-1000.slice/user@1000.service/app.slice/openclaw-gateway.service <->
+```
+
+`users:(("docker-proxy",pid=2372,fd=7))` is the process name, PID and the file descriptor it holds the socket on. The name is truncated to 15 characters by the kernel — `openclaw-gatewa` is `openclaw-gateway` — so match on the PID, not the string. Note that `uid:` only appears for non-root owners; the root-owned sockets have no `uid:` field at all, which is `ss` telling you the uid is 0 by omission.
+
+**`lsof` reads it the other way round** — from processes to the files they hold, of which sockets are one kind:
+
+```bash
+sudo lsof -nP -iTCP -sTCP:LISTEN
+```
+
+```text
+COMMAND      PID            USER FD   TYPE  DEVICE SIZE/OFF NODE NAME
+systemd-r    864 systemd-resolve 14u  IPv4    3046      0t0  TCP *:5355 (LISTEN)
+systemd-r    864 systemd-resolve 21u  IPv4    3059      0t0  TCP 127.0.0.53:53 (LISTEN)
+ollama      1037          ollama  3u  IPv6   17455      0t0  TCP *:11434 (LISTEN)
+container   1051            root 12u  IPv4    9912      0t0  TCP 127.0.0.1:41919 (LISTEN)
+tor         1064      debian-tor  6u  IPv4   14180      0t0  TCP 127.0.0.1:9050 (LISTEN)
+openclaw-   1132          angsec 22u  IPv4   23202      0t0  TCP 127.0.0.1:18789 (LISTEN)
+```
+
+`-n` and `-P` stop the hostname and port-name lookups (same reason as `ss -n`), `-iTCP` restricts to TCP sockets, `-sTCP:LISTEN` to listeners. `lsof` gives you the **user name** resolved, which `ss` does not, and the `DEVICE` column is the socket inode — the same `ino:` number `ss -e` prints, which is how you cross-reference the two when they disagree. For "which PID has port 3000, as a bare number I can feed to `kill`":
+
+```bash
+sudo lsof -ti :3000
+```
+
+**`fuser`** is the terse one — `sudo fuser 3000/tcp` prints the PID, `sudo fuser -v 3000/tcp` prints the user and command with it — and it is silent with exit code 1 when you run it unprivileged against someone else's socket, which is easy to misread as "nothing there".
+
+Once you have the PID, the question becomes whether to kill it, and that has its own page with the SIGTERM-then-SIGKILL escalation and the confirmation step: [Kill a Process on a Port](/snippets/kill-process-on-port). Do not `kill -9` first; the [hung-process guide](/guides/diagnose-a-hung-process) explains what that throws away.
+
+## Without root
+
+You will not always have `sudo`. A shared box, a container, a locked-down CI runner, a customer's server over a support session. Here is exactly what you lose and what still works.
+
+**What you lose:** the process name and PID for any socket you do not own. `ss -p` shows `users:(...)` only for your own uid:
+
+```bash
+ss -Hltnp | grep users:
+```
+
+```text
+LISTEN 0      511        127.0.0.1:45789 0.0.0.0:* users:(("cursor",pid=343941,fd=56))
+LISTEN 0      511        127.0.0.1:38733 0.0.0.0:* users:(("openclaw-gatewa",pid=1132,fd=24))
+```
+
+Two rows out of 25 listeners, both mine. `lsof -i` unprivileged is the same story — it walks `/proc/*/fd` and can only read your own processes' descriptors.
+
+**What still works, and is usually enough:** the `-e` flag shown at the top. The kernel knows which cgroup every socket was created in, and `ss` will tell anyone:
+
+```bash
+ss -Hltne | awk '{for (i=1;i<=NF;i++) if ($i ~ /^cgroup:/) print $4, $i}'
+```
+
+```text
+0.0.0.0:3000 cgroup:/system.slice/docker.service
+0.0.0.0:5355 cgroup:/system.slice/systemd-resolved.service
+127.0.0.1:9050 cgroup:/system.slice/system-tor.slice/tor@default.service
+127.0.0.1:41919 cgroup:/system.slice/containerd.service
+```
+
+The last path component is the systemd unit. That is not the PID, but on a systemd box it is the more useful fact: `systemctl status tor@default` gets you the PID, the log, and the restart policy in one command, and it is what you actually want to know when the question is "what is this and should it be here". `uid:` appears on the same line for non-root owners, so `getent passwd 969` finishes the picture.
+
+**When there is no `ss` at all** — a scratch container with nothing installed — the kernel publishes the socket table as a text file and `awk` can read it:
+
+```bash
+head -3 /proc/net/tcp
+```
+
+```text
+  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout
+   0: 00000000:0BB8 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0
+   1: 0100007F:B2DD 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1000        0
+```
+
+The address is hex, little-endian for IPv4 (`0100007F` is `127.0.0.1` read backwards), the port is hex (`0BB8` is 3000), and `st` is the state — `0A` is `LISTEN`. Every listening port on the box, no tools required:
+
+```bash
+awk 'NR>1 && $4=="0A" {n=split($2,a,":"); printf "%d\n", strtonum("0x" a[n])}' \
+  /proc/net/tcp /proc/net/tcp6 | sort -nu | tr '\n' ' '
+```
+
+```text
+53 3000 5355 9050 11434 18789 18791 24448 38733 41919 45789 54321 54322 54323 54324 54327
+```
+
+Same sixteen ports `ss` reports. The `uid` column is there too, so the owner's user is readable without root even here; the PID is not, because that mapping lives in `/proc/PID/fd`, which is the thing you cannot read.
+
+## One port: from here, and from outside
+
+"Is port 5432 open" is a different question from "list open ports", and the listener list is only half its answer. A port can be listening and unreachable — bound to `127.0.0.1`, or bound to `0.0.0.0` behind a firewall rule — and it can be reachable without anything of yours listening, when something upstream forwards it.
+
+From the box itself, ask the socket directly:
+
+```bash
+nc -zv 127.0.0.1 3000
+nc -zv 127.0.0.1 22
+```
+
+```text
+localhost [127.0.0.1] 3000 (?) open
+localhost [127.0.0.1] 22 (ssh) : Connection refused
+```
+
+`-z` connects without sending, `-v` reports. `Connection refused` is an unambiguous "nothing is listening on that address" — the kernel answered with a RST, so the packet arrived. A **timeout** is the different case: the packet went somewhere and nothing came back, which is a firewall dropping it or a host that is not there.
+
+On a box without `nc`, bash can open a TCP socket by itself:
+
+```bash
+timeout 2 bash -c '</dev/tcp/127.0.0.1/3000' && echo "3000 open"
+timeout 2 bash -c '</dev/tcp/127.0.0.1/22'   || echo "22 closed"
+```
+
+```text
+3000 open
+bash: connect: Connection refused
+22 closed
+```
+
+The `timeout 2` is not optional. `/dev/tcp` has no timeout of its own, and a filtered port will hang the connect until the kernel's SYN retries give up, which is two minutes by default.
+
+From **outside** — the only test that tells you what an attacker or a customer sees — run the probe from another machine: `nc -zv your.host 5432`, or `nmap -p 5432 your.host` when you want `open` / `closed` / `filtered` distinguished in one word. `filtered` is the firewall; `closed` is the RST; `open` is the thing you were worried about. A listener on `0.0.0.0` that shows `filtered` from outside is fine. One that shows `open` and is not supposed to be public is the finding.
+
+## What the numbers mean
+
+Port numbers below 1024 are the "well-known" range and binding one needs root or `CAP_NET_BIND_SERVICE`, which is why a web server drops privileges after it opens 80 and 443. 1024–49151 are "registered" — assigned on paper, enforced by nothing. Above that is the ephemeral range the kernel hands to outbound connections:
+
+```bash
+cat /proc/sys/net/ipv4/ip_local_port_range
+```
+
+```text
+32768	60999
+```
+
+That is the answer to "why is there something on port 54321" in nine cases out of ten: it is the local end of a connection somebody made *out*, or a service that asked for "any port". The exceptions on this box — `54321` through `54324` — are Docker's published ports for a local Supabase stack, and `ss -e` says so.
+
+Port-to-name lookups come from `/etc/services`, and its coverage is thinner than people expect:
+
+```bash
+getent services 22/tcp
+getent services 11434/tcp || echo "no entry"
+```
+
+```text
+ssh                   22/tcp
+no entry
+```
+
+`5355`, `9050` and `11434` have no entry here either, so `nc -v` printed `(?)` for port 3000 and the audit script below writes `unknown`. The name column is a hint, never an identity. The process and the cgroup are the identity.
+
+## Containers: what `docker-proxy` hides
+
+The listener at the top of this page was `docker-proxy`, and that is the general case, not a curiosity. When a container publishes a port (`-p 3000:8080`), Docker starts a tiny userspace proxy that binds the host port and forwards into the container's network namespace. From the host, `ss` sees the proxy, not the application:
+
+```bash
+docker port open-webui
+```
+
+```text
+8080/tcp -> 0.0.0.0:3000
+8080/tcp -> [::]:3000
+```
+
+So the host-side listener list answers "which host ports are exposed" but never "what application is behind them" — `docker ps` does, via its `PORTS` column. And it cuts the other way: a container port that is **not** published does not appear in the host's `ss` output at all, because it exists in a different network namespace. To list those you have to enter the namespace — `nsenter -t "$(docker inspect -f '{{.State.Pid}}' name)" -n ss -ltn` — or run `ss` inside the container if the image has it. A host-level port audit that ignores this will happily report a database as "not listening" while it serves the whole compose stack on an internal bridge.
+
+## The audit script
+
+This is what turns the list into something you can diff. It writes one CSV line per listening socket — `proto,address,port,service,owner` — using `ss -e` so it degrades gracefully without root (owner becomes the cgroup unit or the uid instead of the process name), and with `--diff` it compares against the previous run and sends one alert naming what appeared or vanished.
+
+```bash
+#!/bin/bash
+# Script: ports-audit.sh
+# Purpose: A listener you did not open — a debug endpoint left running, a container that published a port, an intruder's shell — stays invisible until something diffs the list. This prints every listening socket as CSV and alerts once when the set changes.
+# Usage: ./ports-audit.sh            print every listening socket as CSV (root shows the process for every socket; non-root shows the owning cgroup or uid)
+#        ./ports-audit.sh --diff     also compare with the previous run and alert on new or vanished listeners
+#   cron: 0 * * * * /usr/local/sbin/ports-audit.sh --diff >/dev/null
+set -euo pipefail
+export LC_ALL=C                       # deterministic sort order across runs, whatever the locale
+
+CHECK="✓"
+CROSS="✗"
+
+STATE_DIR="${STATE_DIR:-/var/tmp/ports-audit}"
+ALERT_CMD="${ALERT_CMD:-}"            # reads the report on stdin, e.g. mail -s "listener change on $(hostname)" you@example.com
+DIFF=0
+[[ "${1:-}" == "--diff" ]] && DIFF=1
+
+mkdir -p "$STATE_DIR"
+CURRENT="$STATE_DIR/current.csv"
+PREVIOUS="$STATE_DIR/previous.csv"
+
+# One line per listening socket: proto,address,port,service,owner
+# ss flags: -H no header, -l listening only, -t -u tcp and udp, -n numeric ports,
+#           -p owning process (other users' sockets need root), -e uid and cgroup (no root needed)
+snapshot() {
+  ss -Hltunpe | awk '
+    {
+      proto = $1
+      n = split($5, a, ":"); port = a[n]
+      addr = substr($5, 1, length($5) - length(port) - 1)
+      owner = "?"
+      if (match($0, /users:\(\("[^"]+"/)) {            # root, or a socket of your own
+        owner = substr($0, RSTART + 9, RLENGTH - 10)
+      } else if (match($0, /cgroup:[^ ]+/)) {           # anyone: the systemd unit that owns it
+        cg = substr($0, RSTART + 7, RLENGTH - 7); m = split(cg, p, "/"); owner = "cgroup:" p[m]
+      } else if (match($0, /uid:[0-9]+/)) {
+        owner = "uid:" substr($0, RSTART + 4, RLENGTH - 4)
+      }
+      printf "%s,%s,%s,%s\n", proto, addr, port, owner
+    }' | while IFS=, read -r proto addr port owner; do
+      # getent exits 2 for a port with no /etc/services entry; under pipefail that would kill the loop
+      svc=$(getent services "$port/$proto" 2>/dev/null | awk '{print $1}' || true)
+      printf '%s,%s,%s,%s,%s\n' "$proto" "$addr" "$port" "${svc:-unknown}" "$owner"
+    done | sort -t, -k1,1 -k3,3n -k2,2 -k5,5 -u   # proto, port, address, owner; exact duplicates collapse
+}
+
+[[ -f "$CURRENT" ]] && mv -f "$CURRENT" "$PREVIOUS"
+snapshot > "$CURRENT"
+
+if [[ $EUID -ne 0 ]]; then
+  echo "$CROSS not root: process names appear only for your own sockets; everything else shows its systemd cgroup or uid" >&2
+fi
+cat "$CURRENT"
+echo "$CHECK $(wc -l < "$CURRENT") listening sockets on $(hostname) at $(date '+%F %T')" >&2
+
+if (( DIFF )) && [[ -f "$PREVIOUS" ]]; then
+  # Whole-line set difference. grep exits 1 when nothing is selected, hence the || true.
+  added=$(grep -Fxv -f "$PREVIOUS" "$CURRENT" || true)
+  removed=$(grep -Fxv -f "$CURRENT" "$PREVIOUS" || true)
+  if [[ -n "$added$removed" ]]; then
+    report=$(printf 'Listener changes on %s at %s\n\nNEW:\n%s\n\nGONE:\n%s\n' \
+      "$(hostname)" "$(date)" "${added:-(none)}" "${removed:-(none)}")
+    echo "$CROSS listener set changed since the previous run" >&2
+    printf '%s\n' "$report" >&2
+    if [[ -n "$ALERT_CMD" ]]; then
+      printf '%s\n' "$report" | bash -c "$ALERT_CMD"
+    fi
+    exit 3
+  fi
+  echo "$CHECK no listener changes since the previous run" >&2
+fi
+```
+
+Run it hourly from root's crontab if you want process names, or from any user's if the cgroup is enough:
+
+```text
+0 * * * * /usr/local/sbin/ports-audit.sh --diff >/dev/null
+```
+
+Exercised here as an unprivileged user before it was pasted. First run: 32 sockets, TCP and UDP, the note about not being root on stderr, and the CSV on stdout (first fourteen rows shown):
+
+```text
+✗ not root: process names appear only for your own sockets; everything else shows its systemd cgroup or uid
+✓ 32 listening sockets on angsec at 2026-09-01 20:35:08
+```
+
+```text
+tcp,127.0.0.53%lo,53,domain,cgroup:systemd-resolved.service
+tcp,127.0.0.54,53,domain,cgroup:systemd-resolved.service
+tcp,0.0.0.0,3000,unknown,cgroup:docker.service
+tcp,[::],3000,unknown,cgroup:docker.service
+tcp,0.0.0.0,5355,unknown,cgroup:systemd-resolved.service
+tcp,[::],5355,unknown,cgroup:systemd-resolved.service
+tcp,127.0.0.1,9050,unknown,cgroup:tor@default.service
+tcp,*,11434,unknown,cgroup:ollama.service
+tcp,127.0.0.1,18789,unknown,openclaw-gatewa
+tcp,[::1],18789,unknown,openclaw-gatewa
+tcp,127.0.0.1,18791,unknown,openclaw-gatewa
+tcp,127.0.0.1,24448,unknown,cursor
+tcp,127.0.0.1,38733,unknown,openclaw-gatewa
+tcp,127.0.0.1,41919,unknown,cgroup:containerd.service
+…
+```
+
+Second run with `--diff`: `no listener changes since the previous run`, exit 0. Then a Python `http.server` opened on 8099 and the third run, with `ALERT_CMD` pointed at a file, exited 3 with one report:
+
+```text
+Listener changes on angsec at Tue Sep  1 20:35:10 CDT 2026
+
+NEW:
+tcp,127.0.0.1,8099,unknown,python3
+
+GONE:
+(none)
+```
+
+Kill the server, run again, and the same line shows up under `GONE`. The exit code 3 on a change is deliberate: a cron wrapper or a CI step can branch on it without parsing the report.
+
+## Which command for which question
+
+| Question | Command | Root? |
+|---|---|---|
+| Everything listening, TCP and UDP | `ss -ltun` | no |
+| Is anything on port N | `ss -Hltn 'sport = :N'` | no |
+| Which process has port N | `sudo ss -ltnp 'sport = :N'`, `sudo lsof -ti :N`, `sudo fuser N/tcp` | yes, for other users |
+| Which *service* has port N | `ss -Hltne 'sport = :N'` → `cgroup:` | **no** |
+| Who owns it, as a user name | `sudo lsof -nP -iTCP -sTCP:LISTEN` | yes |
+| No `ss`, no `netstat`, no anything | `awk` over `/proc/net/tcp` | no |
+| Can I reach port N from here | `nc -zv host N`, `bash -c '</dev/tcp/host/N'` | no |
+| Can the internet reach port N | `nmap -p N host` from another machine | no |
+| What is behind a `docker-proxy` port | `docker ps`, `docker port name` | docker group |
+| What changed since yesterday | `ports-audit.sh --diff` | no (better with) |
+
+## Related
+
+- [List All Open Ports on Linux](/snippets/list-open-ports-linux) — the one-script version this guide grows out of
+- [Kill a Process on a Port](/snippets/kill-process-on-port) — once you have the PID
+- [Check If a Website Is Up](/snippets/check-if-website-is-up) — the HTTP-level reachability probe
+- [Auto-Restart a Stopped Service on Linux](/guides/auto-restart-linux-service) — where a port probe becomes a watchdog
+- [Diagnosing a Hung Process](/guides/diagnose-a-hung-process) — `ss -tnp` socket queues as evidence before you kill anything
+- [File Permissions Security Audit](/snippets/file-permissions-security) — the filesystem half of the same weekly review

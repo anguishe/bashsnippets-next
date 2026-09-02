@@ -6,6 +6,14 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 const guides = [
   {
+    slug: 'open-ports-linux',
+    title: 'List Open Ports on Linux: With the Process, Without Root, and Without netstat',
+    description:
+      '"List open ports" is three questions — what is listening, who owns it, and is it reachable — and each needs a different command. ss with the filters and flags that matter, the -e trick that names the owning service without root, /proc/net/tcp by hand, lsof and fuser for the PID, nc and /dev/tcp for one port, what docker-proxy hides, and a CSV audit script that alerts once when a new listener appears.',
+    blurb:
+      'You leave able to answer the port question the way it is actually asked: which process has it, even when ss shows a blank process column because you are not root; why the address column matters more than the port; what a listener owned by docker-proxy really is; and a script that turns the list into CSV and tells you once when something new starts listening.',
+  },
+  {
     slug: 'auto-restart-linux-service',
     title:
       'Auto-Restart a Stopped Service on Linux: systemd Restart=, Cron Watchdogs, and the Start-Limit Trap',

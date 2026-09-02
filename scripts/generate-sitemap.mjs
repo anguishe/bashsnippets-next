@@ -20,6 +20,7 @@ const staticEntries = [
   { url: `${SITE_URL}/guides/safe-bash-script-template`,          lastmod: '2026-09-01', changefreq: 'weekly',  priority: 0.8  },
   { url: `${SITE_URL}/guides/diagnose-a-hung-process`,           lastmod: '2026-09-01', changefreq: 'weekly',  priority: 0.8  },
   { url: `${SITE_URL}/guides/auto-restart-linux-service`,        lastmod: '2026-09-01', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/guides/open-ports-linux`,                  lastmod: '2026-09-01', changefreq: 'weekly',  priority: 0.8  },
 ];
 
 /**

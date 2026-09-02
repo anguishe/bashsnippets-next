@@ -46,8 +46,8 @@ Secondary: fewer than 15 Gumroad outbound clicks in six weeks across 63 pages. T
 | 2.3a | Guide: safe bash script template (strict mode + trap ERR) | ✅ 2026-09-01 | `/guides/safe-bash-script-template` |
 | 2.3b | Guide: diagnose a hung process | ✅ 2026-09-01 | `/guides/diagnose-a-hung-process` |
 | 2.3c | Guide: service watchdog (check + restart) | ✅ 2026-09-01 | `/guides/auto-restart-linux-service` — built on the Aug-6 lightdm incident + today's wpa_supplicant kills |
-| 2.3d | Guide: list open ports on Linux (definitive) | ⬜ **next** | §4 — the biggest cluster on the property |
-| 2.3e | Per-code ShellCheck pages (SC2086 …) | ⬜ queued | §4 |
+| 2.3d | Guide: list open ports on Linux (definitive) | ✅ 2026-09-01 | `/guides/open-ports-linux` — opens on the real port-3000 / docker-proxy finding on this box; root output pasted by Travis |
+| 2.3e | Per-code ShellCheck pages (SC2086 …) | ⬜ **next** | §4 |
 | 2.4 | Three-week re-check against baselines | ⏳ due **2026-09-22** | §3 baselines, MANUAL-ACTIONS §2.4 |
 | — | Docs baseline (this file, README, CLAUDE, CONTRIBUTING, OWNERSHIP, archive) | ✅ 2026-09-01 | this commit |
 | — | Homepage links all 7 guides (was 4) | ✅ 2026-09-01 | `homeGuides` in `src/app/page.tsx` |
@@ -70,7 +70,7 @@ Secondary: fewer than 15 Gumroad outbound clicks in six weeks across 63 pages. T
 | GSC | 1 indexed (homepage), 71 crawled-not-indexed, 26 discovered-not-indexed; 4 queries, all brand | GSC `sc-domain`, authuser=0 |
 | GA4, Jun 1 – Sep 1 | 116 sessions (Direct 89, Organic Social 12, Referral 11, Organic Search 3, AI Assistant 1) — **pre-filter** | GA4 535459693 |
 | Backlinks | 137, ~100 % self-posted UGC, ~100 % to `/`; zero earned | GSC + Bing |
-| Sitemap / llms.txt | 64 URLs / 38 snippets + 12 tools + 8 guides | repo |
+| Sitemap / llms.txt | 65 URLs / 38 snippets + 12 tools + 9 guides | repo |
 | Gumroad | 0 paying customers ever | Gumroad inbox |
 | Email signups | 0 (form live since 2026-09-01) | Buttondown |
 
@@ -121,7 +121,7 @@ and `public/llms.txt`. Then `npm run indexnow -- <url>`.
    stopped in linux" at 2.00. Only `restart-service-if-stopped` serves it. Cover: `systemctl is-active`
    vs `is-failed`, why `Restart=on-failure` in the unit beats a cron poller and when it doesn't,
    detecting a hung-but-running service (link the hung-process guide), alert dedup, the flock guard.
-2. **Definitive "list open ports on Linux" guide** (2.3d). **26 % of every query on the property**,
+2. ✅ **Definitive "list open ports on Linux" guide** (2.3d) — shipped 2026-09-01 as `/guides/open-ports-linux`. Was: **26 % of every query on the property**,
    avg position 7.3, zero clicks, one snippet. Sub-intents present in the data: without `netstat`,
    without root/sudo, with the process/PID, a specific port (`ss -tlnp | grep :80`), export to CSV,
    "what the ports mean", listening vs established, PostgreSQL/localhost-only. This is the largest
@@ -229,6 +229,7 @@ rewritten, because rewriting would have invalidated commit IDs other docs cite.
 
 ## 11. Changelog
 
+- **2026-09-01 (late, 2)** — Shipped 2.3d: `/guides/open-ports-linux` (~3.6k words; every command run here as non-root with the two root blocks pasted by Travis; `ports-audit.sh` ShellCheck-clean, diff/alert path exercised with a real 8099 listener). `list-open-ports-linux` snippet cross-links it. Sitemap 65. Next: 2.3e per-code ShellCheck pages.
 - **2026-09-01 (late)** — Shipped 2.3c: `/guides/auto-restart-linux-service` (3.5k words, script ShellCheck-clean and every branch exercised live on this box; opens on the real Aug-6 lightdm/ollama GPU race and today's wpa_supplicant SIGKILLs from the journal). `restart-service-if-stopped` snippet now links to it. Sitemap 64. Next: 2.3d open-ports guide.
 - **2026-09-01 (evening)** — Docs baseline: created this file; rewrote `README.md`, `OWNERSHIP.md`,
   `.env.local.example`; fixed stale claims in `CLAUDE.md`, `CONTRIBUTING.md`, both skills, `llms.txt`;
