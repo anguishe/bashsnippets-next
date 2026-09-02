@@ -47,6 +47,7 @@ function parseRegistry(filePath) {
 
 const snippets = parseRegistry('src/lib/snippets.ts');
 const tools    = parseRegistry('src/lib/tools.ts');
+const shellcheck = parseRegistry('src/lib/shellcheck-pages.ts');
 
 const snippetEntries = snippets.map(s => ({
   url:        `${SITE_URL}/snippets/${s.slug}`,
@@ -62,7 +63,14 @@ const toolEntries = tools.map(t => ({
   priority:   0.9,
 }));
 
-const allEntries = [...staticEntries, ...snippetEntries, ...toolEntries];
+const shellcheckEntries = shellcheck.map(p => ({
+  url:        `${SITE_URL}/shellcheck/${p.slug}`,
+  lastmod:    p.dateModified,
+  changefreq: 'weekly',
+  priority:   0.8,
+}));
+
+const allEntries = [...staticEntries, ...snippetEntries, ...toolEntries, ...shellcheckEntries];
 
 const xml = [
   '<?xml version="1.0" encoding="UTF-8"?>',
@@ -75,4 +83,4 @@ const xml = [
 
 const outPath = resolve(process.cwd(), 'public', 'sitemap.xml');
 writeFileSync(outPath, xml, 'utf-8');
-console.log(`sitemap.xml → ${outPath} (${allEntries.length} entries: ${snippets.length} snippets, ${tools.length} tools)`);
+console.log(`sitemap.xml → ${outPath} (${allEntries.length} entries: ${snippets.length} snippets, ${tools.length} tools, ${shellcheck.length} shellcheck)`);

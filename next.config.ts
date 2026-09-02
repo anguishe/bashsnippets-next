@@ -173,6 +173,12 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        // /shellcheck has no index page; the decoder tool is the hub for the per-code deep dives
+        source: '/shellcheck',
+        destination: '/tools/shellcheck-error-decoder',
+        permanent: true,
+      },
+      {
         source: '/tools/rsync-command-builder.html',
         destination: '/tools/rsync-command-builder',
         permanent: true,

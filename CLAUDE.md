@@ -50,7 +50,7 @@ const mod = await import(`@/content/snippets/${slug}.mdx`);
 
 Guides live at `/guides/<slug>`. Each guide is **its own static `page.tsx`** at `src/app/guides/<slug>/page.tsx` — there is no dynamic routing. The `page.tsx` holds metadata, JSON-LD and the page shell; **the prose is MDX at `src/content/guides/<slug>.mdx`**, rendered through `mdxComponents`. The index at `src/app/guides/page.tsx` maintains a hardcoded array of guide metadata.
 
-`src/app/guides/layout.tsx` wraps the index and all **7** guides — it is the only single-edit reach across every guide, since there is no dynamic route. The toolkit CTA and email capture live there.
+`src/app/guides/layout.tsx` wraps the index and all **9** guides — it is the only single-edit reach across every guide, since there is no dynamic route. The toolkit CTA and email capture live there.
 
 **One exception:** `bash-scripts-every-sysadmin-needs` has **no MDX file**. It is still 1254 lines of JSX inside its own `page.tsx`, with four components (`C`, `CodeBlock`, `SectionDivider`, `ScriptEntry`) defined locally in that file. Migrating it is parked deliberately — see `docs/MANUAL-ACTIONS-2026-09-01.md` §2.2. It still inherits the layout, so it has the CTA and email capture like every other guide.
 
@@ -75,6 +75,15 @@ Each tool requires:
 3. No per-tool route file — the shared `src/app/tools/[slug]/page.tsx` renders `<ToolRenderer slug={slug} />` and dispatches by slug
 
 All tools are native React client components rendered by `ToolRenderer` via `next/dynamic` with a skeleton loader. Tool components share utilities from `src/components/tools/shared/` (`useClipboard.ts`, `bashHighlight.ts`, `shellcheckData.ts`). The old iframe path (`ToolEmbed.tsx`, `public/tool-content/`) is deleted — do not recreate it.
+
+### Content: ShellCheck deep dives
+
+Per-rule pages at `/shellcheck/<code>` (lowercase, e.g. `/shellcheck/sc2086`). Hand-written, not generated from the decoder database — there are 7 (the codes with measured Bing demand), not 300. Each needs **two things**:
+
+1. `src/content/shellcheck/<slug>.mdx` — the prose, with `quickAnswer` and `faq` in the frontmatter (read at build time with `gray-matter` by the route)
+2. A registry entry in `src/lib/shellcheck-pages.ts` (code, slug, severity, title, description, keywords, dates, `related` site links)
+
+The shared `src/app/shellcheck/[code]/page.tsx` renders them (`dynamicParams = false`, so an unregistered slug 404s). The sitemap generator parses this registry like the other two, so **no sitemap edit is needed**. `/shellcheck` itself 301s to the decoder tool, which is the hub: `ShellcheckErrorDecoder.tsx` imports the registry for its "deep dives" list and the per-result link. Every output on these pages was produced by ShellCheck 0.11.0 on this machine — re-run before changing a pasted block. Then update `public/llms.txt` (section "ShellCheck Deep Dives" + the counts comment).
 
 ### MDX Pipeline
 
@@ -223,6 +232,7 @@ CROSS="✗"
 | Snippet | TechArticle + BreadcrumbList + FAQPage |
 | Tool | WebApplication + BreadcrumbList + FAQPage |
 | Guide | TechArticle + BreadcrumbList |
+| ShellCheck deep dive | TechArticle + BreadcrumbList + FAQPage |
 | Index pages | CollectionPage + BreadcrumbList |
 | About | WebPage + Person + BreadcrumbList |
 

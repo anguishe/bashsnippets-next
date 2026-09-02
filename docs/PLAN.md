@@ -4,7 +4,7 @@
 has to reconstruct it from git log and five dated audits again. Update the status board and the
 changelog at the end of every session that ships or decides anything.
 
-Last updated: **2026-09-01 (late evening)**. Owner: Travis. Maintained by Claude Code.
+Last updated: **2026-09-01 (late night)**. Owner: Travis. Maintained by Claude Code.
 
 Companion files: `CLAUDE.md` (architecture + rules), `CONTRIBUTING.md` (workflow),
 `OWNERSHIP.md` (accounts), `docs/MANUAL-ACTIONS-2026-09-01.md` (human steps with evidence),
@@ -47,7 +47,7 @@ Secondary: fewer than 15 Gumroad outbound clicks in six weeks across 63 pages. T
 | 2.3b | Guide: diagnose a hung process | ✅ 2026-09-01 | `/guides/diagnose-a-hung-process` |
 | 2.3c | Guide: service watchdog (check + restart) | ✅ 2026-09-01 | `/guides/auto-restart-linux-service` — built on the Aug-6 lightdm incident + today's wpa_supplicant kills |
 | 2.3d | Guide: list open ports on Linux (definitive) | ✅ 2026-09-01 | `/guides/open-ports-linux` — opens on the real port-3000 / docker-proxy finding on this box; root output pasted by Travis |
-| 2.3e | Per-code ShellCheck pages (SC2086 …) | ⬜ **next** | §4 |
+| 2.3e | Per-code ShellCheck pages (SC2086 …) | ✅ 2026-09-01 | `/shellcheck/sc2086` + 6 more; decoder tool is the hub; sitemap 72 |
 | 2.4 | Three-week re-check against baselines | ⏳ due **2026-09-22** | §3 baselines, MANUAL-ACTIONS §2.4 |
 | — | Docs baseline (this file, README, CLAUDE, CONTRIBUTING, OWNERSHIP, archive) | ✅ 2026-09-01 | this commit |
 | — | Homepage links all 7 guides (was 4) | ✅ 2026-09-01 | `homeGuides` in `src/app/page.tsx` |
@@ -70,7 +70,7 @@ Secondary: fewer than 15 Gumroad outbound clicks in six weeks across 63 pages. T
 | GSC | 1 indexed (homepage), 71 crawled-not-indexed, 26 discovered-not-indexed; 4 queries, all brand | GSC `sc-domain`, authuser=0 |
 | GA4, Jun 1 – Sep 1 | 116 sessions (Direct 89, Organic Social 12, Referral 11, Organic Search 3, AI Assistant 1) — **pre-filter** | GA4 535459693 |
 | Backlinks | 137, ~100 % self-posted UGC, ~100 % to `/`; zero earned | GSC + Bing |
-| Sitemap / llms.txt | 65 URLs / 38 snippets + 12 tools + 9 guides | repo |
+| Sitemap / llms.txt | 72 URLs / 38 snippets + 12 tools + 9 guides + 7 ShellCheck pages | repo |
 | Gumroad | 0 paying customers ever | Gumroad inbox |
 | Email signups | 0 (form live since 2026-09-01) | Buttondown |
 
@@ -91,7 +91,7 @@ means no traffic, not a broken CTA — check sessions first.
 | backup / mysql / dated folder | 32 | 46 | 5.4 | 4 snippets (the only cluster with clicks: 3) |
 | flock / cron overlap | 23 | 43 | 5.2 | cron guide + flock snippet |
 | disk usage threshold alert | 23 | 40 | 5.7 | 2 snippets |
-| ShellCheck SC codes (2086, 2046, 2063, 2115, 2154, 2034, 2016) | 17 | 35 | 6.0 | decoder tool only |
+| ShellCheck SC codes (2086, 2046, 2063, 2115, 2154, 2034, 2016) | 17 | 35 | 6.0 | decoder tool + 7 deep dives shipped 2026-09-01 — too new to measure |
 | brand / "copy-paste bash library" | 23 | 34 | 4.9 | homepage (6 of the 13 clicks) |
 | CI/CD GitHub Actions | 22 | 29 | 5.4 | CI guide |
 | service watchdog (check + restart) | 13 | 19 | 5.3 | one snippet (`restart-service-if-stopped`) |
@@ -126,7 +126,7 @@ and `public/llms.txt`. Then `npm run indexnow -- <url>`.
    without root/sudo, with the process/PID, a specific port (`ss -tlnp | grep :80`), export to CSV,
    "what the ports mean", listening vs established, PostgreSQL/localhost-only. This is the largest
    single content opportunity the numbers show.
-3. **Per-code ShellCheck pages** (2.3e). 17 queries / 35 impressions across SC2086 (12 imp), SC2046
+3. ✅ **Per-code ShellCheck pages** (2.3e) — shipped 2026-09-01 as `/shellcheck/sc2086`, `sc2046`, `sc2063`, `sc2115`, `sc2154`, `sc2034`, `sc2016` (~1k words each, every output from ShellCheck 0.11.0 on this box; SC2034 opens on the repo's own July finding, commit `093febd`). Was: 17 queries / 35 impressions across SC2086 (12 imp), SC2046
    (9), SC2063 (3), SC2115 (3), SC2154 (2), SC2034 (1), SC2016 (1). The decoder tool ranks 5–9; a
    page per code with the rule, why it bites in production, before/after fix and "when to disable it"
    is citable prose. Proposed URL shape `/shellcheck/<code>` with the decoder as hub; data source is
@@ -183,6 +183,7 @@ dramatized` markers — Travis vets each war story before any of them post).
 - Do not buy a .com and 301. The deficit migrates with you.
 - Cross-posting stays shelved until 2.4. Every one of the 10 drafts needs Travis to vet the war story first.
 - New guide = 4 files + `homeGuides` + `llms.txt`. The sitemap generator hardcodes guide URLs.
+- New ShellCheck deep dive = MDX + registry entry in `src/lib/shellcheck-pages.ts` + `llms.txt`. The sitemap picks the registry up; the decoder tool lists it automatically. Not a guide — `homeGuides` stays untouched.
 - GSC on Browser 4 is `authuser=0`. Bing WMT and every other console are on the same profile.
 
 ---
@@ -229,6 +230,7 @@ rewritten, because rewriting would have invalidated commit IDs other docs cite.
 
 ## 11. Changelog
 
+- **2026-09-01 (late night)** — Shipped 2.3e: seven ShellCheck deep dives at `/shellcheck/<code>` (new route family: `src/app/shellcheck/[code]/page.tsx` + `src/lib/shellcheck-pages.ts` registry + 7 MDX; sitemap generator parses the registry; `/shellcheck` 301s to the decoder; decoder gets a deep-dives list + per-result link; SC2063 added to the decoder database; `llms.txt` section). Every pasted output is from ShellCheck 0.11.0 / bash 5.3.9 / GNU grep 3.12 / findutils 4.11.0 on this box, including the SC2115 deletion run in a scratch tree. Findings worth keeping: SC2154 never fires on UPPERCASE names (assumed env vars) and reports typos as SC2153; `for f in $files` is not flagged by 0.11.0 at all; SC2016 exempts ssh/bash -c/awk/perl/find -exec but flags xargs sh -c, sed, mail -s. Sitemap 65 → 72. **Homepage hero "overlay bug" investigated and closed as not-a-code-bug:** the site's CSS is correct and stock Chromium renders the fade; in the anguisheh1 Chrome profile an injected stylesheet rewrites the gradient to `rgba(0,0,0,0) … 50%`, so the image's baked-in text shows through there only. Travis: leave as is. Content queue (§4) is now empty; next date is 2.4 on 2026-09-22.
 - **2026-09-01 (late, 2)** — Shipped 2.3d: `/guides/open-ports-linux` (~3.6k words; every command run here as non-root with the two root blocks pasted by Travis; `ports-audit.sh` ShellCheck-clean, diff/alert path exercised with a real 8099 listener). `list-open-ports-linux` snippet cross-links it. Sitemap 65. Next: 2.3e per-code ShellCheck pages.
 - **2026-09-01 (late)** — Shipped 2.3c: `/guides/auto-restart-linux-service` (3.5k words, script ShellCheck-clean and every branch exercised live on this box; opens on the real Aug-6 lightdm/ollama GPU race and today's wpa_supplicant SIGKILLs from the journal). `restart-service-if-stopped` snippet now links to it. Sitemap 64. Next: 2.3d open-ports guide.
 - **2026-09-01 (evening)** — Docs baseline: created this file; rewrote `README.md`, `OWNERSHIP.md`,

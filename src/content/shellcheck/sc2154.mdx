@@ -1,0 +1,165 @@
+---
+title: "ShellCheck SC2154: Variable Is Referenced but Not Assigned"
+description: "A one-character typo sent a backup to /site-2026-09-01.tgz instead of the backup directory. What SC2154 catches, why it stays silent for UPPERCASE names, the real run with and without set -u, the : \"${var:?}\" and ${var:-default} fixes for variables that come from the environment, and how to disable it."
+slug: sc2154
+author: "Travis"
+datePublished: 2026-09-01
+dateModified: 2026-09-01
+quickAnswer: >-
+  SC2154 is ShellCheck's warning that a variable is read somewhere in a script but never
+  assigned anywhere ShellCheck can see. It checks only names that contain lowercase letters; an
+  all-uppercase name such as $DEPLOY_ENV is assumed to be an environment variable and passes
+  silently, and when an assigned near-miss exists ShellCheck reports the typo as SC2153 instead.
+  In the run on this page $backup_dir was never set because the assignment spelled it
+  backup_root, so tar tried to write the archive to /site-2026-09-01.tgz. set -u turns that into
+  "backup_dir: unbound variable" at runtime; ShellCheck reports it before the script runs at all.
+  For variables that arrive from the environment, declare them on purpose:
+  : "${deploy_env:?set deploy_env}" to require one, deploy_env="${deploy_env:-staging}" to
+  default one. Both clear SC2154. To lint for only this rule run
+  shellcheck --include=SC2154 script.sh.
+faq:
+  - question: "Why does ShellCheck not flag my unassigned $VARIABLE?"
+    answer: >-
+      Uppercase names are assumed to come from the environment. ShellCheck 0.11.0 passes
+      echo "$DEPLOY_ENV" with no assignment anywhere and no warning. Lowercase and mixed-case
+      names are checked. There is no switch to extend the check to uppercase names; set -u at
+      runtime is the guard for those.
+  - question: "What is the difference between SC2154 and SC2153?"
+    answer: >-
+      SC2153 is the typo case for uppercase names: ShellCheck found an unassigned name that
+      closely matches an assigned one and reports "Possible misspelling: ARCHIVEDIR may not be
+      assigned. Did you mean ARCHIVE_DIR?" at info level. SC2154 is the lowercase check at
+      warning level, and since 0.11.0 it appends "(did you mean 'archive_dir'?)" when a
+      lowercase near-miss exists.
+  - question: "How do I tell ShellCheck a variable comes from a sourced file?"
+    answer: >-
+      Put # shellcheck source=deploy.conf on the line above the source command and run
+      shellcheck -x so it follows the file. Without -x it reports SC1091 "Not following" and
+      cannot see the assignment. If the sourced path is only known at runtime,
+      : "${var:?}" after the source line both documents the dependency and validates it.
+  - question: "How do I disable SC2154 for a variable set by cron or a systemd unit?"
+    answer: >-
+      # shellcheck disable=SC2154 on the line above the first use, with the reason, for
+      example "set by Environment= in deploy.service". Declaring it is better than disabling:
+      deploy_env="${deploy_env:?}" or deploy_env="${deploy_env:-staging}" documents where the
+      value comes from, validates it, and passes ShellCheck without a directive.
+---
+
+## What does SC2154 mean?
+
+SC2154, "variable is referenced but not assigned", is ShellCheck's **warning**-level finding that a script reads a variable it never sets. Most of the time it is the other half of a typo: the assignment and the use are spelled differently, so the assignment is dead ([SC2034](/shellcheck/sc2034)) and the use is empty (SC2154). The rest of the time the variable really does come from outside, and ShellCheck is asking you to say so.
+
+## What actually breaks?
+
+A backup script with a one-character mismatch between the assignment and the use. Run on this box with bash 5.3.9 and GNU tar 1.35.
+
+```bash
+#!/bin/bash
+set -eo pipefail
+backup_root="$PWD/backups"
+mkdir -p "$backup_root"
+tar -czf "$backup_dir/site-$(date +%F).tgz" site
+echo "backup written to $backup_dir"
+```
+
+```text
+$ bash before.sh; echo "exit=$?"
+tar (child): /site-2026-09-01.tgz: Cannot open: Permission denied
+tar (child): Error is not recoverable: exiting now
+tar: Child returned status 2
+tar: Error is not recoverable: exiting now
+exit=2
+```
+
+`$backup_dir` expanded to nothing, so the archive path became `/site-2026-09-01.tgz`. As an unprivileged user that fails, which is the lucky outcome. Run from root's crontab, the way backup jobs usually are, `tar` writes the archive into `/`, the script prints "backup written to " and exits 0, and the backup directory stays empty until the day it is needed.
+
+With `set -u` the script stops on the line that matters:
+
+```text
+$ bash -u before.sh; echo "exit=$?"
+before.sh: line 5: backup_dir: unbound variable
+exit=1
+```
+
+Which is why `set -euo pipefail` is on line 2 of every script on this site. ShellCheck reports the same thing without running anything.
+
+## What does ShellCheck say, and what is the fix?
+
+```text
+$ shellcheck before.sh
+
+In before.sh line 5:
+tar -czf "$backup_dir/site-$(date +%F).tgz" site
+          ^---------^ SC2154 (warning): backup_dir is referenced but not assigned.
+```
+
+The fix is to make the two names agree:
+
+```bash
+backup_dir="$PWD/backups"
+mkdir -p "$backup_dir"
+tar -czf "$backup_dir/site-$(date +%F).tgz" site
+```
+
+```text
+$ shellcheck after.sh; echo "exit=$?"
+exit=0
+$ bash after.sh
+backup written to …/backups
+```
+
+## Where does SC2154 stay silent when it should not?
+
+**Uppercase names.** ShellCheck treats every all-caps name as a possible environment variable:
+
+```text
+$ printf '#!/bin/bash\necho "$DEPLOY_ENV"\n' > uc.sh; shellcheck uc.sh; echo "exit=$?"
+exit=0
+```
+
+No assignment, no warning. The lowercase twin, `echo "$deploy_env"`, is reported. This is the single most common reason people believe SC2154 "does not work": the script uses `UPPER_CASE` names throughout, and the check never applies. `set -u` is the only guard for those.
+
+**A near-miss with an uppercase name** is reported as SC2153 at info level instead. `ARCHIVE_DIR` assigned and `$ARCHIVEDIR` used produced `SC2153 (info): Possible misspelling: ARCHIVEDIR may not be assigned. Did you mean ARCHIVE_DIR?` on this box. Lowercase near-misses stay SC2154 and gain a hint: `archivedir is referenced but not assigned (did you mean 'archive_dir'?)`, paired with an SC2034 on the assignment nobody reads.
+
+**Sourced files.** `source ./deploy.conf` followed by a use of a variable the file sets is reported as SC1091, `Not following: ./deploy.conf was not specified as input (see shellcheck -x)`, not SC2154. Add `# shellcheck source=deploy.conf` above the `source` line and run `shellcheck -x` and it follows the file.
+
+Things ShellCheck already understands: `read -r first second` assigns both names, a variable assigned anywhere in the file counts even when the function that reads it appears earlier, and `for x in ...` assigns `x`.
+
+## How do I declare a variable that really comes from outside?
+
+Both of these pass ShellCheck 0.11.0 without a directive and say what you mean:
+
+```bash
+: "${deploy_env:?set deploy_env to staging or production}"   # required
+deploy_env="${deploy_env:-staging}"                            # optional, with a default
+```
+
+The first is a no-op command whose only job is to expand the variable with `:?`, so an unset or empty value stops the script with your message before anything else runs:
+
+```text
+$ bash env2.sh; echo "exit=$?"
+env2.sh: line 3: DEPLOY_ENV: set DEPLOY_ENV to staging or production
+exit=1
+```
+
+Put the line near the top of the script, next to the other configuration, and the next reader knows the variable is an input rather than a typo.
+
+## When should I disable SC2154, and how?
+
+When the value comes from a place ShellCheck cannot follow and you would rather not add the declaration line: a variable exported by a wrapper, or set by `Environment=` in a systemd unit. Say so:
+
+```bash
+# shellcheck disable=SC2154  # set by Environment= in deploy.service
+echo "deploying to $deploy_env"
+```
+
+For one run, `shellcheck --exclude=SC2154 script.sh`; for a project, `disable=SC2154` in `.shellcheckrc`; to lint for this rule alone, `shellcheck --include=SC2154 script.sh`.
+
+## Related codes
+
+- **SC2034** — the assignment side of the same typo. See the [SC2034 deep dive](/shellcheck/sc2034).
+- **SC2153** — the uppercase near-miss, at info level.
+- **SC1091** — a sourced file ShellCheck is not following.
+- **SC2155** — `local x=$(cmd)` hides the command's exit status. See [The Safe Bash Script Template](/guides/safe-bash-script-template).
+
+Any other code: paste it into the [ShellCheck Error Decoder](/tools/shellcheck-error-decoder).

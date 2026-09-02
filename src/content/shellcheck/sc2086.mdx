@@ -1,0 +1,189 @@
+---
+title: "ShellCheck SC2086: Double Quote to Prevent Globbing and Word Splitting"
+description: "rm $file with a space in the name deletes two other files and exits 0. What SC2086 catches, the run that proves it, the fix, the variants inside [ ], for loops and arrays, and how to disable it for one line, one file, or only lint for this rule."
+slug: sc2086
+author: "Travis"
+datePublished: 2026-09-01
+dateModified: 2026-09-01
+quickAnswer: >-
+  SC2086 is ShellCheck's info-level warning that a variable is used without double quotes,
+  so bash splits its value on whitespace and expands any * or ? in it before the command runs.
+  With report="quarterly report.txt", rm $report runs rm with two arguments, quarterly and
+  report.txt, deletes files by those names if they exist, leaves the real file alone, and exits 0.
+  The fix is double quotes: rm "$report". Quote every expansion except the few where splitting
+  is the point, and hand those to an array instead. To lint for only this rule run
+  shellcheck --include=SC2086 script.sh. To silence it for one line put
+  # shellcheck disable=SC2086 on the line above with the reason; for a project put
+  disable=SC2086 in .shellcheckrc. It fires inside [ ] but never inside [[ ]], and an unquoted
+  array expansion is reported as SC2068 instead.
+faq:
+  - question: "How do I run ShellCheck for only SC2086?"
+    answer: >-
+      Use --include: shellcheck --include=SC2086 script.sh reports SC2086 findings and nothing
+      else, and still exits 1 when it finds one, so it works as a CI gate for a single rule.
+      The short form is -i SC2086. Combine codes with commas: --include=SC2086,SC2046.
+  - question: "How do I disable SC2086 for one line?"
+    answer: >-
+      Put # shellcheck disable=SC2086 on its own line directly above the command. It covers
+      that command only; the next unquoted expansion is flagged again. Write the reason after a
+      second # so the next reader knows the split is deliberate, for example
+      # shellcheck disable=SC2086  # $opts is a space-separated flag list.
+  - question: "How do I disable SC2086 for a whole file or project?"
+    answer: >-
+      For one file, put the same directive after the shebang and before the first command; it
+      then applies to every line. For a project, create a .shellcheckrc in the repo root
+      containing disable=SC2086. For one run, shellcheck --exclude=SC2086 script.sh does the
+      same thing, and shellcheck -S warning hides it along with every other info-level check.
+  - question: "Why does ShellCheck not flag $var inside [[ ]]?"
+    answer: >-
+      [[ ]] is bash syntax, not a command, and bash does not word-split or glob-expand an
+      unquoted variable inside it. [ ] is the test command with ordinary arguments, so an empty
+      or space-containing variable changes how many arguments test receives. That is why SC2086
+      fires inside [ ] and why [ $name = root ] with an empty name fails with
+      "unary operator expected".
+---
+
+## What does SC2086 mean?
+
+SC2086, "Double quote to prevent globbing and word splitting", is ShellCheck's **info**-level warning that a `$variable` or `${expansion}` is used without double quotes in a position where bash will split its value on whitespace and expand any glob characters in it before the command sees it. Info is the lowest severity ShellCheck shows by default. That is a poor guide to how much damage the pattern does.
+
+## What actually breaks?
+
+Three files in a directory and a four-line script, run on this box with bash 5.3.9:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+report="quarterly report.txt"
+rm $report
+```
+
+```text
+$ ls -1
+quarterly
+quarterly report.txt
+report.txt
+$ bash before.sh; echo "exit=$?"
+exit=0
+$ ls -1
+quarterly report.txt
+```
+
+Two files gone, neither of them the one the script named, and exit code 0 because both arguments `rm` received existed. `set -euo pipefail` did nothing here; there was no error to catch. Word splitting turned `rm $report` into `rm quarterly report.txt`.
+
+The glob half of the warning:
+
+```bash
+pattern="*.log"
+echo "Looking for $pattern"
+echo Looking for $pattern
+```
+
+```text
+Looking for *.log
+Looking for app.log err.log
+```
+
+Unquoted, `*.log` is expanded against the current directory before `echo` runs. `find . -name $pattern` does the same thing and searches for one literal filename instead of a pattern; ShellCheck reports that variant as SC2061.
+
+## What does ShellCheck say, and what is the fix?
+
+```text
+$ shellcheck before.sh
+
+In before.sh line 4:
+rm $report
+   ^-----^ SC2086 (info): Double quote to prevent globbing and word splitting.
+
+Did you mean:
+rm "$report"
+```
+
+The fix is the suggestion:
+
+```bash
+rm "$report"
+```
+
+```text
+$ shellcheck after.sh; echo "exit=$?"
+exit=0
+$ bash after.sh; ls -1
+after.sh
+before.sh
+```
+
+One file deleted, the right one. Double quotes keep the expansion as a single argument and switch off glob expansion of its contents. `$report` inside double quotes is still expanded; only single quotes stop that.
+
+## Where else does SC2086 show up?
+
+**Inside `[ ]`.** `[` is a command, so an empty variable changes the argument count:
+
+```bash
+name=""
+if [ $name = "root" ]; then echo "is root"; fi
+echo "still running"
+```
+
+```text
+test.sh: line 3: [: =: unary operator expected
+still running
+```
+
+The test fails with a message on stderr, the script keeps going, and the branch you were guarding is skipped. `[ "$name" = "root" ]` is what ShellCheck suggests. Inside `[[ ]]` bash does not split, so ShellCheck stays quiet there.
+
+**In `for` loops.** `for f in $files` is the one place where splitting is often on purpose:
+
+```bash
+files="quarterly report.txt app.log"
+for f in $files; do echo "processing: $f"; done
+```
+
+```text
+processing: quarterly
+processing: report.txt
+processing: app.log
+```
+
+ShellCheck 0.11.0 does not flag this loop at all. It treats an unquoted variable in `for ... in` as intentional, and the output is still wrong for any element with a space. The fix is a list that can hold spaces, which in bash means an array.
+
+**With arrays.** Unquoted `${files[@]}` is not SC2086. It is SC2068, an **error**: "Double quote array expansions to avoid re-splitting elements." Same fix, `"${files[@]}"`, and the loop above prints two lines instead of three.
+
+**Intended splitting.** A variable that holds a list of flags:
+
+```bash
+opts="-r -n"
+grep $opts pattern .
+```
+
+ShellCheck flags it because it cannot know the split is wanted. Two honest ways out: make it an array, `opts=(-r -n)` and `grep "${opts[@]}" pattern .`, which ShellCheck accepts silently, or keep the string and disable the check on that one line with the reason written down.
+
+## When should I disable SC2086, and how?
+
+Disable it only where the split is the point and an array would be awkward: flag strings read from a config file, or arguments handed through a thin wrapper. Every other case is a bug waiting for a filename with a space in it.
+
+One line, with the reason:
+
+```bash
+# shellcheck disable=SC2086  # $opts is a space-separated flag list from the config file
+grep $opts pattern .
+```
+
+The directive covers the next command only. For the whole file, put the same line after the shebang and before the first command. For the whole project, a `.shellcheckrc` in the repo root with `disable=SC2086`. For one run, `shellcheck --exclude=SC2086 script.sh`, or `shellcheck -S warning script.sh`, which hides every info-level check including this one.
+
+Two of the searches that led to this page asked the opposite question: **lint for this rule and nothing else**.
+
+```bash
+shellcheck --include=SC2086 script.sh
+```
+
+That prints only SC2086 findings and still exits 1 when there are any, so it works as a CI gate that enforces quoting while a repo is still working through its other findings. The short form is `-i`, and codes combine with commas.
+
+## Related codes
+
+- **SC2068** — the same problem for arrays, at error severity. See [Bash Arrays](/snippets/bash-arrays).
+- **SC2046** — the same problem for `$(command)` output. See the [SC2046 deep dive](/shellcheck/sc2046).
+- **SC2061** — an unquoted glob handed to `find -name`.
+- **SC2048** — unquoted `$*`; use `"$@"`.
+
+Any other code: paste it into the [ShellCheck Error Decoder](/tools/shellcheck-error-decoder).

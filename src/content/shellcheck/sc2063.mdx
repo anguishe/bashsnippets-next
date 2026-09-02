@@ -1,0 +1,144 @@
+---
+title: "ShellCheck SC2063: Grep Uses Regex, but This Looks Like a Glob"
+description: "grep -q '*.gz' reports no rotated logs while two sit in the directory, because a leading * is a literal asterisk in a regex. What SC2063 catches, the real run, the anchored-regex and grep -F fixes, the patterns that do not trigger it, and when to disable it."
+slug: sc2063
+author: "Travis"
+datePublished: 2026-09-01
+dateModified: 2026-09-01
+quickAnswer: >-
+  SC2063 is ShellCheck's warning that a grep pattern is shaped like a shell glob, typically one
+  that starts with *, when grep reads every pattern as a regular expression. In a regex a leading
+  * has nothing to repeat, and GNU grep treats it as a literal asterisk, so grep -q '*.gz'
+  manifest.txt matches only lines that contain a real * and reports no rotated archives while
+  two sit in the file. The fix is to write the regex you meant, grep '\.gz$' for "ends in .gz",
+  or to pass -F when the string is meant literally. 'app*.log' does not trigger SC2063 but is
+  still a regex: ap, then zero or more p, then any character, then log. To lint for only this
+  rule run shellcheck --include=SC2063 script.sh.
+faq:
+  - question: "Why does grep '*.gz' match nothing?"
+    answer: >-
+      Because grep patterns are regular expressions. A * repeats the item before it, and at the
+      start of a basic regex there is nothing before it, so GNU grep treats that * as a literal
+      asterisk character. The pattern then means "an asterisk, any character, then gz", which
+      no ordinary filename contains. With -E, GNU grep 3.12 prints a warning and matches by
+      accident; other greps do not.
+  - question: "How do I make grep match a filename pattern like *.gz?"
+    answer: >-
+      Write the regex: grep '\.gz$' matches lines ending in .gz, and grep '\.log' matches lines
+      containing .log. If the text is meant literally, including a real asterisk, use grep -F,
+      which turns off regex interpretation entirely. If you are matching filenames in a
+      directory, skip grep and use the glob itself: for f in *.gz, or compgen -G '*.gz'.
+  - question: "Why does grep 'app*.log' not trigger SC2063?"
+    answer: >-
+      It is a valid regex, so ShellCheck reports a note, SC2022, instead: "unlike globs, p*
+      here matches 'ppp' but not 'papa'". It still does not mean what a glob means. app*.log
+      is "ap, zero or more p, any single character, log", which matches app.log and also
+      apXlog. Anchor and escape the dot: grep 'app.*\.log$'.
+  - question: "When is disabling SC2063 correct?"
+    answer: >-
+      Almost never. The check means the pattern does not do what the author expects. The one
+      honest case, a pattern that must start with a literal asterisk, is written as grep '\*'
+      or grep -F '*', and both already pass ShellCheck. If you still want the directive, it is
+      # shellcheck disable=SC2063 on the line above.
+---
+
+## What does SC2063 mean?
+
+SC2063, "Grep uses regex, but this looks like a glob", is ShellCheck's **warning**-level finding that a `grep` pattern has the shape of a shell wildcard, most often a leading `*`, when `grep` interprets every pattern as a regular expression. The two languages share characters and mean different things by them. `*` in a glob is "anything"; `*` in a regex is "repeat the previous item", and at the start of a pattern there is no previous item.
+
+## What actually breaks?
+
+A manifest of what a log rotation produced, and a script that decides whether there is anything to prune. Run on this box with GNU grep 3.12.
+
+```text
+$ cat manifest.txt
+app.log
+app.log.1.gz
+app.log.2.gz
+error.log
+```
+
+```bash
+#!/bin/bash
+set -euo pipefail
+if grep -q '*.gz' manifest.txt; then
+  echo "rotated archives present, pruning"
+else
+  echo "no rotated archives, nothing to prune"
+fi
+```
+
+```text
+$ bash before.sh; echo "exit=$?"
+no rotated archives, nothing to prune
+exit=0
+```
+
+Two archives in the file, "nothing to prune", exit 0. Nothing failed; `grep` did exactly what the pattern said. What it said:
+
+```text
+$ grep -c '*.gz' manifest.txt; echo "exit=$?"
+0
+exit=1
+$ printf 'weird*.gz\n' | grep '*.gz'
+weird*.gz
+```
+
+A leading `*` in a basic regular expression is a literal asterisk, so the pattern matches an asterisk followed by any character and `gz`. The only line that can match is one with a real `*` in it. A prune script that keys off this test never prunes, and the disk fills at the pace of the rotation.
+
+## What does ShellCheck say, and what is the fix?
+
+```text
+$ shellcheck before.sh
+
+In before.sh line 3:
+if grep -q '*.gz' manifest.txt; then
+           ^----^ SC2063 (warning): Grep uses regex, but this looks like a glob.
+```
+
+Write the regular expression that says "ends in .gz". The dot has to be escaped, because an unescaped `.` matches any character, and the `$` anchors it to the end of the line:
+
+```bash
+if grep -q '\.gz$' manifest.txt; then
+```
+
+```text
+$ shellcheck after.sh; echo "exit=$?"
+exit=0
+$ bash after.sh
+rotated archives present, pruning
+```
+
+When the text is meant literally, asterisk included, `-F` switches regex interpretation off: `grep -F '*.gz'` matches only a literal `*.gz` and is clean under ShellCheck. And when the thing being matched is a set of filenames in a directory, `grep` is the wrong tool altogether. `for f in *.gz` or `compgen -G '*.gz' > /dev/null` asks the shell, which does speak glob.
+
+## Where else does SC2063 show up?
+
+**Crontab checks.** `crontab -l | grep '*/5'` is the same bug: the pattern starts with `*`. Escape it, `grep '\*/5'`, or fix the string, `grep -F '*/5'`. Both pass.
+
+**Patterns that are legal but wrong.** `grep 'app*.log'` does not trigger SC2063 because it is a valid regex. ShellCheck emits SC2022 instead, a note that `p*` matches `ppp` but not `papa`. Run for real it matched all three `app.log*` lines in the manifest above, which happens to be what the author wanted, and it would also match `apXlog`. `grep 'app.*\.log'` says what was meant.
+
+**`-E` on GNU grep.** `grep -E '*.gz'` still earns SC2063. GNU grep 3.12 prints `warning: * at start of expression`, then matches the `.gz` lines anyway by treating the stray `*` as nothing. That is GNU-specific behaviour behind a warning, not a fix.
+
+**`ls | grep`.** `ls | grep '*.gz'` picks up SC2010 as well, because parsing `ls` breaks on any unusual filename. The glob is the answer there too.
+
+Patterns ShellCheck 0.11.0 passes without comment: `'.*gz'`, `'\.gz$'`, `-F '*.gz'`, `'\*.gz'`, `-E 'app.*\.log'`.
+
+## When should I disable SC2063, and how?
+
+Almost never. The check fires when a pattern cannot do what it looks like it does, and every legitimate reading has a spelling that passes: `\*` for a literal asterisk, `-F` for a fixed string, a real regex for a pattern. If a directive is still wanted, it goes on the line above:
+
+```bash
+# shellcheck disable=SC2063  # pattern is generated upstream and validated there
+grep "$pattern" manifest.txt
+```
+
+For a single run, `shellcheck --exclude=SC2063 script.sh`; for a project, `disable=SC2063` in `.shellcheckrc`; to lint for this rule alone, `shellcheck --include=SC2063 script.sh`.
+
+## Related codes
+
+- **SC2022** — a regex `*` that does not mean what a glob `*` means.
+- **SC2062** — a grep pattern left unquoted, so the shell expands it before `grep` runs.
+- **SC2010** — parsing `ls` output with `grep`.
+- **SC2061** — the same confusion in `find -name`.
+
+The [grep Pattern Builder](/tools/grep-pattern-builder) shows the regex and fixed-string forms side by side. Any other code: paste it into the [ShellCheck Error Decoder](/tools/shellcheck-error-decoder).
