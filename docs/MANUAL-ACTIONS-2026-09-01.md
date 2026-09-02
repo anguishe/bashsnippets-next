@@ -6,12 +6,15 @@ Code-side work is already committed. Follow the convention in `~/Downloads/MANUA
 
 **Legend:** ⬜ not started · 🔵 blocked on someone else · ✅ done
 
+**Status board lives in `docs/PLAN.md`.** This file holds the human steps and their evidence;
+PLAN.md holds where the project is and what ships next.
+
 ---
 
 ## PHASE 1 — ship the de-monetization
 
 **Done 2026-09-01.** `1a2cf79`, `90374ac` and `1a47e16` are pushed and live; deploy takes ~40–50 s.
-Items 1.4 through 1.9 below are still open.
+**Every Phase 1 item is closed as of the evening of 2026-09-01.**
 
 ### 1.1 ✅ Deploy — done 2026-09-01
 
@@ -62,7 +65,12 @@ Expect HTTP 200. Confirm in **Bing Webmaster Tools → IndexNow**: the batch sho
 few minutes, source `Self`. One key covers Bing, Yandex, Seznam and Naver — there is no second key
 to submit.
 
-### 1.4 ⬜ Vercel — delete the dead env var
+### 1.4 ✅ Vercel — dead env vars deleted — done 2026-09-01
+
+**Travis confirmed in chat on 2026-09-01 that both are gone from Vercel.** The local `.env.local`
+no longer carries `NEXT_PUBLIC_ADSENSE_CLIENT` either (verified: its keys are `NEXT_PUBLIC_SITE_URL`,
+`NEXT_PUBLIC_GA_ID`, `INDEXNOW_KEY`, `DEVTO_API_KEY`, `NEXT_PUBLIC_BUTTONDOWN_USERNAME`).
+`.env.local.example` was rewritten the same evening to match. Steps kept as the record:
 
 `NEXT_PUBLIC_ADSENSE_CLIENT` and `NEXT_PUBLIC_ADS_ENABLED` are now read by no code.
 
@@ -85,7 +93,10 @@ the intended outcome, not a loss: see `CLAUDE.md → Monetization` and the 2026-
 If a Google policy email arrives about `ads.txt` disappearing, ignore it — the file was removed on
 purpose and the site is out of the program.
 
-### 1.6 ⬜ Affiliate programs — decide, then act
+### 1.6 ✅ Affiliate programs — decided 2026-09-01: leave both open, nothing to collect
+
+**Travis's call, 2026-09-01: keep the DigitalOcean and Namecheap accounts open, take no action.**
+The inbox audit below found no payout ever issued. Kept as the record:
 
 The links are gone from the site. The accounts are not.
 
@@ -286,7 +297,7 @@ content impressions ever — and price is downstream of that.
 
 Everything below is kept as the record of what was proposed. **Do not execute it.**
 
-⚠️ The line numbers in `docs/WEEK-1-TODO.md` §3 are **stale after commit `1a2cf79`** — that commit
+⚠️ The line numbers in `docs/archive/WEEK-1-TODO-2026-08-31.md` §3 are **stale after commit `1a2cf79`** — that commit
 deleted lines from `starter-kit/page.tsx` and `page.tsx`. Re-verified 2026-09-01 **after** the strip:
 
 | File | Line | What |
@@ -327,7 +338,7 @@ It reverses in 30 minutes if it is wrong, and at 116 sessions / 3 months the dow
 
 ### 2.2 ⏸ PARKED — migrate `bash-scripts-every-sysadmin-needs` to MDX
 
-**Parked 2026-09-01.** Pure tidiness: no functional gain, no revenue gain, no indexing gain, set
+**Parked 2026-09-01, reconfirmed by Travis the same evening.** Pure tidiness: no functional gain, no revenue gain, no indexing gain, set
 against 1254 lines of hand-transcription and 25 `<ScriptEntry>` invocations that carry JSX in their
 props. It earns priority only if someone is about to write new guides against that file, and the
 last two guides were written as MDX without touching it.

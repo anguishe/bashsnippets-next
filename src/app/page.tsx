@@ -127,6 +127,24 @@ const homeGuides = [
     description:
       'GitHub Actions steps, deploy scripts, and Docker entrypoints that fail loudly in CI instead of silently in production.',
   },
+  {
+    slug: 'safe-bash-script-template',
+    title: 'The Safe Bash Script Template: What set -euo pipefail Actually Changes',
+    description:
+      'Strict mode is three flags, not one incantation — where errexit is silently switched off, why the ERR trap needs set -E, and the assembled template.',
+  },
+  {
+    slug: 'diagnose-a-hung-process',
+    title: 'Diagnosing a Hung Process: The Commands to Run Before You Kill It',
+    description:
+      'S answers signals, D cannot be killed at all — read wchan and the syscall without root, check the socket queues, and capture the evidence before kill -9 destroys it.',
+  },
+  {
+    slug: 'shell-scripts-that-talk-to-apis',
+    title: 'Shell Scripts That Talk to APIs',
+    description:
+      'curl that fails when the API fails, jq instead of regex, and a Slack alert when it breaks — the pattern for calling HTTP from bash without silent poison downstream.',
+  },
 ] as const;
 
 

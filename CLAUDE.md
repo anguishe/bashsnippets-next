@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Where are we? Read `docs/PLAN.md` first.** It is the living course of action — phase status, measured baselines, the content queue, dates to hold, and the map of every other doc. This file is the architecture and rules spec; it does not track progress.
+
 ---
 
 ## Project Overview
@@ -72,7 +74,7 @@ Each tool requires:
 2. A React component in `src/components/tools/<Component>.tsx`, registered by slug in the `toolComponents` map in `ToolRenderer.tsx`
 3. No per-tool route file — the shared `src/app/tools/[slug]/page.tsx` renders `<ToolRenderer slug={slug} />` and dispatches by slug
 
-All tools are native React client components rendered by `ToolRenderer` via `next/dynamic` with a skeleton loader. Tool components share utilities from `src/components/tools/shared/` (`useClipboard.ts`, `bashHighlight.ts`, `shellcheckData.ts`). `ToolEmbed.tsx` (iframe path) still exists but is not used by `ToolRenderer`.
+All tools are native React client components rendered by `ToolRenderer` via `next/dynamic` with a skeleton loader. Tool components share utilities from `src/components/tools/shared/` (`useClipboard.ts`, `bashHighlight.ts`, `shellcheckData.ts`). The old iframe path (`ToolEmbed.tsx`, `public/tool-content/`) is deleted — do not recreate it.
 
 ### MDX Pipeline
 
@@ -229,30 +231,27 @@ CROSS="✗"
 ## Post-Deploy Checklist
 
 After every push with new pages:
-1. Verify build: `npm run build`
-2. Submit to IndexNow:
+1. Verify build: `npm run build && npm run lint`
+2. Update `public/llms.txt` with the new page entries (and its counts comment)
+3. Push, wait for the Vercel alias to flip (~40–50 s), then `curl` the new URL and check `robots: index, follow` and `Get the Toolkit` render
+4. Submit to IndexNow — one key covers Bing, Yandex, Seznam, Naver:
 ```bash
-curl -X POST "https://yandex.com/indexnow" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "host": "bashsnippets.xyz",
-    "key": "a7fae2a4e86d4822ab3f636599173c8f",
-    "urlList": ["https://bashsnippets.xyz/snippets/NEW-SLUG"]
-  }'
+npm run indexnow                                   # whole sitemap (the convention after every deploy)
+npm run indexnow -- https://bashsnippets.xyz/guides/<slug>   # or just the new URL(s)
 ```
-3. Update `public/llms.txt` with new page entries
-4. Verify in Google Search Console URL Inspection
+   The key is `INDEXNOW_KEY` in `.env.local`; its verification file is `public/<key>.txt`.
+5. Confirm the batch shows in **Bing Webmaster Tools → IndexNow** (source `Self`)
+6. **Do not** use GSC "Request indexing" on snippet pages — see `docs/PLAN.md → Standing rules`
+7. Record what shipped in `docs/PLAN.md`
 
 ---
 
-## Available Slash Commands
+## Project Skills
 
-| Command | What It Does |
-|---|---|
-| `/design-audit` | Scans all components for AI slop, outputs punch list with file:line refs |
-| `/design-rebuild <component>` | Rebuilds one component with brand DNA, shows before/after |
-| `/seo-audit <file>` | Full SEO/AEO/GEO audit of a specific page file |
-| `/seo-schema <type>` | Generates complete JSON-LD for snippet/tool/homepage |
-| `/snippet-new <name>` | Scaffolds complete MDX + page.tsx + schema for new snippet |
-| `/tool-new <name>` | Scaffolds new tool page + registry entry |
-| `/content-check <file>` | Audits content vs. voice, schema, affiliate, AEO rules |
+Three repo-scoped skills live in `.claude/skills/`. They are invoked by skill name with the task as the argument — there are **no** `/snippet-new`, `/design-audit` or `/seo-schema` slash commands (those names are section labels inside the skill files, kept for reference).
+
+| Invoke | Skill file | Use for |
+|---|---|---|
+| `/content-standards snippet-new <name>` · `tool-new <name>` · `content-check <file>` | `content-standards/SKILL.md` | scaffolding a snippet or tool; auditing MDX against voice, schema, AEO and monetization rules |
+| `/frontend-design design-audit` · `design-rebuild <component>` | `frontend-design/SKILL.md` | brand tokens, AI-slop punch list, component rebuilds |
+| `/seo-aeo-geo seo-audit <file>` · `seo-schema <type>` | `seo-aeo-geo/SKILL.md` | metadata, JSON-LD, Quick Answer and llms.txt rules |

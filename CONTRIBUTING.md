@@ -4,9 +4,9 @@ How to work in `anguishe/bashsnippets-next` — local setup, the content pipelin
 
 > **Two companion docs own the details this file only summarizes:**
 > - **`CLAUDE.md`** — the canonical spec for code, architecture, registry shapes, and conventions. When this file and CLAUDE.md disagree, CLAUDE.md wins.
-> - **`BASHSNIPPETS_BIBLE.md`** — brand, monetization, and growth. Not needed for code changes.
+> - **`docs/PLAN.md`** — where the project is, what ships next, measured baselines, and the map of every other doc. Read it before starting any session.
 >
-> `REPO-STATE.md` is a dated ground-truth inventory snapshot — read it to understand the repo, don't treat it as live.
+> Superseded audits and plans live in `docs/archive/` — history only, never act on them.
 
 ---
 
@@ -41,10 +41,11 @@ npm run lint     # next lint
 
 ```
 src/
-  app/                       App Router. layout.tsx = fonts + GA4 + AdSense + schemas.
+  app/                       App Router. layout.tsx = fonts + GA4 + Consent Mode + site schemas.
     snippets/[slug]/page.tsx   dynamic snippet route
     tools/[slug]/page.tsx      dynamic tool route (renders <ToolRenderer/>)
     guides/page.tsx            /guides index — guide list is a hardcoded array here
+    guides/layout.tsx          wraps the index + all 7 guides; ToolkitCTA + EmailCapture live here
   content/
     snippets/<slug>.mdx      snippet bodies
     guides/<slug>.mdx        guide bodies (MDX-backed guides only)
@@ -54,7 +55,8 @@ src/
     mdx-frontmatter.ts       frontmatter parser + FaqItem/HowToStep types
   components/
     tools/ToolRenderer.tsx   slug → component map for tools
-    AffiliateBox.tsx         the ONLY place affiliate URLs live
+    ToolkitCTA.tsx           the ONE commercial surface — placed by the three detail layouts, never per page
+    EmailCapture.tsx         Buttondown form; renders null without NEXT_PUBLIC_BUTTONDOWN_USERNAME
     MDXComponents.tsx        components usable inside MDX
   templates/                 copy-paste scaffolds — start every new snippet/tool here
 public/
@@ -87,11 +89,11 @@ This is the **only** path for new tools.
    ```
 4. `npm run build` → update `llms.txt` → IndexNow ping.
 
-> **Do not build new tools as iframes.** Three legacy tools (`bash-trap-builder`, `grep-pattern-builder`, `rsync-command-builder`) still render via `ToolEmbed` + `public/tool-content/*.html`. That path is kept alive for those three only — never extend it.
+> **Do not build tools as iframes.** The old `ToolEmbed` + `public/tool-content/` path was deleted; all 12 tools are native React. Do not recreate it.
 
 ### Add a guide (no registry — edit 4 things)
 
-Guides have no registry file and the `/guides` index list is a hardcoded array. **Use the MDX-backed pattern** (one guide currently uses inline-React JSX instead — don't copy that).
+Guides have no registry file and the `/guides` index list is a hardcoded array. **Use the MDX-backed pattern** (`bash-scripts-every-sysadmin-needs` is still inline JSX — don't copy that; its migration is parked, see `docs/PLAN.md`). Every guide inherits `src/app/guides/layout.tsx`, so `ToolkitCTA` and `EmailCapture` come for free — do not add them to the page. Also add the new guide to the `homeGuides` array in `src/app/page.tsx` so the homepage links it.
 
 1. `src/content/guides/<slug>.mdx` — the body.
 2. `src/app/guides/<slug>/page.tsx` — `generateMetadata` + JSON-LD (TechArticle + BreadcrumbList) that imports the MDX.
@@ -124,7 +126,7 @@ CROSS="✗"
 - Fonts come from `next/font/google` in `layout.tsx` (IBM Plex Mono `400/500/600`, Syne `400/600/700/800`). **Never add `<link>` font tags.**
 - Design tokens (`--bg`, `--green`, etc.) live in `src/app/globals.css` — use the variables, don't hardcode hex.
 - No `any` without an explanatory comment. No `console.log` in committed code.
-- Affiliate links **only** via `<AffiliateBox partner="digitalocean" />` / `partner="namecheap"`. Never inline a raw affiliate URL anywhere else.
+- **No ads and no affiliate links, anywhere.** Both were removed site-wide on 2026-09-01. The only commercial surface is `ToolkitCTA`, placed by the detail layouts — never per MDX file, never per page.
 
 ### Content voice
 
@@ -140,8 +142,8 @@ Inter/Roboto/Arial/Space Grotesk headings · purple/violet/lavender · light bac
 
 | Page | Schema |
 |---|---|
-| Snippet | TechArticle + BreadcrumbList + FAQPage + **HowTo** (when `howToSteps` present) |
-| Tool | WebApplication + BreadcrumbList + FAQPage + **HowTo** (when `howToUse` present) |
+| Snippet | TechArticle + BreadcrumbList + FAQPage |
+| Tool | WebApplication + BreadcrumbList + FAQPage |
 | Guide | TechArticle + BreadcrumbList |
 | Index | CollectionPage + BreadcrumbList |
 
@@ -164,19 +166,21 @@ Inter/Roboto/Arial/Space Grotesk headings · purple/violet/lavender · light bac
   - [ ] `npm run build` passes with zero errors
   - [ ] New snippet/tool slug matches its file and is in the registry
   - [ ] Required schema + Quick Answer + FAQ present on new content pages
-  - [ ] No raw affiliate URLs; design tokens (not hardcoded hex); no `console.log`
+  - [ ] No ads or affiliate links; design tokens (not hardcoded hex); no `console.log`
   - [ ] `public/llms.txt` updated for any new page
 - Merging to `main` deploys to production on Vercel automatically.
 
 ## Shipping (after merge / deploy)
 
-1. Confirm the Vercel deploy succeeded.
-2. IndexNow ping for each new URL:
+1. Confirm the Vercel deploy succeeded (production alias flips in ~40–50 s), then `curl` the new URL and check it renders with `robots: index, follow`.
+2. IndexNow — the convention is the whole sitemap after every deploy:
    ```bash
-   curl -X POST "https://yandex.com/indexnow" -H "Content-Type: application/json" \
-     -d '{"host":"bashsnippets.xyz","key":"a7fae2a4e86d4822ab3f636599173c8f","urlList":["https://bashsnippets.xyz/<path>"]}'
+   npm run indexnow                                          # all sitemap URLs
+   npm run indexnow -- https://bashsnippets.xyz/<path>       # or specific URLs
    ```
-3. Submit the new URL(s) in Google Search Console (URL Inspection).
+   Expect HTTP 200; confirm the batch in Bing Webmaster Tools → IndexNow (source `Self`).
+3. **Do not** use Google Search Console "Request indexing" on snippet pages — Google has never served a content page from this site and the quota is better spent on nothing. See `docs/PLAN.md → Standing rules`.
+4. Record what shipped in `docs/PLAN.md`.
 
 The sitemap regenerates automatically during `npm run build` — never hand-edit `public/sitemap.xml`.
 
