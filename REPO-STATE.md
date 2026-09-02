@@ -1,4 +1,39 @@
 # REPO-STATE.md — BashSnippets.xyz Ground-Truth Inventory
+
+> ## ⚠ THIS DOCUMENT IS STALE — verified 2026-09-01
+>
+> It is a point-in-time inventory and the repo has moved well past it. Measured today:
+>
+> | | This doc claims | Actually |
+> |---|---|---|
+> | Snippets | 28 | **38** (38 registry entries, 38 MDX files, zero orphans) |
+> | Tools | 9 | **12** (12 registry entries, 12 components) |
+> | Guides | 2 | **7** routes / 6 MDX (`bash-scripts-every-sysadmin-needs` is still JSX-in-page.tsx) |
+> | Sitemap | — | **63** entries |
+> | Tools using ToolEmbed/iframe | 3 | **0** — `ToolRenderer.tsx` no longer references `ToolEmbed` at all |
+>
+> That last row retires the "most critical drift" called out in the Summary at the bottom: the
+> iframe path really is gone from the dispatch now. Treat everything below as history until
+> someone re-runs the inventory. `CLAUDE.md` is the current source of truth for architecture.
+>
+> Also gone since this was written: `AffiliateBox.tsx`, `AdSlot.tsx` and `public/ads.txt`, all
+> deleted 2026-09-01. Do not re-add them — see `CLAUDE.md → Monetization`.
+
+## Commit history notes
+
+Two commits carry messages that do not fully describe themselves. Recorded here rather than
+rewritten, because the file contents in both are correct and rewriting would have invalidated six
+pushed commit IDs that other docs already cite.
+
+- **`1569064`** — subject says only "the safe bash script template". It also contains a
+  substantial fix to `.claude/skills/content-standards/SKILL.md`, which until then still mandated
+  `<AffiliateBox>` on every snippet and tool page and described the retired iframe tools
+  architecture. Swept in by an `add -A`. See `git show 1569064 --stat`.
+- **`2640fe5`** — subject reads `docs: GA4 internal traffic filter активated 2026-09-01, verified`.
+  The first five characters of "activated" are Cyrillic (U+0430, U+043A, U+0442, U+0438, U+0432),
+  emitted as a homoglyph substitution when the message was generated. Cosmetic; the commit's
+  contents are correct.
+
 **Generated:** 2026-06-17 | **Status:** READ-ONLY inventory — do not edit source files based on this document without a separate task
 
 ---
