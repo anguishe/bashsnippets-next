@@ -199,11 +199,12 @@ Every code block must have:
 5. Consistent padding: p-4 inside, px-4 py-2 for the header bar
 ```
 
-### Affiliate Box (use existing AffiliateBox.tsx — do not rebuild)
+### Toolkit CTA (use existing ToolkitCTA.tsx — do not rebuild, do not place per page)
 ```
-Check src/components/AffiliateBox.tsx for current props.
-Required on: ALL snippet pages, ALL tool pages.
-DigitalOcean box first, Namecheap box second (if page is domain/deployment relevant).
+src/components/ToolkitCTA.tsx is the ONLY commercial surface. It is placed by the three
+detail layouts (snippets, tools, guides) — never inside an MDX file or a page body.
+There is NO affiliate box and NO ad slot: AffiliateBox.tsx and AdSlot.tsx were deleted
+site-wide on 2026-09-01. Do not recreate either. See CLAUDE.md → Monetization.
 ```
 
 ---

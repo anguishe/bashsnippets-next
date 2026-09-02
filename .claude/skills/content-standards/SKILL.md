@@ -1,6 +1,6 @@
 ---
 name: bashsnippets-content-standards
-description: Content scaffolding and quality enforcement for BashSnippets.xyz. Activates when creating new snippet pages, new tool pages, or auditing existing MDX/TSX content for voice, completeness, schema, and monetization compliance. Use /snippet-new, /tool-new, or /content-check.
+description: Content scaffolding and quality enforcement for BashSnippets.xyz. Activates when creating new snippet pages, new tool pages, or auditing existing MDX/TSX content for voice, completeness, schema, and monetization compliance. Invoke as /content-standards snippet-new <name>, tool-new <name>, or content-check <file> (the sections below named "SLASH COMMAND" are those sub-tasks, not separate commands).
 ---
 
 # BashSnippets Content Standards Skill
@@ -115,8 +115,8 @@ echo "$CHECK Disk at ${USAGE}% — within ${THRESHOLD}% threshold"
 ## TOOLS ARCHITECTURE (read before adding new tools)
 
 Tools are native React client components rendered by `ToolRenderer.tsx`, which
-dispatches by slug via `next/dynamic`. (`ToolEmbed.tsx` and `public/tool-content/`
-are the OLD iframe path — still present, no longer used. Do not add tools there.)
+dispatches by slug via `next/dynamic`. (The old iframe path — `ToolEmbed.tsx` and
+`public/tool-content/` — is deleted. Do not recreate it.)
 
 **When adding a new tool:**
 

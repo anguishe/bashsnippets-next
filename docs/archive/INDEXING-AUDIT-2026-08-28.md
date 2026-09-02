@@ -1,5 +1,11 @@
 # Indexing Audit — bashsnippets.xyz — 2026-08-28
 
+> **SUPERSEDED — archived 2026-09-01.** The central Bing claim in §1 ("zero pages indexed, two
+> engines agree") was read from the wrong Microsoft account and is false: Bing had 52 pages
+> indexed, 737 impressions and 111 Copilot citations. The 12-page noindex prune this audit
+> prescribed was reverted and redeployed on 2026-09-01. Read `docs/INDEXING-AUDIT-2026-09-01.md`
+> for the correction; the technical findings in §2 below still hold.
+
 Fourth audit since launch (2026-04-30). Every prior audit found the site technically clean
 and said "wait for signals". This one re-verified every technical layer from scratch,
 then went looking for what the previous audits could not see. Verdict is unchanged on the
