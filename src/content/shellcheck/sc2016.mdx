@@ -1,0 +1,145 @@
+---
+title: "ShellCheck SC2016: Expressions Don't Expand in Single Quotes"
+description: "The disk alert that went out read \"disk on $HOST is at $USAGE\", literally. What SC2016 catches, the real run, the double-quote fix, why awk '{print $5}' and ssh host 'du $HOME' pass but sed and mail -s do not, and the one-line disable for strings that must expand somewhere else."
+slug: sc2016
+author: "Travis"
+datePublished: 2026-09-01
+dateModified: 2026-09-01
+quickAnswer: >-
+  SC2016 is ShellCheck's info-level note that a single-quoted string contains something shaped
+  like an expansion, $VAR, ${VAR} or a backtick command, which single quotes never expand. The
+  alert in the run on this page went out as "ALERT: disk on $HOST is at $USAGE", literally, and
+  ShellCheck also flagged HOST and USAGE as unused, because a variable whose only use is inside
+  single quotes is not used. The fix is double quotes when the expansion belongs here.
+  ShellCheck 0.11.0 does not flag awk '{print $5}', perl, ssh host 'du $HOME' or
+  bash -c 'echo $HOME', where the dollar belongs to another program, but it does flag
+  sed 's/^/$PREFIX/', mail -s 'Disk at $USAGE%', xargs sh -c 'echo $1' and git aliases. Fix
+  those, or keep them with # shellcheck disable=SC2016 and a reason. To lint for only this rule
+  run shellcheck --include=SC2016 script.sh.
+faq:
+  - question: "Why does ShellCheck not flag awk '{print $1}'?"
+    answer: >-
+      ShellCheck knows that $1 inside an awk program is awk syntax, so awk, and likewise perl,
+      are exempt from SC2016. sed is not, because sed has no $VAR syntax of its own; a dollar
+      in a single-quoted sed expression is almost always a shell variable that did not expand.
+  - question: "Does SC2016 fire on ssh host 'command $VAR'?"
+    answer: >-
+      Not on ShellCheck 0.11.0. ssh is treated as a remote shell, so a single-quoted $HOME in
+      its argument is assumed to expand on the far side and passes without a note. The mirror
+      case is the one to watch: ssh host "du -sh $HOME" expands on the client before ssh runs,
+      and ShellCheck reports that as SC2029.
+  - question: "How do I keep a literal $ and still pass ShellCheck?"
+    answer: >-
+      Two ways. Keep the single quotes and put # shellcheck disable=SC2016 on the line above
+      with the reason, or switch to double quotes and escape the dollar: mail -s "Disk at
+      \$USAGE%". The escaped form passes ShellCheck without a directive and makes the intent
+      visible to the next reader.
+  - question: "Why did ShellCheck also report SC2034 on my variables?"
+    answer: >-
+      Because their only use was inside the single-quoted string, and a variable that is never
+      expanded is never read. Fixing the quotes fixes both findings at once. Two warnings on
+      neighbouring lines that clear together are the signature of this bug.
+---
+
+## What does SC2016 mean?
+
+SC2016, "Expressions don't expand in single quotes, use double quotes for that", is ShellCheck's **info**-level note that a single-quoted string contains a `$name`, `${name}` or backtick command. Single quotes are literal; whatever is between them is passed through untouched. Most of the time that is a mistake, and ShellCheck says so. Some of the time it is the point, because the string is going to another program that will do its own expanding.
+
+## What actually breaks?
+
+A disk alert, run on this box with bash 5.3.9:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+HOST=$(hostname)
+USAGE=$(df / | awk 'NR==2 {print $5}')
+echo 'ALERT: disk on $HOST is at $USAGE'
+```
+
+```text
+$ bash before.sh
+ALERT: disk on $HOST is at $USAGE
+```
+
+That is the line that lands in the on-call inbox. It says a disk is filling and names neither the host nor the number. Nothing failed, so `set -euo pipefail` had nothing to do, and the script exited 0.
+
+## What does ShellCheck say, and what is the fix?
+
+```text
+$ shellcheck before.sh
+
+In before.sh line 3:
+HOST=$(hostname)
+^--^ SC2034 (warning): HOST appears unused. Verify use (or export if used externally).
+
+
+In before.sh line 4:
+USAGE=$(df / | awk 'NR==2 {print $5}')
+^---^ SC2034 (warning): USAGE appears unused. Verify use (or export if used externally).
+
+
+In before.sh line 5:
+echo 'ALERT: disk on $HOST is at $USAGE'
+     ^-- SC2016 (info): Expressions don't expand in single quotes, use double quotes for that.
+```
+
+Three findings for one bug, and the two [SC2034](/shellcheck/sc2034) warnings are the useful ones: they say the variables are *never read*, which is what an unexpanded `$HOST` amounts to. Note what is not flagged: the `$5` inside the `awk` program on line 4. ShellCheck knows that one belongs to awk.
+
+Double quotes on line 5 clear all three:
+
+```bash
+echo "ALERT: disk on $HOST is at $USAGE"
+```
+
+```text
+$ shellcheck after.sh; echo "exit=$?"
+exit=0
+$ bash after.sh
+ALERT: disk on angsec is at 86%
+```
+
+## Which commands does ShellCheck exempt?
+
+Twelve lines through ShellCheck 0.11.0, each with a `$` inside single quotes:
+
+| Line | Verdict |
+|---|---|
+| `ssh backup-host 'du -sh $HOME/backups'` | passes |
+| `ssh backup-host 'rm -rf $TMPDIR/build'` | passes |
+| `bash -c 'echo $HOME'` | passes |
+| `find . -name '*.log' -exec sh -c 'echo $1' _ {} \;` | passes |
+| `awk '{print $1}' /etc/hostname` | passes |
+| `perl -ne 'print $_' /etc/hostname` | passes |
+| `xargs -I{} sh -c 'echo $1' _ {}` | SC2016 |
+| `mail -s 'Disk at $USAGE%' ops@example.com` | SC2016 |
+| `echo 'Cost: $5'` | SC2016 |
+| `sed 's/^/$PREFIX: /' /etc/hostname` | SC2016 |
+| `git config alias.who '!echo $1'` | SC2016 |
+| ``echo 'expands: `date`'`` | SC2016 |
+
+The exemptions are a model of where the string is going: `ssh` and `bash -c` are shells that will expand it, `awk` and `perl` own their dollar signs. The model has edges. `find -exec sh -c '...'` passes and the equivalent `xargs sh -c '...'` is flagged, because ShellCheck understands `find -exec` as a shell invocation and does not understand `xargs`. Treat the list as a convenience and read each finding on its merits: the `sed` and `mail -s` lines are real bugs, and the `xargs` and `git config` lines are correct as written.
+
+## When should I disable SC2016, and how?
+
+When the string is genuinely meant to reach another program with its dollar signs intact and ShellCheck's exemption list did not cover it. Two ways to say so, and the second needs no directive:
+
+```bash
+# shellcheck disable=SC2016  # $1 is expanded by the sh that xargs starts
+xargs -I{} sh -c 'echo $1' _ {}
+
+mail -s "Disk at \$USAGE%" ops@example.com    # escaped dollar in double quotes: passes as-is
+```
+
+The escaped form is often the better one. A reader sees `\$` and knows the literal dollar is deliberate; a reader of the single-quoted form has to trust the comment above it.
+
+For one run, `shellcheck --exclude=SC2016 script.sh`; for a project, `disable=SC2016` in `.shellcheckrc`; `shellcheck -S warning` hides it with every other info-level note; to lint for this rule alone, `shellcheck --include=SC2016 script.sh`.
+
+## Related codes
+
+- **SC2034** — the variables the single quotes made "unused". See the [SC2034 deep dive](/shellcheck/sc2034).
+- **SC2029** — the mirror image: `ssh host "cmd $VAR"` expands on the client, not the server.
+- **SC2087** — the same question for an `ssh` heredoc: quote the `EOF` to expand remotely.
+- **SC2086** — the unquoted variable, the other quoting bug. See the [SC2086 deep dive](/shellcheck/sc2086).
+
+Any other code: paste it into the [ShellCheck Error Decoder](/tools/shellcheck-error-decoder).

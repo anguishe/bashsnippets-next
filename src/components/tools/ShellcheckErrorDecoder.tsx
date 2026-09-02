@@ -1,6 +1,8 @@
 'use client';
 
 import CopyButton from '@/components/CopyButton';
+import { getShellcheckPageByCode, shellcheckPages } from '@/lib/shellcheck-pages';
+import Link from 'next/link';
 import {
   CATEGORIES,
   QUICK_CODES,
@@ -267,6 +269,8 @@ export default function ShellcheckErrorDecoder() {
     displayCode(code);
   }, [displayCode]);
 
+  const deepDive = entry ? getShellcheckPageByCode(entry.code) : undefined;
+
   const filteredQuickCodes = QUICK_CODES.filter((code) => {
     if (category === 'All') return true;
     return SC_DATABASE[code]?.category === category;
@@ -374,6 +378,21 @@ export default function ShellcheckErrorDecoder() {
           <div className="mt-5 font-mono text-xs text-muted">
             <span className="text-green font-semibold">{Object.keys(SC_DATABASE).length}</span> error codes decoded
           </div>
+
+          <div className="mb-2 mt-6 font-mono text-[11px] uppercase text-muted">{'// deep dives — real runs, fixes, when to disable'}</div>
+          <ul className="flex flex-col gap-1.5">
+            {shellcheckPages.map((p) => (
+              <li key={p.code}>
+                <Link
+                  href={`/shellcheck/${p.slug}`}
+                  className="flex items-baseline gap-2 rounded-md border border-border bg-bg2 px-3 py-2 font-mono text-xs text-text no-underline transition-colors hover:border-green"
+                >
+                  <span className="shrink-0 font-semibold text-green">{p.code}</span>
+                  <span className="truncate text-muted">{SC_DATABASE[p.code]?.title}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div className="min-w-0 flex-1 md:sticky md:top-20">
@@ -446,6 +465,18 @@ export default function ShellcheckErrorDecoder() {
                 <pre className="rounded-lg border border-border bg-bg3 p-3 font-mono text-[13px] text-text">{disableRaw}</pre>
                 <p className="mt-2 text-xs text-muted">Add this comment on the line above the flagged command</p>
               </div>
+
+              {deepDive && (
+                <Link
+                  href={`/shellcheck/${deepDive.slug}`}
+                  className="mt-5 block rounded-md border border-border bg-bg3 px-4 py-3 no-underline transition-colors hover:border-green"
+                >
+                  <span className="font-mono text-[11px] uppercase tracking-wide text-green">Deep dive</span>
+                  <span className="mt-1 block text-sm text-text">
+                    {deepDive.code} run for real: what breaks, ShellCheck&apos;s exact output, the fix, and when to disable it →
+                  </span>
+                </Link>
+              )}
 
               <a
                 href={`https://www.shellcheck.net/wiki/${entry.code}`}

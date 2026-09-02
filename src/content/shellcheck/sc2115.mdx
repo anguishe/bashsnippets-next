@@ -1,0 +1,175 @@
+---
+title: "ShellCheck SC2115: Use \"${var:?}\" to Ensure This Never Expands to /"
+description: "rm -rf \"$STAGE/$RELEASE/\"* with an empty $RELEASE deleted every release in the staging tree and printed \"cleaned\". What SC2115 catches, the real run, why set -u does not save you from an empty string, the ${var:?} fix that aborts before rm starts, and when to disable it."
+slug: sc2115
+author: "Travis"
+datePublished: 2026-09-01
+dateModified: 2026-09-01
+quickAnswer: >-
+  SC2115 is ShellCheck's warning on an rm -rf path built from a variable followed by a slash,
+  such as rm -rf "$DIR/"* or rm -rf "/$DIR/", because an unset or empty variable turns them into
+  rm -rf /* or rm -rf /. It fires on the trailing-slash and slash-star forms and stays quiet for
+  a bare "$DIR". set -u catches an unset variable but passes an empty one, and an empty value
+  from a half-filled config or a forgotten argument is the common case. The fix is "${var:?}",
+  which makes bash abort with "parameter null or not set" before rm runs:
+  rm -rf "${STAGE:?}/${RELEASE:?release tag required}/"*. On this box the unguarded form with an
+  empty $RELEASE deleted every release under stage/ and printed "cleaned". To lint for only this
+  rule run shellcheck --include=SC2115 script.sh.
+faq:
+  - question: "Does set -u protect against SC2115?"
+    answer: >-
+      Only against an unset variable. An empty string is set, so set -u passes it and the path
+      collapses to /srv/stage//, which rm -rf treats as /srv/stage/. ${var:?} rejects both unset
+      and empty; ${var?} without the colon rejects only unset. Use the colon form for anything
+      that ends up in an rm path.
+  - question: "Which rm -rf forms trigger SC2115?"
+    answer: >-
+      On ShellCheck 0.11.0: rm -rf "$DIR/"*, rm -rf "$DIR"/*, rm -rf "/$DIR/", rm -rf /$DIR/ and
+      nested forms such as rm -rf "$A/$B/"*. A bare rm -rf "$DIR" does not fire, because an
+      empty $DIR gives rm no path at all and it fails instead of deleting the root.
+      rm -rf "${DIR:?}/"* is clean.
+  - question: "Is \"${var:?}\" enough on its own?"
+    answer: >-
+      It guards against unset and empty. It does not guard against a wrong non-empty value, a
+      stray space, or a literal /. Before any rm -rf whose path comes from an argument, a config
+      file or a command substitution, also check the value is inside the tree you expect,
+      for example [[ "$STAGE" == /srv/stage/* ]] || exit 1.
+  - question: "How do I disable SC2115?"
+    answer: >-
+      Put # shellcheck disable=SC2115 on the line above, with the reason. The only honest reason
+      is that the variable was already validated with :? or a case statement a few lines
+      earlier, and in that case adding :? on the rm line itself costs nothing and makes the
+      directive unnecessary.
+---
+
+## What does SC2115 mean?
+
+SC2115, `Use "${var:?}" to ensure this never expands to /`, is ShellCheck's **warning**-level finding on an `rm -rf` whose path is a variable followed by `/` or `/*`. If that variable is unset or empty, the path collapses to `/` or `/*` and `rm` starts at the root. The message names the fix: the `:?` parameter expansion, which stops the script before `rm` runs.
+
+## What actually breaks?
+
+A staging tree with two releases in it and a script meant to clean one of them, run on this box with bash 5.3.9:
+
+```text
+$ find stage | sort
+stage
+stage/v1.4
+stage/v1.4/app.tar
+stage/v1.5
+stage/v1.5/app.tar
+```
+
+```bash
+#!/bin/bash
+set -euo pipefail
+STAGE="$PWD/stage"
+RELEASE="${1:-}"          # release tag from the caller — empty when the caller forgets it
+rm -rf "$STAGE/$RELEASE/"*
+echo "cleaned $STAGE/$RELEASE"
+```
+
+```text
+$ bash before.sh; echo "exit=$?"
+cleaned …/stage/
+exit=0
+$ find stage
+stage
+```
+
+Both releases gone, "cleaned", exit 0. Strict mode is on and did nothing: `RELEASE` is set, to an empty string, so `set -u` has no complaint, and `rm` succeeded, so `set -e` has none either. The path became `…/stage//*`, the glob matched `v1.4` and `v1.5`, and `rm -rf` removed them.
+
+The same shape with an absolute prefix is the one that empties a server. Never run this; the expansion is enough:
+
+```text
+$ unset BUILD_DIR; echo rm -rf "/$BUILD_DIR/"*
+rm -rf //backup //bin //boot //dev //etc //home //initrd.img //initrd.img.old //lib //lib3 …
+```
+
+That is the command line `rm` would have received.
+
+## What does ShellCheck say, and what is the fix?
+
+```text
+$ shellcheck before.sh
+
+In before.sh line 5:
+rm -rf "$STAGE/$RELEASE/"*
+       ^-----------------^ SC2115 (warning): Use "${var:?}" to ensure this never expands to /* .
+```
+
+Guard both variables on the `rm` line itself:
+
+```bash
+rm -rf "${STAGE:?}/${RELEASE:?release tag required}/"*
+```
+
+```text
+$ shellcheck after.sh; echo "exit=$?"
+exit=0
+$ bash after.sh; echo "exit=$?"
+after.sh: line 5: RELEASE: release tag required
+exit=1
+$ find stage | sort
+stage
+stage/v1.4
+stage/v1.4/app.tar
+stage/v1.5
+stage/v1.5/app.tar
+$ bash after.sh v1.4; echo "exit=$?"
+cleaned …/stage/v1.4
+exit=0
+$ find stage | sort
+stage
+stage/v1.4
+stage/v1.5
+stage/v1.5/app.tar
+```
+
+With no argument the script stops on line 5 with your message and touches nothing. With `v1.4` it cleans exactly that directory. The text after `:?` is optional; without it bash prints `parameter null or not set`, which is accurate and unhelpful at 3 a.m.
+
+## Why does set -u not catch this?
+
+Because empty is not unset:
+
+```text
+$ ( set -u; RELEASE=""; echo "/srv/stage/$RELEASE/" )
+/srv/stage//
+```
+
+`set -u` guards against a variable that was never assigned. A `RELEASE=` line in a config file, a `${1:-}` default, a `$(git describe)` that printed nothing: all of those assign an empty string, and `set -u` passes every one. `${RELEASE:?}` rejects unset and empty both. `${RELEASE?}`, without the colon, rejects only unset and is the wrong tool here.
+
+## Which forms trigger SC2115?
+
+Run through ShellCheck 0.11.0, one per line:
+
+| Line | Result |
+|---|---|
+| `rm -rf "$BUILD_DIR/"*` | SC2115, expands to `/*` |
+| `rm -rf "$BUILD_DIR"/*` | SC2115, expands to `/*` |
+| `rm -rf "/$BUILD_DIR/"` | SC2115, expands to `/` |
+| `rm -rf /$BUILD_DIR/` | SC2115 plus SC2086 for the missing quotes |
+| `rm -rf "$STAGE/$RELEASE/"*` | SC2115, expands to `/*` |
+| `rm -rf "${BUILD_DIR:?}/"*` | clean |
+| `rm -rf "$BUILD_DIR"` | clean |
+
+The last row is not an oversight. With an empty `$BUILD_DIR`, `rm -rf ""` gets no usable path and fails; there is no slash to turn it into the root. It is still a bug, and `set -u` or `:?` is still the right guard, but it is not the catastrophic one this code exists for.
+
+## When should I disable SC2115, and how?
+
+Disable it only when the same variable was validated a few lines earlier and you would rather not repeat the guard. Even then the guard on the `rm` line is free, so the directive is a matter of taste rather than need:
+
+```bash
+# shellcheck disable=SC2115  # $BUILD_DIR validated against /srv/builds/* above
+rm -rf "$BUILD_DIR/"*
+```
+
+For one run, `shellcheck --exclude=SC2115 script.sh`; for a project, `disable=SC2115` in `.shellcheckrc`; to lint for this rule and nothing else, `shellcheck --include=SC2115 script.sh`, which is a reasonable CI gate on any repo that has `rm -rf` in it.
+
+## Related codes
+
+- **SC2114** — an `rm -rf` on a literal system directory such as `/usr`.
+- **SC2164** — `cd` without `|| exit`, so a later `rm` runs in the wrong directory. See [Bash Error Handling](/snippets/bash-error-handling).
+- **SC2086** — the unquoted form in the table above. See the [SC2086 deep dive](/shellcheck/sc2086).
+- **SC2154** — the variable was never assigned at all. See the [SC2154 deep dive](/shellcheck/sc2154).
+
+Any other code: paste it into the [ShellCheck Error Decoder](/tools/shellcheck-error-decoder).

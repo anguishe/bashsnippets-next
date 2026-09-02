@@ -1,0 +1,156 @@
+---
+title: "ShellCheck SC2046: Quote This to Prevent Word Splitting"
+description: "chmod 600 $(find . -name '*.key') locked down two files that are not keys and skipped the one that is. What SC2046 catches on unquoted command substitution, the real run, the find -exec and mapfile fixes, the ls and $(dirname $0) variants, and when disabling it is honest."
+slug: sc2046
+author: "Travis"
+datePublished: 2026-09-01
+dateModified: 2026-09-01
+quickAnswer: >-
+  SC2046 is ShellCheck's warning that the output of a $(command) substitution is used without
+  quotes, so bash splits it on whitespace and expands any globs in it before the outer command
+  runs. chmod 600 $(find . -name '*.key') with a key at "old backups/server.key" runs chmod on
+  old, backups/server.key and ./server.key: it locks down a file that is not a key, fails on a
+  path that does not exist, and leaves the key inside the space-named directory untouched.
+  Quoting the substitution makes the whole output one argument, which is right for a single
+  value such as "$(dirname "$0")" and wrong for a list. For lists let the producer deliver them:
+  find -exec chmod 600 {} +, or mapfile -d '' from find -print0. To lint for only this rule run
+  shellcheck --include=SC2046 script.sh.
+faq:
+  - question: "What is the difference between SC2046 and SC2086?"
+    answer: >-
+      SC2086 is an unquoted $variable; SC2046 is an unquoted $(command). The mechanism is the
+      same, word splitting and globbing of the expanded text, but the fix differs. A variable
+      usually wants double quotes. A command substitution that produces a list usually wants a
+      different construct, find -exec, mapfile, or a while read loop, because quoting would glue
+      the whole list into one argument.
+  - question: "Why not fix SC2046 by quoting it, \"$(find ...)\"?"
+    answer: >-
+      Quoting makes the entire output a single argument. For a single value, such as
+      "$(dirname "$0")" or "$(wc -l < file)", that is exactly right and clears the warning. For
+      a list of files it passes all of them as one path with embedded newlines, which fails
+      harder than the split did.
+  - question: "Is for f in $(find ...) reported as SC2046?"
+    answer: >-
+      No. ShellCheck reports SC2044 for that, "For loops over find output are fragile", because
+      the for loop is the problem rather than the substitution. The fix is the same family:
+      find -exec, or while IFS= read -r -d '' with find -print0.
+  - question: "How do I disable SC2046 for one line?"
+    answer: >-
+      Put # shellcheck disable=SC2046 on the line above the command, with the reason after a
+      second #. The legitimate case is a substitution that emits deliberately space-separated
+      flags, such as $(pkg-config --cflags foo). Even then an array filled with mapfile is
+      cleaner and needs no directive.
+---
+
+## What does SC2046 mean?
+
+SC2046, "Quote this to prevent word splitting", is ShellCheck's **warning**-level finding that the output of a `$(command)` or backtick substitution is used unquoted. Bash splits that text on spaces, tabs and newlines and then expands any `*` or `?` in the pieces, so the outer command receives however many arguments the output happened to contain. Like [SC2086](/shellcheck/sc2086) but for command output, and the fix is usually not quotes.
+
+## What actually breaks?
+
+A directory with two private keys, one of them inside a directory with a space in its name, plus two stray files that happen to match the split pieces. Every command below was run on this box with bash 5.3.9 and GNU findutils 4.11.0.
+
+```text
+$ find . -type f | sort
+./backups
+./before.sh
+./old
+./old backups/server.key
+./server.key
+```
+
+```bash
+#!/bin/bash
+set -euo pipefail
+chmod 600 $(find . -name '*.key')
+```
+
+```text
+$ bash before.sh; echo "exit=$?"
+chmod: cannot access 'backups/server.key': Not a directory
+exit=1
+$ ls -l . 'old backups'
+.:
+-rw-r--r-- 1 angsec angsec  0 Sep  1 20:43 backups
+-rw------- 1 angsec angsec  0 Sep  1 20:43 old
+drwxrwxr-x 2 angsec angsec 60 Sep  1 20:43 old backups
+-rw------- 1 angsec angsec  0 Sep  1 20:43 server.key
+
+old backups:
+-rw-r--r-- 1 angsec angsec 0 Sep  1 20:43 server.key
+```
+
+`find` printed two paths on two lines. Bash split them into three words: `./old`, `backups/server.key` and `./server.key`. The stray file `old` is now mode 600, the path `backups/server.key` does not exist so `chmod` errored, and the key that lives in `old backups/` is still world-readable. The script exited 1 only because the middle piece happened not to exist. Had `old` been a directory, `chmod` would have changed it and moved on.
+
+## What does ShellCheck say, and what is the fix?
+
+```text
+$ shellcheck before.sh
+
+In before.sh line 3:
+chmod 600 $(find . -name '*.key')
+          ^---------------------^ SC2046 (warning): Quote this to prevent word splitting.
+```
+
+No "Did you mean" line this time, because quoting is not the fix for a list. Let `find` run the command itself:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+find . -name '*.key' -exec chmod 600 {} +
+```
+
+```text
+$ shellcheck after.sh; echo "exit=$?"
+exit=0
+$ bash after.sh; ls -l . 'old backups' | grep key
+-rw------- 1 angsec angsec   0 Sep  1 20:43 server.key
+-rw------- 1 angsec angsec 0 Sep  1 20:43 server.key
+```
+
+Both keys locked, the stray files untouched. `-exec ... {} +` passes the paths to `chmod` as separate arguments without ever turning them into text, so spaces and newlines in names cannot split anything. When you need the list in the script rather than in one command, read it into an array with NUL separators:
+
+```bash
+mapfile -d '' keys < <(find . -name '*.key' -print0)
+chmod 600 "${keys[@]}"
+echo "fixed ${#keys[@]} key(s)"
+```
+
+```text
+$ shellcheck map.sh; echo "exit=$?"
+exit=0
+$ bash map.sh
+fixed 2 key(s)
+```
+
+This site's own script repo got the same lesson in July from the neighbouring code SC2038: `find "$TARGET" -type f | xargs -r md5sum` in the duplicate-file scanner became `find "$TARGET" -type f -print0 | xargs -0 -r md5sum`. A filename with a space in a duplicate scan is a wrong hash on a path that does not exist.
+
+## Where else does SC2046 show up?
+
+**Parsing `ls`.** `rm $(ls *.tmp)` earns SC2046 and SC2035 in one line. `ls` output is for humans; the glob itself is the list: `rm -- *.tmp`.
+
+**`cd $(dirname $0)`.** Three findings on one line: SC2164 because `cd` can fail, SC2046 for the substitution, SC2086 for `$0`. The clean version is `cd "$(dirname "$0")" || exit 1`. Here the substitution is a single value, so quoting is the right fix.
+
+**Inside `[ ]`.** `[ $(wc -l < /etc/passwd) -gt 10 ]` is SC2046 too. `wc -l` on a redirect prints one number, so `"$(wc -l < /etc/passwd)"` is correct and ShellCheck passes it.
+
+**`for f in $(find ...)`.** Not SC2046. ShellCheck reports SC2044, "For loops over find output are fragile", and the fix is `find -exec` or a `while IFS= read -r -d '' f` loop over `find -print0`.
+
+## When should I disable SC2046, and how?
+
+The honest case is a substitution whose output is a set of separate flags by design: `$(pkg-config --cflags --libs foo)`, or a tool that prints options one per word. Even then `mapfile -t flags < <(pkg-config --cflags --libs foo)` followed by `"${flags[@]}"` is clean without a directive. If you keep the split, say why:
+
+```bash
+# shellcheck disable=SC2046  # pkg-config emits separate flags on purpose
+gcc $(pkg-config --cflags --libs foo) main.c
+```
+
+For one run, `shellcheck --exclude=SC2046 script.sh`. For a project, `disable=SC2046` in `.shellcheckrc`. Because this is a warning, `shellcheck -S error` also hides it, along with every other warning, which is rarely what you want. To lint for this rule and nothing else: `shellcheck --include=SC2046 script.sh`.
+
+## Related codes
+
+- **SC2086** — the same split on an unquoted variable. See the [SC2086 deep dive](/shellcheck/sc2086).
+- **SC2044** — `for` over `find` output.
+- **SC2038** — `find | xargs` without `-print0` and `-0`. See [Find Duplicate Files](/snippets/find-duplicate-files).
+- **SC2035**, **SC2012** — globs and `ls` output as arguments.
+
+Any other code: paste it into the [ShellCheck Error Decoder](/tools/shellcheck-error-decoder).

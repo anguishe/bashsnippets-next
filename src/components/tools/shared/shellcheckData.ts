@@ -198,6 +198,13 @@ export const SC_DATABASE: Record<string, ShellCheckEntry> = {
     before: 'find . -name *.txt',
     after: "find . -name '*.txt'",
   },
+  SC2063: {
+    code: 'SC2063', severity: 'warning', category: 'Logic',
+    title: 'Grep uses regex, but this looks like a glob',
+    explanation: 'grep patterns are regular expressions, not shell globs. A leading * is a literal asterisk in a regex, so grep \'*.gz\' matches a real * and nothing else — the check silently reports no matches. Anchor the suffix with \\. and $, or pass -F for a fixed string.',
+    before: "grep -q '*.gz' manifest.txt",
+    after: "grep -q '\\.gz$' manifest.txt",
+  },
   SC2071: {
     code: 'SC2071', severity: 'error', category: 'Logic',
     title: '> is for string comparisons. Use -gt instead',

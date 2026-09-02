@@ -1,0 +1,154 @@
+---
+title: "ShellCheck SC2034: Variable Appears Unused"
+description: "This site's own script repo claimed ShellCheck-clean while three scripts carried a CROSS or KEY_BITS nothing read. What SC2034 catches, why an unused variable is usually a typo somewhere else, the real run, the export and _ fixes, and the file-level disable for sourced config files."
+slug: sc2034
+author: "Travis"
+datePublished: 2026-09-01
+dateModified: 2026-09-01
+quickAnswer: >-
+  SC2034 is ShellCheck's warning that a variable is assigned and never read in the file,
+  "appears unused. Verify use (or export if used externally)". The unused variable is rarely
+  the bug. It is usually the assignment half of a typo whose other half is an empty variable
+  somewhere else, reported as SC2154. In the run on this page retention_days=30 was flagged as
+  unused because the find line spelled it $retention_day, so find received -mtime + and
+  refused to run; with a numeric default it would have deleted every log. This site's own
+  script repo tripped the same code in July: three scripts defined CROSS or KEY_BITS and never
+  read them while the README claimed ShellCheck-clean. Fixes: read the variable, delete it,
+  export it if a child process reads it, or name a throwaway _. For a file that only exists to
+  be sourced, put # shellcheck disable=SC2034 after the shebang. To lint for only this rule run
+  shellcheck --include=SC2034 script.sh.
+faq:
+  - question: "Why does ShellCheck say my variable is unused when a sourced script uses it?"
+    answer: >-
+      ShellCheck checks one file at a time. A variable defined in lib.sh and read by the scripts
+      that source it is unused as far as lib.sh is concerned. Either put
+      # shellcheck disable=SC2034 with the reason at the top of the library file, or export it,
+      which is honest only if a child process reads it. Running shellcheck -x on the caller
+      follows the source line and sees both sides.
+  - question: "How do I stop SC2034 on a loop variable I do not use?"
+    answer: >-
+      Name it _: for _ in 1 2 3; do ...; done. ShellCheck 0.11.0 flags for i in 1 2 3 when i is
+      never read and passes _. The same convention works for read: read -r _ second keeps the
+      second field and discards the first without a warning.
+  - question: "Does export fix SC2034?"
+    answer: >-
+      It silences it, because an exported variable may be read by a child process. Use it only
+      when that is true. Exporting to hush the warning leaks the variable into the environment
+      of every command the script runs, which is how a KEY_BITS ends up in a subprocess that
+      never asked for it.
+  - question: "How do I disable SC2034 for a whole config file?"
+    answer: >-
+      Put # shellcheck disable=SC2034 as the first line after the shebang, or
+      # shellcheck shell=bash disable=SC2034 if the file has no shebang. Everything below it is
+      exempt. Write the reason in the same comment, for example "sourced by deploy.sh", so the
+      next reader knows the variables are read elsewhere.
+---
+
+## What does SC2034 mean?
+
+SC2034, "appears unused. Verify use (or export if used externally)", is ShellCheck's **warning**-level finding that a variable is assigned somewhere in the file and never read anywhere in it. The message is careful: *verify* use. ShellCheck sees one file, so a variable that is read by a sourced script or a child process looks dead to it. The rest of the time it is dead, and dead code in a shell script is usually a typo with a live twin.
+
+## What actually breaks?
+
+Two things, both from this site.
+
+**The repo.** On 2026-07-19 the README of this site's script repository said every script was ShellCheck-clean. It was not. `shellcheck -S style` across the 31 scripts that day found six with findings, and three of those failed on SC2034: `bash-functions-arguments.sh` and `find-large-files-linux.sh` defined `CROSS="✗"` beside `CHECK="✓"` and never printed it, and `ssh-key-setup-script.sh` carried `KEY_BITS="4096"  # Only used for RSA keys` that nothing used, because the script generates ed25519 keys. Commit `093febd` deleted the three lines. Dead code, and the SSH one lied: a reader would reasonably believe the RSA key size was configurable.
+
+**The typo.** A log-pruning script with a one-letter mismatch, run on this box with bash 5.3.9 and GNU findutils 4.11.0:
+
+```bash
+#!/bin/bash
+set -eo pipefail
+log_dir="$PWD/logs"
+retention_days=30
+find "$log_dir" -name '*.log' -mtime +"$retention_day" -delete
+echo "pruned old logs"
+```
+
+```text
+$ bash before.sh; echo "exit=$?"
+find: invalid argument `+' to `-mtime'
+exit=1
+$ ls logs
+new.log
+old.log
+```
+
+`$retention_day` expanded to nothing, `find` received `-mtime +` and refused. That is the lucky outcome: the prune never runs and the disk fills slowly. Written as `-mtime +${retention_day:-0}`, a common defensive habit, `find` would have received `-mtime +0` and deleted every log older than today. With `set -u` the script stops on line 5 with `retention_day: unbound variable` instead.
+
+## What does ShellCheck say, and what is the fix?
+
+```text
+$ shellcheck before.sh
+
+In before.sh line 4:
+retention_days=30
+^------------^ SC2034 (warning): retention_days appears unused. Verify use (or export if used externally).
+
+
+In before.sh line 5:
+find "$log_dir" -name '*.log' -mtime +"$retention_day" -delete
+                                       ^------------^ SC2154 (warning): retention_day is referenced but not assigned (did you mean 'retention_days'?).
+```
+
+The pair is the tell. An SC2034 on one line and an [SC2154](/shellcheck/sc2154) on the next with a `did you mean` pointing back at it is a typo, and the fix is to spell it the same way twice:
+
+```bash
+find "$log_dir" -name '*.log' -mtime +"$retention_days" -delete
+```
+
+```text
+$ shellcheck after.sh; echo "exit=$?"
+exit=0
+$ bash after.sh; ls logs
+pruned old logs
+new.log
+```
+
+The repo's case had no twin. `CROSS` was defined and never referenced, so the fix was deletion:
+
+```text
+$ shellcheck lib.sh
+
+In lib.sh line 4:
+CROSS="✗"
+^---^ SC2034 (warning): CROSS appears unused. Verify use (or export if used externally).
+```
+
+## Where else does SC2034 show up?
+
+**Single quotes.** A variable whose only use is inside single quotes is not used, because single quotes do not expand it. `HOST=$(hostname)` followed by `echo 'disk on $HOST is full'` earns SC2034 on the assignment and [SC2016](/shellcheck/sc2016) on the string, and the alert goes out with a literal `$HOST` in it.
+
+**Loop variables.** `for i in 1 2 3; do echo ping; done` is flagged: `i appears unused`. The convention ShellCheck accepts is `_`, and `for _ in 1 2 3` passes. The same works with `read -r _ second` when only the second field matters.
+
+**Library files.** A `lib.sh` that defines `CHECK` and `CROSS` for the scripts that source it is flagged on every variable the library itself does not read. Two honest fixes. `export CROSS="✗"` passes, and is correct only if a child process reads it. A file-level directive with the reason is the other:
+
+```bash
+#!/bin/bash
+# lib.sh — sourced by the deploy scripts; they read CHECK and CROSS
+# shellcheck disable=SC2034
+CHECK="✓"
+CROSS="✗"
+```
+
+**Config files.** A file that is nothing but assignments has no shebang and no reads. `# shellcheck shell=bash disable=SC2034` as its first line tells ShellCheck both what it is and why nothing in it is read.
+
+## When should I disable SC2034, and how?
+
+When the variable is read by something ShellCheck cannot see and `export` would be a lie: a sourced library, a config file, a variable a `trap` handler reads by name. Use the file-level form for those files and the line form for one-offs:
+
+```bash
+# shellcheck disable=SC2034  # read by the ERR trap in bashlib.sh
+script_start=$(date +%s)
+```
+
+For one run, `shellcheck --exclude=SC2034 script.sh`; for a project, `disable=SC2034` in `.shellcheckrc`; to lint for this rule alone, `shellcheck --include=SC2034 script.sh`. Before reaching for any of them, search the file for the name once. Three times out of four the variable is dead and the fix is `dd`.
+
+## Related codes
+
+- **SC2154** — the use side of the same typo. See the [SC2154 deep dive](/shellcheck/sc2154).
+- **SC2153** — the uppercase near-miss, at info level.
+- **SC2016** — the single-quoted string that made the variable "unused". See the [SC2016 deep dive](/shellcheck/sc2016).
+- **SC1091** — a sourced file ShellCheck is not following; `-x` follows it.
+
+Any other code: paste it into the [ShellCheck Error Decoder](/tools/shellcheck-error-decoder).

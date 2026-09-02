@@ -100,6 +100,14 @@ Guides have no registry file and the `/guides` index list is a hardcoded array. 
 3. Add the guide to the `guides` array in `src/app/guides/page.tsx`.
 4. Add the URL to `staticEntries` in `scripts/generate-sitemap.mjs`, then update `public/llms.txt`.
 
+### Add a ShellCheck deep dive (2 files)
+
+Per-rule pages at `/shellcheck/<code>`; the decoder tool is the hub. They are hand-written for codes with measured search demand — check `docs/PLAN.md` §3 before adding one.
+
+1. `src/content/shellcheck/<sc-code>.mdx` — lowercase filename (`sc2086.mdx`). Frontmatter carries `quickAnswer` and `faq`; the body follows the fixed shape: what the rule means → what actually breaks (a real run) → ShellCheck's exact output and the fix → variants → when and how to disable → related codes. Run every command and paste the output; note the ShellCheck version if it is no longer 0.11.0.
+2. `src/lib/shellcheck-pages.ts` — add the entry (`slug` must match the filename). The sitemap and the decoder's "deep dives" list pick it up automatically.
+3. `npm run build` → add the page to the "ShellCheck Deep Dives" section of `public/llms.txt` and bump its counts comment → IndexNow ping.
+
 ---
 
 ## Standards

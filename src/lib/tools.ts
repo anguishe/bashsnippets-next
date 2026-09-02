@@ -309,7 +309,7 @@ export const tools: ToolMeta[] = [
     slug: 'shellcheck-error-decoder',
     component: 'ShellcheckErrorDecoder',
     datePublished: '2026-06-02',
-    dateModified: '2026-06-06',
+    dateModified: '2026-09-01',
     title: 'ShellCheck Error Decoder',
     description:
       'ShellCheck warnings that go unfixed become the exact edge-case bugs that break in production on unexpected input. Enter any SC error code for the rule name, plain-English explanation, and a before/after fix example.',
