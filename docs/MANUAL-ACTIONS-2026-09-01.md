@@ -117,15 +117,25 @@ DigitalOcean gave you, not affiliate earnings, and it is already gone.
 **No action required.** Neither program obliges you to keep links live. If you want certainty on
 the balance rather than the payout, it is one login each.
 
-### 1.7 ⬜ Buttondown — CONFIRMED: `EmailCapture` is invisible on production
+### 1.7 ✅ Buttondown — LIVE 2026-09-01
 
-`EmailCapture` is `if (!USERNAME) return null`, and `NEXT_PUBLIC_BUTTONDOWN_USERNAME` is set
-neither in `.env.local` nor in Vercel. Checked against production after the 2026-09-01 deploy:
-`curl -s https://bashsnippets.xyz/snippets/bash-error-handling | grep -c buttondown` returns **0**.
-The form renders nothing.
+**Resolved 2026-09-01.** Account approved, username `anguishe`, and
+`NEXT_PUBLIC_BUTTONDOWN_USERNAME=anguishe` set in Vercel.
 
-This is not cosmetic. The kill signal for the whole project is measured in **email signups by
-~2026-10-15** — with no form on the page, that clock is not running and the signal cannot fire.
+The value is the **bare username** — the component interpolates it into
+`https://buttondown.com/api/emails/embed-subscribe/${USERNAME}`, so a full profile URL builds a
+404. Verified both: bare username returns 302, full URL returns 404.
+
+Setting the variable alone changed nothing, exactly as warned — `NEXT_PUBLIC_` vars are inlined at
+build time, so the form stayed invisible until the next push forced a rebuild. Verified live after
+that build: renders on snippets, tools and guides, with `action="https://buttondown.com/api/emails/embed-subscribe/anguishe"`.
+
+**The kill-signal clock starts 2026-09-01.** The pivot set it at five weeks of email capture on
+every content page, zero signups meaning demand failure. Those five weeks begin now, not whenever
+the plan was written, because until this build there was no form on any page to sign up on. First
+honest read: **~2026-10-06**.
+
+The steps below are kept as the record of what was done:
 
 1. https://buttondown.com → sign up / log in → **Settings → Basics** → copy your username
    (the `buttondown.com/<username>` slug, not your email).
