@@ -6,6 +6,15 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 const guides = [
   {
+    slug: 'auto-restart-linux-service',
+    title:
+      'Auto-Restart a Stopped Service on Linux: systemd Restart=, Cron Watchdogs, and the Start-Limit Trap',
+    description:
+      '"Down" is three different states — crashed, stopped on purpose, or running but not answering — and a watchdog that checks systemctl is-active handles exactly one of them. Let systemd restart crashes with Restart=, clear the start-limit trap that makes systemctl start refuse, probe for the hung case, and alert once per outage instead of once per minute.',
+    blurb:
+      'You leave knowing which of the three kinds of "down" you have before you touch it: the exit code 4 that makes a watchdog restart a unit that does not exist, why Restart=always did nothing for a display manager that never exited, the "start request repeated too quickly" state that makes systemctl start refuse until reset-failed, and a watchdog script that probes for the hung case and sends one alert per outage.',
+  },
+  {
     slug: 'bash-scripts-every-sysadmin-needs',
     title: '25 Bash Scripts Every Linux Sysadmin Needs',
     description:

@@ -1,0 +1,378 @@
+---
+title: "Auto-Restart a Stopped Service on Linux: systemd Restart=, Cron Watchdogs, and the Start-Limit Trap"
+description: "\"Down\" is three different states — crashed, stopped on purpose, or running but not answering — and a watchdog that checks systemctl is-active handles exactly one of them. Let systemd restart crashes with Restart=, clear the start-limit trap that makes systemctl start refuse, probe for the hung case, and alert once per outage instead of once per minute."
+slug: auto-restart-linux-service
+author: "Travis"
+datePublished: 2026-09-01
+dateModified: 2026-09-01
+---
+
+## Auto-Restart a Stopped Service on Linux
+
+On August 6 this machine booted to a blank terminal. The display manager, `lightdm`, has `Restart=always` in its unit, and `systemctl status lightdm` said `active (running)`. Nothing was down as far as systemd was concerned. What had happened was that Xorg entered the NVIDIA driver's init routine about 140 ms before the `/dev/nvidia*` device nodes existed, because `ollama.service` (also `Restart=always`, and started one second earlier) was racing it for the GPU. Xorg won nothing and never came back: fourteen hours later it was still there in state `S`, one thread, 20 ms of CPU consumed in total, its log file cut off mid-sentence with no error line.
+
+`Restart=always` did nothing, because nothing exited. A cron job checking `systemctl is-active lightdm` every minute would have said "fine" all night. `sudo systemctl restart lightdm` brought the desktop back in three seconds, and the actual fix was ordering — `nvidia-persistenced` so the device nodes exist before any client asks for them — not a restart policy at all.
+
+That is the whole problem with "restart it if it's down" in one incident. *Down* is not one state. It is at least three, they look identical from the outside, and the standard watchdog handles exactly one of them.
+
+## "Down" is three different states
+
+| What happened | What systemd shows | What a restart does |
+|---|---|---|
+| The process crashed or was killed | `failed` (or `inactive` if it exited 0) | Correct. This is the case `Restart=` and cron watchdogs are built for. |
+| Someone ran `systemctl stop` on purpose | `inactive`, `Result=success` | Fights the human doing maintenance. A watchdog that restarts it mid-migration is a bug. |
+| It is running but not answering | `active (running)` | Never happens, because no one asked. The lightdm case. |
+
+Everything below is about telling these apart before touching anything, and then using the right mechanism for each. All commands were run on this box — systemd 261, kernel 7.1.5, bash 5.3.9 — with the output pasted as it came out.
+
+## Read the state before you touch it
+
+The snippet most people start from is `systemctl is-active`. It is fine as long as you know what its exit codes mean, and one of them is a trap.
+
+```bash
+for u in cron nginx nginxx; do
+  printf '%-7s is-active=%-9s rc=' "$u" "$(systemctl is-active "$u")"
+  systemctl is-active --quiet "$u"; echo $?
+done
+```
+
+```text
+cron    is-active=active    rc=0
+nginx   is-active=inactive  rc=3
+nginxx  is-active=inactive  rc=4
+```
+
+Exit code **0** is running. Exit code **3** is a real unit that is not running. Exit code **4** is a unit that does not exist — `nginxx` is a typo — and `is-active` prints the same word, `inactive`, for both. A watchdog written as `if ! systemctl is-active --quiet "$SERVICE"` treats the typo as an outage, runs `systemctl start nginxx` every minute, fails every minute, and emails you every minute until someone reads the message closely enough to notice the extra letter. Check that the unit is loaded before you do anything with its state:
+
+```bash
+systemctl show -p LoadState,ActiveState,SubState,Result,NRestarts --value nginx
+```
+
+```text
+loaded
+inactive
+dead
+success
+0
+```
+
+`show` is the command a script should use, because every field comes back as one clean line with no localisation and no colour. The four that matter:
+
+- **`LoadState`** — `loaded` or `not-found`. Test this first; it separates exit code 4 from exit code 3.
+- **`ActiveState`** — `active`, `inactive`, `failed`, or one of the transitional states `activating`, `deactivating`, `reloading`. Leave a unit alone while it is in transition; a restart issued mid-`activating` races the start already in progress.
+- **`Result`** — *why* it is in that state. `success` on an `inactive` unit means it exited cleanly or was stopped deliberately. `exit-code`, `signal`, `timeout`, `core-dump` mean it died. `start-limit-hit` is the trap covered two sections down.
+- **`NRestarts`** — how many times systemd's own `Restart=` has already restarted it since it was last started by hand. If this is climbing, systemd is doing the job already and your watchdog is late to the party.
+
+## Let systemd restart it first
+
+Before writing any script, ask whether the unit already restarts itself. Most daemons ship with a policy:
+
+```bash
+for u in cron ollama lightdm wpa_supplicant; do
+  printf '%-16s Restart=%-11s RestartSec=%s\n' "$u" \
+    "$(systemctl show -p Restart --value "$u")" "$(systemctl show -p RestartUSec --value "$u")"
+done
+```
+
+```text
+cron             Restart=on-failure  RestartSec=100ms
+ollama           Restart=always      RestartSec=3s
+lightdm          Restart=always      RestartSec=100ms
+wpa_supplicant   Restart=no          RestartSec=100ms
+```
+
+If yours says `no`, give it a policy with a drop-in rather than editing the vendor unit file, so package upgrades cannot overwrite it:
+
+```bash
+sudo systemctl edit nginx
+```
+
+```ini
+[Service]
+Restart=on-failure
+RestartSec=5s
+```
+
+That writes `/etc/systemd/system/nginx.service.d/override.conf` and reloads. The values, from `systemd.service(5)`, and when each one fires:
+
+| `Restart=` | Restarts on | Does not restart on |
+|---|---|---|
+| `no` | nothing | everything |
+| `on-failure` | non-zero exit, unclean signal, timeout, watchdog | a clean exit 0, `systemctl stop` |
+| `on-abnormal` | unclean signal, timeout, watchdog | any exit code, clean or not |
+| `always` | any exit, clean or not, and signals | `systemctl stop` |
+
+Two things people get wrong here. First, **no policy ever fights `systemctl stop`.** A deliberate stop is never a restart trigger, so `Restart=always` does not make a service un-stoppable; it makes it restart after it *dies*. Second, `on-failure` is the right default for a daemon that is supposed to run forever but not for one that legitimately exits 0 sometimes; for a "keep it up no matter what" service use `always`, and set `RestartSec` to a few seconds so a crash on startup does not spin.
+
+There is also a subtler path back to life that is worth knowing exists. `wpa_supplicant` on this box has `Restart=no`, and twice today the USB Wi-Fi driver oopsed and took it out — `wpa_supplicant.service: Failed with result 'signal'` at 14:52:27 and again at 14:58:21. It came back both times anyway, within the same second — the journal shows `Activating via systemd: service name='fi.w1.wpa_supplicant1'` directly under `Failed with result 'signal'` — with no restart policy, because NetworkManager asked D-Bus for the service and D-Bus activated the unit on demand. Socket- and bus-activated services recover through their activation path, not through `Restart=`. If yours is one of those, a watchdog restarting it by hand is usually redundant.
+
+## The start-limit trap
+
+This is the one that makes "the watchdog says FAILED to restart and I don't know why" tickets.
+
+```bash
+systemctl show -p StartLimitBurst,StartLimitIntervalUSec --value nginx
+```
+
+```text
+5
+10s
+```
+
+Those are the defaults. A unit that is started more than five times inside ten seconds — which is exactly what `Restart=on-failure` with a short `RestartSec` does to a daemon that crashes on startup — is put into `failed` with `Result=start-limit-hit`, and the journal says:
+
+```text
+nginx.service: Start request repeated too quickly.
+nginx.service: Failed with result 'start-limit-hit'.
+```
+
+From that moment `systemctl start nginx` **refuses**, silently from a script's point of view, until the counter is cleared:
+
+```bash
+sudo systemctl reset-failed nginx
+sudo systemctl start nginx
+```
+
+A watchdog that does not know this will report "restart failed, manual intervention needed" forever on a service that would start fine if asked properly. A watchdog that *only* knows this — that resets the counter and starts again every minute, unconditionally — has turned systemd's crash-loop protection off and replaced it with its own crash loop, one that also sends an email each cycle. The right shape is a bounded reset: clear the start limit a small number of times per outage, then stop and tell a human, because something that has crashed on startup fifteen times in a row is not going to be fixed by a sixteenth start.
+
+## When it is running but not answering
+
+The lightdm case, and the one that needs a different tool entirely. A service can be `active (running)` and doing nothing useful: a web server whose worker pool is wedged, a database that is `D`-state on a dead NFS mount, a daemon that deadlocked on its own lock. No state check will see this. The only way to know a service answers is to ask it the way a client would:
+
+```bash
+# Web: fail on any non-2xx, and give up rather than hang
+curl -fsS --max-time 5 http://127.0.0.1/ >/dev/null
+
+# Anything TCP: is something listening on the port at all?
+ss -Hltn 'sport = :5432' | grep -q .
+
+# PostgreSQL, properly
+pg_isready -q -h 127.0.0.1
+```
+
+Bound every probe with a timeout. A watchdog whose probe hangs is a second hung process on the box, and the next cron tick will start a third.
+
+When the probe fails on an `active` unit, the fix is `systemctl restart`, and two facts about restart matter. It is stop followed by start, so if the process ignores `SIGTERM` — hung processes often do — the stop phase waits `TimeoutStopSec` before escalating to `SIGKILL`. The default is 90 s. A user service on this box hit that today, with a shorter limit:
+
+```text
+openclaw-gateway.service: State 'stop-sigterm' timed out. Killing.
+openclaw-gateway.service: Killing process 1115 (openclaw-gatewa) with signal SIGKILL.
+```
+
+Which is the second fact: **the restart destroys the evidence.** The process was hung *on something*, and after the kill you will never know what. If this is the second time the same service has needed a probe-driven restart, capture its state before the next one — process state, `wchan`, open files, socket queues — with the commands in [Diagnosing a Hung Process](/guides/diagnose-a-hung-process). Restarting is the treatment; that page is the diagnosis.
+
+For daemons that support it, there is also a kernel-level version of the probe. `WatchdogSec=30s` in the unit tells systemd to expect a `sd_notify(WATCHDOG=1)` ping from the process at least that often and to kill and restart it if the ping stops. It only works for services written to send the ping — check `systemctl show -p WatchdogUSec` and the daemon's docs — but where it works it is the cleanest answer there is, because the process reports its own liveness and nothing external has to guess.
+
+## The cron watchdog, done properly
+
+If after all that you still want a cron-driven watchdog — for a service without a sane `Restart=`, for the hung case on a daemon with no `WatchdogSec` support, or on a box where you do not control the unit files — this is the version that handles the three states, the exit-code-4 trap, the start-limit trap, a maintenance window, overlapping runs, and alert spam. It is the script behind the [Restart a Service If It Stopped](/snippets/restart-service-if-stopped) snippet, grown up.
+
+```bash
+#!/bin/bash
+# Script: service-watchdog.sh
+# Purpose: A crashed daemon stays down until a human notices, and a hung one stays "active" while serving nothing — this restarts the first, probes for the second, and alerts once per outage instead of once per minute.
+# Usage: ./service-watchdog.sh <unit> [probe command...]
+#   e.g. ./service-watchdog.sh nginx curl -fsS --max-time 5 http://127.0.0.1/
+# Run from root's crontab: * * * * * /usr/local/sbin/service-watchdog.sh nginx curl -fsS --max-time 5 http://127.0.0.1/ >> /var/log/service-watchdog.cron 2>&1
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+UNIT="${1:?usage: $0 <unit> [probe command...]}"
+shift
+PROBE=("$@")                                   # optional; a command that exits 0 only when the service answers
+STATE_DIR="${STATE_DIR:-/var/tmp/service-watchdog}"
+LOG_FILE="${LOG_FILE:-/var/log/service-watchdog.log}"
+MAX_RESETS="${MAX_RESETS:-3}"                  # start-limit resets allowed per outage before the watchdog gives up
+SETTLE_SECONDS="${SETTLE_SECONDS:-3}"          # how long a fresh start gets before the verify step
+ALERT_CMD="${ALERT_CMD:-}"                     # reads the message on stdin, e.g. mail -s "watchdog: $UNIT" you@example.com
+
+mkdir -p "$STATE_DIR"
+STATE_FILE="$STATE_DIR/$UNIT.state"            # last verdict: up | down | stuck
+RESET_FILE="$STATE_DIR/$UNIT.resets"           # start-limit resets used in the current outage
+LOCK_FILE="$STATE_DIR/$UNIT.lock"
+
+log() { printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" | tee -a "$LOG_FILE"; }
+
+# Alert only when the verdict changes. A service that is down for an hour sends one
+# message when it goes down and one when it comes back, not sixty.
+set_verdict() {
+  local verdict="$1" message="$2" previous="none"
+  [[ -f "$STATE_FILE" ]] && previous=$(<"$STATE_FILE")
+  printf '%s\n' "$verdict" > "$STATE_FILE"
+  # First run of a healthy unit is not a recovery — only alert on a real change.
+  [[ "$previous" == "none" && "$verdict" == "up" ]] && return 0
+  if [[ "$verdict" != "$previous" && -n "$ALERT_CMD" ]]; then
+    printf '%s\n%s on %s at %s\n' "$message" "$UNIT" "$(hostname)" "$(date)" | bash -c "$ALERT_CMD" || true
+  fi
+}
+
+# Two watchdog runs at once (a slow probe plus the next cron tick) would both try to
+# restart. The lock is released by the kernel when this process exits, crash included.
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  log "$CHECK $UNIT: previous watchdog run still holds the lock, leaving it alone"
+  exit 0
+fi
+
+# is-active exits 4 for a unit that does not exist, which a naive watchdog reads as
+# "down" and then tries to start every minute forever. Check the load state first.
+if [[ "$(systemctl show -p LoadState --value "$UNIT")" == "not-found" ]]; then
+  log "$CROSS $UNIT: no such unit — fix the name, there is nothing to restart"
+  exit 2
+fi
+
+# A human running maintenance touches this file first and the watchdog stays out of it.
+if [[ -f "$STATE_DIR/$UNIT.maintenance" ]]; then
+  log "$CHECK $UNIT: maintenance flag present, skipping"
+  exit 0
+fi
+
+probe_ok() {
+  [[ ${#PROBE[@]} -eq 0 ]] && return 0        # no probe configured: "active" is the whole verdict
+  "${PROBE[@]}" >/dev/null 2>&1
+}
+
+start_unit() {
+  local result
+  result=$(systemctl show -p Result --value "$UNIT")
+  if [[ "$result" == "start-limit-hit" ]]; then
+    local resets=0
+    [[ -f "$RESET_FILE" ]] && resets=$(<"$RESET_FILE")
+    if (( resets >= MAX_RESETS )); then
+      log "$CROSS $UNIT: crash-looping (start limit hit $resets times this outage), leaving it failed for a human"
+      set_verdict stuck "CRITICAL: $UNIT is crash-looping and the watchdog has stopped resetting it. journalctl -u $UNIT"
+      return 1
+    fi
+    printf '%s\n' "$(( resets + 1 ))" > "$RESET_FILE"
+    log "$CROSS $UNIT: start limit hit, clearing it (reset $(( resets + 1 )) of $MAX_RESETS)"
+    systemctl reset-failed "$UNIT"
+  fi
+  systemctl start "$UNIT"
+}
+
+verify() {
+  sleep "$SETTLE_SECONDS"
+  if systemctl is-active --quiet "$UNIT" && probe_ok; then
+    log "$CHECK $UNIT: back up and answering (NRestarts=$(systemctl show -p NRestarts --value "$UNIT"))"
+    rm -f "$RESET_FILE"
+    set_verdict up "RECOVERED: $UNIT restarted by the watchdog and passed its probe"
+    return 0
+  fi
+  log "$CROSS $UNIT: started but not healthy — state=$(systemctl show -p ActiveState --value "$UNIT")"
+  set_verdict down "CRITICAL: $UNIT was restarted but is not answering. journalctl -u $UNIT"
+  return 1
+}
+
+state=$(systemctl show -p ActiveState --value "$UNIT")
+case "$state" in
+  active)
+    if probe_ok; then
+      rm -f "$RESET_FILE"
+      set_verdict up "RECOVERED: $UNIT is active and answering again"
+      exit 0
+    fi
+    # Active but failing the probe is the hung case. Restart is stop + start, so a
+    # process that ignores SIGTERM holds this for TimeoutStopSec before the SIGKILL.
+    log "$CROSS $UNIT: active but not answering the probe, restarting (evidence: journalctl -u $UNIT)"
+    set_verdict down "DOWN: $UNIT is active but not answering its probe; the watchdog is restarting it"
+    systemctl restart "$UNIT"
+    verify
+    ;;
+  activating|deactivating|reloading)
+    log "$CHECK $UNIT: in transition ($state), checking again next run"
+    exit 0
+    ;;
+  inactive|failed)
+    log "$CROSS $UNIT: $state (Result=$(systemctl show -p Result --value "$UNIT")), starting"
+    set_verdict down "DOWN: $UNIT is $state; the watchdog is starting it"
+    start_unit && verify
+    ;;
+  *)
+    log "$CROSS $UNIT: unexpected ActiveState '$state'"
+    exit 1
+    ;;
+esac
+```
+
+Run it from **root's** crontab (`sudo crontab -e`) rather than wrapping every `systemctl` call in `sudo` — cron has no TTY, so a `sudo` that wants a password fails silently, and a `NOPASSWD` rule for one specific command is more to maintain than a root cron line:
+
+```text
+* * * * * /usr/local/sbin/service-watchdog.sh nginx curl -fsS --max-time 5 http://127.0.0.1/ >> /var/log/service-watchdog.cron 2>&1
+```
+
+What it does, in the order it does it:
+
+1. **Takes a lock** with `flock -n` on a per-unit lock file. If a previous run is still inside a slow probe or a 90-second restart when the next minute ticks, the second run exits instead of issuing a second restart. The kernel drops the lock when the process exits, however it exits.
+2. **Refuses to act on a unit that does not exist**, using `LoadState`, so a typo produces one log line and exit code 2 instead of an infinite loop.
+3. **Honours a maintenance flag.** `touch /var/tmp/service-watchdog/nginx.maintenance` before you stop something on purpose, `rm` it after. That is the answer to the second kind of "down".
+4. **Branches on `ActiveState`.** `active` runs the probe and restarts only if it fails; transitional states are left alone; `inactive` and `failed` are started.
+5. **Handles `start-limit-hit`** with `reset-failed`, at most `MAX_RESETS` times per outage, then gives up and says so.
+6. **Verifies after starting** — waits `SETTLE_SECONDS`, then requires *both* `is-active` and the probe to pass before it calls the service recovered. A restart that "succeeded" into a service that still does not answer is reported as still down.
+7. **Alerts on transitions only.** The verdict (`up`, `down`, `stuck`) is written to a state file, and `ALERT_CMD` runs only when it changes. One outage is one DOWN message and one RECOVERED message, not sixty CRITICAL emails.
+
+Every line of that was exercised here before it was pasted, with `STATE_DIR` and `LOG_FILE` pointed at a scratch directory and `ALERT_CMD` set to append to a file. A healthy unit on its first run is silent and sends nothing:
+
+```bash
+STATE_DIR=/tmp/wd LOG_FILE=/tmp/wd.log ALERT_CMD='cat >> /tmp/alerts.txt' ./service-watchdog.sh cron
+```
+
+A stopped unit with a probe produces exactly two log lines and two alerts, six seconds apart:
+
+```text
+2026-09-01T20:18:45-0500 ✗ nginx: inactive (Result=success), starting
+2026-09-01T20:18:51-0500 ✓ nginx: back up and answering (NRestarts=0)
+```
+
+The same command a minute later, with nginx now healthy, prints nothing and sends nothing. A typo in the unit name:
+
+```text
+2026-09-01T20:17:26-0500 ✗ nginxx: no such unit — fix the name, there is nothing to restart
+```
+
+## Alert once, not every minute
+
+The state-file pattern above is the cheapest way to stop a watchdog from becoming the outage's loudest symptom, but for crashes specifically there is a cleaner hook that needs no script at all. `OnFailure=` in a unit names another unit to start when this one enters `failed`:
+
+```ini
+[Unit]
+OnFailure=status-email@%n.service
+```
+
+with a template unit that sends the mail:
+
+```ini
+# /etc/systemd/system/status-email@.service
+[Unit]
+Description=Email the status of %i
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/status-email.sh %i
+```
+
+and `status-email.sh` being little more than `systemctl status --no-pager "$1" | mail -s "$1 failed on $(hostname)" you@example.com`. Because it fires on the *transition* into `failed`, it sends once per failure by construction. Pair it with `Restart=on-failure` and you get the restart for free and a message only when the restart itself gave up — which is the `start-limit-hit` case, the one you actually want to hear about.
+
+Whichever path sends the message, put the evidence in it. `journalctl -u nginx -n 50 --no-pager` in the body of the alert saves the recipient the SSH session, and the message that says *what* died is the one that gets acted on at 03:00.
+
+## Which mechanism for which failure
+
+| Failure | Use | Not |
+|---|---|---|
+| Crashes, gets killed, times out | `Restart=on-failure` (or `always`) with `RestartSec=` of a few seconds | a cron watchdog — systemd already saw it die, milliseconds ago |
+| Crashes on startup, repeatedly | `OnFailure=` to alert on `start-limit-hit`; fix the crash | anything that resets the counter unconditionally |
+| Stopped on purpose | nothing — respect it, or a maintenance flag the watchdog honours | `Restart=always` (does nothing here anyway) or a script that restarts it |
+| Running but not answering | a probe — `curl --max-time`, `ss`, `pg_isready` — then `systemctl restart`; `WatchdogSec=` if the daemon supports it | `systemctl is-active`, which will say `active` all night |
+| Any of the above, on a box where you cannot edit unit files | the cron watchdog above, with a probe and bounded resets | the one-line `is-active || start` loop |
+
+The one-line loop is the answer to the first row and the wrong answer to the other four. It has its place — the [snippet version](/snippets/restart-service-if-stopped) is fine for a single well-behaved daemon on a box you watch — but if you find yourself adding a second `if` to it, you are on this page already.
+
+## Related
+
+- [Restart a Service If It Stopped](/snippets/restart-service-if-stopped) — the one-`if` version this guide grows out of
+- [Diagnosing a Hung Process](/guides/diagnose-a-hung-process) — what to capture before the restart destroys it
+- [Bash Scripts That Survive Cron](/guides/bash-scripts-that-survive-cron) — `flock`, `timeout`, and retry for the watchdog itself
+- [Check If a Website Is Up](/snippets/check-if-website-is-up) — the HTTP probe, standalone
+- [Prevent Overlapping Cron Jobs with flock](/snippets/bash-flock-single-instance) — the lock the watchdog uses
+- [Send Slack Alerts from Bash](/snippets/bash-slack-webhook-alerts) — an `ALERT_CMD` that is not `mail`
