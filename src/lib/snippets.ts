@@ -335,7 +335,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['ports', 'networking', 'ss', 'netstat', 'security', 'audit', 'lsof'],
     difficulty: 'beginner',
     datePublished: '2026-06-06',
-    dateModified: '2026-06-06',
+    dateModified: '2026-09-01',
   },
   {
     slug: 'docker-prune-cleanup',

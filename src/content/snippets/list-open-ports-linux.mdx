@@ -28,8 +28,15 @@ howToSteps:
     text: "Cross-reference any unrecognized port against /etc/services or a quick web search. Kill or disable any service you cannot account for."
 author: "Travis"
 datePublished: "2026-06-06"
-dateModified: "2026-06-06"
+dateModified: "2026-09-01"
 ---
+
+<Callout type="info" title="Blank process column? That is the root question, and there is a way around it">
+
+`ss -tlnp` shows the owning process only for sockets you own unless you are root. Adding `-e` shows the systemd cgroup that owns every socket, root or not — which is how you find out that the mystery listener on port 3000 is `docker-proxy` for a container. That trick, `/proc/net/tcp` by hand, `lsof` and `fuser` for the PID, probing one port from inside and outside, and a CSV audit that alerts when a new listener appears are in the full guide: [List Open Ports on Linux](/guides/open-ports-linux).
+
+</Callout>
+
 
 You don't know what your server is listening on until something that shouldn't be externally reachable is. A misconfigured service, a forgotten debug port, a package that auto-started on install — any of them can be sitting on an open port right now. This script maps all of them in one run.
 

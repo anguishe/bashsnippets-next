@@ -140,6 +140,12 @@ const homeGuides = [
       'S answers signals, D cannot be killed at all — read wchan and the syscall without root, check the socket queues, and capture the evidence before kill -9 destroys it.',
   },
   {
+    slug: 'open-ports-linux',
+    title: 'List Open Ports on Linux',
+    description:
+      'What is listening, who owns it, and is it reachable — ss filters, the -e trick that names the owner without root, /proc/net/tcp by hand, docker-proxy, and a CSV audit that alerts on new listeners.',
+  },
+  {
     slug: 'auto-restart-linux-service',
     title: 'Auto-Restart a Stopped Service on Linux',
     description:
