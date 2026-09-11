@@ -1,44 +1,49 @@
-<!-- REVIEW: incident dramatized — verify before publishing -->
-# ssh-copy-id Exited 0. The Brute-Force Attempts Never Stopped.
+# One ssh Flag Tells You Whether a Server Still Accepts Passwords
 
-The `auth.log` on my $5 droplet was 40 megabytes. I was on the box for an unrelated reason, ran `grep -c "Failed password"` out of idle curiosity, and got back a number north of 31,000 — one week's worth. A few hundred IPs had been guessing passwords against port 22 around the clock.
+Setting up SSH keys produces a row of green lights. `ssh-keygen` prints a fingerprint, `ssh-copy-id` reports `Number of key(s) added: 1` and exits 0, and the next login skips the password prompt. None of those answers the question the setup was for: does this server still accept passwords?
 
-Here's the thing: I had "secured" that server three weeks earlier. Generated an ed25519 key, watched `ssh-copy-id` report "Number of key(s) added: 1" with a clean exit 0, logged in without a password prompt, and closed the laptop satisfied. Every check I performed passed. None of them measured the thing that mattered, because password authentication was still switched on the whole time, and password auth is what the botnets were attacking. Nothing got in — but my setup evening had done nothing to stop a lucky guess, and I'd been walking around believing it had.
+There is a one-flag way to ask. `ssh -o PreferredAuthentications=none user@host` offers no credentials at all, so the server has to refuse, and its refusal lists every method it would have accepted. I pointed it at a Mac on my home network that has Remote Login switched on, from my Kali laptop. The answer was `Permission denied (publickey,password,keyboard-interactive)`. Passwords are open there. The same kind of question put to GitHub's SSH endpoint comes back with `publickey` and nothing else. No login attempt, no guessing, two seconds.
 
-That's the failure worth writing down: not a red error I mishandled, but a wall of green that let me believe a finish line I never crossed.
+That probe answers what the setup evening's green lights never could, because those lights were measuring something else.
 
-## Two switches, one gauge
+## What the exit 0 actually promised
 
-Pull apart what each green light actually asserted. `ssh-copy-id`'s exit code says a line was appended to `~/.ssh/authorized_keys` on the server — a statement about file contents. It even used the password to get there. The passwordless login afterwards says some auth method worked, without saying which. Meanwhile the thing I cared about — is password auth closed? — lives in `/etc/ssh/sshd_config` and doesn't move until you set `PasswordAuthentication no` and restart sshd. Key auth on and password auth off are separate switches. I'd flipped one and read the gauge for the other.
+`ssh-copy-id` succeeding means precisely this: it authenticated to the server — using your password, note — appended your public key to `~/.ssh/authorized_keys`, and exited. Its exit code is a claim about the contents of a file, not about how future logins behave. The passwordless login that follows proves "some authentication method succeeded", nothing sharper. Key auth working and password auth being closed are two independent switches. Flipping the first tells you nothing about the second, and OpenSSH ships with the second on: on this laptop, `/etc/ssh/sshd_config` still has `#PasswordAuthentication yes` commented out, which means the default, which means yes.
 
-## Where SSH hides its refusals
+## SSH hides its refusals from the side you are watching
 
-It gets worse, because SSH's design hides key failures too. Authentication is a negotiated walk down an ordered list — the server offers `publickey,password`, the client tries each in turn. A refused key produces no client-side error at all; the client drops to password and carries on. The single record of the refusal lands in the server's `auth.log`, the file nobody reads during setup.
+Authentication is a negotiation. The server offers an ordered list of methods, the client walks down it, and when one method is refused the client moves quietly to the next. The refusal is recorded once, in the server's auth log, which is the one place nobody looks during setup.
 
-The most common silent refusal is permissions. sshd's `StrictModes` inspects the remote `~/.ssh`, `authorized_keys`, and your home directory; one group-writable directory — a 775 an rsync left behind, say — and it disregards `authorized_keys` completely, no warning issued. You keep logging in via password fallback and everything feels fine, right up until the day you turn passwords off and discover your key never worked. From your terminal, "key broken but masked by fallback" and "key fine but passwords still exposed" are the same experience: a successful login.
+I have watched that negotiation go wrong on my own machine with no useful message at all. `ssh` from this Kali laptop to that same Mac printed `Permission denied` three times, then `Too many authentication failures`. The real cause appeared nowhere in the output: KDE's password helper, `ksshaskpass`, had intercepted the prompt, failed to render it, and handed ssh an empty password each time. On top of that, the client offered every key it had first, and each offer spent one of the server's authentication attempts before the password was ever tried. `SSH_ASKPASS_REQUIRE=never` and `-o PubkeyAuthentication=no` got through. The point is not the KDE bug. It is that from the client side, a broken method and a skipped method look the same.
 
-## Four lines, one honest test
+Keys get refused for reasons with no client-side symptom at all. The classic one is permissions: sshd's `StrictModes` checks the remote `~/.ssh`, `authorized_keys` and your home directory, and if any of them is group-writable it ignores `authorized_keys` entirely. Your login still works through password fallback, so everything looks fine until the day you disable passwords and lock yourself out.
+
+That leaves two invisible states that look identical from your terminal: key auth broken but masked by password fallback, and key auth fine with the password door wide open. In both, you are logged in.
+
+## The core, plus the one test that does not lie
 
 ```bash
 ssh-keygen -t ed25519 -C "$(whoami)@$(hostname)-$(date +%Y%m%d)" -f ~/.ssh/id_ed25519 -N ""
 chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_ed25519
 ssh-copy-id -i ~/.ssh/id_ed25519.pub user@server
-ssh -o PasswordAuthentication=no user@server   # the key worked — not "something" worked
+ssh -o PasswordAuthentication=no user@server   # proves the KEY works — not "something worked"
 ```
 
-Two details carry the weight. The `-N ""` gives the key an empty passphrase so generation runs non-interactively; put that flag in the wrong position and the script hangs on a prompt, a mistake I've made at one in the morning more often than I'd like on record. And the chmods matter because SSH declines keys with loose permissions — with messaging vague enough that people go hunting for a passphrase problem instead.
+`-N ""` gives the key an empty passphrase so generation runs without a prompt; leave it out of an automated run and the script sits waiting for input. The chmod lines are not ceremony: SSH refuses a private key other users can read, with a message people reliably misread as a passphrase problem.
 
-The fourth line is the honest test. Stripping password auth out of a single connection collapses the fallback chain, so a success can only mean the key authenticated. If it prompts or refuses, the key is broken — usually server-side permissions — and you've found out while the password route still exists to fix it through.
+The last line is the one that matters. Forcing `PasswordAuthentication=no` for a single connection removes the fallback, so success can only mean the key authenticated. If that command prompts or fails, your key is being refused — usually by server-side permissions — and you find out while the other way in still exists.
 
-Only after that test passes does the real lockdown happen: `PasswordAuthentication no` on the server, restart sshd, and verify from a second terminal while the first session stays open. A silently refused key plus a closed password door equals a server you can no longer enter; the open session is your undo button.
+Then the actual finish line, on the server: `PasswordAuthentication no` in `/etc/ssh/sshd_config`, reload sshd, and run the `PreferredAuthentications=none` probe again. `password` should be gone from the list. Do it with your current session held open and test from a second terminal, so a silently refused key costs you a fix and not a locked door.
 
-## The script that replaced my memory
+## Why the setup is a script
 
-I eventually stopped typing any of this by hand, because my track record was wrong key types, wrong output paths, and that misplaced `-N`. The full script on the page guards against overwriting an existing pair, enforces the 700/600 permissions every run, prints the public key ready for a cloud provider's control panel, and optionally pushes it out via `ssh-copy-id` — including a loop for multiple servers. The mistakes I used to make live in steps I no longer perform.
+Because doing it from memory fails in small ways: the wrong key type one time, the wrong output path another, `-N` forgotten so the run hangs. The full version on the page refuses to overwrite an existing key pair, sets directory and key permissions on every run, prints the public half ready to paste into a cloud control panel, and runs `ssh-copy-id` for you when you give it a target, with a loop variant for pushing one key to several servers.
 
-The bots still knock on that droplet daily; they knock on every public IPv4 address. But the password method they're built to attack no longer exists there, which is what that first evening was supposed to accomplish. The green lights are finally attached to the right wires.
+Every public IPv4 address gets probed for SSH passwords around the clock. The green lights from key setup do not tell you whether that matters to your server. One refusal message does.
 
-The full setup script, the permissions walkthrough, and the multi-server variant: https://bashsnippets.xyz/snippets/ssh-key-setup-script — and the file permissions snippet at https://bashsnippets.xyz/snippets/file-permissions-security pairs with it if StrictModes is the part that got you.
+Full script with the existing-key guard, permission handling and the multi-server loop: https://bashsnippets.xyz/snippets/ssh-key-setup-script
+
+If permissions are the part that has bitten you, [file permissions and security](https://bashsnippets.xyz/snippets/file-permissions-security) covers the modes SSH insists on, [list open ports](https://bashsnippets.xyz/snippets/list-open-ports-linux) shows what else your box is answering on, and the rest of the library is at https://bashsnippets.xyz
 
 Originally published at https://bashsnippets.xyz/snippets/ssh-key-setup-script
 

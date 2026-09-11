@@ -1,49 +1,52 @@
-<!-- REVIEW: incident dramatized — verify before publishing -->
 ---
-title: "I Trusted an Empty grep for Eleven Days. Now There's an Alias for That"
+title: "grep \"error|failed\" Found Nothing in a Log That Said 'backup failed'"
 published: true
-description: "An unescaped pipe made grep report a clean backup log for eleven days. The BRE vs ERE trap, and a builder that assembles the grep you actually meant."
+description: "In grep's default BRE mode the pipe is a literal character, so an OR search matches nothing, prints nothing and exits 1 — the same code as a clean log. The -E fix, GNU's \\| escape, why an alias is a crutch, and a builder whose live tester shows the empty result before you trust it."
 tags: bash, webdev, tools, productivity
 canonical_url: https://bashsnippets.xyz/tools/grep-pattern-builder
 cover_image: https://bashsnippets.xyz/ogimage.png
 ---
 
-For three Mondays in a row, I ran the same four-second ritual on the $5 VPS that hosts a client's site: grep the backup log for trouble, see an empty result, close the terminal. `grep "error|failed" /var/log/backup.log`. Nothing. All clear. Meanwhile the nightly tar job had been dying every single night, ever since a logrotate change flipped permissions on a directory it archived.
+I wrote a three-line backup log on my own machine: a start line, `tar: /var/www/uploads: Cannot open: Permission denied`, and `backup failed (exit 2)`. Then I ran the check a lot of people keep as a weekly ritual, the one that looks like it asks "did anything go wrong?": `grep "error|failed" backup.log`.
 
-I found out the way you always find out — by needing the backup. The client wanted a page rolled back to the previous week, and the newest archive that would extract was eleven days old. The log I'd been grepping was full of `tar: Permission denied` and `backup failed` lines the entire time. Every night the job wrote down exactly what was wrong. Every Monday I searched for it, found nothing, and believed the nothing.
+GNU grep 3.12 printed nothing and exited 1. The last line of the log says `failed` in plain text.
 
-That's the part that stings. I hadn't skipped the check. I'd run it, on schedule, and it answered a different question than the one I thought I was asking.
+`grep -E "error|failed" backup.log` printed that line and exited 0.
 
-## The pipe that wasn't a pipe
+Nothing about the first command is malformed, so there is no error message. Exit 1 means "no lines matched", which is exactly what grep returns for a genuinely clean log. A monitoring check wired to that exit code reports all clear on a log full of failures, every single run, and the empty output does not start an investigation. It ends one.
 
-grep's default engine is Basic Regular Expressions, and in BRE the pipe character is not alternation. It's a literal. `error|failed` doesn't mean "error OR failed" — it means the twelve-character string `error|failed`, pipe included, which has never once appeared in a log file. The same goes for `+`, `?`, and `()`: in BRE they're ordinary characters unless you backslash-escape them. Alternation the way every other regex engine behaves requires `-E`, Extended Regular Expressions — the mode `egrep` has been shorthand for since before I was born.
+## The pipe that isn't a pipe
+
+grep's default engine is Basic Regular Expressions, and in BRE the pipe is not alternation. It is a literal character. `error|failed` does not mean "error or failed"; it means the twelve-character string `error|failed`, pipe included, which no logger has ever written. The same goes for `+`, `?` and parentheses: in BRE they are ordinary characters unless you backslash-escape them. Alternation the way every other regex engine behaves needs `-E`, Extended Regular Expressions — the mode `egrep` has been shorthand for since long before most of us started typing it.
 
 ```bash
 # BRE (default): the pipe is a literal character — matches nothing, exits 1
-grep "error|failed" /var/log/backup.log
+grep "error|failed" backup.log
 
 # ERE: the pipe means OR — the search you actually meant
-grep -E "error|failed" /var/log/backup.log
+grep -E "error|failed" backup.log
 ```
 
-And grep raises no objection to the first version. It isn't a syntax error. Which is the deeper trap: grep exits 0 on a match, 1 on no match, and 2 on an actual error — and an impossible pattern is not an error. "No matching lines" and "you searched for a string that cannot exist" produce identical output: none. A false negative is the worst failure class a search tool has, because it doesn't start an investigation. It ends one.
+GNU grep also accepts `grep "error\|failed"` in BRE mode — on my machine that matched and exited 0 — but the escaped pipe is a GNU extension that POSIX does not define, so it is a habit that stops working on the systems that do not carry GNU grep. `-E` is the portable spelling.
 
-## The alias, confessed
+The deeper trap is in the exit codes. grep exits 0 on a match, 1 on no match and 2 on an actual error; pointed at a file that did not exist, it printed `No such file or directory` and exited 2. An impossible pattern is not an error. "No matching lines" and "you searched for a string that cannot exist" produce identical output: none, with the same status. A false negative is the worst failure a search tool has, because nobody goes looking for a problem that grep has already said is not there.
 
-That night I put `alias grep='grep -E'` in my .bashrc, and I'll admit it's still there. I'll also admit it's a crutch. Aliases fire only in interactive shells, so every cron job and script on that box still runs BRE grep. The alias does nothing on any machine that isn't mine — which is most machines I touch. And it trains my fingers to type patterns that silently degrade the moment it's absent. The durable fix isn't an alias. It's refusing to trust a grep without knowing which engine it ran under and what its silence actually means.
+## The alias is a crutch
 
-## So I built the thing I needed that Monday
+The tempting fix is `alias grep='grep -E'` in your shell rc file, and it does make the interactive ritual behave. It also does nothing anywhere that matters. Aliases apply only to interactive shells, so every cron job and script on the same box still runs BRE grep. The alias does not exist on any machine you have not configured, which is most of the machines you will ever SSH into. And it trains your fingers to type patterns that silently degrade the moment it is absent. The durable fix is knowing which engine a grep runs under and what its silence means before you trust it — and writing `-E` into the script itself.
 
-The grep Pattern Builder assembles the command live as you type: pattern, path, and an optional comma-separated list of file types that it converts into proper `--include="*.ext"` flags so a log search doesn't wade through binaries. Toggles cover the flags that earn their keep — case-insensitive, recursive, line numbers, invert, count, filenames-only, whole-word, quiet mode, and `-B`/`-A` context lines — and every combination produces a plain-English sentence describing exactly what the command will do, before you run it.
+## So the builder shows the engine and the empty result
 
-The engine picker is the part born directly from my eleven days. Three options — BRE, `-E`, `-P` — each with a note about what's literal where, including the warning that `-P` is GNU-only and fails on macOS/BSD grep. That's the second flavor of the same trap: a `\d` pattern that works on the Debian VPS errors out on your Mac, and portability drift between grep implementations is not something you want to discover mid-incident.
+The [grep Pattern Builder](https://bashsnippets.xyz/tools/grep-pattern-builder) assembles the command live as you type: pattern, path, and an optional comma-separated list of file types that it turns into `--include` flags, so a log search does not wade through binaries. Toggles cover the flags that earn their keep — case-insensitive, recursive, line numbers, invert, count, filenames-only, whole-word, quiet and `-B`/`-A` context lines — and every combination produces a plain-English sentence saying what the command will do before you run it.
 
-There are guardrails for mistakes I've shipped, too. It auto-enables `-r` when the path looks like a directory, because plain grep pointed at a directory refuses with "Is a directory" — and in a script with stderr redirected, that refusal is invisible. It suppresses `-n` when `-c`, `-l`, or `-q` is active, because those flags change the output mode and line numbers stop meaning anything.
+The engine picker sits front and centre: BRE, `-E` and `-P`, each with a note about what is literal where. The BRE note says it outright: `+ ? | ( )` are literal unless escaped. The `-P` note warns that Perl-compatible regex is GNU-only and fails on macOS and BSD grep, the portability cousin of the same trap: a `\d` pattern that works on a Debian server errors out on a Mac.
 
-But the panel that would have saved me is the live tester. Paste a few sample lines — including one real failure line from your actual log — and it highlights which lines the current pattern matches, with a count. `error|failed` against a pasted `backup failed` line highlights nothing, and zero-out-of-one is a number that makes you look up. My Monday ritual trusted an empty result over a directory I couldn't see into; the tester makes the emptiness falsifiable in five seconds.
+There are guardrails for mistakes people ship. It turns on `-r` when the path looks like a directory, because plain grep pointed at a directory refuses with "Is a directory", and in a script with stderr redirected that refusal is invisible. It drops `-n` when `-c`, `-l` or `-q` is active, because those flags change the output mode and line numbers stop meaning anything.
 
-Eleven days of a lying all-clear came down to one unescaped character and a tool whose silence I never questioned. The command was syntactically valid, ran clean, exited 1, and reported nothing wrong — which was true only about the string I'd accidentally asked for.
+The panel that makes the ritual trustworthy is the live tester. Paste a few sample lines, including one real failure line from your actual log, and it highlights which lines the current pattern matches, with a count. In BRE mode it treats a bare pipe literally, the way grep does, so `error|failed` against a pasted `backup failed` line highlights nothing: zero out of one, a number that makes you look up. Switch to `-E` and the line lights. The preview runs on JavaScript's regex engine, which is close to ERE and PCRE for everyday patterns — treat it as a check on your pattern, not a replacement for running grep.
+
+One unescaped character turned a failure search into a search for a string that cannot exist, and grep answered that question with perfect accuracy. The command was valid, ran clean, exited 1, and reported nothing wrong.
 
 Build the command and read the explanation before you trust it: https://bashsnippets.xyz/tools/grep-pattern-builder
 
-The [Search Files for Text snippet](https://bashsnippets.xyz/snippets/search-files-for-text-grep) covers the grep patterns I reach for weekly, [Delete Old Log Files](https://bashsnippets.xyz/snippets/delete-old-log-files) handles the other half of log hygiene, and the rest of the library is at https://bashsnippets.xyz
+The [Search Files for Text snippet](https://bashsnippets.xyz/snippets/search-files-for-text-grep) covers the grep patterns worth keeping, [Delete Old Log Files](https://bashsnippets.xyz/snippets/delete-old-log-files) handles the other half of log hygiene, and the rest of the library is at https://bashsnippets.xyz

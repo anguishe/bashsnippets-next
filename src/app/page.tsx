@@ -10,9 +10,10 @@ import Link from 'next/link';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
-const homeTitle = 'Free Bash Script Library — Copy-Paste Scripts for Linux';
+// Bing flags titles over 65 chars and descriptions over 160; the full <title> adds " | BashSnippets.xyz" (19).
+const homeTitle = 'Free Copy-Paste Bash Script Library for Linux';
 const homeDescription =
-  'Copy-paste bash scripts and interactive tools for Linux, macOS, and DevOps — disk monitoring, backups, cron, permissions, and more. Every script is tested, explained line by line, and free.';
+  'Copy-paste bash scripts and interactive tools for Linux and DevOps: disk alerts, backups, cron, permissions. Every script tested and explained line by line.';
 
 export const metadata: Metadata = {
   title: { absolute: `${homeTitle} | BashSnippets.xyz` },

@@ -1,50 +1,46 @@
-<!-- REVIEW: incident dramatized — verify before publishing -->
 ---
-title: "Two Quote Characters Silenced My Alerts for Five Weeks — So I Built a jq Filter Builder"
+title: "I Tested a jq Alert Against a Down Status. It Printed 'no alert'."
 published: true
-description: "Build a jq filter by clicking through a real JSON response — the filter, the full curl | jq command, and a live preview before anything runs."
+description: "jq's default output is JSON, so .status arrives in bash as \"down\" with the quotes on and a comparison against down never matches. The -r fix, the null that passes -n checks, where select() fails loudly and where it fails silently — and a builder that shows all of it before a script runs."
 tags: bash, webdev, tools, productivity
 canonical_url: https://bashsnippets.xyz/tools/jq-filter-builder
 cover_image: https://bashsnippets.xyz/ogimage.png
 ---
 
-For five weeks, a cron job on my $5 VPS polled a status endpoint every five minutes, pulled `.status` out of the JSON with jq, compared it to `down`, and stayed quiet. Redis on that box fell over twice in that window. The webhook never fired either time. I found out from a client email asking why their contact form had been erroring since Tuesday.
+The shape is everywhere in monitoring scripts: curl a status endpoint, pull one field out with jq, compare it, fire an alert on a match. I wrote the smallest honest version of it on my own machine, jq 1.8.1, against a response that said the service was down:
 
-The script read correctly. curl fetched the response, jq extracted the field, an `if` compared it, the alert fired on a match. I ran the pipeline by hand and the variable printed as down. What finally exposed it was `echo "[$status]"` — which printed `["down"]`. The quotes were inside the variable. jq had been handing my comparison a six-character string — quote, d-o-w-n, quote — and bash had been comparing it byte-for-byte against the four characters I typed. Never equal. Never an alert. Exit code zero, so cron reported nothing wrong either.
+```bash
+resp='{"status":"down"}'
+status=$(echo "$resp" | jq '.status')
+echo "[$status]"                                                 # ["down"]
+if [ "$status" = "down" ]; then echo ALERT; else echo "no alert"; fi   # no alert
+```
 
-The fix was two characters, `-r`. The five weeks it took to find them is the part I'd rather not repeat.
+The service was down. The script said `no alert`, and exited 0. The `echo "[$status]"` line shows why: the variable holds `"down"`, quote characters included. jq handed bash a six-character string, bash compared it byte for byte against the four characters in the test, and they never match. Put that in a five-minute cron job and it stays quiet through every outage it exists to report.
+
+Adding two characters, `jq -r`, changed the output to `[down]` and the script to `ALERT`.
 
 ## jq speaks JSON, bash speaks bytes
 
-jq's default output format is JSON, and a JSON string includes its own quotes — printing `"down"` is jq being correct, not broken. Bash's `=` has no concept of quotes-as-markup; it compares the bytes it was given. The `-r` flag tells jq to emit the string's contents rather than its JSON representation, which is why nearly every value headed into a shell variable, a filename, or a test wants it.
+jq's default output format is JSON, and a JSON string includes its own quotes, so printing `"down"` is jq being correct. Bash's `=` has no idea that quotes might be markup; it compares the bytes it was given. `-r` tells jq to emit the string's contents rather than its JSON representation, which is why nearly every value headed into a shell variable, a filename or a test wants it.
 
-That's the first of three ways a jq one-liner fails while looking right. The second: asking for a key the response doesn't have isn't an error — jq emits `null`, and by the time it lands in bash it's the literal four-byte string null, which passes `[ -n ]` checks and walks straight into filenames. backup-null.tar.gz is a genre of file I have created personally. The `//` operator is the guard: it substitutes a real fallback when the field is missing or null. The third: `select()` quoting. The filter lives inside single quotes so the shell keeps its hands off it, which means string comparisons inside need double quotes — `select(.name == "redis")`. Wrong quoting doesn't error; select() matches zero elements, outputs nothing, exits zero, and your script interprets the silence however it likes.
+That is the first of three ways a jq one-liner fails while looking right. The second: asking for a key the response does not have is not an error. On the same response, `jq -r '.region'` printed `null` and exited 0. In bash that is the literal four-character string `null`, which passes `[ -n ]` checks and walks straight into filenames and log lines. The `//` operator is the guard: `jq -r '.region // "unknown"'` printed `unknown`.
 
-Three traps, one shared property: each produces output that looks plausible while being wrong, and none of them raises an exit code.
+The third is `select()`, and here the folklore is half wrong. Forget the double quotes around a string inside the filter — `select(.name == redis)` — and jq does not quietly match nothing. It refuses to compile, prints `redis/0 is not defined`, and exits 3. That one is loud, and `set -e` will catch it. The silent version is a value that is spelled right but does not exist: `select(.name == "nginx")` against a list with no nginx in it printed nothing and exited 0. So did a case mismatch. Your script then treats that silence however it treats an empty string.
 
-## The night I stopped hand-writing filters
+Three traps, and two of them share one property: plausible output, zero exit code.
 
-My debugging method for all three was identical: trial and error against the live API. Tweak the filter, re-run the curl, squint at the output, repeat. The third time I caught myself in that loop after midnight — guessing at quote placement against a rate-limited endpoint — I decided the structure of the response should be doing this work, not my memory of jq syntax. So I built the jq Filter Builder.
+## Build the filter against the response you already have
 
-You paste in a real JSON response, or load one of the bundled samples, and it renders the parsed structure as a clickable tree. Click any field and the path is built for you — click down into a nested object and the filter tracks every step. The structure is the interface; there is no syntax to recall.
+The usual way to debug all three is trial and error against the live API: tweak the filter, re-run the curl, squint, repeat, often against a rate-limited endpoint. The [jq Filter Builder](https://bashsnippets.xyz/tools/jq-filter-builder) turns that around, because you already have the JSON.
 
-Arrays get the full treatment, because arrays are where extraction filters earn their keep. Select an array and you can toggle per-element iteration, attach a select() whose field name comes from a dropdown populated with the keys that actually exist on the elements — a typo'd key stops being possible — and project one field out of each match. The comparison value is rendered the way jq reads literals: true, false, and numbers bare, everything else double-quoted for you inside the single-quoted program. The exact quoting decision I kept fumbling at midnight is made mechanically.
+Paste a real response, or load one of the bundled samples, and it renders the parsed structure as a clickable tree. Click a field and the path is built for you, however deep it is nested. Arrays get the full treatment: switch on per-element iteration, attach a `select()` whose field name comes from a dropdown filled with the keys that actually exist on the elements, so a misspelled key stops being possible, and project one field out of each match. The comparison value is written the way jq reads literals — `true`, `false` and numbers bare, everything else double-quoted for you inside the single-quoted program. The quoting decision is made mechanically.
 
-Below that sit two copyable outputs — the bare filter for a script, and the full `curl -s … | jq` command with your URL already in place — plus the piece that would have saved my five weeks: a live preview, evaluated in the browser against the JSON you pasted. Leave `-r` off and the quotes are right there in the preview, visible before they ever reach a script. And when the result is empty, the preview says why: select() matched no elements, the path doesn't exist in this response, or a `// empty` default is deliberately producing nothing. Empty output stops being ambiguous.
+Below that sit two copyable outputs: the bare filter for a script, and the full `curl -s … | jq` command with your URL in place, `-r` included when you ask for raw output. And a live preview, evaluated in the browser against the JSON you pasted, on every change. Leave `-r` off and the quotes are right there in the preview. When the result is empty, the preview says why — `No elements matched (jq would output nothing)`, `Path not found`, or that a `// empty` default is deliberately producing nothing — so empty output stops being ambiguous.
 
-One property worth knowing before you paste anything sensitive: it all runs client-side. Nothing is uploaded and no remote jq binary is invoked, so a response from a real production system stays in your browser.
+It runs client-side: nothing is uploaded and no remote jq is invoked, so a response from a production system stays in your browser. Scope, honestly: it builds the extraction patterns that cover most API scripting — nested access, array indexing, iteration with `select()` and projection, `//` defaults, raw output. Reduce, string interpolation and arithmetic still belong to the manual.
 
-Scope, honestly: it builds the extraction patterns that cover most API scripting — nested field access, array indexing, iteration with select() and projection, `//` defaults, raw output. It does not attempt the rest of the jq language; reduce, string interpolation, and arithmetic still belong to the manual.
-
-## The failure that can't get past a preview
-
-The line running on that VPS today came out of the builder:
-
-```bash
-status=$(curl -s "$STATUS_URL" | jq -r '.dependencies[] | select(.name == "redis") | .ok')
-```
-
-The version of me that shipped the quiet alert couldn't ship it from this tool. The missing `-r` shows up as quotes in the preview. The bad select() shows up as "no elements matched" instead of respectable-looking emptiness. The missing key names itself. Five weeks of silence, converted into one glance before anything runs.
+The four-line check at the top of this post could not have shipped from the builder. The quotes show up in the preview before the script exists.
 
 Build a filter against your own API response: https://bashsnippets.xyz/tools/jq-filter-builder
 

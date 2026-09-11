@@ -184,6 +184,24 @@ function highlightSegment(line: string, regex: RegExp): string {
   return out;
 }
 
+// GNU BRE → JavaScript regex for the preview: a bare + ? | ( ) { } is literal, the escaped
+// form is the operator. Without this, BRE mode previewed `error|failed` as alternation, a match
+// grep would never print.
+function breToJs(p: string): string {
+  const ops = '+?|(){}';
+  let out = '';
+  for (let i = 0; i < p.length; i++) {
+    const c = p[i];
+    if (c === '\\' && i + 1 < p.length) {
+      const next = p[++i];
+      out += ops.includes(next) ? next : c + next;
+    } else {
+      out += ops.includes(c) ? '\\' + c : c;
+    }
+  }
+  return out;
+}
+
 function runSample(sample: string, a: BuildArgs): SampleResult {
   if (!sample) {
     return { html: '<span style="color:#8b949e;font-style:italic;">Paste sample text to preview matches.</span>', matchCount: 0, error: false };
@@ -191,7 +209,7 @@ function runSample(sample: string, a: BuildArgs): SampleResult {
   if (!a.pattern) {
     return { html: escapeHtml(sample), matchCount: 0, error: false };
   }
-  let source = a.pattern;
+  let source = a.engine === 'basic' ? breToJs(a.pattern) : a.pattern;
   if (a.word) source = `\\b(?:${source})\\b`;
   let regex: RegExp;
   try {
@@ -525,7 +543,7 @@ export default function GrepPatternBuilder() {
           />
         </div>
         <p className="mt-2 text-[11px] leading-relaxed text-muted">
-          Preview uses the JavaScript regex engine — close to ERE/PCRE for everyday patterns. Highlighted spans are the lines grep would print for the current flags.
+          Preview uses the JavaScript regex engine — close to ERE/PCRE for everyday patterns. In BRE mode a bare + ? | ( ) is matched literally, as grep does. Highlighted spans are the lines grep would print for the current flags.
         </p>
       </div>
     </div>

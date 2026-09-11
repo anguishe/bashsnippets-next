@@ -1,29 +1,47 @@
-<!-- REVIEW: incident dramatized — verify before publishing -->
-# The Backup Dashboard Was Green. The Backup Was Gone.
+# I Pointed rsync --delete at a Nearly Empty Directory. It Deleted 3,800 Files and Exited 0.
 
-The Saturday this story surfaced, a client emailed to ask whether I could recover a photo she'd deleted from her site months back. This is the exact scenario the nightly backup exists for, so I said yes before checking. Then I opened the mirror directory on my home server and found one file in it: `index.nginx-debian.html`. Not a corrupted backup. Not a failed one. A perfectly synchronized copy of the wrong thing.
+The rsync accident that ends backups is not an error. It is rsync doing exactly what it was told, successfully, to the wrong directory. I wanted to see how quiet that is, so I rebuilt it in a scratch directory on my own machine with rsync 3.5.0.
 
-Rewind nineteen nights. I'd spent an evening tidying the $5 VPS that serves her site — moved the web root from `/var/www/html` to `/srv/www`, pointed nginx at the new path, verified the pages loaded, closed the laptop. One thing kept the old path: the backup script. And `/var/www/html` didn't vanish when the site moved out, because Debian's nginx package keeps it around with a single default index page inside.
+The destination held 3,800 files, standing in for a nightly mirror. The source held one file, `index.nginx-debian.html` — what Debian's nginx package leaves behind in `/var/www/html` after you move a site's web root somewhere else and forget that the backup script still points at the old path. Then the mirror command anyone would have in that script: `rsync -a --delete src/ dst/`.
 
-So every night at 2am, rsync ran with `--delete`, compared a source holding one file against a destination holding close to 3,800, and did what mirroring means: made the destination match. Then it exited 0. The healthcheck pinged green. The log gained another `✓ backup complete`. Nineteen consecutive successes, each one a deletion event, none of them distinguishable from health in any dashboard I had.
+It exited 0. Afterwards the destination held one file: `index.nginx-debian.html`. Three thousand eight hundred files gone, in a run that any cron wrapper, healthcheck ping or `✓ backup complete` log line would have recorded as a success. Run that nightly and every green checkmark in the dashboard is a record of the deletion.
 
-What I had to sit with afterward is that nothing malfunctioned. rsync's exit code reports on the operation it was handed — non-zero is reserved for its own failures: unreachable hosts, I/O errors, files vanishing mid-transfer, partial copies. "The source is a directory you abandoned last month" is not a condition rsync can detect. Making a full destination match a near-empty source is a legitimate mirror, completed cleanly. Exit 0 answers "did the sync finish?" — I had wired it up to answer "is the data safe?", and by that Saturday the two answers had diverged by a few thousand files.
+## Exit 0 doesn't mean what your monitoring thinks
 
-rsync carries a whole family of these traps, and they share a signature: the wrong invocation doesn't error, it succeeds at something else. Leave the trailing slash off the source and you copy the directory itself rather than its contents, nesting `www/www` at the destination — which, on a `--delete` run, also shifts what gets compared and deleted. Skip `-a` and permissions, symlinks, and timestamps silently stop being preserved; worse, rsync's quick check identifies unchanged files by size plus modification time, so a destination stamped with transfer-time mtimes never matches again and every subsequent run re-copies the entire tree — still exiting 0. Feed one `--exclude` a comma-separated list of patterns and it matches nothing at all. Every one of these runs clean and lies dormant until the day you need the restore.
+The bug is not in rsync. It is in what we assume its exit code promises. rsync reserves non-zero codes for failures on its own terms: an unreachable host, a protocol error, an I/O failure, source files vanishing mid-transfer (code 24), a partial transfer (code 23). Making a destination match a near-empty source is none of those. It is the requested operation, delivered without incident. A monitor that checks the exit code answers "did rsync finish?" and most of us have labelled that answer "is the data safe?" Those are different questions.
 
-The countermeasure costs one flag:
+## rsync's sharp edges fail by succeeding
 
-```bash
-rsync -avz --delete --dry-run -e ssh /srv/www/ travis@backup:/srv/backup/www/
+Once you see that shape, you find it all over the command. A trailing slash on the source means "copy the contents"; no trailing slash means "copy the directory itself", which nests a second directory inside your destination and, on a `--delete` mirror, changes what gets compared and therefore what gets removed. Both versions run clean. Drop `-a` and rsync stops preserving permissions, symlinks and timestamps, and because its quick check decides "already transferred" by size and modification time, a destination full of transfer-time mtimes never matches again, so every run quietly becomes a full re-copy that still exits 0. Hand a comma-separated list to a single `--exclude` and it is treated as one pattern with a comma in it, so it matches nothing and `node_modules` rides along every night. None of these produce an error. Each completes a different operation from the one in your head.
+
+## The flag that shows the damage first
+
+The habit that prevents the whole class is previewing every destructive sync. Same scratch directories, same command, with `--dry-run` and `-v`:
+
+```text
+$ rsync -a --delete --dry-run -v src/ dst/
+sending incremental file list
+deleting photo-999.jpg
+deleting photo-998.jpg
+deleting photo-997.jpg
+…
 ```
 
-`--dry-run` prints what the transfer would do — including every `deleting …` line — and touches nothing. On night one, that would have been thousands of deletion lines scrolling past my eyes instead of executing behind my back. You cannot miss a wall of deletions you are forced to read. You can miss anything in a log nobody opens.
+Thousands of `deleting` lines, and afterwards the destination still held all 3,800 files. A wall of deletions in a preview you are reading is impossible to miss. The same wall executed in a log nobody opens is a green checkmark.
 
-That failure is the reason the [Rsync Command Builder](https://bashsnippets.xyz/tools/rsync-command-builder) exists. You give it a source and a destination, toggle the real flags — archive, verbose, compress, resume over unstable links, SSH transport, a KB/s bandwidth cap, comma-separated excludes that come out as individually quoted `--exclude` flags — and watch the finished command assemble itself in a live preview. Its opinions are the useful part: enabling `--delete` without dry-run triggers a red warning that these deletions are unrecoverable, and enabling both flips it to a green note that says remove `--dry-run` only after reading the preview. The Mirror preset arrives with dry-run already on, so destructive mirroring starts safe and you opt out of the safety deliberately. Everything runs client-side in the browser.
+One detail the documentation does not shout: the `-v` is not optional. I ran `--dry-run` without it against a second scratch directory and it printed nothing at all and exited 0. A dry run you cannot see is not a preview. Use `-v`, or `--itemize-changes` if you want one line per file with a change code.
 
-The photo, in the end, turned up as a low-res attachment in an old email thread — more luck than a backup strategy should ever require. The dashboard had told me the truth all along: rsync finished, every night. I was the one who decided that meant something it didn't.
+## So the builder makes the preview the default
 
-Compose your next sync with the sharp edges visible: https://bashsnippets.xyz/tools/rsync-command-builder — and if you're scripting the full nightly job, the [Rsync Remote Backup](https://bashsnippets.xyz/snippets/rsync-remote-backup) snippet covers the cron scheduling and SSH key setup around it.
+The [Rsync Command Builder](https://bashsnippets.xyz/tools/rsync-command-builder) assembles the command in a live preview while you toggle the real options: archive mode, verbose output, compression, resume for unreliable links (`--partial --progress`), SSH transport, a bandwidth cap for syncs that share a link with people trying to use it, and exclude patterns. You type the excludes comma-separated and it emits one individually quoted `--exclude` flag per pattern, so the shell never expands your glob and the comma mistake cannot happen.
+
+The opinions built into it are the point. Turn on `--delete` without dry-run and a red warning appears: those deletions are permanent, preview them first. Turn dry-run on and it switches to a green note telling you to remove `--dry-run` only after you have read the output. The Mirror preset ships with dry-run already enabled — mirroring is the one mode where you switch the safety off on purpose instead of remembering to switch it on. The whole thing runs in your browser; nothing you type leaves the page.
+
+The scratch run took a fraction of a second to delete 3,800 files and report success. The preview took the same fraction of a second to list every one of them. The only difference was a flag.
+
+Build the command with the guardrails on: https://bashsnippets.xyz/tools/rsync-command-builder
+
+For the script around it — cron scheduling, SSH keys, a hardened nightly job — the [Rsync Remote Backup](https://bashsnippets.xyz/snippets/rsync-remote-backup) snippet pairs with this tool, [Automated File Backup](https://bashsnippets.xyz/snippets/automated-file-backup) covers the local variant, and the rest of the library is at https://bashsnippets.xyz
 
 Originally published at https://bashsnippets.xyz/tools/rsync-command-builder
 

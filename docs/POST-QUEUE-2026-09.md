@@ -63,22 +63,23 @@ The canonicals for 24 and 25 are the same ones the kit files carried: verified c
 
 ### B1. dev.to, one per weekday, backlog order (Fri 9/19 → Wed 10/1)
 
-REVIEW count = `grep -c 'REVIEW:'` in the dev.to file on 2026-09-10. **Do not vet the REVIEW=1 stories.
-Claude rewrites those intros around real runs before 9/19**, the same treatment 21, 23, 24 and 25 got on
-2026-09-11 (handoff item E). Their titles may change; take the title from the file on the day.
+**01, 04, 05, 06 and 10 were rewritten 2026-09-11** around real runs on this box (handoff item E):
+no REVIEW lines, new titles below, and the `-medium.md` files regenerated from the same bodies. 02,
+07, 08 and 09 carry no REVIEW line; Claude checks their incident framing against the site pages
+before their dates.
 
 | Day | Date | # | Title (exact) | Body file (`docs/cross-posts/`) | canonical_url | Tags | REVIEW | Done |
 |---|---|---|---|---|---|---|---|---|
-| 6 | Fri 9/19 | 01 | My Own Backup Script Took the Server Down at 11:40 on a Sunday Night | `01-bash-scripts-every-sysadmin-needs-devto.md` | `https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs` | bash, linux, devops, tutorial | **1** | [ ] |
+| 6 | Fri 9/19 | 01 | My Disk Check Prints WARNING at 88%. Cron Throws It Away Every Monday. | `01-bash-scripts-every-sysadmin-needs-devto.md` | `https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs` | bash, linux, devops, tutorial | 0 | [ ] |
 | 7 | Mon 9/22 | 02 | Eleven Services Lost Checkout Because I Ran sed Before find | `02-bash-text-processing-devto.md` | `https://bashsnippets.xyz/guides/bash-text-processing` | bash, linux, devops, tutorial | 0 | [ ] |
 | — | — | 03 | **DO NOT POST — already live.** See the note under this table. | `03-shell-scripts-that-talk-to-apis-devto.md` | `https://bashsnippets.xyz/guides/shell-scripts-that-talk-to-apis` | — | 0 | [ ] fix canonical instead |
-| 8 | Tue 9/23 | 04 | Nineteen Nights of Exit 0 While rsync Quietly Emptied My Backup | `04-rsync-command-builder-devto.md` | `https://bashsnippets.xyz/tools/rsync-command-builder` | bash, webdev, tools, productivity | **1** | [ ] |
-| 9 | Wed 9/24 | 05 | I Trusted an Empty grep for Eleven Days. Now There's an Alias for That | `05-grep-pattern-builder-devto.md` | `https://bashsnippets.xyz/tools/grep-pattern-builder` | bash, webdev, tools, productivity | **1** | [ ] |
-| 10 | Thu 9/25 | 06 | Two Quote Characters Silenced My Alerts for Five Weeks — So I Built a jq Filter Builder | `06-jq-filter-builder-devto.md` | `https://bashsnippets.xyz/tools/jq-filter-builder` | bash, webdev, tools, productivity | **1** | [ ] |
+| 8 | Tue 9/23 | 04 | I Pointed rsync --delete at a Nearly Empty Directory. It Deleted 3,800 Files and Exited 0. | `04-rsync-command-builder-devto.md` | `https://bashsnippets.xyz/tools/rsync-command-builder` | bash, webdev, tools, productivity | 0 | [ ] |
+| 9 | Wed 9/24 | 05 | grep "error&#124;failed" Found Nothing in a Log That Said 'backup failed' | `05-grep-pattern-builder-devto.md` | `https://bashsnippets.xyz/tools/grep-pattern-builder` | bash, webdev, tools, productivity | 0 | [ ] |
+| 10 | Thu 9/25 | 06 | I Tested a jq Alert Against a Down Status. It Printed 'no alert'. | `06-jq-filter-builder-devto.md` | `https://bashsnippets.xyz/tools/jq-filter-builder` | bash, webdev, tools, productivity | 0 | [ ] |
 | 11 | Fri 9/26 | 07 | A Log File Nobody Read Took My Disk to Zero Bytes on a Tuesday | `07-delete-old-log-files-devto.md` | `https://bashsnippets.xyz/snippets/delete-old-log-files` | bash, linux, devops, sysadmin | 0 | [ ] |
 | 12 | Mon 9/29 | 08 | Ten Minutes of Retyping a Passphrase I Knew Cold — the Bug Was Mode 644 | `08-file-permissions-security-devto.md` | `https://bashsnippets.xyz/snippets/file-permissions-security` | bash, linux, devops, sysadmin | 0 | [ ] |
 | 13 | Tue 9/30 | 09 | My Disk Monitor Knew for Hours and Told No One | `09-bash-send-email-alert-devto.md` | `https://bashsnippets.xyz/snippets/bash-send-email-alert` | bash, linux, devops, sysadmin | 0 | [ ] |
-| 14 | Wed 10/1 | 10 | Every Light Was Green and My VPS Was Still Taking 31,000 Password Guesses a Week | `10-ssh-key-setup-script-devto.md` | `https://bashsnippets.xyz/snippets/ssh-key-setup-script` | bash, linux, devops, sysadmin | **1** | [ ] |
+| 14 | Wed 10/1 | 10 | One ssh Flag Tells You Whether a Server Still Accepts Passwords | `10-ssh-key-setup-script-devto.md` | `https://bashsnippets.xyz/snippets/ssh-key-setup-script` | bash, linux, devops, sysadmin | 0 | [ ] |
 
 **Row 03 — the 61-hours story is already on dev.to and Medium.** dev.to article **4266678**
 ("Our Status Dashboard Was Green for 61 Hours While the API Was Down",
@@ -88,7 +89,6 @@ Instead: open that article → ⚙ → set `canonical_url` to `https://bashsnipp
 → save → view-source to confirm. That gives the guide its dev.to link for free. The Medium copy is the
 pasted one with the `# ` title (section C) — it cannot gain a canonical without a re-import, so leave it and fix the title only.
 
-Rewrite order for the five REVIEW=1 drafts, by posting date: 01 (9/19) → 04 (9/23) → 05 (9/24) → 06 (9/25) → 10 (10/1).
 
 ### B2. Medium imports — 2–3 days after each dev.to post (recipe M)
 
