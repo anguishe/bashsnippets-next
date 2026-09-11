@@ -25,7 +25,7 @@ or a publish click that must be yours. Code-side work is committed (see `docs/PL
 
 ## 1. Today — 25 minutes, in order
 
-### 1.1 ⬜ Re-point 7 dev.to canonicals (2 min) — highest-value item in this file
+### 1.1 ✅ Re-point 7 dev.to canonicals — done by Claude 2026-09-11 (editor UI) (2 min) — highest-value item in this file
 
 On 2026-08-31 seven articles were self-canonicalized because their site pages were noindexed.
 The pages were restored 2026-09-01; the canonicals were never restored. `rel=canonical` from
@@ -46,7 +46,7 @@ holds that canonical — tell me which and I will remap it. The map is in the sc
 Verify one: view-source on <https://dev.to/bashsnippets/i-aliased-syscheck-to-7-lines-of-bash-and-now-i-run-it-on-every-server-i-ssh-into-1a8h>
 → `<link rel="canonical" href="https://bashsnippets.xyz/snippets/quick-system-info-report">`.
 
-### 1.2 ⬜ GitHub profile: blog, bio, pin, profile README (5 min)
+### 1.2 ✅ GitHub profile — done by Claude 2026-09-11: blog, bio, pin, profile README (5 min)
 
 The `gh` token lacks the `user` scope and the classifier blocked creating the profile repo.
 
@@ -61,7 +61,7 @@ The `gh` token lacks the `user` scope and the classifier blocked creating the pr
 Alternatively for step 1 only: `gh auth refresh -h github.com -s user` (interactive), then
 `gh api -X PATCH /user -f blog=https://bashsnippets.xyz -f bio='…'`.
 
-### 1.3 ⬜ Bing crawl control — 30-second visual check
+### 1.3 ✅ Bing crawl control — done by Claude 2026-09-11 — 30-second visual check
 
 Bing's homepage last-crawl is still **Jul 4**; crawl budget is the ceiling on every Bing and
 Copilot number. The slider was maxed on 8/31 but the widget cannot be read by automation.
@@ -88,7 +88,7 @@ demand.
    pointed at a script excluded from the repo by design and 404'd.)
 3. Test it: subscribe with a second address on any snippet page, confirm the mail arrives.
 
-### 1.5 ⬜ Medium: two titles ship with a literal `# ` (2 min)
+### 1.5 ✅ Medium — done by Claude 2026-09-11: two titles ship with a literal `# ` (2 min)
 
 <https://medium.com/me/stories/public> → open **"# Our Status Dashboard Was Green for 61 Hours…"**
 and **"# A Function Without local…"** → Edit → delete the leading `# ` from the title → Save

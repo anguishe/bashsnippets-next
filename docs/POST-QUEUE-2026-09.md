@@ -72,7 +72,7 @@ invented too and appear on no site page.
 |---|---|---|---|---|---|---|---|---|
 | 6 | Fri 9/19 | 01 | My Disk Check Prints WARNING at 88%. Cron Throws It Away Every Monday. | `01-bash-scripts-every-sysadmin-needs-devto.md` | `https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs` | bash, linux, devops, tutorial | 0 | [ ] |
 | 7 | Mon 9/22 | 02 | grep Found 5 Matches for a Hostname I Expected 3 Times. sed Would Have Rewritten All 5. | `02-bash-text-processing-devto.md` | `https://bashsnippets.xyz/guides/bash-text-processing` | bash, linux, devops, tutorial | 0 | [ ] |
-| — | — | 03 | **DO NOT POST — already live.** See the note under this table. | `03-shell-scripts-that-talk-to-apis-devto.md` | `https://bashsnippets.xyz/guides/shell-scripts-that-talk-to-apis` | — | 0 | [ ] fix canonical instead |
+| — | — | 03 | **DO NOT POST — already live.** See the note under this table. | `03-shell-scripts-that-talk-to-apis-devto.md` | `https://bashsnippets.xyz/guides/shell-scripts-that-talk-to-apis` | — | 0 | [x] canonical fixed 2026-09-11 |
 | 8 | Tue 9/23 | 04 | I Pointed rsync --delete at a Nearly Empty Directory. It Deleted 3,800 Files and Exited 0. | `04-rsync-command-builder-devto.md` | `https://bashsnippets.xyz/tools/rsync-command-builder` | bash, webdev, tools, productivity | 0 | [ ] |
 | 9 | Wed 9/24 | 05 | grep "error&#124;failed" Found Nothing in a Log That Said 'backup failed' | `05-grep-pattern-builder-devto.md` | `https://bashsnippets.xyz/tools/grep-pattern-builder` | bash, webdev, tools, productivity | 0 | [ ] |
 | 10 | Thu 9/25 | 06 | I Tested a jq Alert Against a Down Status. It Printed 'no alert'. | `06-jq-filter-builder-devto.md` | `https://bashsnippets.xyz/tools/jq-filter-builder` | bash, webdev, tools, productivity | 0 | [ ] |
@@ -139,7 +139,7 @@ Steps, per post:
 2. Click into the title (the first, largest line) → delete the leading `# ` → the title should read as the sentence only.
 3. Check the first body paragraph did not also get an H1 pasted in; if the body starts with the title again, delete that duplicate line.
 4. **Save and publish** (top-right) → confirm the page tab title no longer starts with `#`. The URL slug does not change.
-5. `[ ]` 61-hours fixed · `[ ]` Function-without-local fixed
+5. `[x]` 61-hours fixed · `[x]` Function-without-local fixed (Claude, 2026-09-11)
 
 ---
 
