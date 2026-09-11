@@ -31,7 +31,7 @@ BashSnippets property.
 |---|---|---|
 | Google account | anguisheh1@gmail.com | — |
 | GA4 | anguisheh1@gmail.com | property **BashSnippets** `535459693`, account `393326874`, stream `bash-snippets` `14771755386`, measurement ID **G-6B01TGE8XS** |
-| GA4 internal-traffic filter | — | rule `Travis Home` (`<HOME_IPV6_PREFIX>::/64` + `<HOME_IPV4>/32`), filter **Active** since 2026-09-01 — data before that date includes Travis + Vercel previews |
+| GA4 internal-traffic filter | — | rule `Travis Home` (home IPv6 /64 + home IPv4 /32 — the values live in GA4 → Admin → Data streams → Configure tag settings → Define internal traffic, deliberately not in this public repo), filter **Active** since 2026-09-01 — data before that date includes Travis + Vercel previews |
 | Search Console | anguisheh1@gmail.com | `sc-domain:bashsnippets.xyz` — on Browser 4 it is **`authuser=0`**; `authuser=1` is the personal account and 403s |
 | AdSense | — | **CLOSED 2026-09-01.** `ca-pub-5399156622542127` was never approved. Not coming back; the site runs no ads. |
 | YouTube | anguisheh1@gmail.com | channel **@BashSnippets** `UCwNNxhTW37_ja2eRryCXmDA` — 9 Shorts (May 2026), dormant; see `docs/PLAN.md → Parked` |

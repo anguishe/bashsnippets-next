@@ -130,7 +130,7 @@ ip -brief addr show up | grep -v '^veth' || true
 
 ## What does the report look like?
 
-This is the script run on the laptop this page was written on — a Kali box on Wi-Fi with Docker running. The public addresses are replaced with documentation-range placeholders; everything else is verbatim.
+This is the script run on the laptop this page was written on — a Kali box on Wi-Fi with Docker running. Every address that identifies this machine or its network — the public IPv4 and IPv6, the MAC, the ISP's DNS servers and Docker's link-local addresses — is swapped for a documentation-range placeholder (RFC 5737, RFC 3849, RFC 7042). The private LAN addresses and the layout are verbatim.
 
 ```text
 $ ./find-ip-address-linux.sh
