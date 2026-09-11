@@ -17,8 +17,9 @@ or a publish click that must be yours. Code-side work is committed (see `docs/PL
 |---|---|
 | Bing sitemap resubmitted (was stuck "Processing" since 5/27, never crawled) | Bing WMT → Sitemaps: *Last submit 9/11/2026 · "successfully submitted for processing"* |
 | `anguishe/bashsnippets-next` GitHub description, homepage, 7 topics | `gh repo view anguishe/bashsnippets-next` |
-| Internal-link mesh: 26 snippets → guides, 4 guides → ShellCheck pages, 4 missing quickAnswers, `sameAs` unified across 3 blocks, CTA copy fixed | commit on 2026-09-10 |
-| 6 new snippets + 6 repo scripts, `CONTRIBUTING.md` + issue template in the scripts repo | same commit; scripts repo commit |
+| Internal-link mesh: 26 snippets → guides, 4 guides → ShellCheck pages, 4 missing quickAnswers, `sameAs` unified across 3 blocks, CTA copy fixed | `bashsnippets-next` commit `92706cc` (2026-09-11) |
+| 6 new snippets + 6 repo scripts, `CONTRIBUTING.md` + issue template in the scripts repo | same commit; scripts repo `86c69ff` |
+| Deploy verified live: sitemap 78, all 6 new pages `index, follow` + toolkit CTA + Buttondown form; `npm run indexnow` HTTP 200 / 78 URLs; Bing WMT → IndexNow shows 78 URLs, source *Self*, 2026-09-11 08:34 | §1.6 is therefore ✅ — skip it |
 
 ---
 
@@ -94,7 +95,7 @@ and publish. Confirm the *"Originally published at bashsnippets.xyz"* line is st
 bottom of each; if it is gone, the canonical was lost — unpublish and re-import via
 <https://medium.com/p/import>.
 
-### 1.6 ⬜ Verify the deploy (2 min, after the push lands ~50 s)
+### 1.6 ✅ Verify the deploy — done by Claude 2026-09-11 (kept for the next deploy)
 
 ```bash
 for u in /snippets/find-ip-address-linux /snippets/ports-audit /snippets/log-retention-cleanup \
