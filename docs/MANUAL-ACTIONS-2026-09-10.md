@@ -115,10 +115,9 @@ the batch with source `Self` at today's time. (Claude runs `npm run indexnow` as
 
 ## 2. This week — the posting queue
 
-Open `docs/POST-QUEUE-2026-09.md` and work it top to bottom. Week 1 is five dev.to posts, one
-per day. Every one needs *you* to read the war story first — 15 of the older drafts carry
-`REVIEW: incident dramatized`; the three new ones (21–23) are built on incidents already on the
-site pages. dev.to first, Medium import 2–3 days later, CoderLegion one excerpt per week.
+Open `docs/POST-QUEUE-2026-09.md` and work it top to bottom from **Fri 9/12**. Every queued draft
+(01–10, 21–25) was rebuilt on real runs on 2026-09-11 — no REVIEW lines, nothing to vet, paste as-is.
+dev.to first, Medium import 2–3 days later, CoderLegion one excerpt per week.
 
 The awesome-list PRs, the Show HN and the Reddit replies are in the same file with the exact
 text. Order of value: **awesome-shell PR → Show HN → Reddit replies → Medium imports**.

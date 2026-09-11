@@ -6,7 +6,7 @@ changelog at the end of every session that ships or decides anything.
 
 Last updated: **2026-09-11**. Owner: Travis. Maintained by Claude Code.
 
-> **PAUSED 2026-09-11 — resume from [`docs/HANDOFF-2026-09-11.md`](HANDOFF-2026-09-11.md).** It lists every open Travis step, the Claude fixes waiting on "go", the posting order and the dates.
+> **Resumed and cleared 2026-09-11.** [`docs/HANDOFF-2026-09-11.md`](HANDOFF-2026-09-11.md) lists what is left (all Travis: Buttondown, HN account, old clones, posting from Fri 9/12) and the dates.
 
 Companion files: `CLAUDE.md` (architecture + rules), `CONTRIBUTING.md` (workflow),
 `OWNERSHIP.md` (accounts), `docs/MANUAL-ACTIONS-2026-09-01.md` (human steps with evidence),
@@ -54,11 +54,11 @@ Secondary: fewer than 15 Gumroad outbound clicks in six weeks across 63 pages. T
 | — | Docs baseline (this file, README, CLAUDE, CONTRIBUTING, OWNERSHIP, archive) | ✅ 2026-09-01 | this commit |
 | — | Homepage links all 7 guides (was 4) | ✅ 2026-09-01 | `homeGuides` in `src/app/page.tsx` |
 | — | Competitor SERP teardown per head cluster | 🔒 **deferred by Travis** until all fixes + queued content ship | §5 |
-| 3.A | Bing sitemap stuck "Processing" since 5/27 → resubmitted | ✅ 2026-09-10 | Bing WMT → Sitemaps; verify *Last crawl* populates by **9/13** |
+| 3.A | Bing sitemap stuck "Processing" since 5/27 → resubmitted | ✅ 2026-09-10, crawled *Success* 2026-09-11 | Bing WMT → Sitemaps (72 discovered 9/11; expect 78 by 9/22) |
 | 3.B | Site push: 26-snippet guide mesh, 4 guides → ShellCheck pages, 4 quickAnswers, sameAs unified, CTA copy, **6 new snippets + 6 repo scripts** | ✅ 2026-09-11 | sitemap 72 → 78; `docs/MANUAL-ACTIONS-2026-09-10.md` §0 |
 | 3.C | Cross-posting (10 drafts + 3 new + 2 kit) | 🔓 **UNSHELVED** by Travis 2026-09-10 — Claude drafts, Travis posts | `docs/POST-QUEUE-2026-09.md` §A–B |
 | 3.D | First earned links: awesome-list PRs, Show HN, Reddit kit, listings | ⏳ drafted, Travis posts | `docs/POST-QUEUE-2026-09.md` §D–G |
-| 3.D2 | Google without quota: dev.to canonicals re-pointed, deep links only, mesh | ⏳ script written, needs Travis to run (secret) | MANUAL-ACTIONS-2026-09-10 §1.1 |
+| 3.D2 | Google without quota: dev.to canonicals re-pointed, deep links only, mesh | ✅ 2026-09-11, 7/7 via the dev.to editor, API-verified | MANUAL-ACTIONS-2026-09-10 §1.1 |
 | 3.E | Income surfaces (lead magnet, Gumroad Discover, Sponsors, productized fix) | 🔒 **deferred by Travis 2026-09-10** — traffic + indexing first | plan file §3 Track E |
 | — | YouTube Shorts engine (`~/Projects/bashsnippets-content-engine`) | ⏸ parked by Travis 2026-09-01 | §6 |
 | — | Google / GSC work | 🔒 closed until **2026-11-30** | zero earned links gates everything there |
