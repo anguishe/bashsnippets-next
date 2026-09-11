@@ -28,8 +28,14 @@ howToSteps:
     text: "Run daily at a fixed time with a crontab entry. The script is idempotent and produces clean output suitable for log files."
 author: "Travis"
 datePublished: "2026-06-06"
-dateModified: "2026-06-06"
+dateModified: "2026-09-10"
 ---
+
+<Callout type="info" title="When the check itself needs to alert">
+
+The APIs guide shows how to send this result somewhere — a Slack webhook with a jq-built payload — and how to make the sending step fail loudly instead of exiting 0 on a 500. Full guide: [Shell Scripts That Talk to APIs](/guides/shell-scripts-that-talk-to-apis).
+
+</Callout>
 
 Your SSL certificate expired at 2am on a Tuesday. By the time monitoring caught it, Google had flagged the site insecure, users were bouncing off browser warnings, and the mail server was rejecting TLS connections. The renewal took five minutes. Knowing it was about to expire takes one script running on a cron.
 

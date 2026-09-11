@@ -2,9 +2,10 @@
 title: "Bash Argument Parsing: Positional Args, getopts, and Long Flags"
 description: "A deploy script that reads $1 as the environment name will happily accept --env as the environment and deploy to a target that does not exist, silently falling through to whatever default it has. That is exactly how a production deploy became a no-op while the service ran degraded for 40 minutes. Argument parsing exists to make that impossible — to reject malformed input loudly instead of guessing. This page covers the three layers you need: positional arguments with defaults and ${1:?} validation, getopts for POSIX short flags like -v and -f FILE, and the while+case pattern for GNU-style --long-flags since getopts cannot parse them. It shows how to combine positional args with optional flags in one script, why the -- end-of-options sentinel matters, and ends with a backup script that accepts --source, --dest, --dry-run, and --days with a real usage() function and required-argument validation. Tested on Ubuntu 22.04 LTS and RHEL 9 with bash 5.1."
 tags: ["bash", "arguments", "getopts", "cli"]
+quickAnswer: "Bash scripts receive arguments as $1, $2 and so on, with $# holding the count and $@ holding the full list. Positional arguments work for one or two required values; anything optional needs getopts, which parses short flags like -e prod -v in any order and stops with an error on a flag it does not recognise. Without parsing, ./deploy.sh --env prod stores the literal string --env in ENV and deploys to whatever default that falls through to, silently. This page covers the three forms: positional with ${1:?usage} validation, getopts for short flags, and a while/case loop for long flags like --env=prod, plus shift, the -- separator, and printing usage before exiting 2 on bad input. Everything is a bash builtin, so it runs on any Linux distribution and on macOS with nothing to install. The script below is a template to copy into any new command-line tool."
 difficulty: "intermediate"
 datePublished: "2026-06-10"
-dateModified: "2026-06-10"
+dateModified: "2026-09-10"
 howToSteps:
   - name: "Read positional args with defaults and validation"
     text: "Access ordered arguments as $1, $2. Supply a default with ${1:-value} or require one with ${1:?message} so a missing argument fails immediately and clearly."
@@ -28,6 +29,12 @@ faq:
   - question: "How do I show a usage message and exit when arguments are wrong?"
     answer: "Define a usage() function that echoes the expected syntax to stderr and returns or exits non-zero. Call it from your argument-validation block and on -h/--help. Sending usage to stderr (>&2) keeps it out of piped stdout and signals an error condition to callers."
 ---
+
+<Callout type="info" title="Validate arguments at the top, loudly">
+
+The safe-template guide shows the `: "${1:?usage: ...}"` form that fails with a sentence you wrote, and the header that makes an unexpected argument a stop instead of a silent default. Full guide: [The Safe Bash Script Template](/guides/safe-bash-script-template).
+
+</Callout>
 
 A deploy script accepted its target environment as the first positional argument: `ENV="$1"`. A teammate, reasonably, ran it as `./deploy.sh --env prod`, expecting production. The script read `$1` — which was the literal string `--env` — as the environment name, looked for a config directory called `--env`, did not find one, and fell through to its default, which happened to be `staging`. The production deploy never executed. There was no error, because from the script's point of view nothing had gone wrong: it deployed to staging exactly as its (silent) default instructed. The production service ran the previous, degraded build for 40 minutes before someone checking the dashboard noticed traffic errors. Argument parsing is the discipline that turns that silent fallthrough into a loud, immediate `unknown option: --env` — a refusal instead of a guess.
 

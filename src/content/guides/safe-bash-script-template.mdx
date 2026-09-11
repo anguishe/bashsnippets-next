@@ -119,6 +119,8 @@ RETRIES="${RETRIES-3}"              # default only if unset; empty stays empty
 
 The third form is the one to reach for with anything the script cannot invent a sane default for. It fails at the top with a sentence a human can act on, instead of forty lines later with `unbound variable`.
 
+ShellCheck catches the static half of this before anything runs: [SC2154](/shellcheck/sc2154) when a lowercase variable is referenced but never assigned (a typo in the name), and [SC2034](/shellcheck/sc2034) when one is assigned and never read — the other half of the same typo. Neither fires on UPPERCASE names, which ShellCheck assumes are environment variables, so `set -u` stays the runtime guard for those. And the `rm -rf "${DIR:?}/"` form that `nounset` pushes you toward is the whole reason [SC2115](/shellcheck/sc2115) exists: an empty `DIR` there is not an error, it is `rm -rf /`.
+
 One version note, because it still circulates as folklore: expanding `"$@"` with no positional arguments used to trip `nounset` in bash before 4.4. On 4.4 and later — which is anything you are realistically running — `"$@"` on an empty argument list is fine, and `for a in "$@"` on zero arguments iterates zero times without error. You do not need `${1:-}` guards for that case any more.
 
 ## The ERR trap, and the flag nobody pastes

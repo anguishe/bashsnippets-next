@@ -106,7 +106,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['cleanup', 'find', 'cron-ready'],
     difficulty: 'intermediate',
     datePublished: '2026-04-20',
-    dateModified: '2026-06-03',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'quick-system-info-report',
@@ -118,7 +118,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['monitor', 'reporting', 'system'],
     difficulty: 'beginner',
     datePublished: '2026-04-25',
-    dateModified: '2026-05-22',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'search-files-for-text-grep',
@@ -130,7 +130,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['grep', 'search', 'text'],
     difficulty: 'beginner',
     datePublished: '2026-05-01',
-    dateModified: '2026-06-03',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'check-if-website-is-up',
@@ -142,7 +142,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['monitor', 'curl', 'uptime'],
     difficulty: 'beginner',
     datePublished: '2026-05-05',
-    dateModified: '2026-06-03',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'bash-error-handling',
@@ -167,7 +167,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['conditionals', 'basics', 'if'],
     difficulty: 'beginner',
     datePublished: '2026-05-12',
-    dateModified: '2026-06-03',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'create-dated-folder',
@@ -179,7 +179,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['files', 'date', 'mkdir'],
     difficulty: 'beginner',
     datePublished: '2026-05-14',
-    dateModified: '2026-06-03',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'kill-a-process',
@@ -191,7 +191,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['process', 'pkill', 'pgrep'],
     difficulty: 'intermediate',
     datePublished: '2026-05-16',
-    dateModified: '2026-06-03',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'file-permissions-security',
@@ -203,7 +203,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['chmod', 'security', 'find'],
     difficulty: 'intermediate',
     datePublished: '2026-05-18',
-    dateModified: '2026-06-03',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'monitor-cpu-ram-usage',
@@ -215,7 +215,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['monitor', 'system', 'awk'],
     difficulty: 'intermediate',
     datePublished: '2026-05-19',
-    dateModified: '2026-06-03',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'bash-send-email-alert',
@@ -227,7 +227,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['email', 'alert', 'mailx'],
     difficulty: 'intermediate',
     datePublished: '2026-05-20',
-    dateModified: '2026-06-03',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'mysql-database-backup',
@@ -239,7 +239,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['mysql', 'backup', 'cron-ready'],
     difficulty: 'intermediate',
     datePublished: '2026-05-21',
-    dateModified: '2026-06-03',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'ssh-key-setup-script',
@@ -251,7 +251,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['ssh', 'security', 'keys'],
     difficulty: 'intermediate',
     datePublished: '2026-05-22',
-    dateModified: '2026-06-03',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'find-duplicate-files',
@@ -263,7 +263,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['files', 'disk', 'find', 'awk'],
     difficulty: 'intermediate',
     datePublished: '2026-06-03',
-    dateModified: '2026-06-03',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'restart-service-if-stopped',
@@ -287,7 +287,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['disk', 'du', 'find', 'cleanup', 'troubleshooting'],
     difficulty: 'beginner',
     datePublished: '2026-06-06',
-    dateModified: '2026-06-06',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'kill-process-on-port',
@@ -299,7 +299,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['ports', 'lsof', 'ss', 'kill', 'networking', 'troubleshooting'],
     difficulty: 'beginner',
     datePublished: '2026-06-06',
-    dateModified: '2026-06-06',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'rsync-remote-backup',
@@ -311,7 +311,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['rsync', 'backup', 'ssh', 'cron', 'offsite', 'devops'],
     difficulty: 'intermediate',
     datePublished: '2026-06-06',
-    dateModified: '2026-06-06',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'check-ssl-certificate-expiry',
@@ -323,7 +323,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['ssl', 'openssl', 'security', 'monitoring', 'cron', 'networking'],
     difficulty: 'intermediate',
     datePublished: '2026-06-06',
-    dateModified: '2026-06-06',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'list-open-ports-linux',
@@ -347,7 +347,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['docker', 'containers', 'disk', 'cleanup', 'devops', 'pruning'],
     difficulty: 'beginner',
     datePublished: '2026-06-06',
-    dateModified: '2026-06-06',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'bash-for-loop-examples',
@@ -359,7 +359,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['bash', 'loops', 'for', 'scripting', 'beginner'],
     difficulty: 'beginner',
     datePublished: '2026-06-17',
-    dateModified: '2026-06-17',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'bash-read-file-line-by-line',
@@ -371,7 +371,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['bash', 'read', 'loops', 'files', 'intermediate'],
     difficulty: 'intermediate',
     datePublished: '2026-06-17',
-    dateModified: '2026-06-17',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'bash-functions-arguments',
@@ -383,55 +383,55 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['bash', 'functions', 'arguments', 'scripting', 'intermediate'],
     difficulty: 'intermediate',
     datePublished: '2026-06-17',
-    dateModified: '2026-06-17',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'bash-functions',
     title: 'Bash Functions: Return Values, Local Scope, and Reusable Logic',
+    quickAnswer:
+      'A bash function is a named block you call like a command: define greet() { echo hi; } and then run greet. Arguments arrive inside as $1 and $2, never by name, and return only sets an exit code from 0 to 255; it cannot hand back a string. To return data, echo it and capture it with result=$(myfunc), or write into a variable the caller declared. Every variable is global unless you mark it local, so a helper that reuses a name like target silently overwrites the value the caller was holding, which is the bug behind more than one rm -rf on the wrong directory. This page covers declaring functions, local scope, returning values three ways, default arguments, and the local x=$(cmd) form that hides a failed command from set -e. Functions are bash builtins, so there is nothing to install on any Linux distribution or on macOS. Copy the script below as a starting library.',
     description:
       'A bash function cannot return a string with return — that keyword sets an exit code only. Use echo plus command substitution or namerefs to return data, and local on every variable to stop silent global collisions.',
-    quickAnswer:
-      "A bash function groups commands under a name so you stop pasting the same block into every script. Define one with name() { commands; } and call it by name with arguments after it: greet alice — inside, $1 is the first argument, $@ is all of them, and $# is the count. Functions don't 'return' values the way other languages do: return only sets an exit status 0–255, so to pass data back you echo it and capture with result=$(myfunc). Declare locals with local var inside the function or you'll silently clobber globals — the bug that bites everyone once. Define functions before you call them; bash reads top to bottom. Works in any bash on Ubuntu, Debian, Fedora, and macOS.",
     tags: ['bash', 'functions', 'scripting', 'local-scope'],
     difficulty: 'intermediate',
     datePublished: '2026-06-10',
-    dateModified: '2026-06-10',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'bash-arrays',
     title: 'Bash Arrays: Indexed, Associative, Append, and Safe Iteration',
+    quickAnswer:
+      'A bash array holds a list where every element stays one unit, whatever characters it contains. Declare one with arr=(web-01 web-02 db-prod), append with arr+=(new-host), read the count with ${#arr[@]}, and iterate over a double-quoted ${arr[@]} expansion, which is what keeps an element containing a space intact. A space-separated string iterated with for h in $SERVERS splits on every space and glob character, so one hostname with a space becomes two nonexistent hosts and the script reports success for both. Associative arrays, declared with declare -A, map keys to values for lookups such as port[nginx]=80. This page covers indexed and associative arrays, safe iteration, slicing, reading a file into an array with mapfile, and passing arrays into functions. Arrays need bash 4 or later, the default on every current Linux distribution; macOS ships bash 3.2, so install a newer bash from Homebrew there.',
     description:
       'Storing a list as a space-separated string breaks the moment one element contains a space, splitting one item into two. Arrays make the space a non-event — covering indexed and associative arrays, append, length, slicing, and safe iteration.',
-    quickAnswer:
-      'A bash array stores a list as separate elements instead of a space-joined string, so an element containing a space stays one item. Declare an indexed array with arr=(a b c) and read element i with "${arr[i]}"; always quote and use [@] — "${arr[@]}" expands to each element safely, while [*] joins them into one word. Append with arr+=(new), get the length with ${#arr[@]}, and iterate with for x in "${arr[@]}"; do … done. Associative arrays need declare -A first, then map["key"]=value. The bug this prevents: building FILES="a.txt b c.txt" and looping over $FILES, which splits "b c.txt" into two. Works in bash 4.0+ (Ubuntu 22.04, Debian 12, Fedora 39; macOS needs a Homebrew bash, not the stock 3.2).',
     tags: ['bash', 'arrays', 'associative-arrays', 'scripting'],
     difficulty: 'intermediate',
     datePublished: '2026-06-10',
-    dateModified: '2026-06-10',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'bash-argument-parsing',
     title: 'Bash Argument Parsing: Positional Args, getopts, and Long Flags',
+    quickAnswer:
+      'Bash scripts receive arguments as $1, $2 and so on, with $# holding the count and $@ holding the full list. Positional arguments work for one or two required values; anything optional needs getopts, which parses short flags like -e prod -v in any order and stops with an error on a flag it does not recognise. Without parsing, ./deploy.sh --env prod stores the literal string --env in ENV and deploys to whatever default that falls through to, silently. This page covers the three forms: positional with ${1:?usage} validation, getopts for short flags, and a while/case loop for long flags like --env=prod, plus shift, the -- separator, and printing usage before exiting 2 on bad input. Everything is a bash builtin, so it runs on any Linux distribution and on macOS with nothing to install. The script below is a template to copy into any new command-line tool.',
     description:
       'A script that reads $1 as a value will accept --env as that value and deploy nowhere, silently. Parse arguments properly with positional defaults, getopts for short flags, and a while+case loop for GNU-style long flags.',
-    quickAnswer:
-      'Parsing arguments lets a script take flags like -v or --output file instead of a positional order nobody remembers. For a few flags, a while [[ $# -gt 0 ]] loop with a case on $1 is the readable choice: match --output) shift; OUT="$1";; then shift again. For standard short flags, getopts "vo:" opt handles bundling, and the trailing colon means -o takes a value in $OPTARG. The mistake that wastes an afternoon: forgetting to shift, so the loop never advances and spins forever. Set defaults before the loop and validate required args after it. getopts is POSIX and works in dash/sh; the long-flag while-case pattern needs bash. Tested on Ubuntu, Debian, Fedora, and macOS.',
     tags: ['bash', 'arguments', 'getopts', 'cli'],
     difficulty: 'intermediate',
     datePublished: '2026-06-10',
-    dateModified: '2026-06-10',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'bash-string-manipulation',
     title: 'Bash String Manipulation: Substrings, Replace, and Parameter Expansion',
+    quickAnswer:
+      'Bash parameter expansion manipulates strings without calling cut, sed or awk: ${#s} for length, ${s:7:11} for a substring, ${s#*://} to strip the shortest prefix through ://, ${s%%/*} to strip everything from the first slash onward, and ${s/old/new} to replace. Chained together, ${s#*://} followed by ${s%%/*} extracts the host from any URL, http or https, where cut -d/ -f3 silently returns the wrong field the moment the scheme changes length. Expansions run inside the shell with no subprocess, so a loop over ten thousand lines finishes in a fraction of the time the cut version needs. This page covers substrings, prefix and suffix removal, search and replace, case conversion with ${s^^} and ${s,,}, default values with ${s:-fallback}, and trimming whitespace. Everything here is built into bash 4 and later on every current Linux distribution; on macOS use Homebrew bash for the case-conversion forms.',
     description:
       'Field-counting with cut -d/ -f3 returns the wrong slice the moment a URL gains an s for https. Parameter expansion matches on pattern boundaries with no subshell — substrings, prefix/suffix stripping, replace, case conversion, and defaults.',
-    quickAnswer:
-      'Bash does most string work with parameter expansion — no sed or awk needed for the common cases, which keeps scripts fast and dependency-free. Get length with ${#var}; slice with ${var:0:4} (offset, length). Strip a suffix or prefix with ${file%.txt} (shortest trailing match) and ${file##*/} (basename — longest leading path); ${file%/*} gives the directory. Replace with ${var/old/new} for the first match or ${var//old/new} for all. Change case with ${var^^} and ${var,,}. The trap: these are bash features, so a script with #!/bin/sh on Debian (where sh is dash) fails silently — use #!/bin/bash. Works in bash 4+ on Ubuntu, Debian, Fedora, and macOS via Homebrew bash.',
     tags: ['bash', 'strings', 'parameter-expansion', 'scripting'],
     difficulty: 'intermediate',
     datePublished: '2026-06-10',
-    dateModified: '2026-06-10',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'bash-flock-single-instance',
@@ -481,7 +481,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['bash', 'jq', 'json', 'api', 'parsing'],
     difficulty: 'intermediate',
     datePublished: '2026-07-08',
-    dateModified: '2026-07-08',
+    dateModified: '2026-09-10',
   },
   {
     slug: 'bash-slack-webhook-alerts',
@@ -512,6 +512,66 @@ export const snippets: SnippetRegistryEntry[] = [
     difficulty: 'intermediate',
     datePublished: '2026-08-09',
     dateModified: '2026-08-09',
+  },
+  {
+    slug: 'find-ip-address-linux',
+    title: 'Find Your IP Address on Linux: Local, Public, Gateway, DNS, and MAC',
+    description:
+      'A firewall rule or backup target built on the wrong IP locks you out or ships data to the wrong box. Find local, public, gateway, DNS, and MAC with ip, resolvectl, and curl.',
+    tags: ['networking', 'ip', 'dns', 'curl', 'security'],
+    difficulty: 'beginner',
+    datePublished: '2026-09-10',
+    dateModified: '2026-09-10',
+  },
+  {
+    slug: 'bash-environment-variables',
+    title: 'Bash Environment Variables: export, unset, Subshells, and Why Cron Can\'t See Yours',
+    description:
+      'A variable you set but never exported is invisible to every child process — the deploy reads an empty token and runs anyway. export, source, env -i, and ${VAR:?} with live output.',
+    tags: ['environment', 'export', 'cron-ready', 'variables', 'error-handling'],
+    difficulty: 'beginner',
+    datePublished: '2026-09-10',
+    dateModified: '2026-09-10',
+  },
+  {
+    slug: 'ssh-run-remote-commands',
+    title: 'Run Commands on a Remote Server over SSH from Bash (One Host or Twenty)',
+    description:
+      'A loop that runs ssh on twenty hosts and ignores exit codes reports done while three boxes never changed. One command, a heredoc block, -t, BatchMode, -n, and per-host exit codes.',
+    tags: ['ssh', 'remote', 'automation', 'exit-codes', 'security'],
+    difficulty: 'intermediate',
+    datePublished: '2026-09-10',
+    dateModified: '2026-09-10',
+  },
+  {
+    slug: 'ports-audit',
+    title: 'Audit Listening Ports and Alert on New Ones — Bash Script',
+    description:
+      'A bash script that snapshots every listening TCP and UDP socket as CSV, diffs it against the previous run, and alerts once when a new listener appears.',
+    tags: ['ports', 'ss', 'security', 'audit', 'cron-ready'],
+    difficulty: 'intermediate',
+    datePublished: '2026-09-10',
+    dateModified: '2026-09-10',
+  },
+  {
+    slug: 'service-watchdog',
+    title: 'Service Watchdog: Check a systemd Unit and Restart It Once — Bash Script',
+    description:
+      'A cron bash watchdog for systemd units: restarts a stopped service, probes a hung one, bounds start-limit resets, and alerts once per outage, not per minute.',
+    tags: ['systemd', 'monitor', 'cron-ready', 'flock', 'watchdog'],
+    difficulty: 'intermediate',
+    datePublished: '2026-09-10',
+    dateModified: '2026-09-10',
+  },
+  {
+    slug: 'log-retention-cleanup',
+    title: 'Log Retention Cleanup: Keep the Newest N, Delete Older Than D Days — Bash Script',
+    description:
+      'A logrotate alternative for directories it does not own: keep the newest N dated folders, delete the rest past D days, dry-run by default, exit 1 on no match.',
+    tags: ['cleanup', 'find', 'cron-ready', 'retention', 'backup'],
+    difficulty: 'intermediate',
+    datePublished: '2026-09-10',
+    dateModified: '2026-09-10',
   },
 ];
 

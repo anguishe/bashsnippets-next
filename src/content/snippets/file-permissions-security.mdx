@@ -22,8 +22,14 @@ howToSteps:
     text: "Run: chmod +x perm-audit.sh then ./perm-audit.sh"
 author: "Travis"
 datePublished: "2026-05-18"
-dateModified: "2026-06-03"
+dateModified: "2026-09-10"
 ---
+
+<Callout type="info" title="Permissions are one of four security checks">
+
+The sysadmin guide runs this alongside the SSH hardening, failed-login and open-port checks, on a schedule, with the output mailed to you instead of printed to a terminal nobody is watching. Full guide: [25 Bash Scripts Every Linux Sysadmin Needs](/guides/bash-scripts-every-sysadmin-needs).
+
+</Callout>
 
 
 I spent a genuinely stupid ten minutes at my own desk re-typing an SSH passphrase I was certain I knew, getting bounced every single time, convinced I'd somehow forgotten a key I'd used that morning. I hadn't. The key file had ended up at mode `0644` — readable by every account on the box — and `ssh` was refusing to touch it. That's the part that fooled me: SSH treats a private key the group or world can read as compromised and ignores it outright, and depending on the client the rejection can look like an ordinary auth failure, so you blame your fingers instead of the permission bits.

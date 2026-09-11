@@ -1,0 +1,238 @@
+---
+title: "Log Retention Cleanup: Keep the Newest N, Delete Older Than D Days — Bash Script"
+description: "A logrotate alternative for directories it does not own: keep the newest N dated folders, delete the rest past D days, dry-run by default, exit 1 on no match."
+slug: "log-retention-cleanup"
+tags: ["cleanup", "find", "cron-ready", "retention", "backup"]
+quickAnswer: "log-retention-cleanup.sh applies a retention policy to any directory logrotate does not manage — dated backup folders, an app's own log directory, nightly exports. It lists the direct children matching --pattern, sorts them newest first by modification time, protects the newest --keep entries regardless of age, and selects the rest that are older than --days. By default it only prints what it would remove, one line per entry with its date and du -sh size plus a total; add --apply to delete. Two guards make it safe to point at the wrong place: if the pattern matches nothing at all it prints a warning and exits 1 instead of silently doing nothing, and --keep means a directory of nothing but old entries still keeps its newest N. Nothing deeper than one level under the target is ever walked or removed. Requires GNU find, date, and du, so Linux only."
+faq:
+  - question: "Why not use logrotate for this?"
+    answer: "logrotate is the right tool for a single append-only log file it owns: it renames, compresses, and signals the daemon. It has no concept of a directory of dated folders, cannot express 'keep the newest seven regardless of age', and does nothing for a backup tree or an export directory. This script covers those, and leaves /var/log to logrotate."
+  - question: "What happens if I point it at the wrong directory?"
+    answer: "Three things protect you. It is a dry run unless you pass --apply. If the pattern matches nothing it exits 1 with a warning, so a typo cannot masquerade as a clean run. And --keep protects the newest N entries by position, so even a directory where everything is old keeps its most recent N. It also refuses to operate on / itself."
+  - question: "Does --keep count by the date in the name or by modification time?"
+    answer: "Modification time, read with find -printf %T@. Names are never parsed, which is why the pattern is free-form. The consequence: if you cp -r an old backup into the directory, its fresh mtime makes it the newest entry. Use cp -a or rsync -a when you want the original timestamps preserved."
+  - question: "Can it delete files as well as folders?"
+    answer: "Yes. Any direct child of the target that matches the pattern is a candidate, file or directory, and is removed with rm -rf. Use --pattern '*.log' for flat log files or --pattern '20??-??-??' for dated folders. It never descends below one level, so a matching directory is removed whole, and nothing inside a non-matching one is touched."
+  - question: "Does this work on macOS?"
+    answer: "Not as written. It relies on GNU find -printf, sort -z, date -r, and du -shc, and BSD find has no -printf. On macOS install coreutils and findutils from Homebrew and call gfind, gdate, and gdu, or run it on the Linux host that holds the data."
+howToSteps:
+  - name: "Save the script and make it executable"
+    text: "Save as log-retention-cleanup.sh (or /usr/local/sbin/log-retention-cleanup.sh for cron) and run chmod +x on it. It needs bash 4 or later and GNU findutils and coreutils, present on every Linux distribution."
+  - name: "Dry-run it against the real directory"
+    text: "Run ./log-retention-cleanup.sh /var/backups/myapp --pattern '20??-??-??' --keep 7 --days 30 with no --apply. Read every line it says it would remove and the total. If it exits 1 with 'nothing matches', the path or pattern is wrong — fix that before going further."
+  - name: "Add --apply and schedule it"
+    text: "Once the dry run lists exactly what you expect, add --apply to the same command and put it in cron: 15 3 * * * /usr/local/sbin/log-retention-cleanup.sh /var/backups/myapp --pattern '20??-??-??' --keep 7 --days 30 --apply >> /var/log/log-retention.log 2>&1."
+author: "Travis"
+datePublished: "2026-09-10"
+dateModified: "2026-09-10"
+---
+
+<Callout type="info" title="One of the standing jobs every server needs">
+
+Retention is the second half of every backup and every log directory: the [dated folder](/snippets/create-dated-folder) script creates one directory per run, and something has to remove the old ones or the disk fills on a schedule you did not choose. This script is that something, for the directories logrotate does not own. Where it sits among the other unattended jobs is in [Bash Scripts Every Sysadmin Needs](/guides/bash-scripts-every-sysadmin-needs).
+
+</Callout>
+
+`logrotate` handles `/var/log`. It does nothing for `/var/backups/myapp/2026-09-10/`, for the export directory a nightly job writes to, or for the log folder an application creates under its own home and appends to forever. Those directories grow until `df` says 100% and every write on the box fails at once — the database, the web server, your editor's autosave, all in the same minute. The [find -mtime one-liner](/snippets/delete-old-log-files) is the fast fix for flat log files. This script is the version for dated folders, with the two guards the one-liner lacks: it keeps the newest N no matter how old they are, and it refuses to run at all when the pattern matches nothing.
+
+## The Script
+
+Save as `log-retention-cleanup.sh`. Dry run is the default; nothing is deleted without `--apply`.
+
+```bash
+#!/bin/bash
+# Script: log-retention-cleanup.sh
+# Purpose: An app directory that logrotate does not own grows until the disk fills and every write on the box fails at once — this keeps the newest N dated entries, deletes the rest once they are older than D days, and refuses to run when the pattern matches nothing so a wrong path can neither wipe a tree nor skip one silently.
+# Usage: ./log-retention-cleanup.sh <dir> [--pattern GLOB] [--keep N] [--days D] [--apply]
+#   dry run (default): ./log-retention-cleanup.sh /var/backups/myapp --keep 7 --days 30
+#   delete:            ./log-retention-cleanup.sh /var/backups/myapp --keep 7 --days 30 --apply
+#   cron: 15 3 * * * /usr/local/sbin/log-retention-cleanup.sh /var/backups/myapp --keep 7 --days 30 --apply >> /var/log/log-retention.log 2>&1
+set -euo pipefail
+export LC_ALL=C                     # byte-order sort, whatever the locale
+
+CHECK="✓"
+CROSS="✗"
+
+TARGET_DIR="${1:?usage: $0 <dir> [--pattern GLOB] [--keep N] [--days D] [--apply]}"
+shift
+PATTERN="*"                         # glob matched against names directly inside TARGET_DIR
+KEEP=7                              # the newest N entries are never touched, however old
+DAYS=30                             # everything else is a candidate once older than this
+APPLY=0                             # 0 = print what would go; 1 = delete it
+SECONDS_PER_DAY=86400
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --pattern) PATTERN="$2"; shift 2 ;;
+    --keep)    KEEP="$2";    shift 2 ;;
+    --days)    DAYS="$2";    shift 2 ;;
+    --apply)   APPLY=1;      shift ;;
+    *) echo "$CROSS unknown option: $1" >&2; exit 2 ;;
+  esac
+done
+
+[[ -d "$TARGET_DIR" ]] || { echo "$CROSS $TARGET_DIR is not a directory" >&2; exit 2; }
+# rm -rf on a child of / is one typo away from rm -rf /var. Refuse the root entirely.
+[[ "$(realpath "$TARGET_DIR")" == "/" ]] && { echo "$CROSS refusing to manage / itself" >&2; exit 2; }
+
+# Newest first by modification time. -maxdepth 1 keeps this to direct children, so
+# every path deleted below is one level under TARGET_DIR and nothing deeper is walked.
+mapfile -d '' -t ENTRIES < <(
+  find "$TARGET_DIR" -mindepth 1 -maxdepth 1 -name "$PATTERN" -printf '%T@ %p\0' | sort -z -rn
+)
+
+# Zero matches is the dangerous case, not the safe one: it means the path or the
+# pattern is wrong, and a cron job that "cleaned" nothing for a month is what fills the disk.
+if [[ ${#ENTRIES[@]} -eq 0 ]]; then
+  echo "$CROSS nothing in $TARGET_DIR matches '$PATTERN' — wrong path or pattern? Refusing to continue." >&2
+  exit 1
+fi
+
+CUTOFF=$(( $(date +%s) - DAYS * SECONDS_PER_DAY ))
+CANDIDATES=()
+for (( i = KEEP; i < ${#ENTRIES[@]}; i++ )); do        # the first KEEP are protected by position
+  mtime="${ENTRIES[i]%% *}"
+  path="${ENTRIES[i]#* }"
+  (( ${mtime%.*} < CUTOFF )) && CANDIDATES+=("$path")
+done
+
+echo "$CHECK ${#ENTRIES[@]} entries match '$PATTERN' in $TARGET_DIR — the newest $KEEP are kept regardless of age"
+
+if [[ ${#CANDIDATES[@]} -eq 0 ]]; then
+  echo "$CHECK nothing beyond the newest $KEEP is older than $DAYS days; nothing to remove"
+  exit 0
+fi
+
+MODE="DRY RUN — would remove"
+(( APPLY )) && MODE="Removing"
+echo "$MODE ${#CANDIDATES[@]} entries older than $DAYS days:"
+for path in "${CANDIDATES[@]}"; do
+  printf '  %s  %6s  %s\n' "$(date -r "$path" +%F)" "$(du -sh "$path" | cut -f1)" "$path"
+done
+echo "  $(du -shc "${CANDIDATES[@]}" | tail -1 | cut -f1) total"
+
+if (( ! APPLY )); then
+  echo "$CHECK dry run only — re-run with --apply to delete"
+  exit 0
+fi
+
+for path in "${CANDIDATES[@]}"; do
+  rm -rf -- "$path"
+done
+echo "$CHECK removed ${#CANDIDATES[@]} entries from $TARGET_DIR; ${#ENTRIES[@]} matched, $(( ${#ENTRIES[@]} - ${#CANDIDATES[@]} )) remain"
+```
+
+## What Does a Dry Run Look Like?
+
+Exercised here on 2026-09-10 against a scratch tree of twelve weekly backup folders, `2026-06-25` through `2026-09-10`, each holding one `app.log` of a different size, with `touch -d` setting the modification times to match the names. A `README.txt` sits beside them to prove the pattern excludes it:
+
+```text
+drwxrwxr-x 2 angsec angsec 60 Jun 25 03:15 2026-06-25
+drwxrwxr-x 2 angsec angsec 60 Jul  2 03:15 2026-07-02
+…
+drwxrwxr-x 2 angsec angsec 60 Sep  3 03:15 2026-09-03
+drwxrwxr-x 2 angsec angsec 60 Sep 10 03:15 2026-09-10
+-rw-rw-r-- 1 angsec angsec  6 May  1 00:00 README.txt
+```
+
+Keep five, delete older than thirty days, no `--apply`:
+
+```text
+✓ 12 entries match '20??-??-??' in myapp-backups — the newest 5 are kept regardless of age
+DRY RUN — would remove 7 entries older than 30 days:
+  2026-08-06    1.8M  myapp-backups/2026-08-06
+  2026-07-30    2.1M  myapp-backups/2026-07-30
+  2026-07-23    2.4M  myapp-backups/2026-07-23
+  2026-07-16    2.7M  myapp-backups/2026-07-16
+  2026-07-09    3.0M  myapp-backups/2026-07-09
+  2026-07-02    3.3M  myapp-backups/2026-07-02
+  2026-06-25    3.6M  myapp-backups/2026-06-25
+  19M total
+✓ dry run only — re-run with --apply to delete
+```
+
+Twelve matched, `README.txt` did not, and the five newest (`2026-08-13` onward) are not in the list even though `2026-08-13` is within a day of the cutoff. The seven older than thirty days are, with their sizes, so the number that matters — 19M back — is on the screen before anything is deleted.
+
+## How Does --keep Override --days?
+
+Same tree, same thirty days, but `--keep 9`:
+
+```text
+✓ 12 entries match '20??-??-??' in myapp-backups — the newest 9 are kept regardless of age
+DRY RUN — would remove 3 entries older than 30 days:
+  2026-07-09    3.0M  myapp-backups/2026-07-09
+  2026-07-02    3.3M  myapp-backups/2026-07-02
+  2026-06-25    3.6M  myapp-backups/2026-06-25
+  9.7M total
+```
+
+`2026-08-06`, `2026-07-30` and `2026-07-23` are older than thirty days and survive anyway, because they are inside the newest nine. That is the guard against the failure the age-only one-liner cannot prevent: a backup job that has been silently broken for six weeks leaves a directory where *everything* is older than thirty days, and a pure `-mtime +30 -delete` removes the last good copy you have. Position protects it; age alone does not.
+
+## What Happens With a Wrong Pattern?
+
+A pattern that matches nothing is the most dangerous outcome, not the safest one, because a cron job that "cleaned" nothing for a month is exactly how the disk fills:
+
+```text
+✗ nothing in myapp-backups matches '*.tar.gz' — wrong path or pattern? Refusing to continue.
+```
+
+Exit code 1. Cron mails it, a wrapper can trap it, and nothing was touched.
+
+## What Does --apply Do?
+
+The same command as the first dry run with `--apply` added prints the identical list under a `Removing` header, deletes each entry with `rm -rf --`, and confirms the count:
+
+```text
+Removing 7 entries older than 30 days:
+  2026-08-06    1.8M  myapp-backups/2026-08-06
+  …
+  2026-06-25    3.6M  myapp-backups/2026-06-25
+  19M total
+✓ removed 7 entries from myapp-backups; 12 matched, 5 remain
+```
+
+`ls` afterwards: `2026-08-13 2026-08-20 2026-08-27 2026-09-03 2026-09-10 README.txt`. A second `--apply` run on the result matched five, found nothing beyond the newest five older than thirty days, and exited 0 with `nothing to remove` — the steady state every subsequent cron tick lands in.
+
+## How Do I Schedule It?
+
+Nightly, after the backup job that feeds the directory has finished:
+
+```text
+15 3 * * * /usr/local/sbin/log-retention-cleanup.sh /var/backups/myapp --pattern '20??-??-??' --keep 7 --days 30 --apply >> /var/log/log-retention.log 2>&1
+```
+
+One line per managed directory. `--keep` should be at least the number of runs you want to survive a broken producer, and `--days` at least your restore window. If the backup job and this job could ever overlap, wrap this one in [flock](/snippets/bash-flock-single-instance) so a folder is never deleted while it is being written.
+
+A retention script that runs unattended for years wants the same things every unattended script wants: a lock, a log line that proves it ran, an alert when exit 1 fires. [The Production Bash Toolkit](/starter-kit) packages those once as `bashlib.sh` and a script template, so retention for the next directory is a crontab line.
+
+## Frequently Asked Questions
+
+### Why not use logrotate for this?
+
+`logrotate` is the right tool for a single append-only log file it owns: it renames, compresses, and signals the daemon. It has no concept of a directory of dated folders, cannot express "keep the newest seven regardless of age", and does nothing for a backup tree or an export directory. This script covers those and leaves `/var/log` to `logrotate`.
+
+### What happens if I point it at the wrong directory?
+
+Three things protect you. It is a dry run unless you pass `--apply`. If the pattern matches nothing it exits 1 with a warning, so a typo cannot pass as a clean run. And `--keep` protects the newest N entries by position, so a directory where everything is old still keeps its most recent N. It also refuses `/` itself.
+
+### Does --keep count by the date in the name or by modification time?
+
+Modification time, read with `find -printf %T@`. Names are never parsed, which is why the pattern is free-form. The consequence: `cp -r` an old backup into the directory and its fresh mtime makes it the newest entry. Use `cp -a` or `rsync -a` to preserve timestamps.
+
+### Can it delete files as well as folders?
+
+Yes. Any direct child of the target that matches the pattern is a candidate, file or directory, and goes with `rm -rf --`. Use `--pattern '*.log'` for flat log files or `--pattern '20??-??-??'` for dated folders. It never descends below one level: a matching directory is removed whole, and nothing inside a non-matching one is touched.
+
+### Does this work on macOS?
+
+Not as written. It relies on GNU `find -printf`, `sort -z`, `date -r`, and `du -shc`; BSD `find` has no `-printf`. On macOS install `coreutils` and `findutils` from Homebrew and call `gfind`, `gdate`, `gdu`, or run it on the Linux host that holds the data.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Create a Dated Folder](/snippets/create-dated-folder) — the producer side: one `YYYY-MM-DD` directory per run
+- [Delete Old Log Files](/snippets/delete-old-log-files) — the `find -mtime +N -delete` one-liner for flat log files
+- [Automated File Backup](/snippets/automated-file-backup) — the backup job whose output this script prunes

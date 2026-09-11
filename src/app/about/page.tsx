@@ -47,10 +47,13 @@ const aboutSchemas = [
     worksFor: { '@id': `${SITE_URL}/#organization` },
     sameAs: [
       'https://github.com/anguishe',
+      'https://github.com/anguishe/bashsnippets',
       'https://www.youtube.com/@BashSnippets',
+      'https://www.tiktok.com/@bashsnippets',
       'https://dev.to/bashsnippets',
       'https://medium.com/@anguisheh1',
-      'https://www.tiktok.com/@BashSnippets',
+      'https://coderlegion.com/user/BashSnippets',
+      'https://www.reddit.com/user/Status_Income_8269/',
     ],
   },
   {

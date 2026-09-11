@@ -22,8 +22,14 @@ howToSteps:
     text: "Run: chmod +x uptimecheck.sh then ./uptimecheck.sh"
 author: "Travis"
 datePublished: "2026-05-05"
-dateModified: "2026-06-03"
+dateModified: "2026-09-10"
 ---
+
+<Callout type="info" title="Same curl, hardened">
+
+The APIs guide turns this one-liner into the production pattern: `--fail` so curl exits non-zero on an HTTP error, `--max-time`, a retry, and an alert to Slack instead of an echo nobody reads. Full guide: [Shell Scripts That Talk to APIs](/guides/shell-scripts-that-talk-to-apis).
+
+</Callout>
 
 
 A little side project I host on a cheap VPS had been throwing errors for most of an afternoon, and I found out the way you never want to: by clicking my own link to show someone, and watching it hang. Best guess, it had been down a few hours. Nothing alerted me, because nothing was watching it — I'd stood the thing up, pointed DNS at it, and quietly assumed it would tell me if it fell over. Servers don't do that. They go dark and wait for you to notice.

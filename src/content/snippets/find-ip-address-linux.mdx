@@ -1,0 +1,236 @@
+---
+title: "Find Your IP Address on Linux: Local, Public, Gateway, DNS, and MAC"
+description: "A firewall rule or backup target built on the wrong IP locks you out or ships data to the wrong box. Find local, public, gateway, DNS, and MAC with ip, resolvectl, and curl."
+slug: find-ip-address-linux
+tags:
+  - networking
+  - ip
+  - dns
+  - curl
+  - security
+quickAnswer: "To find your IP address on Linux, run ip -brief addr — it prints one line per interface with every IPv4 and IPv6 address attached. The address that matters is the one on the interface holding the default route, which ip route show default names along with your gateway. That address is local: it is what other machines on the same network use, and what belongs in a firewall rule or a backup destination. Your public IP is different — it is whatever your router's NAT presents to the internet, and nothing on the box knows it, so ask an outside service with curl -4 -s ifconfig.me (or -6 for IPv6). DNS servers come from resolvectl dns on systemd-resolved systems, because /etc/resolv.conf there lists only the 127.0.0.53 stub. The MAC address is in ip -brief link or /sys/class/net/<iface>/address. The script below prints all of it on one screen."
+faq:
+  - question: "How do I find my IP address in the Linux terminal?"
+    answer: "Run ip -brief addr. Each line is one interface: its name, its state, and every address on it. The one you usually want is on the interface that ip route show default names as dev — on a laptop that is the Wi-Fi card, on a server it is the primary NIC. Ignore lo (127.0.0.1 is the box talking to itself), docker0 and br-* (container bridges), and anything starting with fe80:: (IPv6 link-local, not routable). hostname -I prints only the addresses with no interface names, which is why it is risky on a box running Docker: the bridge address often comes first."
+  - question: "What is the difference between a local IP and a public IP?"
+    answer: "The local (private) IP is assigned to your interface by DHCP or by hand and is reachable only inside your network — 192.168.x.x, 10.x.x.x, or 172.16–31.x.x. The public IP is the address your router or cloud NAT presents to the rest of the internet; every device behind that router shares it, and the box itself has no record of it. A firewall rule on another machine in your LAN needs the local IP. An allowlist on a remote service (a SaaS API, a customer's VPN, a hosted database) needs the public IP. Putting either in the other's place produces a rule that matches nothing and fails silently."
+  - question: "Why does /etc/resolv.conf show nameserver 127.0.0.53 instead of my DNS server?"
+    answer: "Because systemd-resolved is running a local caching stub resolver on 127.0.0.53, and /etc/resolv.conf is a symlink to its generated file. Applications ask the stub; the stub forwards to the real upstream servers it learned from DHCP or your config. To see those upstreams, run resolvectl dns (per interface) or resolvectl status (full detail, including which server answered last). Ubuntu since 18.04, Fedora since 33, and Debian or Kali with systemd-resolved enabled all behave this way. Boxes without resolved list the real servers in resolv.conf directly, which is why the script tries resolvectl first and falls back to the file."
+  - question: "How do I find my default gateway on Linux?"
+    answer: "ip route show default prints one line: default via <gateway> dev <interface>. The address after via is your gateway (the router), and the interface after dev is the one that carries traffic to it. If the command prints nothing, the box has no route to the outside world at all, which is the first thing to check when everything on the LAN works but nothing beyond it does. ip route get 1.1.1.1 shows the same decision for one specific destination, including the source address the kernel will pick, which is useful on a box with several interfaces."
+  - question: "Is ifconfig gone, and what replaced it?"
+    answer: "ifconfig is part of net-tools, which most distributions stopped installing by default years ago — Ubuntu, Debian, Fedora, and RHEL all ship without it. It still works if you install it, but it does not understand modern features like multiple addresses per interface or network namespaces, and its output is a pain to parse. The replacement is the ip command from iproute2: ip addr for addresses, ip link for interfaces and MACs, ip route for routing. The -brief flag gives you one clean line per interface, which is far easier to read and to grep than either tool's default output."
+howToSteps:
+  - name: "Save the script and make it executable"
+    text: "Copy the script below into find-ip-address-linux.sh, then run chmod +x find-ip-address-linux.sh. It needs only bash, iproute2, and curl — all present on every mainstream distribution."
+  - name: "Run it with no arguments"
+    text: "./find-ip-address-linux.sh reports on the interface holding the default route: local IPv4 and IPv6, MAC, gateway, DNS servers, and the public IPv4 and IPv6 as seen from outside. A second block lists every interface that is up."
+  - name: "Pass an interface name to inspect a different one"
+    text: "./find-ip-address-linux.sh docker0 (or eth1, wg0, any name from ip -brief link) reports that interface instead. A name that does not exist fails with exit 1 and a pointer to ip -brief link."
+author: "Travis"
+datePublished: 2026-09-10
+dateModified: 2026-09-10
+---
+
+The database server's firewall allowlisted the app box by IP, and the IP came from `hostname -I` run on the app box — first field, copied into the rule, ticket closed. The first field on that machine was `172.17.0.1`, the Docker bridge. The rule matched nothing. Nobody noticed for six weeks because the app was still reaching the database through an older, broader rule, and the day that rule was cleaned up as "redundant" was the day the app went down at 6 pm on a Friday. The wrong IP in a firewall rule does not error; it waits. The same goes for a backup destination: `rsync` to a mistyped address on a host that happens to exist is a backup that lands somewhere you do not control.
+
+There is no single "my IP address" on a Linux box. There is the address on each interface, the one the default route uses, the public address the world sees after NAT, the gateway, the DNS servers, and the MAC. Which one you need depends on where the rule you are writing lives. The script below prints all of them on one screen so the value you paste came from a report, not from a guess.
+
+<Callout type="info" title="Addresses and ports are the same audit">
+
+A firewall rule is an address *and* a port, and half the mistakes are on the port side: a service bound to `0.0.0.0` when it should be on `127.0.0.1`, or a listener on an interface you forgot existed. The guide covers reading `ss` output, telling a bound socket from an exposed one, and closing what should not be open: [Find and Close Open Ports on Linux](/guides/open-ports-linux). Run this report and the [open ports script](/snippets/list-open-ports-linux) together before writing any rule.
+
+</Callout>
+
+## The Script
+
+```bash
+#!/bin/bash
+# Script: find-ip-address-linux.sh
+# Purpose: A firewall rule or a backup destination built on the wrong IP locks
+#          you out or ships data to the wrong host — this prints every address
+#          that matters on one screen so you copy from a report, not a guess.
+# Usage: ./find-ip-address-linux.sh [interface]   (default: the one holding the default route)
+# Tested: Kali 2026.3 (bash 5.3), Ubuntu 22.04 LTS, Fedora 39
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+# ── CONFIGURATION ──────────────────────────────────────────────
+PUBLIC_IP_SERVICE="https://ifconfig.me"   # any plain-text "what is my IP" endpoint
+CURL_TIMEOUT=5                            # seconds — a hung lookup must not hang the report
+
+# ── DEFAULT ROUTE ──────────────────────────────────────────────
+# The interface carrying the default route is the one the outside world
+# reaches you through. Every other address on the box is local or virtual.
+DEFAULT_ROUTE=$(ip -4 route show default | head -n 1)
+if [ -z "$DEFAULT_ROUTE" ]; then
+  echo "$CROSS no IPv4 default route — this box is not on a routed network" >&2
+  exit 1
+fi
+GATEWAY=$(awk '{print $3}' <<< "$DEFAULT_ROUTE")
+ROUTE_IFACE=$(awk '{for (i = 1; i <= NF; i++) if ($i == "dev") print $(i + 1)}' <<< "$DEFAULT_ROUTE")
+IFACE="${1:-$ROUTE_IFACE}"
+
+if [ ! -d "/sys/class/net/$IFACE" ]; then
+  echo "$CROSS interface '$IFACE' does not exist — see: ip -brief link" >&2
+  exit 1
+fi
+
+# ── ADDRESSES ──────────────────────────────────────────────────
+# -brief prints one line per interface: name, state, then the addresses.
+# Dropping the first two fields leaves only the addresses, however many.
+addrs_of() {
+  ip "$1" -brief addr show dev "$IFACE" "${@:2}" \
+    | awk '{ $1 = ""; $2 = ""; sub(/^ +/, ""); print }'
+}
+LOCAL_IPV4=$(addrs_of -4)
+LOCAL_IPV6=$(addrs_of -6 scope global)   # scope global skips the fe80:: link-local noise
+MAC=$(cat "/sys/class/net/$IFACE/address")
+
+# ── DNS ────────────────────────────────────────────────────────
+# On systemd-resolved boxes /etc/resolv.conf says 127.0.0.53 — that is the
+# local stub, not the upstream server. resolvectl knows the real ones.
+DNS_SERVERS=""
+DNS_SOURCE="resolvectl"
+if command -v resolvectl >/dev/null 2>&1; then
+  DNS_SERVERS=$(resolvectl dns "$IFACE" 2>/dev/null | sed 's/^[^:]*: *//' || true)
+fi
+if [ -z "$DNS_SERVERS" ]; then
+  DNS_SERVERS=$(awk '/^nameserver/ {printf "%s ", $2}' /etc/resolv.conf)
+  DNS_SOURCE="/etc/resolv.conf"
+fi
+
+# ── PUBLIC IP ──────────────────────────────────────────────────
+# Nothing on the box knows its public address — it is whatever NAT rewrote
+# the source to. Ask an outside service and treat "no answer" as data.
+PUBLIC_IPV4=$(curl -4 -s --max-time "$CURL_TIMEOUT" "$PUBLIC_IP_SERVICE" || true)
+PUBLIC_IPV6=$(curl -6 -s --max-time "$CURL_TIMEOUT" "$PUBLIC_IP_SERVICE" || true)
+
+# ── REPORT ─────────────────────────────────────────────────────
+echo "Network report for $(hostname) — $(date '+%Y-%m-%d %H:%M')"
+echo "────────────────────────────────────────────────────"
+printf '%-13s %s\n' "interface"   "$IFACE"
+printf '%-13s %s\n' "local IPv4"  "${LOCAL_IPV4:-none}"
+printf '%-13s %s\n' "local IPv6"  "${LOCAL_IPV6:-none}"
+printf '%-13s %s\n' "MAC"         "$MAC"
+printf '%-13s %s\n' "gateway"     "$GATEWAY"
+printf '%-13s %s (%s)\n' "DNS"    "${DNS_SERVERS:-none}" "$DNS_SOURCE"
+if [ -n "$PUBLIC_IPV4" ]; then
+  printf '%-13s %s %s\n' "public IPv4" "$PUBLIC_IPV4" "$CHECK"
+else
+  printf '%-13s %s %s\n' "public IPv4" "lookup failed — offline or $PUBLIC_IP_SERVICE unreachable" "$CROSS"
+fi
+printf '%-13s %s\n' "public IPv6" "${PUBLIC_IPV6:-none}"
+echo
+echo "Every interface that is up (Docker veth pairs hidden):"
+ip -brief addr show up | grep -v '^veth' || true
+```
+
+## What does the report look like?
+
+This is the script run on the laptop this page was written on — a Kali box on Wi-Fi with Docker running. The public addresses are replaced with documentation-range placeholders; everything else is verbatim.
+
+```text
+$ ./find-ip-address-linux.sh
+Network report for angsec — 2026-09-10 22:41
+────────────────────────────────────────────────────
+interface     wlan1
+local IPv4    192.168.0.233/24
+local IPv6    2001:db8:0:1::10/128 2001:db8:0:1:a1b2:c3d4:e5f6:7788/64
+MAC           00:00:5e:00:53:01
+gateway       192.168.0.1
+DNS           198.51.100.53 198.51.100.54 2001:db8:53::1 2001:db8:53::2 (resolvectl)
+public IPv4   203.0.113.42 ✓
+public IPv6   2001:db8:0:1::10
+
+Every interface that is up (Docker veth pairs hidden):
+lo               UNKNOWN        127.0.0.1/8 ::1/128
+eth0             DOWN
+wlan0            DOWN
+docker0          UP             172.17.0.1/16 fe80::42:acff:fe11:1/64
+br-0123456789ab  UP             172.18.0.1/16 fe80::42:acff:fe12:1/64
+wlan1            UP             192.168.0.233/24 2001:db8:0:1::10/128 ...
+```
+
+Read the second block and the six-week firewall mistake explains itself. Five interfaces carry an address. Only `wlan1` reaches anything beyond the box, and the script picked it without being told because it followed the default route. `hostname -I` on this same machine prints `172.17.0.1 172.18.0.1 192.168.0.233 ...` — two bridge addresses before the real one.
+
+Pass an interface name and the report switches to it. A name that does not exist stops with exit 1 rather than reporting an empty row you might paste anyway:
+
+```text
+$ ./find-ip-address-linux.sh nope
+✗ interface 'nope' does not exist — see: ip -brief link
+```
+
+## Which address is "my IP address"?
+
+`ip -brief addr` is the command that answers it, and the `-brief` flag is what makes the output readable: name, state, addresses, one line each. The first thing to do with that list is throw most of it away. `lo` is the loopback; `127.0.0.1` never leaves the box. `docker0`, `br-*`, and `veth*` are container plumbing. `fe80::` prefixes are IPv6 link-local — every interface has one, none of them route anywhere. What is left is the interface with a real address, and on a laptop with an idle Ethernet port and two Wi-Fi radios, that can still be three candidates.
+
+The tiebreaker is the routing table. Whatever interface carries the default route is the one the rest of the network talks to you through, and its address is the one that belongs in another machine's firewall rule, in a `known_hosts` entry, or as the target of an [rsync remote backup](/snippets/rsync-remote-backup).
+
+## How do I find the default gateway and the interface it uses?
+
+```text
+$ ip route show default
+default via 192.168.0.1 dev wlan1 proto dhcp src 192.168.0.233 metric 600
+```
+
+One line, and it carries three of the report's rows: the gateway after `via`, the interface after `dev`, and the source address after `src`. The script parses `dev` by position-independent field search rather than `$5`, because the field order changes when `proto` or `metric` are absent. If this command prints nothing, the box has no route out at all — the LAN may work, the internet will not, and no amount of DNS debugging will help until a default route exists.
+
+For a specific destination, `ip route get 1.1.1.1` shows the kernel's actual decision including the source address it will stamp on the packet. On a multi-homed server that is the only reliable way to know which of your addresses a remote service will see.
+
+## Why does /etc/resolv.conf point to 127.0.0.53?
+
+Because on any distribution running systemd-resolved, `/etc/resolv.conf` is a symlink to a generated file whose only nameserver is the local stub. This box shows exactly that:
+
+```text
+$ grep nameserver /etc/resolv.conf
+nameserver 127.0.0.53
+
+$ resolvectl dns wlan1
+Link 30 (wlan1): 198.51.100.53 198.51.100.54 2001:db8:53::1 2001:db8:53::2
+```
+
+The stub forwards to those four upstream servers, and `resolvectl status` adds which one answered most recently. Copy `127.0.0.53` into a container's DNS config or a `dig @` command and it fails, because the stub only listens on the host. The script asks `resolvectl` first and falls back to reading `resolv.conf` when the command is missing — which is the Alpine, older-Debian, and minimal-cloud-image case, where the file lists the real servers.
+
+## How do I find my public IP from the command line?
+
+You cannot find it on the box, because the box does not have it. The public address exists only in the NAT table of the router or cloud gateway in front of you. The honest method is to ask something on the other side:
+
+```bash
+curl -4 -s --max-time 5 ifconfig.me    # IPv4 only
+curl -6 -s --max-time 5 ifconfig.me    # IPv6 only
+```
+
+The `-4` and `-6` flags matter. Without them curl picks whichever family it connects with first, and on a dual-stack box that is usually IPv6 — so a script that expected a dotted-quad gets a colon-separated string and puts it in a rule that wanted the other one. The `--max-time` is the difference between a report that says "lookup failed" in five seconds and one that hangs a cron job forever on a network where outbound HTTPS is blocked. The script wraps both calls in `|| true` and prints a ✗ row, because an unreachable lookup service is information, not a reason to abort the rest of the report.
+
+## Where is the MAC address?
+
+`ip -brief link` prints it as the third column, and `/sys/class/net/<iface>/address` holds the same value as a plain file — the script reads the file because it needs no parsing. The MAC belongs in DHCP reservations, Wake-on-LAN, and MAC-filter allowlists. It is not a security control: any interface's MAC can be changed with one `ip link set` command, and the idle `wlan0` radio on this box already reports a randomized, locally-administered one (`4e:c4:5d:...` — the second hex digit's 2-bit is the giveaway).
+
+If you want this alongside CPU, memory, disk, and uptime in one paste, the [quick system info report](/snippets/quick-system-info-report) covers the rest of the box; this script is the network half.
+
+## Frequently Asked Questions
+
+### How do I find my IP address in the Linux terminal?
+
+Run `ip -brief addr`. Each line is one interface: its name, its state, and every address on it. The one you usually want is on the interface that `ip route show default` names as `dev`. Ignore `lo`, `docker0`, `br-*`, and anything starting with `fe80::`. `hostname -I` prints only the addresses with no interface names, which is why it is risky on a box running Docker — the bridge address often comes first.
+
+### What is the difference between a local IP and a public IP?
+
+The local IP is assigned to your interface and is reachable only inside your network — `192.168.x.x`, `10.x.x.x`, or `172.16–31.x.x`. The public IP is the address your router or cloud NAT presents to the internet; every device behind it shares it, and the box itself has no record of it. A firewall rule on another machine in your LAN needs the local IP. An allowlist on a remote service needs the public one. Either in the other's place produces a rule that matches nothing and fails silently.
+
+### Why does /etc/resolv.conf show nameserver 127.0.0.53 instead of my DNS server?
+
+Because systemd-resolved runs a caching stub on `127.0.0.53` and `/etc/resolv.conf` is a symlink to its generated file. Applications ask the stub, which forwards to the upstream servers it learned from DHCP or your config. `resolvectl dns` shows those per interface; `resolvectl status` adds which one answered last. Boxes without resolved list the real servers in `resolv.conf` directly, which is why the script tries `resolvectl` first and falls back to the file.
+
+### How do I find my default gateway on Linux?
+
+`ip route show default` prints `default via <gateway> dev <interface>`. The address after `via` is your router and the interface after `dev` carries traffic to it. If it prints nothing, the box has no route to the outside world. `ip route get 1.1.1.1` shows the same decision for one destination, including the source address the kernel will use, which is what you need on a box with several interfaces.
+
+### Is ifconfig gone, and what replaced it?
+
+`ifconfig` is part of net-tools, which Ubuntu, Debian, Fedora, and RHEL all stopped installing by default. It still works if you install it, but it does not understand multiple addresses per interface or network namespaces. The replacement is `ip` from iproute2: `ip addr` for addresses, `ip link` for interfaces and MACs, `ip route` for routing. The `-brief` flag gives one clean line per interface, which is far easier to read and grep.
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>

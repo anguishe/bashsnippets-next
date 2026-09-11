@@ -27,6 +27,12 @@ datePublished: 2026-07-08
 dateModified: 2026-07-08
 ---
 
+<Callout type="info" title="jq is step two of the three-step pattern">
+
+The APIs guide is the full fetch → parse → alert script: curl that fails when the API fails, jq with `-e` so a missing field is an error, and a Slack alert when either breaks. Full guide: [Shell Scripts That Talk to APIs](/guides/shell-scripts-that-talk-to-apis).
+
+</Callout>
+
 The wrong-turn theory was that the API was down. A teammate's deploy script had started tagging every release `latest` instead of the real version number, and we spent an hour blaming the registry before I looked at the actual parse. The script read the version out of a JSON response with `grep '"version"' | cut -d'"' -f4`. It had worked for two years. Then the API started pretty-printing its output with the version nested one level deeper under a `metadata` object, `grep` matched a *different* `"version"` field that happened to appear first — a schema version, always `"latest"` — and cut dutifully handed it back. No error. Just the wrong string, confidently, every time. That's the trap with regex on JSON: it doesn't fail, it lies.
 
 ## Why regex on JSON is guessing

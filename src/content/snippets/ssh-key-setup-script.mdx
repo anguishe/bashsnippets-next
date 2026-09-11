@@ -22,8 +22,14 @@ howToSteps:
     text: "Run: chmod +x ssh-setup.sh then ./ssh-setup.sh"
 author: "Travis"
 datePublished: "2026-05-22"
-dateModified: "2026-06-03"
+dateModified: "2026-09-10"
 ---
+
+<Callout type="info" title="Keys are step one of SSH hardening">
+
+The sysadmin guide follows this with the sshd_config changes that actually stop password brute force — the part `ssh-copy-id` exiting 0 does not do for you. Full guide: [25 Bash Scripts Every Linux Sysadmin Needs](/guides/bash-scripts-every-sysadmin-needs).
+
+</Callout>
 
 
 I'd fumbled `ssh-keygen` enough times to lose patience with myself — wrong key type one night, wrong output path another, the `-N` flag in the wrong spot so it sat there prompting when I wanted it silent — and the time I actually noticed I had a problem was the time I copied a public key to a host I hadn't meant to touch. No real harm done; a public key on the wrong server is clutter, not a breach. But it was the moment I decided I'd rather hand the whole dance to a script than keep retyping the same flags from memory at one in the morning.

@@ -27,6 +27,12 @@ howToSteps:
     text: "Reference the line as \"$line\" inside the loop. Unquoted, it word-splits again the moment you pass it to another command, undoing the careful reading you just did."
 ---
 
+<Callout type="info" title="Reading a file is usually grep or awk instead">
+
+The text-processing guide shows when a `while read` loop is the wrong tool — most line-by-line work is a grep filter or an awk field extraction, and both are faster and harder to get wrong. Full guide: [Bash Text Processing: find, grep, sed, and awk](/guides/bash-text-processing).
+
+</Callout>
+
 ## The monitoring loop that never checked the last server
 
 We kept a plaintext list of hosts, one per line, and a script read it and pinged each one. `app-07` was the last line. `app-07` went down on a Sunday, and the alert never fired. The loop had been skipping the last line of the file for months, and `app-07` had only recently been appended — by an editor that did not add a trailing newline. `while read host` returned false on that final, newline-less line and the loop exited one host early, every single run. The list looked complete. The loop quietly read all of it except the part that mattered.

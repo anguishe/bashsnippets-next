@@ -8,8 +8,8 @@ Travis — self-taught Linux developer based in Florida, publishing here and on 
 
 ## What This Site Contains
 
-# keep in sync with the sitemap: 38 indexable snippets, 12 tools, 9 guides, 7 ShellCheck deep dives (sitemap = 72 with the 6 static pages)
-- 38 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
+# keep in sync with the sitemap: 44 indexable snippets, 12 tools, 9 guides, 7 ShellCheck deep dives (sitemap = 78 with the 6 static pages)
+- 44 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
 - 12 interactive tools at /tools/ including script builders, command generators, and debuggers
 - 9 pillar guides at /guides/ covering cron survival, CI/CD, text processing, APIs, bash strict mode, hung-process diagnosis, service auto-restart and watchdogs, listing open ports, and the sysadmin script set
 - 7 ShellCheck deep dives at /shellcheck/ — one page per rule (SC2086, SC2046, SC2063, SC2115, SC2154, SC2034, SC2016), each with the breakage run for real, ShellCheck 0.11.0's exact output, the fix, the variants, and when to disable the rule
@@ -65,6 +65,12 @@ Travis — self-taught Linux developer based in Florida, publishing here and on 
 - [Bash Arrays: Indexed, Associative, Append, and Safe Iteration](https://bashsnippets.xyz/snippets/bash-arrays) — Storing a list as a space-separated string breaks the moment one element contains a space, splitting one item into two. Arrays make the space a non-event — indexed and associative arrays, append, length, slicing, and safe iteration.
 - [Bash Argument Parsing: Positional Args, getopts, and Long Flags](https://bashsnippets.xyz/snippets/bash-argument-parsing) — A script that reads $1 as a value will accept --env as that value and deploy nowhere, silently. Parse arguments properly with positional defaults, getopts for short flags, and a while+case loop for GNU-style long flags.
 - [Bash String Manipulation: Substrings, Replace, and Parameter Expansion](https://bashsnippets.xyz/snippets/bash-string-manipulation) — Field-counting with cut -d/ -f3 returns the wrong slice the moment a URL gains an s for https. Parameter expansion matches on pattern boundaries with no subshell — substrings, prefix/suffix stripping, replace, case conversion, and defaults.
+- [Find Your IP Address on Linux: Local, Public, Gateway, DNS, and MAC](https://bashsnippets.xyz/snippets/find-ip-address-linux) — A firewall rule or backup target built on the wrong IP locks you out or ships data to the wrong box. Find local, public, gateway, DNS, and MAC with ip, resolvectl, and curl.
+- [Bash Environment Variables: export, unset, Subshells, and Why Cron Can't See Yours](https://bashsnippets.xyz/snippets/bash-environment-variables) — A variable you set but never exported is invisible to every child process — the deploy reads an empty token and runs anyway. export, source, env -i, and ${VAR:?} with live output.
+- [Run Commands on a Remote Server over SSH from Bash (One Host or Twenty)](https://bashsnippets.xyz/snippets/ssh-run-remote-commands) — A loop that runs ssh on twenty hosts and ignores exit codes reports done while three boxes never changed. One command, a heredoc block, -t, BatchMode, -n, and per-host exit codes.
+- [Audit Listening Ports and Alert on New Ones — Bash Script](https://bashsnippets.xyz/snippets/ports-audit) — A bash script that snapshots every listening TCP and UDP socket as CSV, diffs it against the previous run, and alerts once when a new listener appears.
+- [Service Watchdog: Check a systemd Unit and Restart It Once — Bash Script](https://bashsnippets.xyz/snippets/service-watchdog) — A cron bash watchdog for systemd units: restarts a stopped service, probes a hung one, bounds start-limit resets, and alerts once per outage, not per minute.
+- [Log Retention Cleanup: Keep the Newest N, Delete Older Than D Days — Bash Script](https://bashsnippets.xyz/snippets/log-retention-cleanup) — A logrotate alternative for directories it does not own: keep the newest N dated folders, delete the rest past D days, dry-run by default, exit 1 on no match.
 
 ## Interactive Tools
 

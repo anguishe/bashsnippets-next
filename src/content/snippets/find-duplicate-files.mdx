@@ -22,8 +22,14 @@ howToSteps:
     text: "Execute with: ./find-dupes.sh or ./find-dupes.sh /path/to/scan"
 author: "Travis"
 datePublished: "2026-06-03"
-dateModified: "2026-06-03"
+dateModified: "2026-09-10"
 ---
+
+<Callout type="info" title="Part of the disk-recovery set">
+
+The sysadmin guide orders the disk work: find what is big, find what is duplicated, find what is old — and only then delete, with a dry run in front of every `rm`. Full guide: [25 Bash Scripts Every Linux Sysadmin Needs](/guides/bash-scripts-every-sysadmin-needs).
+
+</Callout>
 
 
 My 2 TB HDD was wall-to-wall with duplicate downloads — the same installer pulled three separate times, photo dumps copied into two different folders, `file (1).zip` sitting right next to `file.zip` — and for an embarrassingly long stretch I was sorting it out by eye. Open two folders side by side, compare names, compare sizes, delete the one I was *fairly* sure was redundant, hope I'd guessed right. It was slow, it was error-prone, and the one thing it could never actually tell me was whether two files were truly identical or only similarly named.

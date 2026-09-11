@@ -22,8 +22,14 @@ howToSteps:
     text: "Run: chmod +x clean-logs.sh then ./clean-logs.sh"
 author: "Travis"
 datePublished: "2026-04-20"
-dateModified: "2026-06-03"
+dateModified: "2026-09-10"
 ---
+
+<Callout type="info" title="This is one of the 25">
+
+Log cleanup is the second script in the sysadmin set, right after the disk-space check that tells you it is needed. The guide puts the two on one cron schedule and adds the retention, backup and SSL checks that share the same failure: nothing pruned, nothing noticed. Full guide: [25 Bash Scripts Every Linux Sysadmin Needs](/guides/bash-scripts-every-sysadmin-needs).
+
+</Callout>
 
 
 My SSD hit zero free bytes on a Tuesday, and three unrelated things broke within about a minute of each other — a build, a database write, and my editor's autosave all failing at once. A full disk doesn't announce itself politely; every program that needs to write a single byte starts throwing errors, so the symptoms scatter and the cause hides. It took me an embarrassing while to run `df`, see `/` at 100%, and longer still to trace it back to one app I'd left running for a week that had been quietly appending to a log file the whole time.

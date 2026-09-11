@@ -1,0 +1,233 @@
+---
+title: "Audit Listening Ports and Alert on New Ones — Bash Script"
+description: "A bash script that snapshots every listening TCP and UDP socket as CSV, diffs it against the previous run, and alerts once when a new listener appears."
+slug: "ports-audit"
+tags: ["ports", "ss", "security", "audit", "cron-ready"]
+quickAnswer: "ports-audit.sh prints every listening TCP and UDP socket on a Linux host as one CSV line — protocol, address, port, service name, owner — and with --diff compares that list to the previous run and alerts once when a listener appears or vanishes. It reads sockets with ss -Hltunpe: -p gives the process name for sockets you own (all of them as root) and -e adds the systemd cgroup and uid, so an unprivileged run still tells you which service holds each port instead of leaving the column blank. Output is sorted under LC_ALL=C so two runs compare byte for byte. On a change it prints a NEW/GONE report to stderr, pipes the same report to ALERT_CMD if one is set, and exits 3 so a cron wrapper can branch on it without parsing anything. Run it hourly from cron: a debug server or a container port that opened between audits shows up in the next report instead of in an incident."
+faq:
+  - question: "Why does the owner column show cgroup:docker.service instead of a process name?"
+    answer: "Without root, ss -p only names processes you own; the -e flag adds the systemd cgroup for every socket, so the script falls back to that. cgroup:docker.service means a docker-proxy for a published container port — docker ps shows which container. Run the script as root to get the process name for every socket."
+  - question: "How do I get an email when a new port opens?"
+    answer: "Set ALERT_CMD to any command that reads stdin, for example ALERT_CMD='mail -s \"listener change on $(hostname)\" you@example.com', and run the script with --diff from cron. The NEW/GONE report is piped to that command only when the listener set changed since the previous run."
+  - question: "What does exit code 3 from ports-audit.sh mean?"
+    answer: "Exit 3 means the set of listening sockets changed since the previous run — something appeared or vanished. Exit 0 means no change, or a plain run without --diff. A cron wrapper or CI step can branch on the code without reading the report."
+  - question: "Does this script need root?"
+    answer: "No. ss can list every listening socket unprivileged; root only adds the process name for sockets owned by other users. Non-root runs show the owning systemd unit (cgroup:) or uid instead, which is enough to identify almost every listener."
+  - question: "Why does the same port appear twice, once for 0.0.0.0 and once for [::]?"
+    answer: "Those are two sockets: one bound to all IPv4 interfaces and one to all IPv6 interfaces. Many daemons open both. Each is a separate line because each is a separate listener, and a change to either one should show up in the diff."
+howToSteps:
+  - name: "Save the script and make it executable"
+    text: "Save as ports-audit.sh (or /usr/local/sbin/ports-audit.sh for cron), then run chmod +x ports-audit.sh. It needs ss from iproute2 and getent, both present on every modern Linux distribution."
+  - name: "Run it once to seed the baseline"
+    text: "Run ./ports-audit.sh with no arguments. It writes current.csv under STATE_DIR (default /var/tmp/ports-audit) and prints every listening socket. Read the list and account for every port before you trust the diff."
+  - name: "Schedule the --diff run with an alert"
+    text: "Add 0 * * * * ALERT_CMD='mail -s \"listener change\" you@example.com' /usr/local/sbin/ports-audit.sh --diff >/dev/null to crontab. Every hour it compares against the previous run and sends one NEW/GONE report when the set changes."
+author: "Travis"
+datePublished: "2026-09-10"
+dateModified: "2026-09-10"
+---
+
+<Callout type="info" title="This is the script from the open-ports guide, on its own page">
+
+The reasoning behind it — why `ss -e` beats `sudo` for identification, how `docker-proxy` hides the real application, what to do when there is no `ss` at all, and how to probe one port from outside — is in the full guide: [List Open Ports on Linux](/guides/open-ports-linux). This page is the copy-paste home for the audit script and what it printed when run here.
+
+</Callout>
+
+A port list you read once and close is a photograph. The listener that matters is the one that was not in the photograph: the `http.server` a developer left on 8099, the container that published a port after a compose change, the shell an intruder bound last night. None of them announce themselves. This script takes the photograph every hour and tells you when the picture changed.
+
+## The Script
+
+Save as `ports-audit.sh`. It needs `ss` (iproute2) and `getent` (glibc), both present on any Linux box from the last decade. No root required — see the FAQ for what root adds.
+
+```bash
+#!/bin/bash
+# Script: ports-audit.sh
+# Purpose: A listener you did not open — a debug endpoint left running, a container that published a port, an intruder's shell — stays invisible until something diffs the list. This prints every listening socket as CSV and alerts once when the set changes.
+# Usage: ./ports-audit.sh            print every listening socket as CSV (root shows the process for every socket; non-root shows the owning cgroup or uid)
+#        ./ports-audit.sh --diff     also compare with the previous run and alert on new or vanished listeners
+#   cron: 0 * * * * /usr/local/sbin/ports-audit.sh --diff >/dev/null
+set -euo pipefail
+export LC_ALL=C                       # deterministic sort order across runs, whatever the locale
+
+CHECK="✓"
+CROSS="✗"
+
+STATE_DIR="${STATE_DIR:-/var/tmp/ports-audit}"
+ALERT_CMD="${ALERT_CMD:-}"            # reads the report on stdin, e.g. mail -s "listener change on $(hostname)" you@example.com
+DIFF=0
+[[ "${1:-}" == "--diff" ]] && DIFF=1
+
+mkdir -p "$STATE_DIR"
+CURRENT="$STATE_DIR/current.csv"
+PREVIOUS="$STATE_DIR/previous.csv"
+
+# One line per listening socket: proto,address,port,service,owner
+# ss flags: -H no header, -l listening only, -t -u tcp and udp, -n numeric ports,
+#           -p owning process (other users' sockets need root), -e uid and cgroup (no root needed)
+snapshot() {
+  ss -Hltunpe | awk '
+    {
+      proto = $1
+      n = split($5, a, ":"); port = a[n]
+      addr = substr($5, 1, length($5) - length(port) - 1)
+      owner = "?"
+      if (match($0, /users:\(\("[^"]+"/)) {            # root, or a socket of your own
+        owner = substr($0, RSTART + 9, RLENGTH - 10)
+      } else if (match($0, /cgroup:[^ ]+/)) {           # anyone: the systemd unit that owns it
+        cg = substr($0, RSTART + 7, RLENGTH - 7); m = split(cg, p, "/"); owner = "cgroup:" p[m]
+      } else if (match($0, /uid:[0-9]+/)) {
+        owner = "uid:" substr($0, RSTART + 4, RLENGTH - 4)
+      }
+      printf "%s,%s,%s,%s\n", proto, addr, port, owner
+    }' | while IFS=, read -r proto addr port owner; do
+      # getent exits 2 for a port with no /etc/services entry; under pipefail that would kill the loop
+      svc=$(getent services "$port/$proto" 2>/dev/null | awk '{print $1}' || true)
+      printf '%s,%s,%s,%s,%s\n' "$proto" "$addr" "$port" "${svc:-unknown}" "$owner"
+    done | sort -t, -k1,1 -k3,3n -k2,2 -k5,5 -u   # proto, port, address, owner; exact duplicates collapse
+}
+
+[[ -f "$CURRENT" ]] && mv -f "$CURRENT" "$PREVIOUS"
+snapshot > "$CURRENT"
+
+if [[ $EUID -ne 0 ]]; then
+  echo "$CROSS not root: process names appear only for your own sockets; everything else shows its systemd cgroup or uid" >&2
+fi
+cat "$CURRENT"
+echo "$CHECK $(wc -l < "$CURRENT") listening sockets on $(hostname) at $(date '+%F %T')" >&2
+
+if (( DIFF )) && [[ -f "$PREVIOUS" ]]; then
+  # Whole-line set difference. grep exits 1 when nothing is selected, hence the || true.
+  added=$(grep -Fxv -f "$PREVIOUS" "$CURRENT" || true)
+  removed=$(grep -Fxv -f "$CURRENT" "$PREVIOUS" || true)
+  if [[ -n "$added$removed" ]]; then
+    report=$(printf 'Listener changes on %s at %s\n\nNEW:\n%s\n\nGONE:\n%s\n' \
+      "$(hostname)" "$(date)" "${added:-(none)}" "${removed:-(none)}")
+    echo "$CROSS listener set changed since the previous run" >&2
+    printf '%s\n' "$report" >&2
+    if [[ -n "$ALERT_CMD" ]]; then
+      printf '%s\n' "$report" | bash -c "$ALERT_CMD"
+    fi
+    exit 3
+  fi
+  echo "$CHECK no listener changes since the previous run" >&2
+fi
+```
+
+## What Does the Output Look Like?
+
+Run here as an unprivileged user on 2026-09-10. Notes go to stderr, the CSV goes to stdout, so `> ports.csv` captures the data and leaves the commentary on the terminal:
+
+```text
+✗ not root: process names appear only for your own sockets; everything else shows its systemd cgroup or uid
+✓ 35 listening sockets on angsec at 2026-09-10 22:40:43
+```
+
+The first twelve of those 35 rows, `proto,address,port,service,owner`:
+
+```text
+tcp,127.0.0.53%lo,53,domain,cgroup:systemd-resolved.service
+tcp,127.0.0.54,53,domain,cgroup:systemd-resolved.service
+tcp,0.0.0.0,3000,unknown,cgroup:docker.service
+tcp,[::],3000,unknown,cgroup:docker.service
+tcp,0.0.0.0,5355,unknown,cgroup:systemd-resolved.service
+tcp,[::],5355,unknown,cgroup:systemd-resolved.service
+tcp,127.0.0.1,9050,unknown,cgroup:tor@default.service
+tcp,*,11434,unknown,cgroup:ollama.service
+tcp,127.0.0.1,18789,unknown,openclaw-gatewa
+tcp,[::1],18789,unknown,openclaw-gatewa
+tcp,0.0.0.0,53317,unknown,localsend_app
+udp,0.0.0.0,5353,mdns,openclaw-gatewa
+```
+
+Three kinds of owner appear in one run, and that is the point of the `-e` flag. `openclaw-gatewa` and `localsend_app` are process names — those sockets belong to the user running the script (the name is truncated to 15 characters by the kernel, not by the script). `cgroup:docker.service` and `cgroup:ollama.service` are systemd units: those sockets belong to root, so `-p` cannot name the process, but the cgroup identifies the service anyway. The `service` column comes from `/etc/services`; `unknown` on port 3000 or 11434 is normal, because the name column is a lookup table, never an identity.
+
+## How Does --diff Catch a New Listener?
+
+Each run moves the last `current.csv` to `previous.csv` before writing a new one, so `--diff` is a whole-line set difference between two files. The second run, a second later, found nothing:
+
+```text
+✓ 35 listening sockets on angsec at 2026-09-10 22:40:43
+✓ no listener changes since the previous run
+```
+
+Then a throwaway `python3 -m http.server 8099 --bind 127.0.0.1 &` and a third run with `ALERT_CMD` pointed at a file. Exit code 3, one report on stderr, and the identical report appended to the file:
+
+```text
+✓ 36 listening sockets on angsec at 2026-09-10 22:40:45
+✗ listener set changed since the previous run
+Listener changes on angsec at Thu Sep 10 22:40:45 CDT 2026
+
+NEW:
+tcp,127.0.0.1,8099,unknown,python3
+
+GONE:
+(none)
+```
+
+Kill the server and run once more: 35 sockets, exit 3 again, and the same line under `GONE`:
+
+```text
+NEW:
+(none)
+
+GONE:
+tcp,127.0.0.1,8099,unknown,python3
+```
+
+A vanished listener is alert-worthy too. A database that stopped listening is an outage that a "new ports only" audit would never mention.
+
+## Why Is the Sort Order Fixed?
+
+`export LC_ALL=C` and the explicit `sort -t, -k1,1 -k3,3n -k2,2 -k5,5 -u` exist because the diff is textual. If Tuesday's cron run sorted under `en_US.UTF-8` and Wednesday's under `C` — cron environments are minimal and drift — every line would move and every run would alert. Fixing the locale and the key order means the only thing that can change a line is a real change to a socket. The `-u` drops any exact duplicate line, so one socket can never count twice.
+
+## How Do I Schedule It?
+
+Hourly, from root's crontab if you want process names for every socket, from any user's if the cgroup is enough:
+
+```text
+0 * * * * ALERT_CMD='mail -s "listener change on myhost" you@example.com' /usr/local/sbin/ports-audit.sh --diff >/dev/null
+```
+
+`>/dev/null` discards the CSV on stdout; stderr still reaches cron's mail, so keep `2>&1` off unless you want the not-root note every hour. `ALERT_CMD` receives the report on stdin and can be anything that reads it — `mail`, a `curl` to a Slack webhook, `tee -a /var/log/ports-changes.log`. The exit codes are the contract for anything wrapping it:
+
+| Exit | Meaning |
+|---|---|
+| 0 | plain run, or `--diff` with no change |
+| 3 | `--diff` found a listener that appeared or vanished |
+| other | `ss` or `mkdir` failed under `set -e` |
+
+Once the audit names a port you cannot explain, the [kill process on port](/snippets/kill-process-on-port) script takes it from PID to SIGTERM to SIGKILL. And the [one-file port list](/snippets/list-open-ports-linux) is still the right tool when you need to read the whole picture by eye rather than diff it.
+
+Running an audit is a snapshot; keeping one running unattended for a year is a different job — a lock so two hourly runs cannot race on `current.csv`, a log that proves it fired, an alert path that fails loudly. That layer is packaged once as `bashlib.sh` in [The Production Bash Toolkit](/starter-kit).
+
+## Frequently Asked Questions
+
+### Why does the owner column show cgroup:docker.service instead of a process name?
+
+Without root, `ss -p` only names processes you own. The `-e` flag adds the systemd cgroup for every socket regardless, so the script falls back to that. `cgroup:docker.service` means a `docker-proxy` for a published container port; `docker ps` shows which container is behind it. Run the script as root to get the process name on every row.
+
+### How do I get an email when a new port opens?
+
+Set `ALERT_CMD` to any command that reads stdin — `ALERT_CMD='mail -s "listener change on $(hostname)" you@example.com'` — and run with `--diff` from cron. The NEW/GONE report is piped to that command only when the listener set changed since the previous run, so a quiet host sends nothing.
+
+### What does exit code 3 from ports-audit.sh mean?
+
+The set of listening sockets changed since the previous run: something appeared or vanished. Exit 0 means no change, or a plain run without `--diff`. A cron wrapper or CI step can branch on the code without reading the report.
+
+### Does this script need root?
+
+No. `ss` lists every listening socket unprivileged; root only adds the process name for sockets owned by other users. Non-root runs show the owning systemd unit (`cgroup:`) or uid instead, which identifies almost every listener on a systemd host.
+
+### Why does the same port appear twice, once for 0.0.0.0 and once for [::]?
+
+Those are two sockets: one bound to all IPv4 interfaces and one to all IPv6 interfaces. Many daemons open both. Each is its own line because each is its own listener, and a change to either one belongs in the diff.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [List All Open Ports on Linux](/snippets/list-open-ports-linux) — the read-it-by-eye version: `ss -tlnp`, `ss -ulnp`, and `lsof` in one run
+- [Kill Process on Port](/snippets/kill-process-on-port) — from an unexplained port to a stopped process, SIGTERM first
+- [File Permissions Security Audit](/snippets/file-permissions-security) — the filesystem half of the same recurring review

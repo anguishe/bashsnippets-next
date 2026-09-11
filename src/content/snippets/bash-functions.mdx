@@ -2,9 +2,10 @@
 title: "Bash Functions: Return Values, Local Scope, and Reusable Logic"
 description: "A bash function cannot return a string with return — that keyword only sets an exit code from 0 to 255. Try return \"$result\" with a string and you either get a truncated number or an error. The two patterns that actually work are echo plus command substitution (result=$(my_func)) and nameref output variables with local -n (bash 4.3+). The second habit that prevents silent corruption is declaring every variable inside a function with local. A function that assigns count=0 without local overwrites a count variable in the caller, and the bug surfaces three functions later as a wrong total with no error message. This page covers both function declaration styles, the two return-value patterns shown in one script, why local is mandatory, argument validation with $1 and $#, and how to source a script to test a single function in isolation. Tested on Ubuntu 22.04 LTS and RHEL 9 with bash 5.1."
 tags: ["bash", "functions", "scripting", "local-scope"]
+quickAnswer: "A bash function is a named block you call like a command: define greet() { echo hi; } and then run greet. Arguments arrive inside as $1 and $2, never by name, and return only sets an exit code from 0 to 255; it cannot hand back a string. To return data, echo it and capture it with result=$(myfunc), or write into a variable the caller declared. Every variable is global unless you mark it local, so a helper that reuses a name like target silently overwrites the value the caller was holding, which is the bug behind more than one rm -rf on the wrong directory. This page covers declaring functions, local scope, returning values three ways, default arguments, and the local x=$(cmd) form that hides a failed command from set -e. Functions are bash builtins, so there is nothing to install on any Linux distribution or on macOS. Copy the script below as a starting library."
 difficulty: "intermediate"
 datePublished: "2026-06-10"
-dateModified: "2026-06-10"
+dateModified: "2026-09-10"
 howToSteps:
   - name: "Pick one declaration style and stay consistent"
     text: "Both name() { ...; } and function name { ...; } work. Choose the POSIX name() form for portability and use it everywhere; mixing the two in one codebase reads as carelessness."
@@ -26,6 +27,12 @@ faq:
   - question: "How do I return multiple values from a bash function?"
     answer: "Echo them separated by a delimiter and split on the caller side, or use multiple nameref output parameters. A common pattern is to echo space-separated values and read them: read -r a b c < <(my_func). For complex data, write into caller variables with local -n out_var=\"$1\"."
 ---
+
+<Callout type="info" title="local x=$(cmd) is the trap this guide explains">
+
+The safe-template guide covers why `local x=$(false)` never triggers `set -e`, the two-line form that fixes it, and the ERR trap that reports the function and line that failed. Full guide: [The Safe Bash Script Template](/guides/safe-bash-script-template).
+
+</Callout>
 
 A 300-line bash deploy script we inherited had the same six-line error-checking block copy-pasted eleven times — once after each critical command. Ten copies were identical. The eleventh had a single typo: `2>/dev/null` where the others wrote `2>&1`, which meant that one command's failures were discarded instead of logged. For four months a specific failure path produced no error in the logs and no alert, while the deploy quietly continued past a step that had not actually succeeded. The fix was not "be more careful copy-pasting." The fix was a function. A function is not just the unit of reuse in bash — it is the unit of reliability. Logic that exists in exactly one place can only be wrong in one place, and when you fix it, it is fixed everywhere.
 

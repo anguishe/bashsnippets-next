@@ -29,8 +29,8 @@ export default function ToolkitCTA({
         The Production Bash Toolkit
       </h2>
       <p className="mt-2 text-sm leading-relaxed text-muted">
-        6 scripts + shared library + 52-page field guide. The production layer the
-        free snippets don&apos;t cover.
+        An operational script system + a 31-function shared library + a 52-page
+        field guide. The production layer the free snippets don&apos;t cover.
       </p>
       <Link
         href="/starter-kit"

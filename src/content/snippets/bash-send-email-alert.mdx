@@ -22,8 +22,14 @@ howToSteps:
     text: "Run: chmod +x mail-alert.sh then ./mail-alert.sh"
 author: "Travis"
 datePublished: "2026-05-20"
-dateModified: "2026-06-03"
+dateModified: "2026-09-10"
 ---
+
+<Callout type="info" title="Email is one delivery channel">
+
+The APIs guide covers the other one most teams actually watch: a Slack incoming webhook posted with curl, with the same dedup idea so a flapping check does not page every minute. Full guide: [Shell Scripts That Talk to APIs](/guides/shell-scripts-that-talk-to-apis).
+
+</Callout>
 
 
 I had a disk check that worked perfectly. It read the usage, compared it to a threshold, decided things were getting tight — and then did absolutely nothing with that conclusion except append a line to a log file that no human, me very much included, was ever going to open. So when the disk did fill, the script had technically known for hours and had told no one. A monitor that monitors in silence isn't a monitor; it's a diary.

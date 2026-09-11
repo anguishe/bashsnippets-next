@@ -70,6 +70,8 @@ Locking, bounding, and retrying are independent guards, and the real value is in
 
 If you'd rather start from a blank script with the structure already right, the [Bash Boilerplate Generator](/tools/bash-boilerplate-generator) gives you the `set -euo pipefail` skeleton with traps and argument parsing, and the [error-handling snippet](/snippets/bash-error-handling) explains why each line of that skeleton is there. The wrapper generator is for hardening *an existing command*; the boilerplate generator is for *writing a new script* from scratch.
 
+One more guard that costs nothing: run the finished script through ShellCheck before it goes into the crontab. The two findings it raises most on cron jobs are [SC2086](/shellcheck/sc2086) — an unquoted `$LOG_FILE` or `$LOCK` that splits on a space and writes somewhere else — and [SC2046](/shellcheck/sc2046), the unquoted `$(date ...)` inside a filename. Both are silent at 3am and loud in the decoder.
+
 ## Know when it broke
 
 The last guard is the one that closes the loop: when a job fails after its retries, something should tell you, on a channel you actually watch. The wrapper's email-alert option uses [mailx to send a failure alert](/snippets/bash-send-email-alert); for a service that should always be running, pair the job with [restart a service if it stopped](/snippets/restart-service-if-stopped) so detection and recovery are one step. The goal across all of this is the same: a job that fails *loudly* instead of disappearing.

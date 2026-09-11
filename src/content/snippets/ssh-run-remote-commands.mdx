@@ -1,0 +1,249 @@
+---
+title: "Run Commands on a Remote Server over SSH from Bash (One Host or Twenty)"
+description: "A loop that runs ssh on twenty hosts and ignores exit codes reports done while three boxes never changed. One command, a heredoc block, -t, BatchMode, -n, and per-host exit codes."
+slug: ssh-run-remote-commands
+tags:
+  - ssh
+  - remote
+  - automation
+  - exit-codes
+  - security
+quickAnswer: "To run a command on a remote server over SSH without an interactive login, put the command after the host: ssh user@host 'uptime'. Single-quote it so the remote shell expands variables, not yours. For several commands, feed a heredoc to a remote shell — ssh host bash -s <<'EOF' ... EOF — with the quoted EOF for the same reason. Add -t only when the command needs a terminal, such as sudo with a password prompt. In scripts, always pass -o BatchMode=yes so a missing key fails instead of hanging on a prompt, -o ConnectTimeout=5 so a dead host fails in seconds, and -n so ssh cannot swallow the rest of a host list when the loop reads from stdin. ssh returns the remote command's exit code, except 255, which means ssh itself failed — DNS, refused, timeout, or authentication. The script below runs one command on every host you give it and reports each exit code."
+faq:
+  - question: "How do I run a command on a remote server with ssh without logging in interactively?"
+    answer: "Append the command to the ssh invocation: ssh user@host 'df -h /'. ssh connects, runs that command through the remote user's login shell, prints its output, and returns its exit code — you never get a prompt. Quote the command in single quotes so anything with a $ is expanded on the remote side; double quotes expand it locally before ssh ever sees it. For this to work unattended, key-based authentication has to be in place, otherwise ssh stops to ask for a password. The SSH key setup snippet on this site automates that part with ssh-keygen and ssh-copy-id."
+  - question: "How do I run multiple commands over ssh?"
+    answer: "Three options, in order of preference. For two or three short commands, join them with && inside one quoted string: ssh host 'cd /srv/app && git pull && systemctl restart app' — && stops at the first failure. For anything longer, send a heredoc to a remote shell: ssh host bash -s <<'EOF', then the commands, then EOF on its own line; the quoted EOF keeps your local shell from expanding $variables before they leave the machine. For anything you will run more than once, put the commands in a script file and pipe it: ssh host bash -s < deploy.sh. All three return the exit code of the last command that ran."
+  - question: "Why does my ssh loop only run for the first host?"
+    answer: "Because ssh reads standard input, and inside a while read host loop, standard input is your host list. The first ssh call connects, then drains every remaining line of the file as if it were input to the remote command, so the loop finds nothing left to read and exits after one iteration. Pass -n to ssh, which redirects its stdin from /dev/null, or add < /dev/null after the command. A for host in \"${HOSTS[@]}\" loop over an array does not have this problem because the array is not on stdin, but adding -n costs nothing and protects the script when someone later changes the loop."
+  - question: "What does ssh exit code 255 mean?"
+    answer: "255 is ssh reporting that it failed to connect or authenticate — it never ran your command. Causes include DNS not resolving the host, the connection being refused because sshd is not listening, a ConnectTimeout expiring, a host key mismatch, or key authentication being rejected with BatchMode=yes in effect. Every other exit code is passed through from the remote command: 0 is success, 1 is a generic failure, 127 is command not found on the remote side, and so on. A script that fans out over hosts should treat 255 as a different class of failure from the rest, because the fix is on the network or in ~/.ssh, not in the command."
+  - question: "How do I run sudo over ssh?"
+    answer: "If the remote user has passwordless sudo for that command (a NOPASSWD rule in sudoers), it works with no extra flags: ssh host 'sudo systemctl restart nginx'. If sudo needs a password, it needs a terminal to read it from, so add -t: ssh -t host 'sudo systemctl restart nginx'. Without -t, sudo prints \"a terminal is required to read the password\" and exits 1. Inside a script that itself has no terminal, -t prints \"Pseudo-terminal will not be allocated because stdin is not a terminal\" and the prompt still fails — which is the right outcome. Unattended sudo over ssh should use a NOPASSWD rule scoped to the exact command, never a password on stdin."
+howToSteps:
+  - name: "Set up key-based authentication to every host"
+    text: "Run ssh -o BatchMode=yes host true by hand for each host; it must exit 0 silently. If it prompts or prints Permission denied, fix keys first with the SSH key setup script — BatchMode=yes will refuse to prompt, so a loop over hosts with missing keys fails every one of them."
+  - name: "Save the script, make it executable, and run it against one host"
+    text: "chmod +x ssh-run-remote-commands.sh, then ./ssh-run-remote-commands.sh 'uptime' host1. You get a ✓ line with exit 0 and the remote output indented beneath it, or a ✗ line with the exit code or the ssh error."
+  - name: "Fan out over a host list and act on the summary"
+    text: "Pass more hosts as arguments, or put one host per line in hosts.txt (comments and blank lines allowed) and run it with only the command. The script exits 1 if any host failed and prints how many, so a wrapper or a CI job can stop on it instead of reading twenty lines by eye."
+author: "Travis"
+datePublished: 2026-09-10
+dateModified: 2026-09-10
+---
+
+The patch rollout was one line: `for h in $(cat hosts.txt); do ssh $h 'sudo apt-get install -y openssl'; done`. It printed a wall of apt output, ended, and the ticket was closed with "all 22 hosts patched." Three of those hosts had been rebuilt the month before and never got the deploy key. Their `ssh` calls printed `Permission denied (publickey)` somewhere in the middle of the wall, exited 255, and the loop moved on because a `for` loop does not care what its body returned. Nobody read 22 hosts' worth of apt output looking for one line that was not apt. The three unpatched boxes were found by the scanner six weeks later, which is a better outcome than the alternative.
+
+Running a command on a remote host is one `ssh` invocation. Running it on twenty hosts and *knowing* what happened on each one is a small set of flags and one habit: capture the exit code, every time.
+
+<Callout type="info" title="Same fail-loud pattern as talking to an API">
+
+An `ssh` call and a `curl` call fail the same way: the transport succeeds, the thing on the other end reports a problem, and the script that ignores the return value carries on. The guide on [shell scripts that talk to APIs](/guides/shell-scripts-that-talk-to-apis) is the same discipline — capture the status, distinguish "could not reach it" from "it said no", stop on either. Everything below assumes key-based login is already working; if it is not, start with the [SSH key setup script](/snippets/ssh-key-setup-script).
+
+</Callout>
+
+## The Script
+
+```bash
+#!/bin/bash
+# Script: ssh-run-remote-commands.sh
+# Purpose: A loop that runs one command over SSH on twenty hosts and ignores
+#          the exit codes reports "done" while three boxes never got the
+#          change — this runs the command per host and refuses to exit 0
+#          unless every host did.
+# Usage: ./ssh-run-remote-commands.sh 'command' host1 [host2 ...]
+#        ./ssh-run-remote-commands.sh 'command'          (hosts read from $HOSTS_FILE)
+# Tested: Kali 2026.3 (bash 5.3), Ubuntu 22.04 LTS, Fedora 39
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+# ── CONFIGURATION ──────────────────────────────────────────────
+HOSTS_FILE="${HOSTS_FILE:-./hosts.txt}"   # one host per line; used when no hosts are passed
+SSH_USER="${SSH_USER:-}"                  # empty = your current username, like plain ssh
+CONNECT_TIMEOUT=5                         # seconds before an unreachable host is written off
+SSH_FAILED_CODE=255                       # ssh's own failure code (DNS, refused, auth) — not the remote command's
+
+REMOTE_CMD="${1:?usage: $0 'command' [host ...]}"
+shift
+
+# ── HOST LIST ──────────────────────────────────────────────────
+HOSTS=("$@")
+if [ "${#HOSTS[@]}" -eq 0 ]; then
+  if [ ! -r "$HOSTS_FILE" ]; then
+    echo "$CROSS no hosts given and $HOSTS_FILE is not readable" >&2
+    exit 1
+  fi
+  # mapfile keeps one host per element — no word-splitting surprises.
+  # The grep drops blank lines and comments so the file can be annotated.
+  mapfile -t HOSTS < <(grep -Ev '^[[:space:]]*(#|$)' "$HOSTS_FILE")
+fi
+
+# BatchMode=yes: never prompt for a password or a host-key confirmation —
+# a prompt inside a loop hangs the whole run until someone notices.
+# -n: stdin from /dev/null, so ssh cannot swallow the rest of the host list
+# if this ever runs inside a while-read loop.
+SSH_OPTS=(-n -o BatchMode=yes -o ConnectTimeout="$CONNECT_TIMEOUT")
+
+FAILED=0
+for host in "${HOSTS[@]}"; do
+  target="$host"
+  if [ -n "$SSH_USER" ]; then
+    target="$SSH_USER@$host"
+  fi
+
+  # The remote command is passed as ONE argument so its quoting reaches the
+  # remote shell intact. The exit code is captured, never masked by set -e.
+  code=0
+  output=$(ssh "${SSH_OPTS[@]}" "$target" -- "$REMOTE_CMD" 2>&1) || code=$?
+
+  if [ "$code" -eq 0 ]; then
+    printf '%s %-20s exit 0\n' "$CHECK" "$host"
+  elif [ "$code" -eq "$SSH_FAILED_CODE" ]; then
+    printf '%s %-20s ssh failed (exit %d): %s\n' "$CROSS" "$host" "$code" "$output"
+    FAILED=$((FAILED + 1))
+    continue
+  else
+    printf '%s %-20s exit %d\n' "$CROSS" "$host" "$code"
+    FAILED=$((FAILED + 1))
+  fi
+  # Indent the remote output under its status line so twenty hosts stay
+  # readable: every embedded newline gets four spaces appended after it.
+  if [ -n "$output" ]; then
+    printf '    %s\n' "${output//$'\n'/$'\n    '}"
+  fi
+done
+
+echo
+if [ "$FAILED" -gt 0 ]; then
+  echo "$CROSS $FAILED of ${#HOSTS[@]} hosts failed"
+  exit 1
+fi
+echo "$CHECK all ${#HOSTS[@]} hosts succeeded"
+```
+
+## What does it print when a host is unreachable?
+
+Honest disclosure: the laptop this page was written on does not run `sshd`, so every output below that involves connecting is the *failure* path, captured live. It is also the path that matters most, because it is the one the apt loop threw away.
+
+```text
+$ ./ssh-run-remote-commands.sh 'uptime' localhost 127.0.0.1
+✗ localhost            ssh failed (exit 255): ssh: connect to host localhost port 22: Connection refused
+✗ 127.0.0.1            ssh failed (exit 255): ssh: connect to host 127.0.0.1 port 22: Connection refused
+
+✗ 2 of 2 hosts failed
+$ echo $?
+1
+```
+
+Two hosts, two refused connections, a summary line, exit 1. Drop the same two names into `hosts.txt` with a comment and a blank line, run it with only the command, and the file is parsed the same way. With a reachable host, the ✓ line is followed by the command's output indented four spaces, and a host where the command itself failed shows `exit 1` (or whatever the command returned) instead of the ssh error — the two classes are printed differently on purpose.
+
+The `${1:?usage ...}` guard fires when no command is given at all:
+
+```text
+$ ./ssh-run-remote-commands.sh
+./ssh-run-remote-commands.sh: line 21: 1: usage: ./ssh-run-remote-commands.sh command [host ...]
+```
+
+## How do I run a single command over ssh?
+
+`ssh host 'command'`. ssh opens the connection, hands the string to the remote user's login shell, streams the output back, and exits with the command's status. The whole difficulty is in the quotes, and it comes down to one question: which shell should expand the `$`? Watch what the local shell passes to ssh in each case:
+
+```text
+$ echo ssh web1 "echo $HOME"
+ssh web1 echo /home/angsec
+
+$ echo ssh web1 'echo $HOME'
+ssh web1 echo $HOME
+```
+
+Double quotes expanded `$HOME` *here*, so the remote host would print the local home directory — or, in the apt loop's case, a variable that was set on your laptop and empty on the server. Single quotes send `$HOME` across intact and the remote shell expands it. The rule: single-quote the remote command by default; switch to double quotes only for the specific values you want substituted from the local side, and read the result of `echo ssh ...` before trusting it. The script passes `"$REMOTE_CMD"` as one argument after `--` for the same reason — the string you typed reaches the remote shell as one string.
+
+## How do I run several commands at once?
+
+For a couple of commands, `&&` inside the single quotes: `ssh host 'cd /srv/app && git pull && systemctl restart app'`. The `&&` stops the chain at the first failure, and the exit code you get back is the failing command's. For anything that would not fit on one line, hand a heredoc to a remote shell:
+
+```bash
+ssh -o BatchMode=yes web1 bash -s <<'EOF'
+set -euo pipefail
+cd /srv/app
+git pull --ff-only
+systemctl restart app
+systemctl is-active app
+EOF
+```
+
+`bash -s` reads the script from stdin; the heredoc is that stdin. The quoted `<<'EOF'` is the single-quote rule again: with it, nothing inside the block is expanded locally. `set -euo pipefail` on the first remote line means the block stops at its first failure and that failure becomes ssh's exit code. The quoting rule can be demonstrated without a remote host, because it is the local shell doing the work:
+
+```text
+$ NAME=world; bash -s <<EOF
+echo "expanded locally: $NAME"
+EOF
+expanded locally: world
+
+$ bash -s <<'EOF'
+echo "expanded remotely: $HOSTNAME"
+EOF
+expanded remotely: angsec
+```
+
+The first block was rewritten before `bash -s` saw it. The second reached `bash -s` untouched and was expanded there — swap `bash -s` for `ssh host bash -s` and "there" is the remote machine. For a block you will run more than once, save it as a file and pipe it: `ssh host bash -s < deploy.sh`.
+
+## When do I need -t?
+
+When the remote command needs a terminal: `sudo` asking for a password, `top`, `vim`, anything interactive. `-t` allocates a pseudo-terminal on the remote side. The catch is that it needs one on the local side too, and a script has none:
+
+```text
+$ ssh -t -o BatchMode=yes localhost 'sudo -n true' </dev/null
+Pseudo-terminal will not be allocated because stdin is not a terminal.
+ssh: connect to host localhost port 22: Connection refused
+```
+
+That first line is ssh telling you `-t` did nothing. In a cron job or a CI runner, a `sudo` that needs a password will fail even with `-t` — which is correct, because the alternative is a password in a script. Unattended `sudo` over ssh means a `NOPASSWD` sudoers rule scoped to the exact command, the same way the [service watchdog](/snippets/restart-service-if-stopped) handles `systemctl start` under cron. Leave `-t` out of scripts; it also changes line endings to `\r\n` in captured output.
+
+## Why did my while-read loop stop after the first host?
+
+Because `ssh` reads stdin, and inside `while read host; do ...; done < hosts.txt`, stdin *is* `hosts.txt`. The first ssh call connects, then drains every remaining line of the file as input for the remote command. The loop wakes up to an empty file. Here is the same failure with `cat` standing in for ssh:
+
+```text
+$ while read -r h; do echo "host=$h"; cat >/dev/null; done < hosts3.txt
+host=web1
+
+$ while read -r h; do echo "host=$h"; cat >/dev/null </dev/null; done < hosts3.txt
+host=web1
+host=web2
+host=web3
+```
+
+`ssh -n` is the built-in `</dev/null`. The script iterates an array rather than a file stream, so it is not exposed — and it passes `-n` anyway, because someone will eventually turn that array into a pipeline. The [file-reading snippet](/snippets/bash-read-file-line-by-line) covers the rest of the `while read` traps.
+
+## How do I keep it from hanging, and what does exit 255 mean?
+
+`-o BatchMode=yes` tells ssh to never ask a question: no password prompt, no "are you sure you want to continue connecting" for an unknown host key. Either condition becomes an immediate exit 255 instead of a loop that sits at a prompt until someone finds it in the morning. `-o ConnectTimeout=5` puts a bound on a host that is down or firewalled; without it the default TCP timeout can be over two minutes per host. Twenty hosts, three unreachable — that is six minutes of nothing versus fifteen seconds.
+
+255 is the exit code ssh reserves for itself: DNS failure, connection refused, timeout, host key mismatch, rejected key. Every other code came from the remote command. The script branches on that number so a network problem and a failing command look different in the report, because they are fixed in different places. A retry helps with the first class and hurts with the second; the [retry with backoff](/snippets/bash-retry-with-backoff) pattern wraps the ssh call when the transient case is worth handling.
+
+## Frequently Asked Questions
+
+### How do I run a command on a remote server with ssh without logging in interactively?
+
+Append the command: `ssh user@host 'df -h /'`. ssh connects, runs it through the remote login shell, prints the output, and returns its exit code — no prompt. Single-quote the command so anything with a `$` is expanded remotely; double quotes expand it locally first. For unattended use, key-based authentication must already work, or ssh stops to ask for a password.
+
+### How do I run multiple commands over ssh?
+
+Join two or three with `&&` inside one quoted string — `ssh host 'cd /srv/app && git pull && systemctl restart app'` — and the chain stops at the first failure. For longer blocks, send a heredoc to a remote shell: `ssh host bash -s <<'EOF'`, the commands, then `EOF`; the quoted `EOF` keeps your local shell from expanding `$variables`. For anything reusable, `ssh host bash -s < deploy.sh`. All three return the exit code of the last command that ran.
+
+### Why does my ssh loop only run for the first host?
+
+Because ssh reads standard input, and inside a `while read host` loop, standard input is your host list. The first call drains the remaining lines as input to the remote command and the loop exits after one iteration. Pass `-n` to ssh, or add `< /dev/null`. A `for host in "${HOSTS[@]}"` loop over an array does not have the problem, but `-n` costs nothing and survives a later rewrite.
+
+### What does ssh exit code 255 mean?
+
+255 means ssh failed to connect or authenticate and never ran your command: DNS, connection refused, `ConnectTimeout` expired, host key mismatch, or a key rejected under `BatchMode=yes`. Every other code is passed through from the remote command — 0 success, 1 generic failure, 127 command not found remotely. Treat 255 as a different class of failure, because the fix is on the network or in `~/.ssh`, not in the command.
+
+### How do I run sudo over ssh?
+
+With a `NOPASSWD` sudoers rule for that command, no extra flags: `ssh host 'sudo systemctl restart nginx'`. If sudo needs a password it needs a terminal, so add `-t` for interactive use. Inside a script with no terminal of its own, `-t` prints "Pseudo-terminal will not be allocated because stdin is not a terminal" and the prompt still fails — the right outcome. Unattended sudo over ssh should use a `NOPASSWD` rule scoped to the exact command, never a password on stdin.
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>

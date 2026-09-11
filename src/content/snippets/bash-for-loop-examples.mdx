@@ -27,6 +27,12 @@ howToSteps:
     text: "Set shopt -s nullglob so a glob that matches nothing expands to nothing instead of the literal pattern, which stops the loop from running once with f set to the unmatched string like *.log."
 ---
 
+<Callout type="info" title="Looping over files is a find problem">
+
+The text-processing guide covers the case this snippet warns about: when a glob is not enough, `find -print0 | while read -d ""` and `find -exec` are the two loops that survive spaces, newlines and 40,000 files. Full guide: [Bash Text Processing: find, grep, sed, and awk](/guides/bash-text-processing).
+
+</Callout>
+
 ## The loop that backed up nothing for three weeks
 
 A nightly job looped `for f in $(ls /data/exports)` and copied each file to a backup volume. It ran green every night. Three weeks later we needed the `Q3 final.xlsx` export and it was not in the backup — not the current one, not any of the twenty-one before it. The loop had been splitting `Q3 final.xlsx` into `Q3` and `final.xlsx`, trying to copy two paths that did not exist, logging two harmless "no such file" lines, and moving on. The files without spaces backed up fine, which is exactly why nobody caught it.

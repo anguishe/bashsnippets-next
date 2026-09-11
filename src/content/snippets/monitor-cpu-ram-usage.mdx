@@ -22,8 +22,14 @@ howToSteps:
     text: "Run: chmod +x cpucheck.sh then ./cpucheck.sh"
 author: "Travis"
 datePublished: "2026-05-19"
-dateModified: "2026-06-03"
+dateModified: "2026-09-10"
 ---
+
+<Callout type="info" title="High load is often a service that is up but stuck">
+
+The service-watchdog guide covers the case this monitor exposes: a unit `systemctl` calls active that has stopped answering, and a watchdog that probes it instead of trusting the status. Full guide: [Auto-Restart a Stopped Service on Linux](/guides/auto-restart-linux-service).
+
+</Callout>
 
 
 I started a long job on my own machine, walked off to do something else, and came back a few hours later to a desktop so sluggish the mouse cursor stuttered when I moved it. One process had pinned every core of the i7 and was steadily eating into 64 GB of RAM, and it had been doing it, uncontested, the entire time I was away. By the time the machine felt slow under my hands, the damage — a wasted afternoon, a swap-thrashed box I had to coax back to responsiveness — was already done.

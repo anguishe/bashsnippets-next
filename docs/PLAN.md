@@ -52,7 +52,12 @@ Secondary: fewer than 15 Gumroad outbound clicks in six weeks across 63 pages. T
 | — | Docs baseline (this file, README, CLAUDE, CONTRIBUTING, OWNERSHIP, archive) | ✅ 2026-09-01 | this commit |
 | — | Homepage links all 7 guides (was 4) | ✅ 2026-09-01 | `homeGuides` in `src/app/page.tsx` |
 | — | Competitor SERP teardown per head cluster | 🔒 **deferred by Travis** until all fixes + queued content ship | §5 |
-| — | Cross-posting (20 queued + 10 drafts) | 🔒 shelved until 2.4 says otherwise | `docs/CROSS-POST-BACKLOG.md` |
+| 3.A | Bing sitemap stuck "Processing" since 5/27 → resubmitted | ✅ 2026-09-10 | Bing WMT → Sitemaps; verify *Last crawl* populates by **9/13** |
+| 3.B | Site push: 26-snippet guide mesh, 4 guides → ShellCheck pages, 4 quickAnswers, sameAs unified, CTA copy, **6 new snippets + 6 repo scripts** | ✅ 2026-09-11 | sitemap 72 → 78; `docs/MANUAL-ACTIONS-2026-09-10.md` §0 |
+| 3.C | Cross-posting (10 drafts + 3 new + 2 kit) | 🔓 **UNSHELVED** by Travis 2026-09-10 — Claude drafts, Travis posts | `docs/POST-QUEUE-2026-09.md` §A–B |
+| 3.D | First earned links: awesome-list PRs, Show HN, Reddit kit, listings | ⏳ drafted, Travis posts | `docs/POST-QUEUE-2026-09.md` §D–G |
+| 3.D2 | Google without quota: dev.to canonicals re-pointed, deep links only, mesh | ⏳ script written, needs Travis to run (secret) | MANUAL-ACTIONS-2026-09-10 §1.1 |
+| 3.E | Income surfaces (lead magnet, Gumroad Discover, Sponsors, productized fix) | 🔒 **deferred by Travis 2026-09-10** — traffic + indexing first | plan file §3 Track E |
 | — | YouTube Shorts engine (`~/Projects/bashsnippets-content-engine`) | ⏸ parked by Travis 2026-09-01 | §6 |
 | — | Google / GSC work | 🔒 closed until **2026-11-30** | zero earned links gates everything there |
 
@@ -131,11 +136,16 @@ and `public/llms.txt`. Then `npm run indexnow -- <url>`.
    page per code with the rule, why it bites in production, before/after fix and "when to disable it"
    is citable prose. Proposed URL shape `/shellcheck/<code>` with the decoder as hub; data source is
    `src/components/tools/shared/shellcheckData.ts`. Start with the 7 that have demand, not all 300.
-4. Refresh, not new: `list-open-ports-linux` and `restart-service-if-stopped` get a "Read the full
-   guide" block once 1–2 ship; `dateModified` on 16 snippets still reads 2026-06-03.
+4. ✅ Refresh (2026-09-10): 26 snippets got a "Full guide" callout + `dateModified` bump; 4 guides link
+   the ShellCheck deep dives.
+5. ✅ Six snippets from measured demand (2026-09-11): `find-ip-address-linux` (largest uncovered
+   autocomplete cluster), `bash-environment-variables`, `ssh-run-remote-commands`, `ports-audit`
+   (open-ports = 26 % of Bing queries), `service-watchdog` (cluster at position 2.0),
+   `log-retention-cleanup` (backup cluster = only one with clicks). Sitemap 78.
 
-Parked: the JSX→MDX migration (2.2). Shelved: cross-posting (10 drafts carry `REVIEW: incident
-dramatized` markers — Travis vets each war story before any of them post).
+Parked: the JSX→MDX migration (2.2). Cross-posting is **unshelved** (Travis 2026-09-10): the queue is
+`docs/POST-QUEUE-2026-09.md`; drafts with `REVIEW: incident dramatized` still need Travis to vet the
+war story before posting.
 
 ---
 
@@ -167,7 +177,9 @@ dramatized` markers — Travis vets each war story before any of them post).
 
 | Date | What |
 |---|---|
-| **2026-09-22** | 2.4 re-check: Bing indexed / impressions / citations, `.html` share, GSC indexed, GA4 sessions, CTA events by placement. Also: did Bing recrawl the 12 restored pages? |
+| **2026-09-13** | Bing WMT → Sitemaps: *Last crawl* populated, status Success, 78 discovered (was "Processing" since 5/27). |
+| **2026-09-20** | Week-1 + week-2 dev.to queue must have shipped for the 10/06 read to be honest. |
+| **2026-09-22** | 2.4 re-check against the **9/10 baselines** (MANUAL-ACTIONS-2026-09-10 §3): Bing indexed 54 / 3M imp 816 / clicks 13 / kw 448; Copilot 124; GSC links to any URL ≠ `/` = 0; GSC indexed 1; GA4 sessions 3; Buttondown 0; Gumroad $0. Also: did Bing recrawl the 12 restored pages? |
 | **~2026-10-06** | First honest read of the kill signal (5 weeks of email capture). |
 | 2026-11-30 | GSC reopens for review. |
 | 2027-04-30 | Domain expiry (auto-renew on). |
@@ -197,6 +209,8 @@ dramatized` markers — Travis vets each war story before any of them post).
 | `CONTRIBUTING.md` | practical add-a-snippet / tool / guide workflow |
 | `README.md` | repo front page |
 | `OWNERSHIP.md` | every account and ID |
+| `docs/MANUAL-ACTIONS-2026-09-10.md` | **current** human-only setup/config steps (dev.to canonicals, GitHub profile, Bing crawl control, Buttondown welcome, Medium titles, deploy verify) |
+| `docs/POST-QUEUE-2026-09.md` | the posting queue: dev.to days 1–14, Medium imports, CoderLegion, awesome-list PRs, Show HN, Reddit kit, listings — Travis posts, ticks rows |
 | `docs/MANUAL-ACTIONS-2026-09-01.md` | human-only steps with exact instructions and evidence (Phase 1 all closed; 2.4 open) |
 | `docs/INDEXING-AUDIT-2026-09-01.md` | the correction of the 8/28 audit; current evidence base |
 | `docs/CROSS-POST-BACKLOG.md` + `docs/cross-posts/` | shelved syndication queue and 10 drafts |
@@ -230,6 +244,7 @@ rewritten, because rewriting would have invalidated commit IDs other docs cite.
 
 ## 11. Changelog
 
+- **2026-09-10/11 — the audit + the push.** Full live audit (GSC, Bing WMT, GA4, Buttondown, Gumroad, dev.to, YouTube, Reddit, repos): traffic did not "fall off" — GA4 shows 3 sessions Aug 1–Sep 9; nothing has been distributed since Jul 30 and there has never been one earned link. GSC still 1 indexed (the two "noindex" rows are stale: `kill-a-process` + `.html`, live page is `index,follow`). Bing 54 indexed / 816 imp / 448 kw / Copilot 124 — growing; **Bing sitemap was stuck "Processing" since 5/27, never crawled → resubmitted.** Shipped: internal-link mesh (26 snippets → guides via `Callout`, `dateModified` 2026-09-10), 4 guides → 7 ShellCheck pages, 4 missing `quickAnswer`s, `sameAs` unified (8 profiles) across layout Organization + founder + About, `ToolkitCTA` copy matches `/starter-kit`, **6 new snippets + 6 ShellCheck-clean repo scripts** (`find-ip-address-linux`, `bash-environment-variables`, `ssh-run-remote-commands`, `ports-audit`, `service-watchdog`, `log-retention-cleanup`), `llms.txt` 44/78, scripts repo gets `CONTRIBUTING.md` + a script-request issue template + 6 README rows, `bashsnippets-next` GitHub description/homepage/topics. Drafted: dev.to 21–23 (SC2086, open-ports, safe-template), `docs/POST-QUEUE-2026-09.md` (14 dev.to days, Medium imports, CoderLegion, 3 awesome-list PRs, Show HN, Reddit kit, listings), `scripts/repoint-devto-canonicals.mjs` (7 canonicals; needs Travis — secret export blocked), `docs/github-profile-README.md`. Travis decisions: cross-posting **unshelved**; Claude drafts / Travis posts; income surfaces deferred until traffic is consistent + Google indexes; GSC quota stays closed. Sitemap 72 → 78. Human steps: `docs/MANUAL-ACTIONS-2026-09-10.md`.
 - **2026-09-01 (late night)** — Shipped 2.3e: seven ShellCheck deep dives at `/shellcheck/<code>` (new route family: `src/app/shellcheck/[code]/page.tsx` + `src/lib/shellcheck-pages.ts` registry + 7 MDX; sitemap generator parses the registry; `/shellcheck` 301s to the decoder; decoder gets a deep-dives list + per-result link; SC2063 added to the decoder database; `llms.txt` section). Every pasted output is from ShellCheck 0.11.0 / bash 5.3.9 / GNU grep 3.12 / findutils 4.11.0 on this box, including the SC2115 deletion run in a scratch tree. Findings worth keeping: SC2154 never fires on UPPERCASE names (assumed env vars) and reports typos as SC2153; `for f in $files` is not flagged by 0.11.0 at all; SC2016 exempts ssh/bash -c/awk/perl/find -exec but flags xargs sh -c, sed, mail -s. Sitemap 65 → 72. **Homepage hero "overlay bug" investigated and closed as not-a-code-bug:** the site's CSS is correct and stock Chromium renders the fade; in the anguisheh1 Chrome profile an injected stylesheet rewrites the gradient to `rgba(0,0,0,0) … 50%`, so the image's baked-in text shows through there only. Travis: leave as is. Content queue (§4) is now empty; next date is 2.4 on 2026-09-22.
 - **2026-09-01 (late, 2)** — Shipped 2.3d: `/guides/open-ports-linux` (~3.6k words; every command run here as non-root with the two root blocks pasted by Travis; `ports-audit.sh` ShellCheck-clean, diff/alert path exercised with a real 8099 listener). `list-open-ports-linux` snippet cross-links it. Sitemap 65. Next: 2.3e per-code ShellCheck pages.
 - **2026-09-01 (late)** — Shipped 2.3c: `/guides/auto-restart-linux-service` (3.5k words, script ShellCheck-clean and every branch exercised live on this box; opens on the real Aug-6 lightdm/ollama GPU race and today's wpa_supplicant SIGKILLs from the journal). `restart-service-if-stopped` snippet now links to it. Sitemap 64. Next: 2.3d open-ports guide.

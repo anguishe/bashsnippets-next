@@ -28,8 +28,14 @@ howToSteps:
     text: "docker volume prune -f removes unattached volumes. docker builder prune -af clears the build cache."
 author: "Travis"
 datePublished: "2026-06-06"
-dateModified: "2026-06-06"
+dateModified: "2026-09-10"
 ---
+
+<Callout type="info" title="Docker is one of five disk eaters">
+
+The sysadmin guide covers the other four — logs, old backups, package caches and orphaned kernels — with the same dry-run-first pattern this script uses. Full guide: [25 Bash Scripts Every Linux Sysadmin Needs](/guides/bash-scripts-every-sysadmin-needs).
+
+</Callout>
 
 Docker fills your disk while you're not looking. Every image you pulled for a test and never cleaned up. Every build that added another cache layer. Every container that exited and sat in the Exited state for six months. Run `docker system df` right now — if you haven't pruned recently, the reclaimable column is probably larger than you think.
 

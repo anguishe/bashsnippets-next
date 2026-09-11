@@ -78,6 +78,8 @@ find /var/log/myapp -name "*.log" -mtime -1 \
 
 Read it left to right: `find` scopes to today's log files, `grep` pulls the error lines, `awk` strips the timestamp columns so identical errors collapse together, and `sort | uniq -c | sort -rn` is the workhorse combo that counts duplicates and ranks them most-frequent-first. The top line is your incident. That pipeline has told me what was actually breaking more times than any dashboard.
 
+Three ShellCheck rules live in that pipeline. `xargs grep` breaks on a filename with a space — `find -print0 | xargs -0` is the fix — and the same word-splitting is what [SC2046](/shellcheck/sc2046) flags when you wrap `find` in `$( )` instead of piping it. The awk program is in single quotes on purpose: `$1` there is awk's field, not a shell variable, which is the one case [SC2016](/shellcheck/sc2016) knows to leave alone. And if you ever grep for a literal `*` and get nothing back, that is [SC2063](/shellcheck/sc2063): grep reads a regex, not a glob.
+
 ## Where this connects
 
 The order is the whole point: scope with `find`, confirm with `grep`, transform with `sed` or `awk`, verify before you trust it. The eleven-service outage happened because I started at the transform. Every one of those steps has somewhere to go deeper — the [find](https://bashsnippets.xyz/tools/find-command-builder) and [grep](https://bashsnippets.xyz/tools/grep-pattern-builder) builders for assembling the exact command, and [error handling with set -euo pipefail](https://bashsnippets.xyz/snippets/bash-error-handling) for wrapping any of this in a script that fails loudly instead of half-finishing.

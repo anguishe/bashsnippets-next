@@ -22,8 +22,14 @@ howToSteps:
     text: "Run: chmod +x dated-folder.sh then ./dated-folder.sh"
 author: "Travis"
 datePublished: "2026-05-14"
-dateModified: "2026-06-03"
+dateModified: "2026-09-10"
 ---
+
+<Callout type="info" title="The naming convention every backup script uses">
+
+Every backup script in the sysadmin guide writes into a dated folder like this one, because a date in the path is what lets a retention script decide what to delete. Full guide: [25 Bash Scripts Every Linux Sysadmin Needs](/guides/bash-scripts-every-sysadmin-needs).
+
+</Callout>
 
 
 Past-me had a naming convention for backups, if it deserves the word: a folder called `backup`, beside `backup2`, beside `backupNEW`, beside `backup_final`, all piled onto the same 2 TB drive over months of "I'll make a quick copy first." The day I actually needed one of them, I opened the drive and genuinely could not tell which was the good one. Same names, near-identical sizes, and every manual copy I'd ever made had been quietly clobbering or shadowing the one before it. The copy I wanted was probably in there. It was also probably the one I'd overwritten.

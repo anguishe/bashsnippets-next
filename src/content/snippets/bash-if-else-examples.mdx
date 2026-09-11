@@ -22,8 +22,14 @@ howToSteps:
     text: "Run: chmod +x conditionals.sh then ./conditionals.sh"
 author: "Travis"
 datePublished: "2026-05-12"
-dateModified: "2026-06-03"
+dateModified: "2026-09-10"
 ---
+
+<Callout type="info" title="Every test here assumes strict mode">
+
+The safe-template guide explains the `set -euo pipefail` header these examples rely on, and the ERR trap that names the failing line when a test you did not expect to fail does. Full guide: [The Safe Bash Script Template](/guides/safe-bash-script-template).
+
+</Callout>
 
 
 A small scheduled job I'd half-forgotten about stopped doing its work, and it did it the worst possible way — silently, with no error I'd ever see, because it was running under cron with its output going nowhere. When I finally dug in, the culprit was a single test I'd written carelessly: `[ $STATUS = ok ]`, no quotes. As long as `$STATUS` came back with a value it was fine. The one time the command feeding it returned nothing, `$STATUS` expanded to empty, the test collapsed to `[ = ok ]`, and bash choked on a comparison with a missing left-hand side.

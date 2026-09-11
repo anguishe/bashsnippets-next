@@ -27,6 +27,12 @@ howToSteps:
     text: "For flag-style arguments, loop with while getopts \"vf:\" opt; do to read -v and -f file. The trailing colon marks a flag that requires an argument, and getopts reports missing ones for you."
 ---
 
+<Callout type="info" title="Scope bugs are what set -u is for">
+
+The safe-template guide shows how `set -u` and an ERR trap turn a leaked or unset variable into an immediate, named failure instead of an `rm -rf` on the wrong directory. Full guide: [The Safe Bash Script Template](/guides/safe-bash-script-template).
+
+</Callout>
+
 ## The cleanup that deleted the wrong directory
 
 A deploy script had a helper, `prepare()`, that built a release into a temp path and stored it in a variable named `target`. The main script also used `target` — it was the directory the cleanup step removed at the end with `rm -rf "$target"`. `prepare()` did not declare `target` as `local`, so calling it overwrote the main script's `target` with the temp path. On the run where the temp build failed halfway, `target` was left pointing at the wrong place, and `rm -rf "$target"` removed a directory that was very much not temporary. We restored from backup. The ten minutes of dread before the backup finished is the part I will not repeat.

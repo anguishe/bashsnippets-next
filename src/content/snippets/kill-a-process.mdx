@@ -22,8 +22,14 @@ howToSteps:
     text: "Run pgrep -l processname again — no output means the process is gone"
 author: "Travis"
 datePublished: "2026-05-16"
-dateModified: "2026-06-03"
+dateModified: "2026-09-10"
 ---
+
+<Callout type="info" title="Before you kill it, know why it hung">
+
+The hung-process guide is the command set for the process `pkill` will not stop: the D state that ignores every signal, `/proc/PID/wchan`, and what to capture before `kill -9` destroys the evidence. Full guide: [Diagnosing a Hung Process](/guides/diagnose-a-hung-process).
+
+</Callout>
 
 
 ## The Wrong Way vs The Right Way

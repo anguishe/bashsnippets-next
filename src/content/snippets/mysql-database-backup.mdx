@@ -22,8 +22,14 @@ howToSteps:
     text: "Run: chmod +x mysql-backup.sh then ./mysql-backup.sh"
 author: "Travis"
 datePublished: "2026-05-21"
-dateModified: "2026-06-03"
+dateModified: "2026-09-10"
 ---
+
+<Callout type="info" title="A backup you never restored is a hope">
+
+The sysadmin guide adds the restore test, the off-box copy with rsync, and the retention that keeps last week without keeping last year. Full guide: [25 Bash Scripts Every Linux Sysadmin Needs](/guides/bash-scripts-every-sysadmin-needs).
+
+</Callout>
 
 
 One stray `DROP TABLE` against a local database I'd been building against for weeks, and the rows were gone — no staging copy, no replica, no undo, nothing but the specific sinking feeling of having done it to myself at my own keyboard. It wasn't a production system; there was no production system. That almost made it worse. The data only ever lived in one place, on one disk, and the moment I confirmed the statement, the only copy that had ever existed stopped existing.

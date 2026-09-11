@@ -2,9 +2,10 @@
 title: "Bash Arrays: Indexed, Associative, Append, and Safe Iteration"
 description: "Storing a list as a space-separated string in bash is a latent outage. The moment one element contains a space — a hostname like \"web-prod 01\" handed out by a cloud provider — word splitting turns one item into two and your loop acts on entries that were never there. An array makes the space a non-event: each element stays one unit no matter what is inside it. This page covers declaring indexed arrays two ways, the critical \"${arr[@]}\" vs \"${arr[*]}\" distinction, appending with arr+=(), measuring length with ${#arr[@]}, slicing with ${arr[@]:start:len}, and associative arrays (declare -A, bash 4+) for key/value maps like service-to-port lookups. It ends with a production health checker that collects every failure into a second array and reports them all at the end instead of stopping at the first. Tested on Ubuntu 22.04 LTS and RHEL 9 with bash 5.1."
 tags: ["bash", "arrays", "associative-arrays", "scripting"]
+quickAnswer: "A bash array holds a list where every element stays one unit, whatever characters it contains. Declare one with arr=(web-01 web-02 db-prod), append with arr+=(new-host), read the count with ${#arr[@]}, and iterate over a double-quoted ${arr[@]} expansion, which is what keeps an element containing a space intact. A space-separated string iterated with for h in $SERVERS splits on every space and glob character, so one hostname with a space becomes two nonexistent hosts and the script reports success for both. Associative arrays, declared with declare -A, map keys to values for lookups such as port[nginx]=80. This page covers indexed and associative arrays, safe iteration, slicing, reading a file into an array with mapfile, and passing arrays into functions. Arrays need bash 4 or later, the default on every current Linux distribution; macOS ships bash 3.2, so install a newer bash from Homebrew there."
 difficulty: "intermediate"
 datePublished: "2026-06-10"
-dateModified: "2026-06-10"
+dateModified: "2026-09-10"
 howToSteps:
   - name: "Declare with parentheses or by index"
     text: "Create an array as arr=(a b c) for a known list, or assign individual slots with arr[0]=a. Both produce a real indexed array, unlike a space-separated string."
@@ -26,6 +27,12 @@ faq:
   - question: "What is an associative array in bash and when do I need one?"
     answer: "An associative array (bash 4+, declared with declare -A) maps arbitrary string keys to values instead of using numeric indices. Use it for lookups: service name to port, username to home directory, hostname to IP. Iterate keys with \"${!map[@]}\" and access values with \"${map[$key]}\"."
 ---
+
+<Callout type="info" title="Arrays and strict mode">
+
+The safe-template guide covers the `nounset` rule that made `"${arr[@]}"` on an empty array a folklore error before bash 4.4, and the header every script iterating a list should start with. Full guide: [The Safe Bash Script Template](/guides/safe-bash-script-template).
+
+</Callout>
 
 A sysadmin stored a fleet's server list the obvious way: a space-separated string, `SERVERS="web-01 web-02 db-prod"`, iterated with `for host in $SERVERS`. It worked for two years. Then the cloud provider assigned a new instance the display name `web-prod 01` — with a space, which their naming policy permitted — and the next maintenance run looped over `web-prod` and `01` as two separate hosts. The script tried to SSH into both, retried on failure, and generated 47 connection attempts to nonexistent hostnames in under a minute. AWS flagged it as a possible compromised host and locked the account pending review. The root cause was not the space in the hostname. It was storing a list as a string. An array would have made that space completely invisible, because each element of an array stays one element no matter what characters it contains.
 

@@ -111,6 +111,8 @@ const organizationSchema = {
     'https://medium.com/@anguisheh1',
     'https://coderlegion.com/user/BashSnippets',
     'https://github.com/anguishe/bashsnippets',
+    'https://github.com/anguishe',
+    'https://www.reddit.com/user/Status_Income_8269/',
   ],
   founder: {
     '@type': 'Person',
@@ -119,9 +121,13 @@ const organizationSchema = {
     url: 'https://bashsnippets.xyz/about',
     sameAs: [
       'https://github.com/anguishe',
+      'https://github.com/anguishe/bashsnippets',
       'https://www.youtube.com/@BashSnippets',
+      'https://www.tiktok.com/@bashsnippets',
       'https://dev.to/bashsnippets',
       'https://medium.com/@anguisheh1',
+      'https://coderlegion.com/user/BashSnippets',
+      'https://www.reddit.com/user/Status_Income_8269/',
     ],
   },
 };

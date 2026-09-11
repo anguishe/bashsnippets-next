@@ -1,0 +1,264 @@
+---
+title: "Service Watchdog: Check a systemd Unit and Restart It Once — Bash Script"
+description: "A cron bash watchdog for systemd units: restarts a stopped service, probes a hung one, bounds start-limit resets, and alerts once per outage, not per minute."
+slug: "service-watchdog"
+tags: ["systemd", "monitor", "cron-ready", "flock", "watchdog"]
+quickAnswer: "service-watchdog.sh is a cron-driven watchdog for one systemd unit. Each run reads ActiveState with systemctl show: an inactive or failed unit is started, an active one is checked with an optional probe command (curl, pg_isready, anything that exits 0 only when the service answers) and restarted if the probe fails, and transitional states are left alone. Before acting it takes a flock so two runs cannot restart at once, checks LoadState so a typo in the unit name exits 2 instead of looping forever, and honours a maintenance flag file so a deliberate stop is not undone. If systemctl reports start-limit-hit it runs reset-failed at most MAX_RESETS times per outage, then gives up and says so. After a start it waits SETTLE_SECONDS and requires both is-active and the probe to pass. Alerts fire only when the verdict changes: one DOWN message, one RECOVERED, per outage."
+faq:
+  - question: "How is this different from the 12-line restart-service-if-stopped script?"
+    answer: "The short script does one thing: if is-active fails, run start. This one handles the cases that break that loop in production — a unit that does not exist (is-active exits 4, the short script restarts it forever), a service that is active but hung (needs a probe, not is-active), start-limit-hit after a crash loop (needs reset-failed, bounded), a deliberate stop (maintenance flag), overlapping cron runs (flock), and alert spam (one message per state change)."
+  - question: "Why does the watchdog say 'no such unit' and exit 2?"
+    answer: "It checked systemctl show -p LoadState and got not-found, which means the unit name is wrong. systemctl is-active exits 4 for a missing unit, and a naive watchdog treats that as 'down' and tries to start it every minute forever. Exit 2 with a log line stops that loop; fix the unit name."
+  - question: "How do I stop the watchdog from restarting a service I stopped on purpose?"
+    answer: "Touch the maintenance flag before you stop the service: touch /var/tmp/service-watchdog/nginx.maintenance (the path is STATE_DIR/UNIT.maintenance). Every run logs 'maintenance flag present, skipping' and exits 0 until you remove the file. Do not forget to rm it afterwards."
+  - question: "What is the probe command and do I need one?"
+    answer: "The probe is any command after the unit name that exits 0 only when the service actually answers, for example curl -fsS --max-time 5 http://127.0.0.1/ for nginx or pg_isready for PostgreSQL. Without one, 'active' is the whole verdict, and a hung process that is still alive will never be restarted. Add a probe for anything that serves requests."
+  - question: "Why did I only get two alerts for an outage that lasted an hour?"
+    answer: "By design. The watchdog writes its verdict (up, down, stuck) to a state file and runs ALERT_CMD only when the verdict changes. An hour-long outage produces one DOWN message when it starts and one RECOVERED message when it ends, not sixty CRITICAL emails from sixty cron ticks."
+howToSteps:
+  - name: "Install the script"
+    text: "Save as /usr/local/sbin/service-watchdog.sh and run chmod +x on it. It needs systemctl, flock (util-linux), and bash 4 or later — all present on any systemd distribution."
+  - name: "Test it by hand against a scratch directory"
+    text: "Run STATE_DIR=/tmp/wd LOG_FILE=/tmp/wd.log ALERT_CMD='cat >> /tmp/alerts.txt' ./service-watchdog.sh nginx curl -fsS --max-time 5 http://127.0.0.1/ while the service is up (silent), then stop the service and run it again to see the DOWN and RECOVERED lines and the two alerts in /tmp/alerts.txt."
+  - name: "Schedule it from root's crontab"
+    text: "sudo crontab -e and add * * * * * /usr/local/sbin/service-watchdog.sh nginx curl -fsS --max-time 5 http://127.0.0.1/ >> /var/log/service-watchdog.cron 2>&1 with ALERT_CMD set to your mail or webhook command. Root avoids sudo prompts that cron cannot answer."
+author: "Travis"
+datePublished: "2026-09-10"
+dateModified: "2026-09-10"
+---
+
+<Callout type="info" title="This is the script from the auto-restart guide, on its own page">
+
+Why `Restart=on-failure` should be your first answer and a cron watchdog your last, what `is-active` cannot see, how `start-limit-hit` turns a restart loop into a permanent failure, and why a probe-driven restart destroys the evidence you needed — all of that is in the full guide: [Auto-Restart a Stopped Service on Linux](/guides/auto-restart-linux-service). This page is the copy-paste home for the watchdog and what it printed when run here.
+
+</Callout>
+
+The [twelve-line watchdog](/snippets/restart-service-if-stopped) — `is-active || start`, every minute — is correct for a well-behaved daemon on a box you watch. It fails in four specific ways the moment it meets production: it restarts a unit that does not exist forever, it never notices a service that is running but hung, it cannot start a unit that systemd has already given up on, and it emails you sixty times for a one-hour outage. This script is the same idea with those four holes closed.
+
+## The Script
+
+Save as `service-watchdog.sh`. The unit name is the first argument; everything after it is an optional probe command that must exit 0 only when the service is actually answering.
+
+```bash
+#!/bin/bash
+# Script: service-watchdog.sh
+# Purpose: A crashed daemon stays down until a human notices, and a hung one stays "active" while serving nothing — this restarts the first, probes for the second, and alerts once per outage instead of once per minute.
+# Usage: ./service-watchdog.sh <unit> [probe command...]
+#   e.g. ./service-watchdog.sh nginx curl -fsS --max-time 5 http://127.0.0.1/
+# Run from root's crontab: * * * * * /usr/local/sbin/service-watchdog.sh nginx curl -fsS --max-time 5 http://127.0.0.1/ >> /var/log/service-watchdog.cron 2>&1
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+UNIT="${1:?usage: $0 <unit> [probe command...]}"
+shift
+PROBE=("$@")                                   # optional; a command that exits 0 only when the service answers
+STATE_DIR="${STATE_DIR:-/var/tmp/service-watchdog}"
+LOG_FILE="${LOG_FILE:-/var/log/service-watchdog.log}"
+MAX_RESETS="${MAX_RESETS:-3}"                  # start-limit resets allowed per outage before the watchdog gives up
+SETTLE_SECONDS="${SETTLE_SECONDS:-3}"          # how long a fresh start gets before the verify step
+ALERT_CMD="${ALERT_CMD:-}"                     # reads the message on stdin, e.g. mail -s "watchdog: $UNIT" you@example.com
+
+mkdir -p "$STATE_DIR"
+STATE_FILE="$STATE_DIR/$UNIT.state"            # last verdict: up | down | stuck
+RESET_FILE="$STATE_DIR/$UNIT.resets"           # start-limit resets used in the current outage
+LOCK_FILE="$STATE_DIR/$UNIT.lock"
+
+log() { printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" | tee -a "$LOG_FILE"; }
+
+# Alert only when the verdict changes. A service that is down for an hour sends one
+# message when it goes down and one when it comes back, not sixty.
+set_verdict() {
+  local verdict="$1" message="$2" previous="none"
+  [[ -f "$STATE_FILE" ]] && previous=$(<"$STATE_FILE")
+  printf '%s\n' "$verdict" > "$STATE_FILE"
+  # First run of a healthy unit is not a recovery — only alert on a real change.
+  [[ "$previous" == "none" && "$verdict" == "up" ]] && return 0
+  if [[ "$verdict" != "$previous" && -n "$ALERT_CMD" ]]; then
+    printf '%s\n%s on %s at %s\n' "$message" "$UNIT" "$(hostname)" "$(date)" | bash -c "$ALERT_CMD" || true
+  fi
+}
+
+# Two watchdog runs at once (a slow probe plus the next cron tick) would both try to
+# restart. The lock is released by the kernel when this process exits, crash included.
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  log "$CHECK $UNIT: previous watchdog run still holds the lock, leaving it alone"
+  exit 0
+fi
+
+# is-active exits 4 for a unit that does not exist, which a naive watchdog reads as
+# "down" and then tries to start every minute forever. Check the load state first.
+if [[ "$(systemctl show -p LoadState --value "$UNIT")" == "not-found" ]]; then
+  log "$CROSS $UNIT: no such unit — fix the name, there is nothing to restart"
+  exit 2
+fi
+
+# A human running maintenance touches this file first and the watchdog stays out of it.
+if [[ -f "$STATE_DIR/$UNIT.maintenance" ]]; then
+  log "$CHECK $UNIT: maintenance flag present, skipping"
+  exit 0
+fi
+
+probe_ok() {
+  [[ ${#PROBE[@]} -eq 0 ]] && return 0        # no probe configured: "active" is the whole verdict
+  "${PROBE[@]}" >/dev/null 2>&1
+}
+
+start_unit() {
+  local result
+  result=$(systemctl show -p Result --value "$UNIT")
+  if [[ "$result" == "start-limit-hit" ]]; then
+    local resets=0
+    [[ -f "$RESET_FILE" ]] && resets=$(<"$RESET_FILE")
+    if (( resets >= MAX_RESETS )); then
+      log "$CROSS $UNIT: crash-looping (start limit hit $resets times this outage), leaving it failed for a human"
+      set_verdict stuck "CRITICAL: $UNIT is crash-looping and the watchdog has stopped resetting it. journalctl -u $UNIT"
+      return 1
+    fi
+    printf '%s\n' "$(( resets + 1 ))" > "$RESET_FILE"
+    log "$CROSS $UNIT: start limit hit, clearing it (reset $(( resets + 1 )) of $MAX_RESETS)"
+    systemctl reset-failed "$UNIT"
+  fi
+  systemctl start "$UNIT"
+}
+
+verify() {
+  sleep "$SETTLE_SECONDS"
+  if systemctl is-active --quiet "$UNIT" && probe_ok; then
+    log "$CHECK $UNIT: back up and answering (NRestarts=$(systemctl show -p NRestarts --value "$UNIT"))"
+    rm -f "$RESET_FILE"
+    set_verdict up "RECOVERED: $UNIT restarted by the watchdog and passed its probe"
+    return 0
+  fi
+  log "$CROSS $UNIT: started but not healthy — state=$(systemctl show -p ActiveState --value "$UNIT")"
+  set_verdict down "CRITICAL: $UNIT was restarted but is not answering. journalctl -u $UNIT"
+  return 1
+}
+
+state=$(systemctl show -p ActiveState --value "$UNIT")
+case "$state" in
+  active)
+    if probe_ok; then
+      rm -f "$RESET_FILE"
+      set_verdict up "RECOVERED: $UNIT is active and answering again"
+      exit 0
+    fi
+    # Active but failing the probe is the hung case. Restart is stop + start, so a
+    # process that ignores SIGTERM holds this for TimeoutStopSec before the SIGKILL.
+    log "$CROSS $UNIT: active but not answering the probe, restarting (evidence: journalctl -u $UNIT)"
+    set_verdict down "DOWN: $UNIT is active but not answering its probe; the watchdog is restarting it"
+    systemctl restart "$UNIT"
+    verify
+    ;;
+  activating|deactivating|reloading)
+    log "$CHECK $UNIT: in transition ($state), checking again next run"
+    exit 0
+    ;;
+  inactive|failed)
+    log "$CROSS $UNIT: $state (Result=$(systemctl show -p Result --value "$UNIT")), starting"
+    set_verdict down "DOWN: $UNIT is $state; the watchdog is starting it"
+    start_unit && verify
+    ;;
+  *)
+    log "$CROSS $UNIT: unexpected ActiveState '$state'"
+    exit 1
+    ;;
+esac
+```
+
+## What Happens on Each Run?
+
+In order: take a `flock` (a second run exits if the first is still inside a slow probe), refuse a unit whose `LoadState` is `not-found`, skip if the maintenance flag exists, then branch on `ActiveState`. `active` runs the probe and restarts only on failure. `inactive` or `failed` goes through `start_unit`, which clears `start-limit-hit` with `reset-failed` at most `MAX_RESETS` times per outage. Every start is followed by `verify`: wait `SETTLE_SECONDS`, then require both `is-active` and the probe. The verdict — `up`, `down`, `stuck` — lands in a state file, and `ALERT_CMD` runs only when the verdict differs from the previous one.
+
+## What Does It Look Like Live?
+
+Every path below was run on this machine on 2026-09-10, as an unprivileged user, with the state, log, and alert outputs pointed at scratch paths:
+
+```bash
+STATE_DIR=/tmp/wd LOG_FILE=/tmp/wd.log ALERT_CMD='cat >> /tmp/alerts.txt' ./service-watchdog.sh cron
+```
+
+Against the running `cron` unit, the first run printed nothing, exited 0, wrote `up` to `/tmp/wd/cron.state`, and created no `alerts.txt`. A healthy unit on a first run is not a recovery, so it is silent. A maintenance flag and a typo in the unit name each produce one log line:
+
+```text
+2026-09-10T22:41:12-0500 ✓ cron: maintenance flag present, skipping
+2026-09-10T22:41:12-0500 ✗ cronn: no such unit — fix the name, there is nothing to restart
+```
+
+The second of those exited 2. Note what did not happen: no `systemctl start cronn`, and no second attempt a minute later.
+
+Stopping a system unit here needs polkit admin authentication that a non-interactive session cannot supply, so the restart path was exercised against a user-scope unit (`wd-demo.service`, `ExecStart=/bin/sleep 1000000`) with `systemctl` shimmed to `systemctl --user` on `PATH`, and a probe of `pgrep -xf '/bin/sleep 1000000'`. Stop the unit, run the watchdog: two log lines, three seconds apart, exit 0, and the unit is back:
+
+```text
+2026-09-10T22:42:15-0500 ✗ wd-demo: inactive (Result=success), starting
+2026-09-10T22:42:18-0500 ✓ wd-demo: back up and answering (NRestarts=0)
+```
+
+`/tmp/alerts.txt` received exactly two messages, one per state change:
+
+```text
+DOWN: wd-demo is inactive; the watchdog is starting it
+wd-demo on angsec at Thu Sep 10 10:42:15 PM CDT 2026
+RECOVERED: wd-demo restarted by the watchdog and passed its probe
+wd-demo on angsec at Thu Sep 10 10:42:18 PM CDT 2026
+```
+
+The run after that, with the unit healthy, printed nothing and the alert file stayed at four lines. That is the whole alerting contract: a transition sends one message, steady state sends none.
+
+## How Do I Schedule It?
+
+From root's crontab, so `systemctl start` never needs a `sudo` that cron cannot answer:
+
+```text
+* * * * * /usr/local/sbin/service-watchdog.sh nginx curl -fsS --max-time 5 http://127.0.0.1/ >> /var/log/service-watchdog.cron 2>&1
+```
+
+Everything tunable is an environment variable with a default, so the crontab line stays readable:
+
+| Variable | Default | What it controls |
+|---|---|---|
+| `STATE_DIR` | `/var/tmp/service-watchdog` | verdict, reset counter, lock, and maintenance flag per unit |
+| `LOG_FILE` | `/var/log/service-watchdog.log` | every intervention, timestamped |
+| `MAX_RESETS` | `3` | `reset-failed` calls allowed per outage before it stops trying |
+| `SETTLE_SECONDS` | `3` | pause between `start` and the verify step |
+| `ALERT_CMD` | empty | reads the message on stdin — `mail -s …`, a webhook `curl`, `cat >> file` |
+
+Set `ALERT_CMD` in the crontab line itself (`ALERT_CMD='mail -s "watchdog" you@example.com' /usr/local/sbin/…`). The [Slack webhook snippet](/snippets/bash-slack-webhook-alerts) is a drop-in for the `mail` version.
+
+One thing this script does on purpose that you may not want: on a service that is `active` but failing its probe, it restarts immediately. The restart is stop plus start, and it throws away the process state that would have told you why it hung. The second time the same unit needs a probe-driven restart, capture `wchan`, open files, and socket queues first — the commands are in [Diagnosing a Hung Process](/guides/diagnose-a-hung-process).
+
+The lock, the settle-and-verify step, and the alert-on-transition pattern are the same three pieces every unattended script ends up needing. [The Production Bash Toolkit](/starter-kit) ships them once as `bashlib.sh` so the next watchdog is a config change, not a rewrite.
+
+## Frequently Asked Questions
+
+### How is this different from the 12-line restart-service-if-stopped script?
+
+The short script does one thing: if `is-active` fails, run `start`. This one handles the cases that break that loop in production — a unit that does not exist (`is-active` exits 4, so the short script restarts it forever), a service that is active but hung (needs a probe), `start-limit-hit` after a crash loop (needs a bounded `reset-failed`), a deliberate stop (maintenance flag), overlapping cron runs (`flock`), and alert spam (one message per state change).
+
+### Why does the watchdog say "no such unit" and exit 2?
+
+It checked `systemctl show -p LoadState` and got `not-found`: the unit name is wrong. `systemctl is-active` exits 4 for a missing unit, and a naive watchdog reads that as "down" and tries to start it every minute forever. Exit 2 with one log line stops that. Fix the name.
+
+### How do I stop the watchdog from restarting a service I stopped on purpose?
+
+Touch the maintenance flag before you stop the service: `touch /var/tmp/service-watchdog/nginx.maintenance` (the path is `STATE_DIR/UNIT.maintenance`). Every run logs `maintenance flag present, skipping` and exits 0 until you remove the file. Remove it afterwards, or the watchdog is off for good.
+
+### What is the probe command and do I need one?
+
+Anything after the unit name is the probe: a command that exits 0 only when the service actually answers — `curl -fsS --max-time 5 http://127.0.0.1/` for nginx, `pg_isready` for PostgreSQL. Without one, `active` is the whole verdict, and a hung process that is still alive is never restarted. Add a probe for anything that serves requests.
+
+### Why did I only get two alerts for an outage that lasted an hour?
+
+By design. The verdict (`up`, `down`, `stuck`) is written to a state file and `ALERT_CMD` runs only when it changes. An hour-long outage is one DOWN message when it starts and one RECOVERED when it ends, not sixty CRITICAL emails from sixty cron ticks.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Restart a Service If It Stopped](/snippets/restart-service-if-stopped) — the twelve-line version this one grew out of
+- [Prevent Overlapping Cron Jobs with flock](/snippets/bash-flock-single-instance) — the lock the watchdog takes, on its own
+- [Check If Website Is Up](/snippets/check-if-website-is-up) — the HTTP probe as a standalone script
