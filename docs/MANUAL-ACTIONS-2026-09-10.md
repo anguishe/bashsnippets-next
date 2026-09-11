@@ -115,7 +115,7 @@ the batch with source `Self` at today's time. (Claude runs `npm run indexnow` as
 
 ## 2. This week — the posting queue
 
-Open `docs/POST-QUEUE-2026-09.md` and work it top to bottom from **Fri 9/12**. Every queued draft
+Open `docs/POST-QUEUE-2026-09.md` and work it top to bottom from **Fri 9/11**. Every queued draft
 (01–10, 21–25) was rebuilt on real runs on 2026-09-11 — no REVIEW lines, nothing to vet, paste as-is.
 dev.to first, Medium import 2–3 days later, CoderLegion one excerpt per week.
 
@@ -130,7 +130,7 @@ text. Order of value: **awesome-shell PR → Show HN → Reddit replies → Medi
 |---|---|---|
 | **2026-09-13** | Bing WMT → Sitemaps: *Last crawl* must be populated, status *Success*, 78 discovered | was "Processing" / "-" |
 | **2026-09-22** | 2.4 re-check (unchanged date) | Bing indexed **54**, 3M impressions **816** / clicks **13** / keywords **448**; Copilot citations 3M **124**; GSC links to any URL other than `/`: **0**; GSC indexed **1**; GA4 sessions Aug 1–Sep 9: **3**; Buttondown **0**; Gumroad **$0** |
-| **~2026-10-06** | Kill-signal read — honest only if the week-1 and week-2 queue shipped by 9/20 | — |
+| **~2026-10-06** | Kill-signal read — honest only if the week-1 and week-2 queue shipped by Thu 9/24 | — |
 | 2026-11-30 | GSC reopens for review | — |
 
 ---

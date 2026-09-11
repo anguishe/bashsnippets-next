@@ -35,7 +35,7 @@ queue are already taken on dev.to, except where a row says so. dev.to returns
 
 ---
 
-## A. Week 1 — dev.to, one per weekday (Fri 9/12 → Thu 9/18)
+## A. Week 1 — dev.to, one per weekday (Fri 9/11 → Thu 9/17)
 
 Re-dated and reordered 2026-09-11 (handoff item G). **All five are paste-ready: no REVIEW lines, no
 invented incidents.** Every first-person claim is a run on this box (bash 5.3.9, GNU sed 4.9,
@@ -47,11 +47,11 @@ skipping the `$?` capture turns exit 3 into 0, which bash 5.3.9 disproves.
 
 | Day | Date | Title (exact) | Body file | canonical_url | Tags | Steps | Done |
 |---|---|---|---|---|---|---|---|
-| 1 | Fri 9/12 | For Months My Dev Server Came Up on 3001. Tonight I Found Out Who Had 3000. | `docs/cross-posts/22-open-ports-linux-devto.md` | `https://bashsnippets.xyz/guides/open-ports-linux` | bash, linux, security, sysadmin | D1–D5 | [ ] |
-| 2 | Mon 9/15 | sed 's/port/listen_port/g' Changed Four Lines. I Wanted One. | `docs/cross-posts/24-bash-sed-find-replace-devto.md` | `https://bashsnippets.xyz/snippets/bash-sed-find-replace` | bash, linux, devops, sysadmin | D1–D5 | [ ] |
-| 3 | Tue 9/16 | I Killed My Report Script Mid-Write. The Output File Never Noticed. | `docs/cross-posts/25-bash-trap-cleanup-devto.md` | `https://bashsnippets.xyz/snippets/bash-trap-cleanup` | bash, linux, devops, sysadmin | D1–D5 | [ ] |
-| 4 | Wed 9/17 | SC2086 Is ShellCheck's Lowest-Severity Warning. It Let rm Delete Two Files I Never Named. | `docs/cross-posts/21-shellcheck-sc2086-devto.md` | `https://bashsnippets.xyz/shellcheck/sc2086` | bash, linux, shellcheck, devops | D1–D5 | [ ] |
-| 5 | Thu 9/18 | set -euo pipefail Is Missing a Letter. My ERR Trap Stayed Silent Until I Added -E. | `docs/cross-posts/23-safe-bash-script-template-devto.md` | `https://bashsnippets.xyz/guides/safe-bash-script-template` | bash, linux, devops, scripting | D1–D5 | [ ] |
+| 1 | Fri 9/11 | For Months My Dev Server Came Up on 3001. Tonight I Found Out Who Had 3000. | `docs/cross-posts/22-open-ports-linux-devto.md` | `https://bashsnippets.xyz/guides/open-ports-linux` | bash, linux, security, sysadmin | D1–D5 | [ ] |
+| 2 | Mon 9/14 | sed 's/port/listen_port/g' Changed Four Lines. I Wanted One. | `docs/cross-posts/24-bash-sed-find-replace-devto.md` | `https://bashsnippets.xyz/snippets/bash-sed-find-replace` | bash, linux, devops, sysadmin | D1–D5 | [ ] |
+| 3 | Tue 9/15 | I Killed My Report Script Mid-Write. The Output File Never Noticed. | `docs/cross-posts/25-bash-trap-cleanup-devto.md` | `https://bashsnippets.xyz/snippets/bash-trap-cleanup` | bash, linux, devops, sysadmin | D1–D5 | [ ] |
+| 4 | Wed 9/16 | SC2086 Is ShellCheck's Lowest-Severity Warning. It Let rm Delete Two Files I Never Named. | `docs/cross-posts/21-shellcheck-sc2086-devto.md` | `https://bashsnippets.xyz/shellcheck/sc2086` | bash, linux, shellcheck, devops | D1–D5 | [ ] |
+| 5 | Thu 9/17 | set -euo pipefail Is Missing a Letter. My ERR Trap Stayed Silent Until I Added -E. | `docs/cross-posts/23-safe-bash-script-template-devto.md` | `https://bashsnippets.xyz/guides/safe-bash-script-template` | bash, linux, devops, scripting | D1–D5 | [ ] |
 
 The canonicals for 24 and 25 are the same ones the kit files carried: verified clean and untaken on dev.to on 2026-09-10.
 
@@ -61,7 +61,7 @@ The canonicals for 24 and 25 are the same ones the kit files carried: verified c
 
 ## B. Weeks 2–3 — backlog drafts 01–10, then Medium, then CoderLegion
 
-### B1. dev.to, one per weekday, backlog order (Fri 9/19 → Wed 10/1)
+### B1. dev.to, one per weekday, backlog order (Fri 9/18 → Wed 9/30)
 
 **01, 04, 05, 06 and 10 were rewritten 2026-09-11** around real runs on this box (handoff item E):
 no REVIEW lines, new titles below, and the `-medium.md` files regenerated from the same bodies. 02,
@@ -70,16 +70,16 @@ invented too and appear on no site page.
 
 | Day | Date | # | Title (exact) | Body file (`docs/cross-posts/`) | canonical_url | Tags | REVIEW | Done |
 |---|---|---|---|---|---|---|---|---|
-| 6 | Fri 9/19 | 01 | My Disk Check Prints WARNING at 88%. Cron Throws It Away Every Monday. | `01-bash-scripts-every-sysadmin-needs-devto.md` | `https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs` | bash, linux, devops, tutorial | 0 | [ ] |
-| 7 | Mon 9/22 | 02 | grep Found 5 Matches for a Hostname I Expected 3 Times. sed Would Have Rewritten All 5. | `02-bash-text-processing-devto.md` | `https://bashsnippets.xyz/guides/bash-text-processing` | bash, linux, devops, tutorial | 0 | [ ] |
+| 6 | Fri 9/18 | 01 | My Disk Check Prints WARNING at 88%. Cron Throws It Away Every Monday. | `01-bash-scripts-every-sysadmin-needs-devto.md` | `https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs` | bash, linux, devops, tutorial | 0 | [ ] |
+| 7 | Mon 9/21 | 02 | grep Found 5 Matches for a Hostname I Expected 3 Times. sed Would Have Rewritten All 5. | `02-bash-text-processing-devto.md` | `https://bashsnippets.xyz/guides/bash-text-processing` | bash, linux, devops, tutorial | 0 | [ ] |
 | — | — | 03 | **DO NOT POST — already live.** See the note under this table. | `03-shell-scripts-that-talk-to-apis-devto.md` | `https://bashsnippets.xyz/guides/shell-scripts-that-talk-to-apis` | — | 0 | [x] canonical fixed 2026-09-11 |
-| 8 | Tue 9/23 | 04 | I Pointed rsync --delete at a Nearly Empty Directory. It Deleted 3,800 Files and Exited 0. | `04-rsync-command-builder-devto.md` | `https://bashsnippets.xyz/tools/rsync-command-builder` | bash, webdev, tools, productivity | 0 | [ ] |
-| 9 | Wed 9/24 | 05 | grep "error&#124;failed" Found Nothing in a Log That Said 'backup failed' | `05-grep-pattern-builder-devto.md` | `https://bashsnippets.xyz/tools/grep-pattern-builder` | bash, webdev, tools, productivity | 0 | [ ] |
-| 10 | Thu 9/25 | 06 | I Tested a jq Alert Against a Down Status. It Printed 'no alert'. | `06-jq-filter-builder-devto.md` | `https://bashsnippets.xyz/tools/jq-filter-builder` | bash, webdev, tools, productivity | 0 | [ ] |
-| 11 | Fri 9/26 | 07 | find -mtime +30 Kept a File That Was 30.5 Days Old. I Checked With touch -d. | `07-delete-old-log-files-devto.md` | `https://bashsnippets.xyz/snippets/delete-old-log-files` | bash, linux, devops, sysadmin | 0 | [ ] |
-| 12 | Mon 9/29 | 08 | find -perm 777 Missed a World-Writable File in My Test Tree. -perm -o+w Didn't. | `08-file-permissions-security-devto.md` | `https://bashsnippets.xyz/snippets/file-permissions-security` | bash, linux, devops, sysadmin | 0 | [ ] |
-| 13 | Tue 9/30 | 09 | My Machine Has No mail Command. That's Where Most Disk Alerts Die. | `09-bash-send-email-alert-devto.md` | `https://bashsnippets.xyz/snippets/bash-send-email-alert` | bash, linux, devops, sysadmin | 0 | [ ] |
-| 14 | Wed 10/1 | 10 | One ssh Flag Tells You Whether a Server Still Accepts Passwords | `10-ssh-key-setup-script-devto.md` | `https://bashsnippets.xyz/snippets/ssh-key-setup-script` | bash, linux, devops, sysadmin | 0 | [ ] |
+| 8 | Tue 9/22 | 04 | I Pointed rsync --delete at a Nearly Empty Directory. It Deleted 3,800 Files and Exited 0. | `04-rsync-command-builder-devto.md` | `https://bashsnippets.xyz/tools/rsync-command-builder` | bash, webdev, tools, productivity | 0 | [ ] |
+| 9 | Wed 9/23 | 05 | grep "error&#124;failed" Found Nothing in a Log That Said 'backup failed' | `05-grep-pattern-builder-devto.md` | `https://bashsnippets.xyz/tools/grep-pattern-builder` | bash, webdev, tools, productivity | 0 | [ ] |
+| 10 | Thu 9/24 | 06 | I Tested a jq Alert Against a Down Status. It Printed 'no alert'. | `06-jq-filter-builder-devto.md` | `https://bashsnippets.xyz/tools/jq-filter-builder` | bash, webdev, tools, productivity | 0 | [ ] |
+| 11 | Fri 9/25 | 07 | find -mtime +30 Kept a File That Was 30.5 Days Old. I Checked With touch -d. | `07-delete-old-log-files-devto.md` | `https://bashsnippets.xyz/snippets/delete-old-log-files` | bash, linux, devops, sysadmin | 0 | [ ] |
+| 12 | Mon 9/28 | 08 | find -perm 777 Missed a World-Writable File in My Test Tree. -perm -o+w Didn't. | `08-file-permissions-security-devto.md` | `https://bashsnippets.xyz/snippets/file-permissions-security` | bash, linux, devops, sysadmin | 0 | [ ] |
+| 13 | Tue 9/29 | 09 | My Machine Has No mail Command. That's Where Most Disk Alerts Die. | `09-bash-send-email-alert-devto.md` | `https://bashsnippets.xyz/snippets/bash-send-email-alert` | bash, linux, devops, sysadmin | 0 | [ ] |
+| 14 | Wed 9/30 | 10 | One ssh Flag Tells You Whether a Server Still Accepts Passwords | `10-ssh-key-setup-script-devto.md` | `https://bashsnippets.xyz/snippets/ssh-key-setup-script` | bash, linux, devops, sysadmin | 0 | [ ] |
 
 **Row 03 — the 61-hours story is already on dev.to and Medium.** dev.to article **4266678**
 ("Our Status Dashboard Was Green for 61 Hours While the API Was Down",
@@ -94,20 +94,20 @@ pasted one with the `# ` title (section C) — it cannot gain a canonical withou
 
 | Target date | Source row | Import this URL | Then paste body from | Done |
 |---|---|---|---|---|
-| Mon 9/15 | Day 1 | `https://bashsnippets.xyz/guides/open-ports-linux` | `22-…-devto.md` minus YAML | [ ] |
-| Thu 9/18 | Day 2 | `https://bashsnippets.xyz/snippets/bash-sed-find-replace` | `24-…-devto.md` minus YAML | [ ] |
-| Fri 9/19 | Day 3 | `https://bashsnippets.xyz/snippets/bash-trap-cleanup` | `25-…-devto.md` minus YAML | [ ] |
-| Sat 9/20 | Day 4 | `https://bashsnippets.xyz/shellcheck/sc2086` | `21-…-devto.md` minus YAML | [ ] |
-| Sun 9/21 | Day 5 | `https://bashsnippets.xyz/guides/safe-bash-script-template` | `23-…-devto.md` minus YAML | [ ] |
-| Mon 9/22 | Day 6 | `https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs` | `01-…-medium.md` | [ ] |
-| Thu 9/25 | Day 7 | `https://bashsnippets.xyz/guides/bash-text-processing` | `02-…-medium.md` | [ ] |
-| Fri 9/26 | Day 8 | `https://bashsnippets.xyz/tools/rsync-command-builder` | `04-…-medium.md` | [ ] |
-| Sat 9/27 | Day 9 | `https://bashsnippets.xyz/tools/grep-pattern-builder` | `05-…-medium.md` | [ ] |
-| Sun 9/28 | Day 10 | `https://bashsnippets.xyz/tools/jq-filter-builder` | `06-…-medium.md` | [ ] |
-| Mon 9/29 | Day 11 | `https://bashsnippets.xyz/snippets/delete-old-log-files` | `07-…-medium.md` | [ ] |
-| Thu 10/2 | Day 12 | `https://bashsnippets.xyz/snippets/file-permissions-security` | `08-…-medium.md` | [ ] |
-| Fri 10/3 | Day 13 | `https://bashsnippets.xyz/snippets/bash-send-email-alert` | `09-…-medium.md` | [ ] |
-| Sat 10/4 | Day 14 | `https://bashsnippets.xyz/snippets/ssh-key-setup-script` | `10-…-medium.md` | [ ] |
+| Mon 9/14 | Day 1 | `https://bashsnippets.xyz/guides/open-ports-linux` | `22-…-devto.md` minus YAML | [ ] |
+| Thu 9/17 | Day 2 | `https://bashsnippets.xyz/snippets/bash-sed-find-replace` | `24-…-devto.md` minus YAML | [ ] |
+| Fri 9/18 | Day 3 | `https://bashsnippets.xyz/snippets/bash-trap-cleanup` | `25-…-devto.md` minus YAML | [ ] |
+| Sat 9/19 | Day 4 | `https://bashsnippets.xyz/shellcheck/sc2086` | `21-…-devto.md` minus YAML | [ ] |
+| Sun 9/20 | Day 5 | `https://bashsnippets.xyz/guides/safe-bash-script-template` | `23-…-devto.md` minus YAML | [ ] |
+| Mon 9/21 | Day 6 | `https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs` | `01-…-medium.md` | [ ] |
+| Thu 9/24 | Day 7 | `https://bashsnippets.xyz/guides/bash-text-processing` | `02-…-medium.md` | [ ] |
+| Fri 9/25 | Day 8 | `https://bashsnippets.xyz/tools/rsync-command-builder` | `04-…-medium.md` | [ ] |
+| Sat 9/26 | Day 9 | `https://bashsnippets.xyz/tools/grep-pattern-builder` | `05-…-medium.md` | [ ] |
+| Sun 9/27 | Day 10 | `https://bashsnippets.xyz/tools/jq-filter-builder` | `06-…-medium.md` | [ ] |
+| Mon 9/28 | Day 11 | `https://bashsnippets.xyz/snippets/delete-old-log-files` | `07-…-medium.md` | [ ] |
+| Thu 10/1 | Day 12 | `https://bashsnippets.xyz/snippets/file-permissions-security` | `08-…-medium.md` | [ ] |
+| Fri 10/2 | Day 13 | `https://bashsnippets.xyz/snippets/bash-send-email-alert` | `09-…-medium.md` | [ ] |
+| Sat 10/3 | Day 14 | `https://bashsnippets.xyz/snippets/ssh-key-setup-script` | `10-…-medium.md` | [ ] |
 
 Medium's own "Originally published at" line is the canonical. The `-medium.md` files end with that
 line already; delete the duplicate if Medium adds its own.
@@ -116,9 +116,9 @@ line already; delete the duplicate if Medium adds its own.
 
 | Week of | Excerpt file (`docs/cross-posts/`) | Deep link (must be the only link) | Done |
 |---|---|---|---|
-| Mon 9/22 | `04-rsync-command-builder-coderlegion.md` | `https://bashsnippets.xyz/tools/rsync-command-builder` | [ ] |
-| Mon 9/29 | `05-grep-pattern-builder-coderlegion.md` | `https://bashsnippets.xyz/tools/grep-pattern-builder` | [ ] |
-| Mon 10/6 | `06-jq-filter-builder-coderlegion.md` | `https://bashsnippets.xyz/tools/jq-filter-builder` | [ ] |
+| Mon 9/21 | `04-rsync-command-builder-coderlegion.md` | `https://bashsnippets.xyz/tools/rsync-command-builder` | [ ] |
+| Mon 9/28 | `05-grep-pattern-builder-coderlegion.md` | `https://bashsnippets.xyz/tools/grep-pattern-builder` | [ ] |
+| Mon 10/5 | `06-jq-filter-builder-coderlegion.md` | `https://bashsnippets.xyz/tools/jq-filter-builder` | [ ] |
 
 No CoderLegion post for the guides or the Week-1 pieces — 39 of our 103 external links are already
 CoderLegion→homepage, and the tools are the ones worth a deep link.
@@ -252,7 +252,7 @@ Disclosure: I am the author.
 
 ## E. Show HN
 
-**Not before the HN account is at least two weeks old with genuine comments on it** (handoff Travis
+**Not before the HN account is at least two weeks old with genuine comments on it** — account created Fri 9/11 → earliest Show HN **Tue 9/29** (handoff Travis
 item 8). New accounts posting their own site sink. Rewritten 2026-09-11 (handoff item D): the old
 title promised "any SC code", but the decoder covers 31 and links the ShellCheck wiki for the rest.
 The old first comment opened on an invented anecdote and promised two features that do not exist.
