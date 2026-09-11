@@ -1,33 +1,51 @@
-# One sed -i, Four Files I Never Opened, Eleven Services Down
+# grep Found 5 Matches for a Hostname I Expected 3 Times. sed Would Have Rewritten All 5.
 
-The message that told me checkout was broken came from an incident channel I didn't open. Eleven services, one shared config tree, and a cause I'd finished an hour earlier and already stopped thinking about: a recursive `sed -i` swapping our old API hostname, `api.internal`, for its replacement. The command exited zero. The file I spot-checked was flawless.
+To see how a routine rename goes wrong, I built a small config tree on my own machine. `conf.d/app.conf` points an upstream at `api.internal:8080`. `conf.d/health.conf` has a health-check URL on the same host. `samples/example.conf` is a sample shipped as documentation and should never change. `conf.d/docs.conf` sets `doc_host = apixinternal.example.com`, a different host that happens to look similar. And `cache.bin` is a binary file that contains the string. The job: move the live config from `api.internal` to `api-v2.internal`.
 
-The story lived in four files I never looked at. Health-check URLs that pointed at the old host on purpose, so we could watch it through the migration. A comment. A sample config that ships to customers as documentation. And one file where the old hostname was deliberately pinned, a warning note sitting a few lines above the line I rewrote. sed reported success on every one of them, because every one of them *was* a success by its rules: match found, text replaced. The afternoon went to the rollback. The sting went to realizing a plain file listing, printed before the run, would have shown me all four.
+The reflex is one line: `sed -i "s/api.internal/api-v2.internal/g" $(grep -rl "api.internal" myapp)`. It exited 0. Afterwards the two live files were correct — and `docs.conf` now read `doc_host = api-v2.internal.example.com`, the sample had been rewritten, and the binary cache had been edited in place. Five files touched, two intended, and nothing in the output to say so.
 
-Two mistakes had stacked. The first is a regex detail most people know and forget under pressure: the dot in `api.internal` matches any character, not a period, so the pattern was quietly broader than the hostname I meant — and with nothing anchoring it to config keys, it fired in comments and URLs too. Escaping it (`api\.internal`) or using `grep -F` for fixed strings closes that gap.
+## Two mechanisms, one bad afternoon
 
-The second mistake was structural, and it's the one worth internalizing. In-place editing has no read-back step: `sed -i` commits to disk the moment the pattern engine agrees with itself. Whatever preview, confirmation, or undo you want has to come from *around* the command — which is exactly what the classic ordering of the four text tools provides. `find` chooses the files. `grep` previews the change. `sed` (or `awk`) makes it. A diff verifies it. Run them in that order and each step checks the one after it.
+The shallow one is regex. In `api.internal` that dot is not punctuation; it is a wildcard matching any single character, in `grep` and `sed` alike. So the pattern does not mean "this hostname", it means "this substring, with anything in the middle, wherever it appears", which is how `apixinternal` matched. When you mean a literal dot, escape it (`api\.internal`); when you mean a literal string, `grep -F` says so outright.
 
-## What each step buys you
+The deep one is order. `sed -i` writes over the original file the instant the pattern matches — no preview, no confirmation, no undo unless you supply one. Text processing on a live tree is a pipeline with a sequence: `find` decides which files may be touched, `grep` shows what will actually change, `sed` or `awk` makes the change, and a diff earns your trust afterwards. The one-liner started at step three and pointed it at everything grep could see.
 
-With `find`, the file list stops being implicit. `find /etc/myapp -type f -name "*.conf" -not -path "*/samples/*"` prints exactly what a change may touch, and that `-not -path` exclusion is the flag that would have spared my sample config. Nothing destructive should see a filename that didn't appear in this output.
+## grep: count the matches before you rewrite them
 
-With `grep`, the match count stops being a guess. `grep -rn "api\.internal" /etc/myapp --include="*.conf"` shows every hit with its line number. When the count disagrees with your expectation, the disagreement *is* the bug — surfaced while it's still read-only.
+The search that should come first is the same one the one-liner hid inside `$( )`. Run on its own, `grep -rn "api.internal" myapp` printed five hits: the two live lines, the sample, the `apixinternal` line in `docs.conf`, and `binary file matches` for the cache. I expected three. That mismatch is the entire value of the step: the extra two lines are the damage, caught at read time instead of write time.
 
-With `sed`, the missing undo gets built in. `-i.bak` keeps a backup of each original next to the edited file, and it happens to be the portable form too: BSD and macOS sed require a suffix after `-i`, so GNU-style bare `sed -i` breaks the moment the script leaves Linux. Wired together, the safe version of my rename becomes:
+With the dot escaped and the search limited to config files — `grep -rn 'api\.internal' myapp --include="*.conf"` — the count dropped to three: the two live lines and the sample. Closer, and still one file too many.
+
+## find: print the blast radius
+
+Every bulk edit begins with a file list, and the default list, "everything under this directory, including whatever I forgot lives there", is the dangerous one. `find myapp -type f -name "*.conf" -not -path "*/samples/*"` printed three candidates: `app.conf`, `docs.conf` and `health.conf`. The `-not -path` is the single flag that keeps documentation out of a rename. Read that output like a checklist; anything destructive should only ever receive filenames that appeared on it.
+
+## sed: transform with an undo you did not have to build
+
+`-i.bak` edits in place and leaves a `.bak` copy of every original: a full rollback for the price of four characters. It is also the portable spelling. GNU sed treats the backup suffix as optional, but BSD and macOS sed require one, so a bare `sed -i 's/old/new/'` that works on Linux swallows your expression as the suffix on a Mac.
+
+Composed, on a fresh copy of the same tree:
 
 ```bash
 # Scope with find, confirm with grep, transform with a per-file undo
-find /etc/myapp -type f -name "*.conf" -not -path "*/samples/*" \
-  -exec grep -l "api\.internal" {} + \
+find myapp -type f -name "*.conf" -not -path "*/samples/*" \
+  -exec grep -l 'api\.internal' {} + \
   | xargs sed -i.bak 's/api\.internal/api-v2.internal/g'
 ```
 
-Only files inside the scoped list *and* containing a genuine match get touched, and each keeps its own rollback. Diff one against its `.bak` before trusting the rest. For trees where filenames may contain spaces, `grep -lZ` into `xargs -0` removes the word-splitting risk in that pipe.
+It edited `app.conf` and `health.conf` and left a `.bak` beside each. `docs.conf` was a candidate from `find` but `grep -l` with the escaped dot never selected it, so `apixinternal.example.com` survived. The sample was never a candidate. The binary cache was never a candidate. Two files changed, the two I meant. (If the tree can hold filenames with spaces, `grep -lZ` into `xargs -0` closes the word-splitting gap.) Then diff one file against its `.bak` before believing the run.
 
-And when the question shifts from "change these lines" to "summarize these columns," the fourth tool takes over. `awk` splits each line into fields and runs a tiny program per line; its `END` block runs once at the end, collapsing a million-line access log into a total or a per-status-code count. Chained after `find` and `grep`, with `sort | uniq -c | sort -rn` to rank duplicates, it's the fastest incident-triage command I know: the most frequent error in today's logs, on the top line, in one pass.
+## awk: when the question is a column, not a line
 
-The outage never came back, because the habit changed: no transform runs until the file list and the match count have been read by a human. The full version of this pipeline — every stage's flags, the traps in each, and the log-triage one-liner ready to paste — is the text-processing guide on BashSnippets, and the interactive find and grep builders on the same site assemble the exact invocations if you'd rather not memorize flag soup.
+`grep` and `sed` think in lines. The moment your question is about a field — total bytes served from column 10 of an access log, requests grouped by status code — that is `awk`, which splits every line into `$1` through `$NF` and runs a small program per line. Its `END` block fires once after the last line, which is how a million-line log becomes a single number. Chain all four stages and you get the command worth keeping for incidents: `find` scopes to today's logs, `grep` pulls the error lines, `awk` strips the timestamp fields so identical errors collapse together, and `sort | uniq -c | sort -rn | head` ranks them.
+
+## The list worth printing
+
+The unscoped one-liner did nothing wrong by its own rules: pattern found, substitution made, exit 0, five times. The difference between five files and two was an explicit file list, an escaped dot, and one grep read before the write. Scope, confirm, transform, verify. In that order this work is boring, and boring is the goal.
+
+The full guide, with each stage's flags and the incident-triage pipeline in copy-paste form: https://bashsnippets.xyz/guides/bash-text-processing
+
+If you would rather assemble the flags than memorize them, the [find command builder](https://bashsnippets.xyz/tools/find-command-builder) and [grep pattern builder](https://bashsnippets.xyz/tools/grep-pattern-builder) construct and explain the exact invocation before you run it. The rest of the library is at https://bashsnippets.xyz
 
 Originally published at https://bashsnippets.xyz/guides/bash-text-processing
 

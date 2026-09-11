@@ -65,20 +65,20 @@ The canonicals for 24 and 25 are the same ones the kit files carried: verified c
 
 **01, 04, 05, 06 and 10 were rewritten 2026-09-11** around real runs on this box (handoff item E):
 no REVIEW lines, new titles below, and the `-medium.md` files regenerated from the same bodies. 02,
-07, 08 and 09 carry no REVIEW line; Claude checks their incident framing against the site pages
-before their dates.
+07, 08 and 09 were rewritten the same day: they carried no REVIEW line, but their incidents were
+invented too and appear on no site page.
 
 | Day | Date | # | Title (exact) | Body file (`docs/cross-posts/`) | canonical_url | Tags | REVIEW | Done |
 |---|---|---|---|---|---|---|---|---|
 | 6 | Fri 9/19 | 01 | My Disk Check Prints WARNING at 88%. Cron Throws It Away Every Monday. | `01-bash-scripts-every-sysadmin-needs-devto.md` | `https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs` | bash, linux, devops, tutorial | 0 | [ ] |
-| 7 | Mon 9/22 | 02 | Eleven Services Lost Checkout Because I Ran sed Before find | `02-bash-text-processing-devto.md` | `https://bashsnippets.xyz/guides/bash-text-processing` | bash, linux, devops, tutorial | 0 | [ ] |
+| 7 | Mon 9/22 | 02 | grep Found 5 Matches for a Hostname I Expected 3 Times. sed Would Have Rewritten All 5. | `02-bash-text-processing-devto.md` | `https://bashsnippets.xyz/guides/bash-text-processing` | bash, linux, devops, tutorial | 0 | [ ] |
 | — | — | 03 | **DO NOT POST — already live.** See the note under this table. | `03-shell-scripts-that-talk-to-apis-devto.md` | `https://bashsnippets.xyz/guides/shell-scripts-that-talk-to-apis` | — | 0 | [ ] fix canonical instead |
 | 8 | Tue 9/23 | 04 | I Pointed rsync --delete at a Nearly Empty Directory. It Deleted 3,800 Files and Exited 0. | `04-rsync-command-builder-devto.md` | `https://bashsnippets.xyz/tools/rsync-command-builder` | bash, webdev, tools, productivity | 0 | [ ] |
 | 9 | Wed 9/24 | 05 | grep "error&#124;failed" Found Nothing in a Log That Said 'backup failed' | `05-grep-pattern-builder-devto.md` | `https://bashsnippets.xyz/tools/grep-pattern-builder` | bash, webdev, tools, productivity | 0 | [ ] |
 | 10 | Thu 9/25 | 06 | I Tested a jq Alert Against a Down Status. It Printed 'no alert'. | `06-jq-filter-builder-devto.md` | `https://bashsnippets.xyz/tools/jq-filter-builder` | bash, webdev, tools, productivity | 0 | [ ] |
-| 11 | Fri 9/26 | 07 | A Log File Nobody Read Took My Disk to Zero Bytes on a Tuesday | `07-delete-old-log-files-devto.md` | `https://bashsnippets.xyz/snippets/delete-old-log-files` | bash, linux, devops, sysadmin | 0 | [ ] |
-| 12 | Mon 9/29 | 08 | Ten Minutes of Retyping a Passphrase I Knew Cold — the Bug Was Mode 644 | `08-file-permissions-security-devto.md` | `https://bashsnippets.xyz/snippets/file-permissions-security` | bash, linux, devops, sysadmin | 0 | [ ] |
-| 13 | Tue 9/30 | 09 | My Disk Monitor Knew for Hours and Told No One | `09-bash-send-email-alert-devto.md` | `https://bashsnippets.xyz/snippets/bash-send-email-alert` | bash, linux, devops, sysadmin | 0 | [ ] |
+| 11 | Fri 9/26 | 07 | find -mtime +30 Kept a File That Was 30.5 Days Old. I Checked With touch -d. | `07-delete-old-log-files-devto.md` | `https://bashsnippets.xyz/snippets/delete-old-log-files` | bash, linux, devops, sysadmin | 0 | [ ] |
+| 12 | Mon 9/29 | 08 | find -perm 777 Missed a World-Writable File in My Test Tree. -perm -o+w Didn't. | `08-file-permissions-security-devto.md` | `https://bashsnippets.xyz/snippets/file-permissions-security` | bash, linux, devops, sysadmin | 0 | [ ] |
+| 13 | Tue 9/30 | 09 | My Machine Has No mail Command. That's Where Most Disk Alerts Die. | `09-bash-send-email-alert-devto.md` | `https://bashsnippets.xyz/snippets/bash-send-email-alert` | bash, linux, devops, sysadmin | 0 | [ ] |
 | 14 | Wed 10/1 | 10 | One ssh Flag Tells You Whether a Server Still Accepts Passwords | `10-ssh-key-setup-script-devto.md` | `https://bashsnippets.xyz/snippets/ssh-key-setup-script` | bash, linux, devops, sysadmin | 0 | [ ] |
 
 **Row 03 — the 61-hours story is already on dev.to and Medium.** dev.to article **4266678**

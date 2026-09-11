@@ -1,12 +1,16 @@
-# Three Programs Failed in the Same Minute. The Culprit Was a Log File
+# find -mtime +30 Kept a File That Was 30.5 Days Old. I Checked With touch -d.
 
-The process that eventually took my machine down had been behaving perfectly for a week. It was an app I'd started and forgotten about, and the entire time it did exactly what its authors intended: it wrote log lines, steadily, into a directory I never opened. Then, on a Tuesday, my SSD hit zero free bytes — and I learned about it from three other programs at once. A compile died midway. A database refused a write. My editor announced it could no longer autosave.
+Nothing on my Linux machine deletes anything by age unless I tell it to. `~/.cache` alone holds 47 GB right now — 13 GB of pip downloads, 11 GB of uv, 5 GB of browser cache — each one a program doing exactly its job, none of them with a retention policy. Application logs have the same shape: a writer that never stops and no reader. That is how a disk goes from fine to full without a single thing malfunctioning.
 
-Here's the detail that cost me the most time: none of those errors mentioned the disk. Each program reported its failure in its own vocabulary, so I chased what looked like three separate bugs before it occurred to me to run `df -h`. Root filesystem, 100%. Even then I had to hunt for where the space had gone, and the answer was a log file that had been growing a little every second for a week while nobody — including its own application — ever looked at it.
+The standard fix is an age-based cleanup with `find`. It is also a command that deletes files, so before trusting it with anything real, I tested its three sharp edges on files I backdated with `touch -d`.
 
-That scattering of symptoms isn't bad luck; it's the mechanism. When a filesystem runs out of blocks, the kernel answers every write attempt with `ENOSPC`, and nearly every application translates that into its own unrelated-sounding complaint. The failures land everywhere at once while the actual offender falls silent, because it can't write anymore either. A full disk erases its own fingerprints at the exact moment it starts breaking things, which is why you don't diagnose your way out of this one. You prevent it.
+## Why a full disk lies to you
 
-Prevention is a single `find` invocation pointed at any directory that grows without bound:
+The reason prevention beats diagnosis here is what a full disk looks like when it arrives. The moment the filesystem runs out of blocks, every process that tries to write gets `ENOSPC` back from the kernel, and almost no application reports that as "the disk is full". You get a failed save in one program, a crashed build in another and a database complaint in a third, all worded differently, while the process that filled the disk goes quiet because it cannot write either. By the time symptoms appear they point everywhere except the cause.
+
+## Aging files out with find
+
+The tool has shipped with every Linux and macOS box for decades:
 
 ```bash
 LOG_DIR="/var/log/myapp"
@@ -16,21 +20,39 @@ DAYS=30
 find "$LOG_DIR" -type f -name "*.log" -mtime +"$DAYS" -print
 ```
 
-Notice that ends in `-print`, not `-delete`. That's deliberate. On any directory you haven't cleaned before, run the preview, read every line of the output, and only then swap `-print` for `-delete` and run it again. Deletion by `find` is immediate and permanent, and one wrong character in the path aims it somewhere you didn't intend.
+Run that, read the output, and when the list holds exactly what you expect, swap `-print` for `-delete` and run it again. The three runs below are why the preview is not optional.
 
-Two of the flags carry traps worth understanding rather than memorizing.
+## Edge one: -mtime +30 does not mean 30 days
 
-The first is `-mtime +30`, which does not mean "older than 30 days" the way a person means it. `find` counts age in complete 24-hour periods, and the plus sign means strictly greater than — so a file modified exactly 30 days ago is 30 periods old, fails the "greater than 30" test, and survives until it reaches 31 full days. A retention policy of "keep 30 days" is actually spelled `-mtime +29`. Nothing about a test run reveals this; it shows up a month later as a file that should be gone and isn't.
+I created four logs dated 29 days, exactly 30 days, 30 and a half days, and 31 days back. `find . -name "*.log" -mtime +30 -print` printed one of them: the 31-day file. The 30.5-day file survived.
 
-The second trap is the alternative everyone reaches for first: `find ... | xargs rm`. That pipeline re-splits filenames on whitespace, so a file called `app v2.log` reaches `rm` as two arguments — `app` and `v2.log` — and either one might collide with a file you meant to keep. Keeping the deletion inside `find` via `-delete` skips the pipe and the word splitting entirely. The one rule it demands: `-delete` must be the last expression on the line, because `find` evaluates left to right, and a `-delete` placed before `-name` fires on every file it walks.
+`find` measures age in whole 24-hour periods and throws the fraction away, so 30.5 days old counts as 30, and the `+` means strictly greater than. `-mtime +29` printed three files: 30, 30.5 and 31 days. If your policy says "keep 30 days", `+29` is the flag that enforces it. The off-by-one is invisible in a quick test and surfaces a month later as "why is that file still there".
 
-Scope is the remaining guardrail. `-type f` restricts matches to plain files, and `LOG_DIR` should name one application's directory — `/var/log/nginx`, `/var/log/myapp` — never `/var/log` itself, where system logs and database files live. A database's transaction log has retention rules of its own, and age-based deletion is not among them.
+## Edge two: -delete goes last, always
 
-The last step is the one that would have saved my Tuesday: schedule it. The full script version takes the path and the day count as named variables, and a weekly crontab line runs it with its output appended to a log of its own, so every cleanup leaves evidence. Once that's in place, no directory on the machine can quietly eat the drive over a span of weeks, because nothing gets more than seven days of unsupervised growth.
+On a copy of the same directory I put the predicates in the wrong order: `find . -delete -name "*.log"`. Afterwards the directory had zero entries. Every log, the non-log `keep.txt`, everything.
 
-One unread log file bought me a morning of debugging phantom failures and a genuinely humbling moment in front of `df`. The prevention costs one second a week.
+`find` evaluates its expression strictly left to right, and `-delete` is an action that runs and returns true. Put it first and it executes on every file `find` walks, before `-name` ever gets a vote. There is no warning and no prompt. The fix is order: tests first, `-delete` at the very end.
 
-The complete script — multi-directory loop, a variant that also catches rotated `.gz` logs, a before/after disk-usage report, and copy-paste cron schedules — is at https://bashsnippets.xyz/snippets/delete-old-log-files. Pair it with the [disk space warning script](https://bashsnippets.xyz/snippets/disk-space-warning), which alerts before you ever reach 100%; the rest of the library is at https://bashsnippets.xyz
+## Edge three: never pipe filenames to rm
+
+The reflex is `find … | xargs rm`. I made four files — `app v2.log`, `app`, `v2.log` and `keep.txt` — and ran `find . -name "app v2.log" | xargs rm`. When it finished, `app` and `v2.log` were gone. `app v2.log`, the one file the command was aimed at, was still there.
+
+`xargs` split the filename on the space and handed `rm` two arguments, both of which happened to exist. That is the worst possible outcome: the target survives, two innocent files die, and `rm` reports nothing unusual. `-delete` never leaves `find` — no pipe, no word splitting — so it cannot do that. If you genuinely need another command, `-print0 | xargs -0` keeps each name in one piece.
+
+## The blast-radius controls
+
+`-type f` keeps directories and symlinks out of the match. And the path should name one application's log directory — `/var/log/nginx`, `/var/log/myapp` — never `/var/log` wholesale, which holds logs the OS still needs and files that must never be deleted by age. Retention for a database transaction log is a backup problem, not a `find` problem.
+
+## Then take yourself out of the loop
+
+The version that actually prevents a full disk is the one that runs without you: the path and the age limit in named variables, a crontab line running it weekly, and the cleanup's own output appended to a log with a timestamp, so every run leaves a record. Whatever grows without bound gets aged out on a schedule, long before it matters.
+
+Three runs on backdated files took less time than reading this post. Each one would have been an incident on a real directory.
+
+Full script with the multi-directory loop, the `.gz` variant for rotated logs, a before/after disk-usage report and ready-made cron lines: https://bashsnippets.xyz/snippets/delete-old-log-files
+
+Deleting old logs is the recovery; hearing about a filling disk before it hits 100 % is the upgrade — the [disk space warning script](https://bashsnippets.xyz/snippets/disk-space-warning) does that, and when the space thief is not a log at all, [find large files](https://bashsnippets.xyz/snippets/find-large-files-linux) names it. The rest of the library is at https://bashsnippets.xyz
 
 Originally published at https://bashsnippets.xyz/snippets/delete-old-log-files
 

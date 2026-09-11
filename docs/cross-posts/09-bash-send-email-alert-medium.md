@@ -1,12 +1,14 @@
-# The Warning Sat in a Log File While the Disk Filled
+# My Machine Has No mail Command. That's Where Most Disk Alerts Die.
 
-The most dangerous script on any of my servers was the one that worked flawlessly. It was a disk check on a small VPS — cron ran it hourly, it read usage off `df`, compared the number to a threshold, and got the answer right every single time. Its output went to a log file. That detail is the whole story.
+I recently found that the disk check on my own Linux machine had been printing `WARNING: Disk at 88%` into nothing: cron's journal said `No MTA installed, discarding output` beside every run. So I checked what it would take for that warning to reach me by email. `mail`: not installed. `mailx`: not installed. `sendmail`: not installed. `msmtp`: not installed.
 
-Because when the disk filled, nothing warned me. Writes bounced, services fell over, and I found out by logging in to a broken machine. One grep later I was staring at the humiliating part: an unbroken column of hourly warning lines, written faithfully through the entire climb. The script had known for hours. It had told a file. Nobody reads that file — including, evidently, me.
+That is normal for a desktop install and common on minimal server images. It also means every monitoring script that ends in `| mail -s "…" you@example.com` is a script whose last line fails. Run it by hand and you would at least see `command not found`. Run it from cron and the error goes the same way as the output: cron tries to mail it to you, has no mail agent to do it with, and discards it. Two layers of silence, and the check itself is working perfectly.
 
-I'd treated detection as the whole job when it's half of one. The other half is delivery: getting the finding in front of a human before the consequence arrives. A monitor that writes to a log has relocated the problem, not solved it, because now something has to watch the log — and that something turned out to be the outage.
+## Detection and delivery are different jobs
 
-Delivery, at its smallest, fits in a pipe:
+The detection logic is the part everybody polishes: read the number, compare it, decide. Telling a person is a separate job, and a monitor that only appends to a log file or prints to stdout has not done it — it has relocated the problem. Somebody still has to poll that output, and that somebody is a person with better things to do at 2am. The fix is to push the news to the place you already check compulsively, which for most of us is an inbox.
+
+The core is small enough to memorize:
 
 ```bash
 #!/bin/bash
@@ -19,21 +21,29 @@ if [ "$USAGE" -gt 80 ]; then
 fi
 ```
 
-Over the threshold, the message lands in an inbox — a place I check dozens of times a day without being asked. The subject carries the hostname, because run this on three servers and an alert that won't say which one is burning is a riddle at the worst possible moment.
+Read the number, compare it, and when it is over the line, pipe a message into `mail` with a subject that names the machine — because once the same check runs on several hosts, an alert that does not say which server is on fire is a puzzle, not an alert.
 
-Except there's a second silent failure lurking inside the fix, and it has the same shape as the first. `mail` returning zero means the message was accepted by the local mail transfer agent — nothing more. The exit code you can see ends at that handoff; actual delivery is the MTA's job, invisible to your script. On a box with no MTA configured for the outside world, the handoff commonly ends in root's local spool under `/var/mail`: a file, on the same machine, that nobody opens. Which is to say — a log file wearing a costume. The script reports success, and the alert never leaves the building.
+## The alert you "sent" that never arrived
 
-Cron makes it worse in its own way. Its stripped-down `PATH` can fail to resolve `mail` at all, and a cron line that discards output swallows even the "command not found." So the only test worth trusting runs end to end: let cron trigger the script, confirm the email reaches your actual inbox, and tail `/var/log/mail.log` to watch what the MTA did with it.
+Installing `mail` fixes the first layer and exposes the next one. `mail` exiting 0 does not mean your alert reached anyone. It means the message was handed to whatever mail transfer agent lives on the box; delivery is the MTA's problem, and the exit code you can observe stops at the handoff. On a server with no MTA configured for the outside world, that handoff often drops the message into a local mailbox under `/var/mail` — a file on the same machine that no human reads. The script reports success, and the alert sits a few directories away from the log it was supposed to replace.
 
-For genuine delivery, the box needs a route out. Debian and Ubuntu's `mailutils` brings an MTA along, and the "Internet Site" install option works where the host may send mail directly. Many can't — cloud providers filter outbound mail, and receiving servers spam-bin unknown senders — which is where an SMTP relay earns its keep. `msmtp` with a Gmail app password takes a few lines of configuration; `curl` can talk SMTP to a relay where installing an MTA isn't on the table. Both replace "handed to the MTA" with "accepted by infrastructure built to deliver."
+Cron adds one more trap on top. Jobs run with a minimal `PATH`, so a `mail` that resolves in your login shell can be `command not found` under cron. The test that proves anything is not running the script by hand and receiving an email. It is letting *cron* run it and receiving an email, then reading the MTA's log to see what it actually did.
 
-Then comes the failure mode on the far side of success: too many alerts. A tripped threshold stays tripped, so an hourly check emails the same news twenty-four times a day. Within a week you're skimming those emails, and a skimmed alert channel fails as silently as the log file did — the message that matters is camouflaged among duplicates. The fix is a dedupe sentinel: touch a marker file when an alert goes out, and before sending, check its age. Under twenty-four hours old, suppress; over, send. The check still runs hourly. The repetition doesn't.
+Real delivery means giving the box a real path out. On Debian or Ubuntu, `mailutils` pulls in an MTA, and the "Internet Site" option covers a machine that is allowed to send directly. Plenty are not — outbound mail from cloud IP ranges gets filtered or spam-binned constantly — so relay through a provider instead: `msmtp` pointed at a Gmail account with an app password is a few lines of config, and `curl` can speak SMTP to a relay on boxes where you would rather not install an MTA at all. Either turns "handed to the MTA" into "accepted by a server whose whole job is delivering".
 
-That VPS still grows its disk at the same pace. The difference is that the knowledge now travels: threshold trips, email arrives, and the body carries the hostname, the timestamp, and the five biggest directories — enough to fix the problem before it becomes an incident. Identical detection to the version that failed me. All that changed was who got told.
+## The opposite failure: the alert that cries wolf
 
-The full script — with the top-disk-consumers alert body, the msmtp Gmail relay config, the 24-hour dedupe guard, and the cron pitfalls that eat alerts — lives here: https://bashsnippets.xyz/snippets/bash-send-email-alert
+Once delivery works you meet the inverse problem. A threshold does not trip once; it stays tripped. Disk at 81 % at nine o'clock is still 81 % at ten, and an hourly cron job will mail you the same fact twenty-four times a day until you fix the disk or stop reading, which comes first. An alert channel you have learned to skim is a silent failure with extra steps.
 
-Alerting is one guard among several for unattended jobs: the Hardened Cron Wrapper Generator (https://bashsnippets.xyz/tools/cron-wrapper-generator) composes it with locking, timeouts, and retries, and Bash Scripts That Survive Cron (https://bashsnippets.xyz/guides/bash-scripts-that-survive-cron) covers the whole discipline. The rest of the library is at https://bashsnippets.xyz
+The guard is a dedupe sentinel: on send, touch a marker file; before sending, check the marker's age with `find "$MARKER" -mmin -1440`. I ran that logic three times on my machine. The first call sent. The second, a moment later, was suppressed. Then I backdated the marker 25 hours with `touch -d` and the third call sent again. One email per incident per day; the condition is still measured every hour, only the nagging is suppressed.
+
+## Delivery is the whole difference
+
+The check on my machine had the right threshold and the right schedule-shaped intentions. What it lacked was any route from the machine to me, and nothing in its own output could say so, because its output had nowhere to go either. Before you trust an alert, send one on purpose, from cron, and watch it arrive.
+
+The full script — the alert body with the top disk consumers included, the msmtp config for a Gmail relay, the once-per-24-hours dedupe guard, and the cron traps that make alerts vanish — is here: https://bashsnippets.xyz/snippets/bash-send-email-alert
+
+An email alert is the last guard an unattended job needs, not the first: the [Cron Wrapper Generator](https://bashsnippets.xyz/tools/cron-wrapper-generator) wires alert-on-failure in alongside the lock, timeout and retry it generates, and [Bash Scripts That Survive Cron](https://bashsnippets.xyz/guides/bash-scripts-that-survive-cron) is the full playbook for jobs nobody watches. The rest of the library is at https://bashsnippets.xyz
 
 Originally published at https://bashsnippets.xyz/snippets/bash-send-email-alert
 
