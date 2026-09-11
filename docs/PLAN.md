@@ -4,7 +4,9 @@
 has to reconstruct it from git log and five dated audits again. Update the status board and the
 changelog at the end of every session that ships or decides anything.
 
-Last updated: **2026-09-01 (late night)**. Owner: Travis. Maintained by Claude Code.
+Last updated: **2026-09-11**. Owner: Travis. Maintained by Claude Code.
+
+> **PAUSED 2026-09-11 — resume from [`docs/HANDOFF-2026-09-11.md`](HANDOFF-2026-09-11.md).** It lists every open Travis step, the Claude fixes waiting on "go", the posting order and the dates.
 
 Companion files: `CLAUDE.md` (architecture + rules), `CONTRIBUTING.md` (workflow),
 `OWNERSHIP.md` (accounts), `docs/MANUAL-ACTIONS-2026-09-01.md` (human steps with evidence),
@@ -209,6 +211,7 @@ war story before posting.
 | `CONTRIBUTING.md` | practical add-a-snippet / tool / guide workflow |
 | `README.md` | repo front page |
 | `OWNERSHIP.md` | every account and ID |
+| `docs/HANDOFF-2026-09-11.md` | **resume point** after the 9/11 pause — open work for Travis and Claude, in order |
 | `docs/MANUAL-ACTIONS-2026-09-10.md` | **current** human-only setup/config steps (dev.to canonicals, GitHub profile, Bing crawl control, Buttondown welcome, Medium titles, deploy verify) |
 | `docs/POST-QUEUE-2026-09.md` | the posting queue: dev.to days 1–14, Medium imports, CoderLegion, awesome-list PRs, Show HN, Reddit kit, listings — Travis posts, ticks rows |
 | `docs/MANUAL-ACTIONS-2026-09-01.md` | human-only steps with exact instructions and evidence (Phase 1 all closed; 2.4 open) |
