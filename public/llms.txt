@@ -8,7 +8,7 @@ Travis — self-taught Linux developer based in Florida, publishing here and on 
 
 ## What This Site Contains
 
-# keep in sync with the sitemap: 44 indexable snippets, 12 tools, 9 guides, 7 ShellCheck deep dives (sitemap = 78 with the 6 static pages)
+# keep in sync with the sitemap: 45 indexable snippets, 12 tools, 9 guides, 7 ShellCheck deep dives (sitemap = 79 with the 6 static pages)
 - 44 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
 - 12 interactive tools at /tools/ including script builders, command generators, and debuggers
 - 9 pillar guides at /guides/ covering cron survival, CI/CD, text processing, APIs, bash strict mode, hung-process diagnosis, service auto-restart and watchdogs, listing open ports, and the sysadmin script set
@@ -53,6 +53,7 @@ Travis — self-taught Linux developer based in Florida, publishing here and on 
 - [Send Slack Alerts from Bash with Incoming Webhooks](https://bashsnippets.xyz/snippets/bash-slack-webhook-alerts) — Post failure alerts to Slack from a bash script with a curl one-liner, a jq-built payload, and a trap on ERR — so a broken backup tells you the night it breaks instead of the day you need it.
 - [Find and Replace in Files with sed](https://bashsnippets.xyz/snippets/bash-sed-find-replace) — In-place sed edits done safely — GNU vs macOS -i, word boundaries, capture groups, and a bulk-replace script that dry-runs first.
 - [Bash trap: Clean Up Temp Files on Exit](https://bashsnippets.xyz/snippets/bash-trap-cleanup) — A script that dies mid-run leaves temp litter and half-written files behind. trap on EXIT with mktemp and an atomic mv so every path out of the script cleans up after itself.
+- [bashlib Starter: 10 Bash Functions to Source Into Every Script](https://bashsnippets.xyz/snippets/bashlib-starter) — One MIT file you source instead of rewriting strict mode, an ERR trap that names the failing line, cleanup on every exit path, a lock, a timeout and retry. 31-check test included.
 - [Quick System Info Report](https://bashsnippets.xyz/snippets/quick-system-info-report) — Guessing server state during an outage costs response time. One bash script snapshots hostname, uptime, CPU load, RAM, disk usage, and IP address in one run — no extra packages.
 - [Search Files for Text with grep](https://bashsnippets.xyz/snippets/search-files-for-text-grep) — Opening files manually to find a pattern across a codebase wastes time. grep -rn searches every file recursively and returns every match with filename and line number.
 - [Bash If/Else Examples](https://bashsnippets.xyz/snippets/bash-if-else-examples) — Comparison operator mistakes in bash scripts cause silent logic failures on unexpected input. Covers if/else, elif, integer and string test operators, file condition checks, and quoting safety.

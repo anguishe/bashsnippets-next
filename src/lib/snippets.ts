@@ -29,8 +29,12 @@ export const REPO_URL = 'https://github.com/anguishe/bashsnippets';
 // confirming its script really is absent; all 36 others were verified 200 on 2026-09-01.
 const NO_REPO_SCRIPT = new Set(['bash-error-handling', 'kill-a-process']);
 
+// The one file that lives outside scripts/ in the repo.
+const REPO_PATH: Record<string, string> = { 'bashlib-starter': 'lib/bashlib-starter.sh' };
+
 export function getRepoScriptUrl(slug: string): string | null {
-  return NO_REPO_SCRIPT.has(slug) ? null : `${REPO_URL}/blob/main/scripts/${slug}.sh`;
+  if (NO_REPO_SCRIPT.has(slug)) return null;
+  return `${REPO_URL}/blob/main/${REPO_PATH[slug] ?? `scripts/${slug}.sh`}`;
 }
 
 
@@ -572,6 +576,16 @@ export const snippets: SnippetRegistryEntry[] = [
     difficulty: 'intermediate',
     datePublished: '2026-09-10',
     dateModified: '2026-09-10',
+  },
+  {
+    slug: 'bashlib-starter',
+    title: 'bashlib Starter: 10 Bash Functions to Source Into Every Script',
+    description:
+      'Every script re-invents strict mode, ERR traps, temp cleanup and a lock, or forgets one. Source ten tested bash functions instead: one MIT file, 31-check test.',
+    tags: ['library', 'error-handling', 'trap', 'cron-ready', 'strict-mode'],
+    difficulty: 'intermediate',
+    datePublished: '2026-09-11',
+    dateModified: '2026-09-11',
   },
 ];
 

@@ -1,0 +1,353 @@
+---
+title: "bashlib Starter: 10 Bash Functions to Source Into Every Script"
+description: "Every script re-invents strict mode, ERR traps, temp cleanup and a lock, or forgets one. Source ten tested bash functions instead: one MIT file, 31-check test."
+slug: "bashlib-starter"
+tags: ["library", "error-handling", "trap", "cron-ready", "strict-mode"]
+quickAnswer: "bashlib-starter.sh is one MIT-licensed bash file of ten functions you source at the top of a script instead of rewriting the same safety code every time. Call enable_strict_traps and the script runs under set -Eeuo pipefail with an ERR trap that logs the failing command and its line number, even inside functions, plus an EXIT trap that deletes every temp file and lock the script registered, on any exit path: success, exit N, a set -e abort, Ctrl-C or SIGTERM, without changing the exit code. make_temp_file and make_temp_dir create private temp paths that clean themselves up, including when called as tmp=\"$(make_temp_file)\". acquire_lock allows one running copy and reclaims locks left by dead processes. run_with_timeout kills a hung command with exit 124, retry reruns a flaky one with exponential backoff, and log, die and require_cmd cover the rest. A 31-check test proves each behaviour on its failure path."
+faq:
+  - question: "How do I use a bash function library in my own script?"
+    answer: "Source it with a path relative to your script, then turn on strict mode before doing any work: source \"$(dirname \"${BASH_SOURCE[0]}\")/bashlib-starter.sh\" followed by enable_strict_traps. Sourcing alone changes nothing about your shell, so an existing script keeps behaving the same until you call enable_strict_traps. Running the file directly is refused with a message, because a library executed as a script would do nothing useful."
+  - question: "Why does my ERR trap stay silent when a command fails inside a function?"
+    answer: "Because by default bash does not pass the ERR trap into functions, command substitutions or subshells. set -e still stops the script, but the trap that was supposed to print the failing command never runs, so the log shows an exit code and nothing else. The fix is the E in set -Eeuo pipefail (errtrace). enable_strict_traps sets it, and the test checks that a failing ls inside a function is reported with its line number."
+  - question: "Does the cleanup still run if the script is killed?"
+    answer: "For SIGTERM and Ctrl-C, yes: bash runs the EXIT trap on the way down, and the test kills a running copy with SIGTERM and confirms the exit code is 143 and every temp path is gone. SIGKILL (kill -9) cannot be caught by any process, so nothing runs; that is why the temp paths live under /tmp, where a reboot or tmpfiles clears them."
+  - question: "Will it work on macOS?"
+    answer: "It has only been tested on Kali Linux with bash 5.3. run_with_timeout calls the GNU timeout command, which macOS does not ship; install coreutils or skip that one function. The rest uses bash built-ins, mktemp, mkdir and ps, which macOS has, but untested is untested: run bash lib/bashlib-starter.test.sh on your Mac before you rely on it."
+  - question: "How is this different from the Production Bash Toolkit?"
+    answer: "The toolkit's bashlib.sh has 31 functions, including coloured leveled logging, safe_rm, notifications and portability helpers, plus backup, healthcheck, cleanup and cron-wrapper scripts built on it. Nine of the ten functions here share their names and arguments with it, so a script written against the starter keeps working when you switch. run_with_timeout is starter-only; the toolkit handles timeouts in cron-wrapper.sh."
+howToSteps:
+  - name: "Download the library"
+    text: "curl -fsSLO https://raw.githubusercontent.com/anguishe/bashsnippets/main/lib/bashlib-starter.sh into the directory your scripts live in."
+  - name: "Source it from your script"
+    text: "source \"$(dirname \"${BASH_SOURCE[0]}\")/bashlib-starter.sh\" near the top, so the path works no matter which directory cron starts the script from."
+  - name: "Turn on strict mode and the traps"
+    text: "Call enable_strict_traps before any real work. From that line on, failures stop the script with the failing command logged, and registered temp paths and locks are removed on every exit."
+  - name: "Use the functions"
+    text: "acquire_lock for one running copy, tmp=\"$(make_temp_file)\" for scratch files, run_with_timeout for anything that can hang, retry for anything flaky, log and die for output."
+  - name: "Run the test on your machine"
+    text: "Download bashlib-starter.test.sh beside it and run bash bashlib-starter.test.sh. It should end with all checks passed."
+author: "Travis"
+datePublished: 2026-09-11
+dateModified: 2026-09-11
+---
+
+Every unattended script needs the same five things before it does any work: strict mode, an error trap that says which line failed, cleanup that runs however the script exits, a lock so cron cannot start two copies, and a timeout so a hung command cannot hold that lock forever. Most scripts get two of the five, copied from the last script and slightly different each time. The copy that is missing the `-E`, or registers its cleanup inside a subshell, fails quietly in production and nowhere else.
+
+This file is the five, as ten functions, in one place you source. It is the same file the email form on this site sends you to, and it lives in the [scripts repo](https://github.com/anguishe/bashsnippets/blob/main/lib/bashlib-starter.sh) beside a test that exercises every function on its failure path.
+
+## The Library
+
+```bash
+#!/bin/bash
+# Script: bashlib-starter.sh — ten functions to source into every script
+# Purpose: Without it every script re-invents (or forgets) strict mode, an ERR trap
+#          that names the failing line, cleanup on every exit path, a lock and a timeout
+# Usage:
+#   source "/path/to/bashlib-starter.sh"
+#   enable_strict_traps                        # set -Eeuo pipefail + ERR/EXIT traps
+#   require_cmd curl timeout                   # fail before doing any work
+#   acquire_lock                               # one running copy at a time
+#   tmp="$(make_temp_file)"                    # deleted on every exit path
+#   run_with_timeout 30 curl -fsS "$URL" -o "$tmp"
+#   retry 5 2 -- rsync -a "$tmp" backup:/srv/
+#   log INFO "done"
+#
+# This is a library: source it, don't run it. Sourcing changes nothing about your
+# shell until you call enable_strict_traps — that decision stays in your script.
+# Same function names as the Production Bash Toolkit's bashlib.sh
+# (https://bashsnippets.xyz/starter-kit).
+# Tested: Kali 2026.3 (bash 5.3) — see bashlib-starter.test.sh. MIT licence.
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  echo "bashlib-starter.sh is a library: source it from your script, don't run it." >&2
+  exit 1
+fi
+# Safe to source from several files; the second source is a no-op.
+if [[ -n "${_BASHLIB_STARTER_LOADED:-}" ]]; then
+  return 0
+fi
+_BASHLIB_STARTER_LOADED=1
+
+_BL_TEMP_ITEMS=()
+# tmp="$(make_temp_file)" runs make_temp_file in a subshell, and an array change
+# made there dies with it. So enable_strict_traps also creates this private
+# registry file: a path appended to a file survives the subshell.
+_BL_TEMP_REGISTRY=""
+
+# 1. log LEVEL MESSAGE... — timestamped line on stderr, plus $LOG_FILE if set.
+#    stderr keeps a function's stdout clean for "$(capture)".
+log() {
+  local level="$1"; shift
+  local line
+  line="$(date '+%Y-%m-%d %H:%M:%S') [${level}] $*"
+  printf '%s\n' "$line" >&2
+  if [[ -n "${LOG_FILE:-}" ]]; then
+    printf '%s\n' "$line" >> "$LOG_FILE" 2>/dev/null || true
+  fi
+}
+
+# 2. die [CODE] MESSAGE... — log an error and exit (code 1 unless given).
+die() {
+  local code=1
+  if [[ "${1:-}" =~ ^[0-9]+$ ]]; then
+    code="$1"; shift
+  fi
+  log ERROR "$*"
+  exit "$code"
+}
+
+# 3. require_cmd CMD... — check every tool up front, so a missing one fails
+#    before the script has half-done anything.
+require_cmd() {
+  local c missing=0
+  for c in "$@"; do
+    if ! command -v "$c" >/dev/null 2>&1; then
+      log ERROR "required command not found: $c"
+      missing=1
+    fi
+  done
+  if (( missing )); then
+    die "install the missing command(s) and re-run"
+  fi
+}
+
+# 4. enable_strict_traps — strict mode plus the two traps that make it survivable.
+#    -E is the letter most strict-mode lines miss: without it the ERR trap does
+#    not fire inside functions, and a failure one level down exits with no message.
+enable_strict_traps() {
+  set -Eeuo pipefail
+  if [[ -z "$_BL_TEMP_REGISTRY" ]]; then
+    _BL_TEMP_REGISTRY="$(mktemp "${TMPDIR:-/tmp}/bashlib.reg.XXXXXX")" || die "mktemp failed"
+  fi
+  trap '_bl_on_err "$?" "$LINENO" "$BASH_COMMAND"' ERR
+  trap '_bl_cleanup' EXIT
+}
+
+_bl_on_err() {
+  log ERROR "failed (exit $1) at line $2: $3"
+}
+
+# Runs on every exit path: success, exit N, a set -e abort, Ctrl-C, SIGTERM.
+# It never calls exit, so the script's own exit status passes through untouched.
+_bl_cleanup() {
+  local item
+  local -a items=()
+  items=(${_BL_TEMP_ITEMS[@]+"${_BL_TEMP_ITEMS[@]}"})
+  if [[ -n "$_BL_TEMP_REGISTRY" && -f "$_BL_TEMP_REGISTRY" ]]; then
+    while IFS= read -r -d '' item; do
+      items+=("$item")
+    done < "$_BL_TEMP_REGISTRY"
+    items+=("$_BL_TEMP_REGISTRY")
+  fi
+  for item in ${items[@]+"${items[@]}"}; do
+    if [[ -e "$item" ]]; then
+      rm -rf -- "$item" || true
+    fi
+  done
+}
+
+# 5. register_temp PATH — delete PATH (file or directory) when the script exits.
+#    Safe to call inside $( ).
+register_temp() {
+  _BL_TEMP_ITEMS+=("$1")
+  if [[ -n "$_BL_TEMP_REGISTRY" ]]; then
+    printf '%s\0' "$1" >> "$_BL_TEMP_REGISTRY"
+  fi
+}
+
+# 6. make_temp_file [VAR] — create a private temp file that is deleted on exit.
+#    tmp="$(make_temp_file)" prints the path; make_temp_file tmp sets $tmp directly.
+# shellcheck disable=SC2120  # the variable-name argument is optional
+make_temp_file() {
+  local _bl_path
+  _bl_path="$(mktemp "${TMPDIR:-/tmp}/bashlib.XXXXXX")" || die "mktemp failed"
+  register_temp "$_bl_path"
+  if [[ -n "${1:-}" ]]; then
+    printf -v "$1" '%s' "$_bl_path"
+  else
+    printf '%s\n' "$_bl_path"
+  fi
+}
+
+# 7. make_temp_dir [VAR] — the same, for a directory removed whole on exit.
+# shellcheck disable=SC2120  # the variable-name argument is optional
+make_temp_dir() {
+  local _bl_path
+  _bl_path="$(mktemp -d "${TMPDIR:-/tmp}/bashlib.XXXXXX")" || die "mktemp -d failed"
+  register_temp "$_bl_path"
+  if [[ -n "${1:-}" ]]; then
+    printf -v "$1" '%s' "$_bl_path"
+  else
+    printf '%s\n' "$_bl_path"
+  fi
+}
+
+# 8. acquire_lock [LOCKDIR] — allow one running copy. mkdir is atomic, so two
+#    starts can never both win. A lock whose PID is gone is reclaimed; a lock with
+#    no PID yet belongs to a copy that is starting right now, so we back off.
+acquire_lock() {
+  local lockdir="${1:-${TMPDIR:-/tmp}/$(basename -- "$0").lock.d}"
+  local owner=""
+  if ! mkdir "$lockdir" 2>/dev/null; then
+    owner="$(cat "$lockdir/pid" 2>/dev/null || true)"
+    if [[ -z "$owner" ]] || ps -p "$owner" >/dev/null 2>&1; then
+      die "already running (PID ${owner:-starting}, lock $lockdir)"
+    fi
+    log WARN "reclaiming stale lock left by PID $owner"
+    rm -rf -- "$lockdir"
+    mkdir "$lockdir" 2>/dev/null || die "lost the race for $lockdir"
+  fi
+  printf '%s\n' "$$" > "$lockdir/pid"
+  register_temp "$lockdir"
+}
+
+# 9. run_with_timeout SECONDS CMD... — kill a hung command instead of letting it
+#    hang the script (and hold its lock) forever. Exit 124 means it timed out.
+#    CMD must be a program, not a shell function: timeout cannot run functions.
+run_with_timeout() {
+  local secs="$1"; shift
+  local rc=0
+  # --kill-after: a command that ignores SIGTERM gets SIGKILL 5 s later.
+  timeout --kill-after=5 "$secs" "$@" || rc=$?
+  if (( rc == 124 )); then
+    log ERROR "timed out after ${secs}s: $*"
+  fi
+  return "$rc"
+}
+
+# 10. retry MAX BASE_SECONDS -- CMD... — rerun a flaky command with exponential
+#     backoff (BASE, 2×BASE, 4×BASE...). Returns the last attempt's exit code.
+retry() {
+  local max="$1" delay="$2" attempt=1 rc
+  shift 2
+  if [[ "${1:-}" == "--" ]]; then
+    shift
+  fi
+  [[ "$max" =~ ^[1-9][0-9]*$ ]] || die "retry: MAX must be a positive integer, got '$max'"
+  [[ "$delay" =~ ^[0-9]+$ ]] || die "retry: BASE_SECONDS must be a whole number, got '$delay'"
+  while true; do
+    rc=0
+    "$@" || rc=$?
+    if (( rc == 0 )); then
+      return 0
+    fi
+    if (( attempt >= max )); then
+      log ERROR "gave up after ${max} attempts (last exit ${rc}): $*"
+      return "$rc"
+    fi
+    log WARN "attempt ${attempt}/${max} failed (exit ${rc}); retrying in ${delay}s"
+    sleep "$delay"
+    delay=$(( delay * 2 ))
+    attempt=$(( attempt + 1 ))
+  done
+}
+```
+
+## How do I use it in a script?
+
+Put the file beside your script, source it with a path relative to the script, and call `enable_strict_traps` before any real work:
+
+```bash
+#!/bin/bash
+source "$(dirname "${BASH_SOURCE[0]}")/bashlib-starter.sh"
+enable_strict_traps
+require_cmd curl timeout
+acquire_lock
+tmp="$(make_temp_file)"
+run_with_timeout 30 curl -fsS https://example.com -o "$tmp"
+log INFO "fetched $(wc -c < "$tmp") bytes"
+```
+
+I ran exactly this on my machine: it logged `[INFO] fetched 559 bytes` and exited 0, and afterwards neither the temp file nor the lock directory existed.
+
+## What does each function protect you from?
+
+| Function | What goes wrong without it |
+|---|---|
+| `enable_strict_traps` | A failure one level down exits with no message, or the script keeps running past it |
+| `register_temp` | A path you created survives every crash and piles up in `/tmp` |
+| `make_temp_file`, `make_temp_dir` | Predictable temp names collide between runs and invite symlink tricks |
+| `acquire_lock` | Cron starts a second copy while the first is still working |
+| `run_with_timeout` | A hung network call blocks the script and its lock forever |
+| `retry` | One transient failure kills a job you then re-run by hand |
+| `log` | Output with no timestamp, mixed into the data on stdout |
+| `die` | Error paths that exit without saying why |
+| `require_cmd` | A missing tool discovered halfway through, after the script has changed things |
+
+## Why does the ERR trap need -E?
+
+Without `-E` (errtrace), bash does not pass the ERR trap into functions. `set -e` still kills the script, so the failure is not ignored, but the trap that was supposed to name the failing command never runs and the log holds an exit code and nothing else. Most copies of the strict-mode line online are `set -euo pipefail`, which is exactly that. The first check in the test runs `ls` on a missing path inside a function; with `-E` the log says `failed (exit 2) at line 5: ls /nonexistent-bashlib-test`.
+
+## Why does make_temp_file still clean up inside $( )?
+
+`tmp="$(make_temp_file)"` runs the function in a subshell. Anything the subshell adds to an array disappears when the subshell exits, so a library that only keeps its cleanup list in an array loses every path created this way, and the file survives the script. `enable_strict_traps` therefore also creates a private registry file, and every registration is appended to it. A line written to a file survives the subshell; the EXIT trap reads it back and removes both the paths and the registry. If you prefer to avoid the subshell entirely, `make_temp_file tmp` sets the variable directly.
+
+## How do I know it works?
+
+Run the test beside the library. It generates small scripts that source the library and then break them on purpose: errors inside functions, `set -e` aborts, `exit 3`, SIGTERM in the middle of a run, a second copy fighting for the lock, a lock left by a dead process, a command that hangs, a command that fails twice before succeeding. On my machine, Kali 2026.3 with bash 5.3.9, all 31 checks pass:
+
+```text
+$ bash lib/bashlib-starter.test.sh
+✓ ERR trap names the failing command inside a function
+✓ set -e stopped the script (exit 2 from ls)
+✓ temp file removed after a set -e abort
+✓ temp dir removed after a set -e abort
+✓ exit status of the failure preserved (1)
+✓ $(make_temp_file) path exists while the script runs
+✓ $(make_temp_file) file removed on exit
+✓ $(make_temp_dir) dir removed on exit
+…
+✓ SIGTERM exits 143
+✓ temp dir removed after SIGTERM
+✓ stale lock from a dead PID is reclaimed
+✓ a hung command is killed and returns 124
+…
+✓ all checks passed
+```
+
+It has not been run anywhere else yet, and `run_with_timeout` needs GNU `timeout`, which macOS does not ship. Run the test on your own system before you trust it there.
+
+## Can I use it in cron jobs?
+
+That is what it is for. Cron starts scripts with a minimal environment and an unpredictable working directory, which is why the library is sourced relative to the script rather than the current directory. Send the log somewhere with `LOG_FILE`:
+
+```text
+*/15 * * * * LOG_FILE=/var/log/myjob.log /usr/local/bin/myjob.sh
+```
+
+A run that fails leaves a timestamped line naming the command and line number; a run that is still going when the next one starts is refused by `acquire_lock` with the PID that holds it.
+
+## Frequently Asked Questions
+
+### How do I use a bash function library in my own script?
+
+Source it with a path relative to your script, then turn on strict mode before doing any work: `source "$(dirname "${BASH_SOURCE[0]}")/bashlib-starter.sh"` followed by `enable_strict_traps`. Sourcing alone changes nothing about your shell, so an existing script keeps behaving the same until you call `enable_strict_traps`. Running the file directly is refused with a message, because a library executed as a script would do nothing useful.
+
+### Why does my ERR trap stay silent when a command fails inside a function?
+
+Because by default bash does not pass the ERR trap into functions, command substitutions or subshells. `set -e` still stops the script, but the trap that was supposed to print the failing command never runs, so the log shows an exit code and nothing else. The fix is the E in `set -Eeuo pipefail` (errtrace). `enable_strict_traps` sets it, and the test checks that a failing ls inside a function is reported with its line number.
+
+### Does the cleanup still run if the script is killed?
+
+For SIGTERM and Ctrl-C, yes: bash runs the EXIT trap on the way down, and the test kills a running copy with SIGTERM and confirms the exit code is 143 and every temp path is gone. SIGKILL (`kill -9`) cannot be caught by any process, so nothing runs; that is why the temp paths live under /tmp, where a reboot or tmpfiles clears them.
+
+### Will it work on macOS?
+
+It has only been tested on Kali Linux with bash 5.3. `run_with_timeout` calls the GNU timeout command, which macOS does not ship; install coreutils or skip that one function. The rest uses bash built-ins, mktemp, mkdir and ps, which macOS has, but untested is untested: run `bash lib/bashlib-starter.test.sh` on your Mac before you rely on it.
+
+### How is this different from the Production Bash Toolkit?
+
+The toolkit's `bashlib.sh` has 31 functions, including coloured leveled logging, safe_rm, notifications and portability helpers, plus backup, healthcheck, cleanup and cron-wrapper scripts built on it. Nine of the ten functions here share their names and arguments with it, so a script written against the starter keeps working when you switch. `run_with_timeout` is starter-only; the toolkit handles timeouts in `cron-wrapper.sh`.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Bash Error Handling with set -euo pipefail](/snippets/bash-error-handling) — what each strict-mode flag does, one at a time
+- [Bash trap: Clean Up Temp Files on Exit](/snippets/bash-trap-cleanup) — the EXIT-trap and atomic-mv pattern on its own
+- [Prevent Overlapping Cron Jobs with flock](/snippets/bash-flock-single-instance) — the kernel-lock alternative to acquire_lock
+- [Bash timeout Command](/snippets/bash-timeout-command) — exit 124, `--kill-after`, and why functions cannot be timed out
+- [Retry a Command with Exponential Backoff](/snippets/bash-retry-with-backoff) — the retry loop with jitter and logging
+- [The Safe Bash Script Template](/guides/safe-bash-script-template) — the guide that explains every line of the strict-mode header
