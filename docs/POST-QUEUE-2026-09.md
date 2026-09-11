@@ -55,6 +55,8 @@ skipping the `$?` capture turns exit 3 into 0, which bash 5.3.9 disproves.
 
 The canonicals for 24 and 25 are the same ones the kit files carried: verified clean and untaken on dev.to on 2026-09-10.
 
+**Day 1 cross-posts are ready** (Travis cross-posting the same day): `22-open-ports-linux-medium.md` for the Medium import (recipe M — import the guide URL, then paste this body) and `22-open-ports-linux-coderlegion.md` for CoderLegion (it uses the week-of-9/11 slot; the next CoderLegion post is Mon 9/21).
+
 **Row 4 note (SC2086):** `shellcheck` is a real dev.to tag with followers; keep it over `sysadmin` here.
 
 ---
@@ -94,7 +96,7 @@ pasted one with the `# ` title (section C) — it cannot gain a canonical withou
 
 | Target date | Source row | Import this URL | Then paste body from | Done |
 |---|---|---|---|---|
-| Mon 9/14 | Day 1 | `https://bashsnippets.xyz/guides/open-ports-linux` | `22-…-devto.md` minus YAML | [ ] |
+| Fri 9/11 | Day 1 | `https://bashsnippets.xyz/guides/open-ports-linux` | `22-open-ports-linux-medium.md` | [ ] |
 | Thu 9/17 | Day 2 | `https://bashsnippets.xyz/snippets/bash-sed-find-replace` | `24-…-devto.md` minus YAML | [ ] |
 | Fri 9/18 | Day 3 | `https://bashsnippets.xyz/snippets/bash-trap-cleanup` | `25-…-devto.md` minus YAML | [ ] |
 | Sat 9/19 | Day 4 | `https://bashsnippets.xyz/shellcheck/sc2086` | `21-…-devto.md` minus YAML | [ ] |
@@ -116,12 +118,27 @@ line already; delete the duplicate if Medium adds its own.
 
 | Week of | Excerpt file (`docs/cross-posts/`) | Deep link (must be the only link) | Done |
 |---|---|---|---|
+| Fri 9/11 | `22-open-ports-linux-coderlegion.md` | `https://bashsnippets.xyz/guides/open-ports-linux` | [ ] |
 | Mon 9/21 | `04-rsync-command-builder-coderlegion.md` | `https://bashsnippets.xyz/tools/rsync-command-builder` | [ ] |
 | Mon 9/28 | `05-grep-pattern-builder-coderlegion.md` | `https://bashsnippets.xyz/tools/grep-pattern-builder` | [ ] |
 | Mon 10/5 | `06-jq-filter-builder-coderlegion.md` | `https://bashsnippets.xyz/tools/jq-filter-builder` | [ ] |
 
 No CoderLegion post for the guides or the Week-1 pieces — 39 of our 103 external links are already
 CoderLegion→homepage, and the tools are the ones worth a deep link.
+
+### B4. Reserve drafts — ready, not scheduled
+
+Rewritten 2026-09-11 on real runs from this box (no REVIEW lines). Slot them in when a queued day needs a
+swap, or after 10/1. Medium versions exist for 13 and 14.
+
+| # | Title (exact) | Body file (`docs/cross-posts/`) | canonical_url |
+|---|---|---|---|
+| 12 | I Deleted a 44.6 GB File and df Gave Me Back 5 GB. Something Still Had It Open. | `12-find-large-files-linux-devto.md` | `https://bashsnippets.xyz/snippets/find-large-files-linux` |
+| 13 | I Killed the Parent Process. Its Child Kept the Port. | `13-kill-process-on-port-devto.md` | `https://bashsnippets.xyz/snippets/kill-process-on-port` |
+| 14 | rsync projects and rsync projects/ Make Two Different Backups | `14-rsync-remote-backup-devto.md` | `https://bashsnippets.xyz/snippets/rsync-remote-backup` |
+| 15 | Before You Run docker system prune, Read the RECLAIMABLE Column. Mine Said 1%. | `15-docker-prune-cleanup-devto.md` | `https://bashsnippets.xyz/snippets/docker-prune-cleanup` |
+
+16 and 17 carry no REVIEW line but have not been checked against real runs yet — check before using them.
 
 ---
 
@@ -252,7 +269,7 @@ Disclosure: I am the author.
 
 ## E. Show HN
 
-**Not before the HN account is at least two weeks old with genuine comments on it** — account created Fri 9/11 → earliest Show HN **Tue 9/29** (handoff Travis
+**Not before the HN account is at least two weeks old with genuine comments on it** — the account has existed since ~May 2026, but its first comments were posted Fri 9/11, so give it two weeks of visible history → earliest Show HN **Tue 9/29** (handoff Travis
 item 8). New accounts posting their own site sink. Rewritten 2026-09-11 (handoff item D): the old
 title promised "any SC code", but the decoder covers 31 and links the ShellCheck wiki for the rest.
 The old first comment opened on an invented anecdote and promised two features that do not exist.
@@ -274,6 +291,35 @@ code you paste is not sent anywhere. Corrections welcome on any rule it explains
 
 **HN rules that matter:** no marketing language or superlatives in the title ("free", "best", "revolutionary" get flagged; "no login" is a fact, fine). Do not ask anyone to upvote, ever — voting rings are detected and kill the post. Reply to **every** comment, including the hostile ones, within the first two hours; the reply is the content. Do not repost if it sinks; wait a month and HN allows one re-try. Keep the $9 toolkit out of the comment unless asked.
 `[ ]` submitted · thread URL: ______
+
+### E2. HN comment log — daily until the Show HN
+
+Daily reminder: `~/Downloads/BashSnippets/hn-daily-comment-reminder.ics` — import it once into Google
+Calendar; it fires at 09:00 Central every day through Tue 10/6. One or two genuine comments in your own
+words on threads you know (bash, Linux admin, self-hosting, cron, backups), **no links to the site**.
+Fill in each day, yes or no — the gaps are information too.
+
+| Date | Commented? | Thread / note |
+|---|---|---|
+| Fri 9/11 | yes | first comments |
+| Sat 9/12 |  |  |
+| Sun 9/13 |  |  |
+| Mon 9/14 |  |  |
+| Tue 9/15 |  |  |
+| Wed 9/16 |  |  |
+| Thu 9/17 |  |  |
+| Fri 9/18 |  |  |
+| Sat 9/19 |  |  |
+| Sun 9/20 |  |  |
+| Mon 9/21 |  |  |
+| Tue 9/22 |  |  |
+| Wed 9/23 |  |  |
+| Thu 9/24 |  |  |
+| Fri 9/25 |  |  |
+| Sat 9/26 |  |  |
+| Sun 9/27 |  |  |
+| Mon 9/28 |  |  |
+| Tue 9/29 |  |  |
 
 ---
 
