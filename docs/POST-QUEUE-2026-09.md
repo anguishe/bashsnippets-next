@@ -283,18 +283,22 @@ Account: `u/Status_Income_8269` (display name BashSnippets). Track record: the M
 chmod-builder post reached 1.8K views — that format (problem → one command → link to the *specific* page) is
 the one to repeat. Rule for every reply: the answer must be complete without clicking; the link is the long version.
 
-**`about.json` returned HTTP 403 for all five subreddits from this box on 2026-09-10** (Reddit blocks
-unauthenticated scripted fetches), so the rules below are the commonly known ones — **open each sidebar in
-the browser once and correct this table.** Reddit-wide baseline: **10:1** — ten genuine comments for every
-one that links to something you own; automod on the bigger subs removes links from low-karma accounts.
+**Rules read live from each sub's `/about/rules` page on 2026-09-11** (the 9/10 table was guesswork and
+wrong on two subs). Reddit-wide baseline still applies: ten genuine comments for every one that links to
+something you own.
 
-| Subreddit | Known posture on links to your own site |
-|---|---|
-| r/bash | On-topic own-content posts tolerated if substantive; link-only posts removed. Best sub for the SC2086 and strict-mode pieces. |
-| r/commandline | Own tools are posted routinely; disclose that it is yours; cross-platform audience so lead with the command, not the site. |
-| r/linuxadmin | "No blogspam / no self-promotion" rule; answer fully in the comment, link only as a footnote. |
-| r/sysadmin | Strictest — vendor/self-promo rule enforced by users as much as mods; **comment-only, no links** until the account has history there. |
-| r/linuxquestions | Help sub; a link is fine when it is the answer, never as the whole answer. |
+**Two rules change how this kit can be used at all.** r/commandline ("Post text or titles generated with AI
+are strictly prohibited") and r/sysadmin ("No GPT/LLM created content") ban AI-written text. The templates
+below were drafted by Claude, so **treat them as notes: write every reply in your own words**, everywhere,
+and never paste one into those two subs.
+
+| Subreddit | What its rules actually say (2026-09-11) | What that means for us |
+|---|---|---|
+| r/bash | Content must be valuable, open source, low-barrier, and must not look like raw AI output. Disclose personal affiliations. No stealth advertising or "walking billboard" accounts. | The one sub where a link to our page is fine: answer fully, say "I wrote this", link the specific page. Best home for the SC2086 and strict-mode answers. |
+| r/commandline | No low-quality blogspam. AI-generated post text or titles strictly prohibited. Projects under 30 days old are removed. State affiliations with paid things. | Comments only, in your own words. A site link is borderline blogspam; skip it unless someone asks. Never mention the $9 toolkit without saying it is yours. |
+| r/linuxadmin | Articles that only restate a manpage or README, without adding significant value, are not useful. | Links are allowed when the page adds something the manpage lacks: the real runs, the without-root `ss -e` trick. Answer in the comment first. |
+| r/sysadmin | 24-hour account age. "Posting articles from ones own blog is considered a product." "Content creators should refrain from directing this community to their own content." No GPT/LLM content. | **No links to bashsnippets.xyz, ever.** Comment in your own words to build history; nothing else. |
+| r/linuxquestions | "Please do not post articles you've written yourself." "Do not advertise your own websites." | **No links.** Answer questions fully in the comment; that is the whole contribution. |
 
 Reply templates (paste, then edit the first line to quote their actual error):
 
