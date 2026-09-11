@@ -73,7 +73,7 @@ Copilot number. The slider was maxed on 8/31 but the widget cannot be read by au
    → **Request indexing** on the homepage once. It is the one URL where a fresh Bing crawl
    changes what every other page inherits.
 
-### 1.4 ⬜ Buttondown: does a signup actually get `bashlib.sh`? (5 min)
+### 1.4 ✅ Buttondown — done 2026-09-11: After-confirming redirect delivers the starter page; test passed; test subscriber kept (subtract 1 from every read)
 
 The form on 55 pages promises *"Ten functions I source into every script… One email"*. If a
 subscriber receives nothing, the kill-signal read on ~10/06 is measuring a broken promise, not
