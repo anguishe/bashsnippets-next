@@ -1,6 +1,5 @@
-<!-- REVIEW: incident dramatized — the guide describes the "exit 1, empty log, two-hour incident" generically; the 03:07 page, the nightly export, the full-disk mkdir and the set -x bisect are invented specifics. Verify before publishing. -->
 ---
-title: "set -euo pipefail Is Missing a Letter, and It Cost Me Two Hours at 03:00"
+title: "set -euo pipefail Is Missing a Letter. My ERR Trap Stayed Silent Until I Added -E."
 published: true
 description: "A strict-mode script died with exit 1 and a log that said nothing — because the ERR trap that should have named the line does not fire inside functions unless you add -E. What each strict-mode flag actually promises, where it goes silent, and the handler that prints the failing command."
 tags: bash, linux, devops, scripting
@@ -8,9 +7,11 @@ canonical_url: https://bashsnippets.xyz/guides/safe-bash-script-template
 cover_image: https://bashsnippets.xyz/ogimage.png
 ---
 
-The pager went at 03:07 because a nightly export had exited 1. That much the cron wrapper knew. What it could tell me beyond that was nothing: the log held the start banner, four lines of normal progress, and then the wrapper's own "exited 1" footer. No failing command. No line number. The script had `set -euo pipefail` on line 4 and a `trap … ERR` on line 9 whose entire job was to print those two things. Neither had said a word.
+Here is a nine-line script that does everything the strict-mode articles tell you to. `set -euo pipefail` on line 2. On line 3, an ERR trap whose entire job is to print the failing command and its line number: `trap 'echo "✗ failed: ${BASH_COMMAND} (line ${LINENO})" >&2' ERR`. Then a helper function that runs `mkdir /proc/export`, a directory that cannot be created, standing in for a full disk or a missing mount.
 
-I spent the next two hours doing what you do when the diagnostics are missing: bisecting a 200-line script by hand with `set -x`, at three in the morning, on a production box, to find that a `mkdir -p` inside a helper function had failed on a full disk. The disk was the incident. The two hours were the trap's fault. And the part I am least proud of is that the trap had been there for a year, tested on the day I wrote it — by putting `false` on a top-level line, where it worked — and never once tested against a failure inside a function, which is where every real failure lives.
+I ran it on my machine, bash 5.3.9. It printed `start`, then mkdir's own complaint, then exited 1. The trap said nothing. No failing command, no line number — the two facts it was registered to report. From a nightly job, that is the log you get: a start banner, one stderr line if you are lucky, and an exit code that tells you something broke but not what.
+
+Then I changed one character, `set -Eeuo pipefail`, and ran it again. Same mkdir error, followed by `✗ failed: mkdir /proc/export (line 5)`, and exit 1. The trap had been fine all along. Nobody had told it to follow the script into the function, and a function is where most real failures happen.
 
 ## Three flags, three promises, one missing
 
@@ -42,23 +43,23 @@ on_err() {
 trap on_err ERR
 ```
 
-With that at the top, the same full-disk night would have logged `✗ failed: 'mkdir -p /var/export/2026-09' (line 41, exit 1)` and I would have been back in bed by 03:15. `-E` is the flag missing from nearly every strict-mode line on the internet. If you take one thing from this, take the E.
+With that at the top, a failure anywhere in the script logs the command, the line and the exit status instead of nothing. `-E` is the flag missing from nearly every strict-mode line on the internet. If you take one thing from this, take the E.
 
 ## The other silent spot: local
 
-The second thing I found in that script once I could see it was a line I had written dozens of times: `local out=$(some_command)`. That line never triggers errexit, and no trap fires for it, because `local` is a command in its own right and its exit status — success, it declared the variable — is the one bash sees. The command substitution's failure is discarded before anyone looks. Declare on one line, assign on the next, and the failure is yours again. It is two lines instead of one everywhere you capture output into a local, and it is the bug behind ShellCheck's masked-return-value warning, which is not pedantry.
+The second silent spot is a line most of us have written dozens of times: `local out=$(some_command)`. On the same box, a function running `local out=$(false)` under `set -euo pipefail` carried on to its next line and the script exited 0. That line never triggers errexit, and no trap fires for it, because `local` is a command in its own right and its exit status — success, it declared the variable — is the one bash sees. The command substitution's failure is discarded before anyone looks. Declare on one line, assign on the next, and the failure is yours again. It is two lines instead of one everywhere you capture output into a local, and it is the bug behind ShellCheck's masked-return-value warning, which is not pedantry.
 
 One caveat so you do not chase a ghost: with `-E` set, a failure inside an explicit `( subshell )` fires the trap twice — once in the subshell, once in the parent as the non-zero status propagates. That is expected. If duplicate alerts matter, guard on a flag or move the work out of the subshell.
 
 ## Cleanup on every path, and when to leave it all off
 
-The ERR trap tells you what broke; the EXIT trap is what stops the script leaving a half-written file behind for the next stage to load as if it were complete. It runs on every termination, and the rule that makes or breaks it is the same one as above: capture `$?` on the first line of the handler. Move `local code=$?` below the `rm -f "$TMP_FILE"` and it reports rm's status — zero, forever — and the script exits clean after a failure. That is how a script with strict mode at the top ends up reporting success. Not that I have done that.
+The ERR trap tells you what broke; the EXIT trap is what stops the script leaving a half-written file behind for the next stage to load as if it were complete. It runs on every termination, and the rule that makes or breaks it is the same one as above: capture `$?` on the first line of the handler. Move `local code=$?` below the `rm -f "$TMP_FILE"` and it reports rm's status — zero, forever — and the script exits clean after a failure. That is how a script with strict mode at the top ends up reporting success: I ran that ordering against an `exit 3` on bash 5.3.9 and the script exited 0.
 
 Strict mode is also not the right default everywhere. A health checker that runs twenty probes and expects some to fail will spend more `|| true` than logic fighting `-e`. `.bashrc` should never set it, because one failed command would close your terminal. And `grep -q` used as a test returns non-zero as data, not as an error. The guide covers where to leave it off, rather than pretending the flags are free.
 
 ## What the log says now
 
-The export script opens with `set -Eeuo pipefail`, both traps registered before any work happens, `$?` captured first in each handler, locals declared and assigned on separate lines. The next night it fails, the log will say which line and which command. That is the whole difference between a script that exits 1 and a script that tells you why.
+The template I start from now opens with `set -Eeuo pipefail`, both traps registered before any work happens, `$?` captured first in each handler, locals declared and assigned on separate lines. When it fails, the log says which line and which command. That is the whole difference between a script that exits 1 and a script that tells you why.
 
 The full template with every behaviour checked against bash 5.3 — where errexit goes silent, the `nounset` defaults for variables that are only unbound in staging, and the assembled skeleton: https://bashsnippets.xyz/guides/safe-bash-script-template
 

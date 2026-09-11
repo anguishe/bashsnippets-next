@@ -84,7 +84,7 @@ Looking for *.log
 Looking for app.log err.log
 ```
 
-Unquoted, `*.log` is expanded against the current directory before `echo` runs. `find . -name $pattern` does the same thing and searches for one literal filename instead of a pattern; ShellCheck reports that variant as SC2061.
+Unquoted, `*.log` is expanded against the current directory before `echo` runs. `find . -name $pattern` breaks the same way: with one `.log` file present, `find` searches for that single filename instead of the pattern; with two, it dies with `paths must precede expression`. ShellCheck 0.11.0 reports that line as SC2086 too. SC2061 is the separate code for a glob typed straight into the command, `find . -name *.log`.
 
 ## What does ShellCheck say, and what is the fix?
 

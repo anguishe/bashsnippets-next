@@ -35,49 +35,50 @@ queue are already taken on dev.to, except where a row says so. dev.to returns
 
 ---
 
-## A. Week 1 — dev.to, one per weekday (Thu 9/11 → Wed 9/17)
+## A. Week 1 — dev.to, one per weekday (Fri 9/12 → Thu 9/18)
+
+Re-dated and reordered 2026-09-11 (handoff item G). **All five are paste-ready: no REVIEW lines, no
+invented incidents.** Every first-person claim is a run on this box (bash 5.3.9, GNU sed 4.9,
+ShellCheck 0.11.0), done 2026-09-01 for the pages or 2026-09-11 for these drafts. 22 leads because its
+port-3000 story happened. The two kit articles were cut to one code block and about 1,000 words and
+rebuilt around real runs as 24 and 25. The long originals in `~/distribution-kit/` are retired: their
+staging-outage and eleven-nights stories never happened, and the kit-2 original also claimed that
+skipping the `$?` capture turns exit 3 into 0, which bash 5.3.9 disproves.
 
 | Day | Date | Title (exact) | Body file | canonical_url | Tags | Steps | Done |
 |---|---|---|---|---|---|---|---|
-| 1 | Thu 9/11 | A One-Line sed Command Renamed Things That Don't Exist and Took Down Staging | `~/distribution-kit/devto-1-sed-find-replace.md` | `https://bashsnippets.xyz/snippets/bash-sed-find-replace` | bash, linux, devops, sysadmin | D1–D5 | [ ] |
-| 2 | Fri 9/12 | A Cron Job Died at 02:14 for Eleven Nights and Our Dashboard Never Noticed | `~/distribution-kit/devto-2-trap-cleanup.md` | `https://bashsnippets.xyz/snippets/bash-trap-cleanup` | bash, linux, devops, sysadmin | D1–D5 | [ ] |
-| 3 | Mon 9/15 | I Disabled ShellCheck's Most Annoying Warning. Then rm Deleted Two Files I Never Named. | `docs/cross-posts/21-shellcheck-sc2086-devto.md` | `https://bashsnippets.xyz/shellcheck/sc2086` | bash, linux, shellcheck, devops | D1–D5 | [ ] |
-| 4 | Tue 9/16 | For Months My Dev Server Came Up on 3001. Tonight I Found Out Who Had 3000. | `docs/cross-posts/22-open-ports-linux-devto.md` | `https://bashsnippets.xyz/guides/open-ports-linux` | bash, linux, security, sysadmin | D1–D5 | [ ] |
-| 5 | Wed 9/17 | set -euo pipefail Is Missing a Letter, and It Cost Me Two Hours at 03:00 | `docs/cross-posts/23-safe-bash-script-template-devto.md` | `https://bashsnippets.xyz/guides/safe-bash-script-template` | bash, linux, devops, scripting | D1–D5 | [ ] |
+| 1 | Fri 9/12 | For Months My Dev Server Came Up on 3001. Tonight I Found Out Who Had 3000. | `docs/cross-posts/22-open-ports-linux-devto.md` | `https://bashsnippets.xyz/guides/open-ports-linux` | bash, linux, security, sysadmin | D1–D5 | [ ] |
+| 2 | Mon 9/15 | sed 's/port/listen_port/g' Changed Four Lines. I Wanted One. | `docs/cross-posts/24-bash-sed-find-replace-devto.md` | `https://bashsnippets.xyz/snippets/bash-sed-find-replace` | bash, linux, devops, sysadmin | D1–D5 | [ ] |
+| 3 | Tue 9/16 | I Killed My Report Script Mid-Write. The Output File Never Noticed. | `docs/cross-posts/25-bash-trap-cleanup-devto.md` | `https://bashsnippets.xyz/snippets/bash-trap-cleanup` | bash, linux, devops, sysadmin | D1–D5 | [ ] |
+| 4 | Wed 9/17 | SC2086 Is ShellCheck's Lowest-Severity Warning. It Let rm Delete Two Files I Never Named. | `docs/cross-posts/21-shellcheck-sc2086-devto.md` | `https://bashsnippets.xyz/shellcheck/sc2086` | bash, linux, shellcheck, devops | D1–D5 | [ ] |
+| 5 | Thu 9/18 | set -euo pipefail Is Missing a Letter. My ERR Trap Stayed Silent Until I Added -E. | `docs/cross-posts/23-safe-bash-script-template-devto.md` | `https://bashsnippets.xyz/guides/safe-bash-script-template` | bash, linux, devops, scripting | D1–D5 | [ ] |
 
-**Before Day 1 and Day 2 — the two kit files need a trim.** Both front matters are correct
-(`canonical_url` verified clean, neither canonical is taken on dev.to), but they were written
-2026-08-09, before the Aug 28 audit set the rules. As they stand: kit-1 has **11 code blocks / ~1,900 words**,
-kit-2 has **5 code blocks / ~1,800 words**. The rule is one code block and under 40 % overlap with the page.
-Cut each down to the single smallest runnable block and ~1,000 words in the dev.to editor before
-publishing (leave the files on disk alone if you want the long versions for reference).
+The canonicals for 24 and 25 are the same ones the kit files carried: verified clean and untaken on dev.to on 2026-09-10.
 
-**REVIEW markers in Week 1:** 21 and 23 open with a `<!-- REVIEW: incident dramatized -->` line — the
-technical runs are from the pages, the "it happened to me" framing is not. Read, decide, delete the line.
-22 has none: the port-3000 docker-proxy story is literally in the guide.
-
-**Row 3 note (SC2086):** `shellcheck` is a real dev.to tag with followers; keep it over `sysadmin` here.
+**Row 4 note (SC2086):** `shellcheck` is a real dev.to tag with followers; keep it over `sysadmin` here.
 
 ---
 
 ## B. Weeks 2–3 — backlog drafts 01–10, then Medium, then CoderLegion
 
-### B1. dev.to, one per weekday, backlog order (Thu 9/18 → Wed 10/1)
+### B1. dev.to, one per weekday, backlog order (Fri 9/19 → Wed 10/1)
 
-REVIEW count = `grep -c 'REVIEW:'` in the dev.to file on 2026-09-10. Vet the 1s before their day comes.
+REVIEW count = `grep -c 'REVIEW:'` in the dev.to file on 2026-09-10. **Do not vet the REVIEW=1 stories.
+Claude rewrites those intros around real runs before 9/19**, the same treatment 21, 23, 24 and 25 got on
+2026-09-11 (handoff item E). Their titles may change; take the title from the file on the day.
 
 | Day | Date | # | Title (exact) | Body file (`docs/cross-posts/`) | canonical_url | Tags | REVIEW | Done |
 |---|---|---|---|---|---|---|---|---|
-| 6 | Thu 9/18 | 01 | My Own Backup Script Took the Server Down at 11:40 on a Sunday Night | `01-bash-scripts-every-sysadmin-needs-devto.md` | `https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs` | bash, linux, devops, tutorial | **1** | [ ] |
-| 7 | Fri 9/19 | 02 | Eleven Services Lost Checkout Because I Ran sed Before find | `02-bash-text-processing-devto.md` | `https://bashsnippets.xyz/guides/bash-text-processing` | bash, linux, devops, tutorial | 0 | [ ] |
+| 6 | Fri 9/19 | 01 | My Own Backup Script Took the Server Down at 11:40 on a Sunday Night | `01-bash-scripts-every-sysadmin-needs-devto.md` | `https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs` | bash, linux, devops, tutorial | **1** | [ ] |
+| 7 | Mon 9/22 | 02 | Eleven Services Lost Checkout Because I Ran sed Before find | `02-bash-text-processing-devto.md` | `https://bashsnippets.xyz/guides/bash-text-processing` | bash, linux, devops, tutorial | 0 | [ ] |
 | — | — | 03 | **DO NOT POST — already live.** See the note under this table. | `03-shell-scripts-that-talk-to-apis-devto.md` | `https://bashsnippets.xyz/guides/shell-scripts-that-talk-to-apis` | — | 0 | [ ] fix canonical instead |
-| 8 | Mon 9/22 | 04 | Nineteen Nights of Exit 0 While rsync Quietly Emptied My Backup | `04-rsync-command-builder-devto.md` | `https://bashsnippets.xyz/tools/rsync-command-builder` | bash, webdev, tools, productivity | **1** | [ ] |
-| 9 | Tue 9/23 | 05 | I Trusted an Empty grep for Eleven Days. Now There's an Alias for That | `05-grep-pattern-builder-devto.md` | `https://bashsnippets.xyz/tools/grep-pattern-builder` | bash, webdev, tools, productivity | **1** | [ ] |
-| 10 | Wed 9/24 | 06 | Two Quote Characters Silenced My Alerts for Five Weeks — So I Built a jq Filter Builder | `06-jq-filter-builder-devto.md` | `https://bashsnippets.xyz/tools/jq-filter-builder` | bash, webdev, tools, productivity | **1** | [ ] |
-| 11 | Thu 9/25 | 07 | A Log File Nobody Read Took My Disk to Zero Bytes on a Tuesday | `07-delete-old-log-files-devto.md` | `https://bashsnippets.xyz/snippets/delete-old-log-files` | bash, linux, devops, sysadmin | 0 | [ ] |
-| 12 | Fri 9/26 | 08 | Ten Minutes of Retyping a Passphrase I Knew Cold — the Bug Was Mode 644 | `08-file-permissions-security-devto.md` | `https://bashsnippets.xyz/snippets/file-permissions-security` | bash, linux, devops, sysadmin | 0 | [ ] |
-| 13 | Mon 9/29 | 09 | My Disk Monitor Knew for Hours and Told No One | `09-bash-send-email-alert-devto.md` | `https://bashsnippets.xyz/snippets/bash-send-email-alert` | bash, linux, devops, sysadmin | 0 | [ ] |
-| 14 | Tue 9/30 | 10 | Every Light Was Green and My VPS Was Still Taking 31,000 Password Guesses a Week | `10-ssh-key-setup-script-devto.md` | `https://bashsnippets.xyz/snippets/ssh-key-setup-script` | bash, linux, devops, sysadmin | **1** | [ ] |
+| 8 | Tue 9/23 | 04 | Nineteen Nights of Exit 0 While rsync Quietly Emptied My Backup | `04-rsync-command-builder-devto.md` | `https://bashsnippets.xyz/tools/rsync-command-builder` | bash, webdev, tools, productivity | **1** | [ ] |
+| 9 | Wed 9/24 | 05 | I Trusted an Empty grep for Eleven Days. Now There's an Alias for That | `05-grep-pattern-builder-devto.md` | `https://bashsnippets.xyz/tools/grep-pattern-builder` | bash, webdev, tools, productivity | **1** | [ ] |
+| 10 | Thu 9/25 | 06 | Two Quote Characters Silenced My Alerts for Five Weeks — So I Built a jq Filter Builder | `06-jq-filter-builder-devto.md` | `https://bashsnippets.xyz/tools/jq-filter-builder` | bash, webdev, tools, productivity | **1** | [ ] |
+| 11 | Fri 9/26 | 07 | A Log File Nobody Read Took My Disk to Zero Bytes on a Tuesday | `07-delete-old-log-files-devto.md` | `https://bashsnippets.xyz/snippets/delete-old-log-files` | bash, linux, devops, sysadmin | 0 | [ ] |
+| 12 | Mon 9/29 | 08 | Ten Minutes of Retyping a Passphrase I Knew Cold — the Bug Was Mode 644 | `08-file-permissions-security-devto.md` | `https://bashsnippets.xyz/snippets/file-permissions-security` | bash, linux, devops, sysadmin | 0 | [ ] |
+| 13 | Tue 9/30 | 09 | My Disk Monitor Knew for Hours and Told No One | `09-bash-send-email-alert-devto.md` | `https://bashsnippets.xyz/snippets/bash-send-email-alert` | bash, linux, devops, sysadmin | 0 | [ ] |
+| 14 | Wed 10/1 | 10 | Every Light Was Green and My VPS Was Still Taking 31,000 Password Guesses a Week | `10-ssh-key-setup-script-devto.md` | `https://bashsnippets.xyz/snippets/ssh-key-setup-script` | bash, linux, devops, sysadmin | **1** | [ ] |
 
 **Row 03 — the 61-hours story is already on dev.to and Medium.** dev.to article **4266678**
 ("Our Status Dashboard Was Green for 61 Hours While the API Was Down",
@@ -87,26 +88,26 @@ Instead: open that article → ⚙ → set `canonical_url` to `https://bashsnipp
 → save → view-source to confirm. That gives the guide its dev.to link for free. The Medium copy is the
 pasted one with the `# ` title (section C) — it cannot gain a canonical without a re-import, so leave it and fix the title only.
 
-Vet order for the five REVIEW=1 drafts, by posting date: 01 (9/18) → 04 (9/22) → 05 (9/23) → 06 (9/24) → 10 (9/30).
+Rewrite order for the five REVIEW=1 drafts, by posting date: 01 (9/19) → 04 (9/23) → 05 (9/24) → 06 (9/25) → 10 (10/1).
 
 ### B2. Medium imports — 2–3 days after each dev.to post (recipe M)
 
 | Target date | Source row | Import this URL | Then paste body from | Done |
 |---|---|---|---|---|
-| Sun 9/14 | Day 1 | `https://bashsnippets.xyz/snippets/bash-sed-find-replace` | kit-1 body (trimmed version) | [ ] |
-| Mon 9/15 | Day 2 | `https://bashsnippets.xyz/snippets/bash-trap-cleanup` | kit-2 body (trimmed version) | [ ] |
-| Thu 9/18 | Day 3 | `https://bashsnippets.xyz/shellcheck/sc2086` | `21-…-devto.md` minus YAML | [ ] |
-| Fri 9/19 | Day 4 | `https://bashsnippets.xyz/guides/open-ports-linux` | `22-…-devto.md` minus YAML | [ ] |
-| Sat 9/20 | Day 5 | `https://bashsnippets.xyz/guides/safe-bash-script-template` | `23-…-devto.md` minus YAML | [ ] |
-| Sun 9/21 | Day 6 | `https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs` | `01-…-medium.md` | [ ] |
-| Mon 9/22 | Day 7 | `https://bashsnippets.xyz/guides/bash-text-processing` | `02-…-medium.md` | [ ] |
-| Thu 9/25 | Day 8 | `https://bashsnippets.xyz/tools/rsync-command-builder` | `04-…-medium.md` | [ ] |
-| Fri 9/26 | Day 9 | `https://bashsnippets.xyz/tools/grep-pattern-builder` | `05-…-medium.md` | [ ] |
-| Sat 9/27 | Day 10 | `https://bashsnippets.xyz/tools/jq-filter-builder` | `06-…-medium.md` | [ ] |
-| Sun 9/28 | Day 11 | `https://bashsnippets.xyz/snippets/delete-old-log-files` | `07-…-medium.md` | [ ] |
-| Mon 9/29 | Day 12 | `https://bashsnippets.xyz/snippets/file-permissions-security` | `08-…-medium.md` | [ ] |
-| Thu 10/2 | Day 13 | `https://bashsnippets.xyz/snippets/bash-send-email-alert` | `09-…-medium.md` | [ ] |
-| Fri 10/3 | Day 14 | `https://bashsnippets.xyz/snippets/ssh-key-setup-script` | `10-…-medium.md` | [ ] |
+| Mon 9/15 | Day 1 | `https://bashsnippets.xyz/guides/open-ports-linux` | `22-…-devto.md` minus YAML | [ ] |
+| Thu 9/18 | Day 2 | `https://bashsnippets.xyz/snippets/bash-sed-find-replace` | `24-…-devto.md` minus YAML | [ ] |
+| Fri 9/19 | Day 3 | `https://bashsnippets.xyz/snippets/bash-trap-cleanup` | `25-…-devto.md` minus YAML | [ ] |
+| Sat 9/20 | Day 4 | `https://bashsnippets.xyz/shellcheck/sc2086` | `21-…-devto.md` minus YAML | [ ] |
+| Sun 9/21 | Day 5 | `https://bashsnippets.xyz/guides/safe-bash-script-template` | `23-…-devto.md` minus YAML | [ ] |
+| Mon 9/22 | Day 6 | `https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs` | `01-…-medium.md` | [ ] |
+| Thu 9/25 | Day 7 | `https://bashsnippets.xyz/guides/bash-text-processing` | `02-…-medium.md` | [ ] |
+| Fri 9/26 | Day 8 | `https://bashsnippets.xyz/tools/rsync-command-builder` | `04-…-medium.md` | [ ] |
+| Sat 9/27 | Day 9 | `https://bashsnippets.xyz/tools/grep-pattern-builder` | `05-…-medium.md` | [ ] |
+| Sun 9/28 | Day 10 | `https://bashsnippets.xyz/tools/jq-filter-builder` | `06-…-medium.md` | [ ] |
+| Mon 9/29 | Day 11 | `https://bashsnippets.xyz/snippets/delete-old-log-files` | `07-…-medium.md` | [ ] |
+| Thu 10/2 | Day 12 | `https://bashsnippets.xyz/snippets/file-permissions-security` | `08-…-medium.md` | [ ] |
+| Fri 10/3 | Day 13 | `https://bashsnippets.xyz/snippets/bash-send-email-alert` | `09-…-medium.md` | [ ] |
+| Sat 10/4 | Day 14 | `https://bashsnippets.xyz/snippets/ssh-key-setup-script` | `10-…-medium.md` | [ ] |
 
 Medium's own "Originally published at" line is the canonical. The `-medium.md` files end with that
 line already; delete the duplicate if Medium adds its own.
@@ -188,9 +189,11 @@ project, so the 50-star rule does not apply, but say the word if you would rathe
 - PR title **must** be `Add ITEM_NAME`; one PR per suggestion; format `- [ITEM](LINK) - Description.` with capital and full stop; add alphabetically or at the bottom.
 
 **What to do:** do not open the repo PR until the repo passes 50 stars. Submit the *site* as a
-non-source resource under `## Website` (currently Bash One-Liners and commandlinefu — the right company),
-**after** the Show HN in section E has run, and link the HN thread as the discussion. The May 7
-r/learnprogramming chmod post (1.8K views) is a weaker second link; include both if HN is quiet.
+non-source resource under `## Website` (currently Bash One-Liners and commandlinefu — the right company).
+**Changed 2026-09-11: this no longer waits for Show HN.** The May 7 r/learnprogramming chmod-builder
+post (1.8K views, `u/Status_Income_8269`) is a positive community discussion and satisfies the rule on its
+own. Open it from your Reddit profile → Posts, copy its URL into the body below, and delete the HN part
+of the "Community discussion" line. Add the HN thread later only if the reviewer asks for more.
 
 PR title: `Add BashSnippets`
 Section: `## Website`, alphabetical → second line, between Bash One-Liners and commandlinefu:
@@ -236,7 +239,7 @@ PR body:
 ```
 Add bashsnippets under Resources → Websites.
 
-Application: bashsnippets — 36 tested, ShellCheck-clean bash scripts for sysadmin tasks
+Application: bashsnippets — 42 tested, ShellCheck-clean bash scripts for sysadmin tasks
 (backups, disk-space alerts, service watchdogs, cron hardening, permissions audits).
 Category: Resources / Websites.
 Source: https://github.com/anguishe/bashsnippets (MIT). Each script is explained line by line at
@@ -249,19 +252,24 @@ Disclosure: I am the author.
 
 ## E. Show HN
 
+**Not before the HN account is at least two weeks old with genuine comments on it** (handoff Travis
+item 8). New accounts posting their own site sink. Rewritten 2026-09-11 (handoff item D): the old
+title promised "any SC code", but the decoder covers 31 and links the ShellCheck wiki for the rest.
+The old first comment opened on an invented anecdote and promised two features that do not exist.
+
 - **URL:** `https://bashsnippets.xyz/tools/shellcheck-error-decoder`
-- **Title (79 chars):** `Show HN: ShellCheck Error Decoder – plain-English fix for any SC code, no login`
+- **Title (78 chars):** `Show HN: ShellCheck Error Decoder – plain-English fixes for 31 common SC codes`
 - Submit at <https://news.ycombinator.com/submit> — URL field only, **leave the text field empty** (HN's Show rules: the description goes in a comment, not the text box). Post Tue–Thu, 08:00–10:00 US Eastern. Use a personal account with history, not a brand account.
 
 First comment (post it within a minute of submitting):
 ```
-I built this after the fourth time I pasted "SC2086" into a search box and landed on the wiki page that
-tells you what the rule is but not what to type instead. Paste any ShellCheck code and it gives you the
-rule name, a plain-English explanation of what actually breaks, and a before/after fix you can copy; for
-the seven codes people search most (2086, 2046, 2034…) there is a longer write-up with real ShellCheck
-0.11.0 output. It runs entirely in the browser — no login, no upload, nothing sent anywhere. Next is
-letting you paste a whole shellcheck report and decode every line at once, and a CLI shim that does the
-same from a terminal. Happy to answer anything about how it was built or the rules it gets wrong.
+This is a lookup for ShellCheck error codes. Paste one of the 31 codes it covers (SC2086, SC2046,
+SC2034 and the other common ones) and it shows the rule name, what actually breaks at runtime, and a
+before/after fix you can copy. Codes outside those 31 get a link to the ShellCheck wiki rather than a
+guess. Seven of them (2086, 2046, 2063, 2115, 2154, 2034, 2016) have a longer page where every output
+was produced by ShellCheck 0.11.0 and bash 5.3.9 on my machine. The SC2086 one, for example, shows
+`rm $file` deleting two files it was never given and exiting 0. The lookup runs in the browser; the
+code you paste is not sent anywhere. Corrections welcome on any rule it explains badly.
 ```
 
 **HN rules that matter:** no marketing language or superlatives in the title ("free", "best", "revolutionary" get flagged; "no login" is a fact, fine). Do not ask anyone to upvote, ever — voting rings are detected and kill the post. Reply to **every** comment, including the hostile ones, within the first two hours; the reply is the content. Do not repost if it sinks; wait a month and HN allows one re-try. Keep the $9 toolkit out of the comment unless asked.

@@ -83,8 +83,9 @@ demand.
 2. <https://buttondown.com/emails> → is there a welcome email with the `bashlib.sh` attachment
    (or a link to it)? If not: **New email → Type: Welcome** (or Settings → Subscribing →
    *Welcome email*), subject `Your bashlib starter`, body = one line + the file attached or a
-   link to `https://github.com/anguishe/bashsnippets/blob/main/scripts/bash-error-handling.sh`
-   until the toolkit's `bashlib.sh` is split out.
+   link to `https://bashsnippets.xyz/snippets/bash-error-handling`
+   until the toolkit's `bashlib.sh` is split out. (Corrected 2026-09-11: the old GitHub link
+   pointed at a script excluded from the repo by design and 404'd.)
 3. Test it: subscribe with a second address on any snippet page, confirm the mail arrives.
 
 ### 1.5 ⬜ Medium: two titles ship with a literal `# ` (2 min)
