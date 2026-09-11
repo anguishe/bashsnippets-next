@@ -30,7 +30,7 @@ export default function EmailCapture({
     >
       <span className="flex items-center gap-2 font-mono text-xs font-semibold uppercase tracking-widest text-muted">
         <span className="text-green" aria-hidden>$</span>
-        <span>curl -O bashlib.sh</span>
+        <span>curl -O bashlib-starter.sh</span>
         <span
           className="ml-0.5 inline-block h-4 w-2 bg-green motion-safe:animate-pulse"
           aria-hidden
