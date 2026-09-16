@@ -23,7 +23,9 @@ export default function TrackedOutboundLink({
     <a
       href={href}
       target="_blank"
-      rel="noopener noreferrer"
+      // No noreferrer: Gumroad attributes views and sales to the referring site. The
+      // site-wide Referrer-Policy (strict-origin-when-cross-origin) sends the origin only.
+      rel="noopener"
       onClick={() => track(event, { ...params, href })}
       className={className}
     >
