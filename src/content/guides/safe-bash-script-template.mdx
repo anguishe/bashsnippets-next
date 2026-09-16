@@ -107,7 +107,7 @@ Two lines instead of one, everywhere you capture output into a local. It is wort
 
 ## nounset, and the variable that is only unbound in staging
 
-`set -u` turns an unset variable into an immediate error. The trouble is that "unset" is environment-dependent: a variable that is always present on your laptop and in production because it lives in a profile can be missing in a container, a CI runner, or a cron environment — three places nobody tests interactively.
+`set -u` turns an unset variable into an immediate error. The trouble is that "unset" is environment-dependent: a variable that is always present on your laptop and in production because it lives in a profile can be missing in a container, a CI runner, or a cron environment — three places nobody tests interactively. Why an unexported variable never reaches a child process, and why cron starts with almost none of yours, is in [Bash Environment Variables](/snippets/bash-environment-variables).
 
 When a variable is legitimately optional, say so explicitly rather than turning the flag off:
 
@@ -254,7 +254,7 @@ The escape hatch when you genuinely want to ignore one failure is `|| true`, and
 
 ## Where this connects
 
-Strict mode is the floor, not the building. It makes failures *stop* the script; it does not make the script survive the conditions that caused them. The next layer up is bounding and repeating work: [`timeout`](/snippets/bash-timeout-command) so a wedged command dies instead of blocking until someone notices, [`flock`](/snippets/bash-flock-single-instance) so overlapping runs cannot step on each other's files, and [retry with backoff](/snippets/bash-retry-with-backoff) so a transient blip does not kill a whole run.
+Strict mode is the floor, not the building. It makes failures *stop* the script; it does not make the script survive the conditions that caused them. The next layer up is bounding and repeating work: [`timeout`](/snippets/bash-timeout-command) so a wedged command dies instead of blocking until someone notices, [`flock`](/snippets/bash-flock-single-instance) so overlapping runs cannot step on each other's files, and [retry with backoff](/snippets/bash-retry-with-backoff) so a transient blip does not kill a whole run. If you would rather source those pieces than paste them, the [bashlib starter](/snippets/bashlib-starter) is strict mode, the ERR trap, cleanup, a lock, a timeout and retry in one file.
 
 Put together, those are what separate a script that works when you run it from one that runs unattended for a year — the full argument is in [Bash Scripts That Survive Cron](/guides/bash-scripts-that-survive-cron). If the script's home is a pipeline rather than a crontab, the CI-specific version of these failures — exit codes swallowed by the runner, secrets in the environment, `set -e` behaving differently inside a `docker exec` — is in [Bash Scripting for CI/CD Pipelines](/guides/bash-scripting-for-ci-cd-pipelines).
 

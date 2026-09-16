@@ -165,7 +165,7 @@ For daemons that support it, there is also a kernel-level version of the probe. 
 
 ## The cron watchdog, done properly
 
-If after all that you still want a cron-driven watchdog — for a service without a sane `Restart=`, for the hung case on a daemon with no `WatchdogSec` support, or on a box where you do not control the unit files — this is the version that handles the three states, the exit-code-4 trap, the start-limit trap, a maintenance window, overlapping runs, and alert spam. It is the script behind the [Restart a Service If It Stopped](/snippets/restart-service-if-stopped) snippet, grown up.
+If after all that you still want a cron-driven watchdog — for a service without a sane `Restart=`, for the hung case on a daemon with no `WatchdogSec` support, or on a box where you do not control the unit files — this is the version that handles the three states, the exit-code-4 trap, the start-limit trap, a maintenance window, overlapping runs, and alert spam. It is the script behind the [Restart a Service If It Stopped](/snippets/restart-service-if-stopped) snippet, grown up, and it has its own page: [Service Watchdog](/snippets/service-watchdog).
 
 ```bash
 #!/bin/bash

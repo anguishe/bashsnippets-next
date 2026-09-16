@@ -297,7 +297,7 @@ So the host-side listener list answers "which host ports are exposed" but never 
 
 Every expansion in it is double-quoted, down to `"$STATE_DIR"` in `mkdir -p`. A state path with a space is unlikely; a `$port` that comes back empty on a malformed `ss` line is not, and [SC2086](/shellcheck/sc2086) is the ShellCheck rule that would have flagged the unquoted version before it ran. The script passes `shellcheck -S style` with no findings.
 
-This is what turns the list into something you can diff. It writes one CSV line per listening socket — `proto,address,port,service,owner` — using `ss -e` so it degrades gracefully without root (owner becomes the cgroup unit or the uid instead of the process name), and with `--diff` it compares against the previous run and sends one alert naming what appeared or vanished.
+This is what turns the list into something you can diff. It writes one CSV line per listening socket — `proto,address,port,service,owner` — using `ss -e` so it degrades gracefully without root (owner becomes the cgroup unit or the uid instead of the process name), and with `--diff` it compares against the previous run and sends one alert naming what appeared or vanished. It also has its own page with setup and a cron line: [Audit Listening Ports and Alert on New Ones](/snippets/ports-audit).
 
 ```bash
 #!/bin/bash

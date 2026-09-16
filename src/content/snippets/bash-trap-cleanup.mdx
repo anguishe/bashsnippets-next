@@ -96,7 +96,7 @@ That `local code=$?` line deserves a second look, because it's the subtlest bug 
 
 ## Temp directories, multiple resources
 
-When the script needs several working files, don't juggle several traps — make one temp directory and remove it whole:
+When the script needs several working files, don't juggle several traps — make one temp directory and remove it whole (the [bashlib starter](/snippets/bashlib-starter) wraps this as `make_temp_dir`, cleaned up on every exit path):
 
 ```bash
 TMP_DIR=$(mktemp -d)

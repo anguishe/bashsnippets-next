@@ -33,7 +33,7 @@ dateModified: "2026-09-01"
 
 <Callout type="info" title="Blank process column? That is the root question, and there is a way around it">
 
-`ss -tlnp` shows the owning process only for sockets you own unless you are root. Adding `-e` shows the systemd cgroup that owns every socket, root or not — which is how you find out that the mystery listener on port 3000 is `docker-proxy` for a container. That trick, `/proc/net/tcp` by hand, `lsof` and `fuser` for the PID, probing one port from inside and outside, and a CSV audit that alerts when a new listener appears are in the full guide: [List Open Ports on Linux](/guides/open-ports-linux).
+`ss -tlnp` shows the owning process only for sockets you own unless you are root. Adding `-e` shows the systemd cgroup that owns every socket, root or not — which is how you find out that the mystery listener on port 3000 is `docker-proxy` for a container. That trick, `/proc/net/tcp` by hand, `lsof` and `fuser` for the PID, probing one port from inside and outside, and a CSV audit that alerts when a new listener appears are in the full guide: [List Open Ports on Linux](/guides/open-ports-linux). The audit script on its own is [Audit Listening Ports and Alert on New Ones](/snippets/ports-audit).
 
 </Callout>
 

@@ -197,7 +197,7 @@ Use a Bash array of unit names and loop: for each element, call `systemctl is-ac
 
 ### Use systemd’s own watchdog semantics
 
-For long-running apps you control, a unit drop-in can set `Restart=on-failure` (and related options) so systemd restarts the process without cron. Cron still helps when you want mail, extra logging, or cross-checks across several units.
+For long-running apps you control, a unit drop-in can set `Restart=on-failure` (and related options) so systemd restarts the process without cron. Cron still helps when you want mail, extra logging, or cross-checks across several units. For a cron watchdog that also probes a hung-but-running service, bounds start-limit resets and alerts once per outage instead of once a minute, see [Service Watchdog](/snippets/service-watchdog).
 
 ### Slack or webhook alerts
 

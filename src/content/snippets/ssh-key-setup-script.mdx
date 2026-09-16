@@ -204,6 +204,8 @@ Always verify key-based login works in a new terminal before disabling password 
 
 ## RSA, passphrases, and many servers
 
+Once key login works, [Run Commands on a Remote Server over SSH](/snippets/ssh-run-remote-commands) covers the next step: one command or a heredoc block on one host or twenty, with per-host exit codes.
+
 ### 1. Generate RSA 4096 key
 
 Set `KEY_TYPE="rsa"` at the top of the script. For RSA, pass bit length to `ssh-keygen` with `-b "$KEY_BITS"` (your script already defines `KEY_BITS=4096` for that case).

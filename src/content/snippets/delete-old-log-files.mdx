@@ -134,6 +134,8 @@ Add `>> /var/log/cleanlog.log 2>&1` to the end of your cron line so you have a r
 
 ## Versions for messier log directories
 
+If the directory holds dated folders rather than loose files, and you want to keep the newest N no matter how old they are, use [Log Retention Cleanup](/snippets/log-retention-cleanup) instead: it dry-runs by default and refuses a bad `--keep` or `--days` value before it deletes anything.
+
 ### Clean multiple file types at once
 
 ```bash
