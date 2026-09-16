@@ -6,21 +6,21 @@ const SITE_URL = 'https://bashsnippets.xyz';
 // lastmod = real last content edit (git). Update ONLY when the page content changes.
 // Only static routes that have no registry entry belong here.
 const staticEntries = [
-  { url: `${SITE_URL}/`,                                          lastmod: '2026-06-15', changefreq: 'daily',   priority: 1.0  },
-  { url: `${SITE_URL}/snippets`,                                  lastmod: '2026-06-15', changefreq: 'daily',   priority: 0.9  },
-  { url: `${SITE_URL}/tools`,                                     lastmod: '2026-06-08', changefreq: 'daily',   priority: 0.9  },
-  { url: `${SITE_URL}/guides`,                                    lastmod: '2026-06-22', changefreq: 'weekly',  priority: 0.8  },
-  { url: `${SITE_URL}/starter-kit`,                               lastmod: '2026-06-15', changefreq: 'monthly', priority: 0.8  },
-  { url: `${SITE_URL}/about`,                                     lastmod: '2026-06-15', changefreq: 'monthly', priority: 0.5  },
-  { url: `${SITE_URL}/guides/bash-scripts-every-sysadmin-needs`,  lastmod: '2026-06-15', changefreq: 'weekly',  priority: 0.8  },
-  { url: `${SITE_URL}/guides/bash-scripting-for-ci-cd-pipelines`, lastmod: '2026-06-10', changefreq: 'weekly',  priority: 0.8  },
-  { url: `${SITE_URL}/guides/bash-text-processing`,               lastmod: '2026-06-17', changefreq: 'weekly',  priority: 0.8  },
-  { url: `${SITE_URL}/guides/bash-scripts-that-survive-cron`,     lastmod: '2026-06-22', changefreq: 'weekly',  priority: 0.8  },
-  { url: `${SITE_URL}/guides/shell-scripts-that-talk-to-apis`,    lastmod: '2026-07-08', changefreq: 'weekly',  priority: 0.8  },
-  { url: `${SITE_URL}/guides/safe-bash-script-template`,          lastmod: '2026-09-01', changefreq: 'weekly',  priority: 0.8  },
-  { url: `${SITE_URL}/guides/diagnose-a-hung-process`,           lastmod: '2026-09-01', changefreq: 'weekly',  priority: 0.8  },
-  { url: `${SITE_URL}/guides/auto-restart-linux-service`,        lastmod: '2026-09-01', changefreq: 'weekly',  priority: 0.8  },
-  { url: `${SITE_URL}/guides/open-ports-linux`,                  lastmod: '2026-09-01', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/`,                                          lastmod: '2026-09-16', changefreq: 'daily',   priority: 1.0  },
+  { url: `${SITE_URL}/snippets`,                                  lastmod: '2026-09-16', changefreq: 'daily',   priority: 0.9  },
+  { url: `${SITE_URL}/tools`,                                     lastmod: '2026-09-16', changefreq: 'daily',   priority: 0.9  },
+  { url: `${SITE_URL}/guides`,                                    lastmod: '2026-09-16', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/starter-kit`,                               lastmod: '2026-09-16', changefreq: 'monthly', priority: 0.8  },
+  { url: `${SITE_URL}/about`,                                     lastmod: '2026-09-16', changefreq: 'monthly', priority: 0.5  },
+  { url: `${SITE_URL}/guides/bash-scripts-every-sysadmin-needs`,  lastmod: '2026-09-16', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/guides/bash-scripting-for-ci-cd-pipelines`, lastmod: '2026-09-16', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/guides/bash-text-processing`,               lastmod: '2026-09-16', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/guides/bash-scripts-that-survive-cron`,     lastmod: '2026-09-16', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/guides/shell-scripts-that-talk-to-apis`,    lastmod: '2026-09-16', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/guides/safe-bash-script-template`,          lastmod: '2026-09-16', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/guides/diagnose-a-hung-process`,           lastmod: '2026-09-16', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/guides/auto-restart-linux-service`,        lastmod: '2026-09-16', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/guides/open-ports-linux`,                  lastmod: '2026-09-16', changefreq: 'weekly',  priority: 0.8  },
 ];
 
 /**

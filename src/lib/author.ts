@@ -8,10 +8,15 @@ export const AUTHOR = {
   // '@id' lets every page's Person node resolve to one entity in the graph
   '@id': `${SITE_URL}/about`,
   url: `${SITE_URL}/about`,
+  // Same eight profiles as the founder node in layout.tsx.
   sameAs: [
     'https://github.com/anguishe',
+    'https://github.com/anguishe/bashsnippets',
     'https://www.youtube.com/@BashSnippets',
+    'https://www.tiktok.com/@bashsnippets',
     'https://dev.to/bashsnippets',
     'https://medium.com/@anguisheh1',
+    'https://coderlegion.com/user/BashSnippets',
+    'https://www.reddit.com/user/Status_Income_8269/',
   ],
 } as const;
