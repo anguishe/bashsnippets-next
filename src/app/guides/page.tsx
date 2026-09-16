@@ -9,7 +9,7 @@ const guides = [
     slug: 'open-ports-linux',
     title: 'List Open Ports on Linux: With the Process, Without Root, and Without netstat',
     description:
-      '"List open ports" is three questions — what is listening, who owns it, and is it reachable — and each needs a different command. ss with the filters and flags that matter, the -e trick that names the owning service without root, /proc/net/tcp by hand, lsof and fuser for the PID, nc and /dev/tcp for one port, what docker-proxy hides, and a CSV audit script that alerts once when a new listener appears.',
+      '"List open ports" is three questions: what listens, who owns it, is it reachable. ss flags, the no-root -e trick, lsof, fuser, nc, docker-proxy and an audit.',
     blurb:
       'You leave able to answer the port question the way it is actually asked: which process has it, even when ss shows a blank process column because you are not root; why the address column matters more than the port; what a listener owned by docker-proxy really is; and a script that turns the list into CSV and tells you once when something new starts listening.',
   },
@@ -18,7 +18,7 @@ const guides = [
     title:
       'Auto-Restart a Stopped Service on Linux: systemd Restart=, Cron Watchdogs, and the Start-Limit Trap',
     description:
-      '"Down" is three different states — crashed, stopped on purpose, or running but not answering — and a watchdog that checks systemctl is-active handles exactly one of them. Let systemd restart crashes with Restart=, clear the start-limit trap that makes systemctl start refuse, probe for the hung case, and alert once per outage instead of once per minute.',
+      '"Down" is three states: crashed, stopped, or hung. Restart crashes with systemd Restart=, clear the start-limit trap, probe hung services, alert once.',
     blurb:
       'You leave knowing which of the three kinds of "down" you have before you touch it: the exit code 4 that makes a watchdog restart a unit that does not exist, why Restart=always did nothing for a display manager that never exited, the "start request repeated too quickly" state that makes systemctl start refuse until reset-failed, and a watchdog script that probes for the hung case and sends one alert per outage.',
   },
@@ -26,7 +26,7 @@ const guides = [
     slug: 'bash-scripts-every-sysadmin-needs',
     title: '25 Bash Scripts Every Linux Sysadmin Needs',
     description:
-      'The 25 bash scripts that prevent the most common server failures — disk full, SSL expiry, failed services, insecure permissions. Copy-paste ready, cron-schedulable, no installs required.',
+      '25 bash scripts that prevent the most common server failures: disk full, SSL expiry, failed services, bad permissions. Copy-paste ready and cron-schedulable.',
     blurb:
       'You walk away with a provisioning checklist, not a reading list: the exact scripts that prevent a disk-full outage, a silent SSL expiry, a service that died over the weekend, and a permission hole on a fresh web root. It is organized by failure mode, so you can jump straight to the problem you are trying to prevent and leave with the cron entry that prevents it.',
   },
@@ -42,7 +42,7 @@ const guides = [
     slug: 'bash-text-processing',
     title: 'Bash Text Processing: find, grep, sed, and awk for Logs and Config Files',
     description:
-      'The four commands that turn an unreadable log or a tree of config files into an answer — find to locate, grep to search, sed to transform, awk to summarize. The order matters, and the gotchas are the reason most one-liners do the wrong thing quietly.',
+      'find locates, grep searches, sed transforms, awk summarizes. The order that turns a log or a config tree into an answer, and the gotchas that fail quietly.',
     blurb:
       'You leave with the pipeline order that keeps text processing boring: scope the blast radius with find, confirm the match with grep, transform with sed or awk under an undo, and verify before you trust it — plus the 2am incident one-liner that ranks your errors most-frequent-first.',
   },
@@ -50,7 +50,7 @@ const guides = [
     slug: 'diagnose-a-hung-process',
     title: 'Diagnosing a Hung Process: The Commands to Run Before You Kill It',
     description:
-      'A hung job never exits, never logs, and never tells you why. The exact commands to find out what it is blocked on — process state, wchan, syscall, open files, sockets — and why killing it first destroys the only evidence you had.',
+      'A hung job never exits and never logs why. The commands that show what it is blocked on (state, wchan, syscall, files, sockets) before a kill erases the clues.',
     blurb:
       'The state letter tells you which kind of stuck: S responds to signals, D cannot be killed at all — which is every "kill -9 is not working" report there has ever been. Read wchan and the syscall without root, check the socket queues, and capture the lot before you kill it.',
   },
@@ -58,7 +58,7 @@ const guides = [
     slug: 'safe-bash-script-template',
     title: 'The Safe Bash Script Template: What set -euo pipefail Actually Changes',
     description:
-      'Strict mode is three separate promises, not one incantation — and there are places every one of them silently does nothing. What each flag really does, where errexit gives up, and the ERR trap that tells you which line died.',
+      'set -euo pipefail is three promises, each with places it silently does nothing. What each flag does, where errexit quits, and the ERR trap that names the line.',
     blurb:
       'The flag missing from almost every pasted strict-mode line is the E. Without set -E your ERR trap never fires inside a function, so the script exits 1 and tells you nothing — plus the local x=$(cmd) that swallows a failure whole, and the template that closes both gaps.',
   },
@@ -66,7 +66,7 @@ const guides = [
     slug: 'bash-scripts-that-survive-cron',
     title: 'Bash Scripts That Survive Cron: Locking, Timeouts, and Retries',
     description:
-      'A script that works when you run it isn\'t the same as one that survives unattended on cron. The three ways cron jobs die quietly — overlap, hang, transient failure — and the guards that stop each one.',
+      'A script that works when you run it can still die quietly on cron. The three failure modes (overlap, hang, transient error) and the guard that stops each one.',
     blurb:
       'The three ways cron jobs die quietly — overlap, hang, transient failure — and the guard that stops each.',
   },

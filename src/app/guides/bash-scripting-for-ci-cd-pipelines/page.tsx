@@ -7,16 +7,16 @@ import { AUTHOR } from '@/lib/author';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Bash Scripting for CI/CD Pipelines: GitHub Actions, Deploys, and Docker | BashSnippets.xyz' },
+  title: { absolute: 'Bash Scripting for CI/CD: GitHub Actions, Deploys, Docker' },
   description:
-    'A pipeline reported every step green and deployed broken code, because the build step piped its output through tee and bash returned the exit code of tee — always zero — instead of the compiler that had just failed. The error was real, the logs showed it, and the pipeline shipped anyway.',
+    'A pipeline went green and shipped broken code because tee\'s exit code hid the failed build. Bash for CI/CD: pipefail, exit codes, secrets, deploys and Docker.',
   alternates: {
     canonical: `${SITE_URL}/guides/bash-scripting-for-ci-cd-pipelines`,
   },
   openGraph: {
     title: 'Bash Scripting for CI/CD Pipelines: GitHub Actions, Deploys, and Docker | BashSnippets.xyz',
     description:
-      'A pipeline reported every step green and deployed broken code, because the build step piped its output through tee and bash returned the exit code of tee — always zero — instead of the compiler that had just failed. The error was real, the logs showed it, and the pipeline shipped anyway.',
+      'A pipeline went green and shipped broken code because tee\'s exit code hid the failed build. Bash for CI/CD: pipefail, exit codes, secrets, deploys and Docker.',
     url: `${SITE_URL}/guides/bash-scripting-for-ci-cd-pipelines`,
     type: 'article',
     publishedTime: '2026-06-10T00:00:00Z',
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Bash Scripting for CI/CD Pipelines: GitHub Actions, Deploys, and Docker | BashSnippets.xyz',
     description:
-      'A pipeline reported every step green and deployed broken code, because the build step piped its output through tee and bash returned the exit code of tee — always zero — instead of the compiler that had just failed. The error was real, the logs showed it, and the pipeline shipped anyway.',
+      'A pipeline went green and shipped broken code because tee\'s exit code hid the failed build. Bash for CI/CD: pipefail, exit codes, secrets, deploys and Docker.',
     images: [`${SITE_URL}/ogimage.png`],
   },
 };
@@ -43,7 +43,7 @@ const techArticleSchema = {
   '@type': 'TechArticle',
   headline: 'Bash Scripting for CI/CD Pipelines: GitHub Actions, Deploys, and Docker',
   description:
-    'A pipeline reported every step green and deployed broken code, because the build step piped its output through tee and bash returned the exit code of tee — always zero — instead of the compiler that had just failed. The error was real, the logs showed it, and the pipeline shipped anyway.',
+    'A pipeline went green and shipped broken code because tee\'s exit code hid the failed build. Bash for CI/CD: pipefail, exit codes, secrets, deploys and Docker.',
   url: `${SITE_URL}/guides/bash-scripting-for-ci-cd-pipelines`,
   datePublished: '2026-06-10',
   dateModified: '2026-06-10',

@@ -3,19 +3,20 @@ import Link from 'next/link';
 import Breadcrumb from '@/components/Breadcrumb';
 import { mdxComponents } from '@/components/MDXComponents';
 import { AUTHOR } from '@/lib/author';
+import { fitTitle } from '@/lib/meta-title';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 const TITLE =
   'Bash Scripts That Survive Cron: Locking, Timeouts, and Retries';
 const DESCRIPTION =
-  'A script that works when you run it isn\'t the same as one that survives unattended on cron. The three ways cron jobs die quietly — overlap, hang, transient failure — and the guards that stop each one.';
+  'A script that works when you run it can still die quietly on cron. The three failure modes (overlap, hang, transient error) and the guard that stops each one.';
 
 // Breadcrumb last crumb uses the short form per the task brief.
 const BREADCRUMB = 'Bash Scripts That Survive Cron';
 
 export const metadata: Metadata = {
-  title: { absolute: `${TITLE} | BashSnippets.xyz` },
+  title: fitTitle(TITLE),
   description: DESCRIPTION,
   alternates: {
     canonical: `${SITE_URL}/guides/bash-scripts-that-survive-cron`,

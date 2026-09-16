@@ -7,15 +7,15 @@ import Link from 'next/link';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: 'About BashSnippets — Bash Script Author & Linux Developer',
+  title: { absolute: 'About BashSnippets — Bash Script Author & Linux Developer' },
   description:
-    `BashSnippets is a free bash script library built by Travis, a self-taught Linux developer. ${snippets.length} tested scripts, ${tools.length} browser tools, zero logins. Learn who built it and how.`,
+    `BashSnippets is a free bash script library built by Travis, a self-taught Linux developer: ${snippets.length} scripts, ${tools.length} browser tools, no logins. Who built it and how.`,
   alternates: {
     canonical: `${SITE_URL}/about`,
   },
   openGraph: {
     title: 'About BashSnippets — Bash Script Author & Linux Developer',
-    description: `BashSnippets is a free bash script library built by Travis, a self-taught Linux developer. ${snippets.length} tested scripts, ${tools.length} browser tools, zero logins.`,
+    description: `BashSnippets is a free bash script library built by Travis, a self-taught Linux developer. ${snippets.length} scripts, ${tools.length} browser tools, zero logins.`,
     url: `${SITE_URL}/about`,
     type: 'website',
     images: [{ url: 'https://bashsnippets.xyz/ogimage.png', width: 1200, height: 630, alt: 'About BashSnippets — Bash Script Library' }],
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'About BashSnippets — Bash Script Author & Linux Developer',
-    description: `BashSnippets is a free bash script library built by Travis, a self-taught Linux developer. ${snippets.length} tested scripts, ${tools.length} browser tools, zero logins.`,
+    description: `BashSnippets is a free bash script library built by Travis, a self-taught Linux developer. ${snippets.length} scripts, ${tools.length} browser tools, zero logins.`,
   },
 };
 
@@ -33,7 +33,7 @@ const aboutSchemas = [
     '@type': 'WebPage',
     name: 'About BashSnippets',
     url: `${SITE_URL}/about`,
-    description: `BashSnippets is a free bash script library built by Travis, a self-taught Linux developer. ${snippets.length} tested scripts, ${tools.length} browser tools, zero logins.`,
+    description: `BashSnippets is a free bash script library built by Travis, a self-taught Linux developer. ${snippets.length} scripts, ${tools.length} browser tools, zero logins.`,
     isPartOf: { '@type': 'WebSite', name: 'BashSnippets.xyz', url: SITE_URL },
   },
   {

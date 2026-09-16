@@ -3,19 +3,21 @@ import Link from 'next/link';
 import Breadcrumb from '@/components/Breadcrumb';
 import { mdxComponents } from '@/components/MDXComponents';
 import { AUTHOR } from '@/lib/author';
+import { fitTitle } from '@/lib/meta-title';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 const TITLE =
   'The Safe Bash Script Template: What set -euo pipefail Actually Changes';
 const DESCRIPTION =
-  'Strict mode is three separate promises, not one incantation — and there are places every one of them silently does nothing. What each flag really does, where errexit gives up, and the ERR trap that tells you which line died.';
+  'set -euo pipefail is three promises, each with places it silently does nothing. What each flag does, where errexit quits, and the ERR trap that names the line.';
 
 // Breadcrumb last crumb uses the short form per the task brief.
 const BREADCRUMB = 'The Safe Bash Script Template';
 
 export const metadata: Metadata = {
-  title: { absolute: `${TITLE} | BashSnippets.xyz` },
+  // <title> only; TITLE stays the H1. Bing flags titles over 65 characters.
+  title: fitTitle('Safe Bash Script Template: What set -euo pipefail Changes'),
   description: DESCRIPTION,
   alternates: {
     canonical: `${SITE_URL}/guides/safe-bash-script-template`,

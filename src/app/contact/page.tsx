@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: 'Contact BashSnippets — Script Requests, Bug Reports, Support',
+  title: { absolute: 'Contact BashSnippets — Script Requests, Bug Reports, Support' },
   description:
     'Reach BashSnippets by email for script requests, snippet bug reports, toolkit questions, and feedback. Response usually within 2 business days.',
   alternates: {

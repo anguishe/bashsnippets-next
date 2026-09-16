@@ -8,14 +8,14 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 export const metadata: Metadata = {
   title: { absolute: '25 Bash Scripts Every Linux Sysadmin Needs | BashSnippets.xyz' },
   description:
-    'The 25 bash scripts that prevent the most common server failures — disk full, SSL expiry, failed services, insecure permissions. Copy-paste ready, cron-schedulable, no installs required.',
+    '25 bash scripts that prevent the most common server failures: disk full, SSL expiry, failed services, bad permissions. Copy-paste ready and cron-schedulable.',
   alternates: {
     canonical: `${SITE_URL}/guides/bash-scripts-every-sysadmin-needs`,
   },
   openGraph: {
     title: '25 Bash Scripts Every Linux Sysadmin Needs | BashSnippets.xyz',
     description:
-      'The 25 bash scripts that prevent the most common server failures — disk full, SSL expiry, failed services, insecure permissions. Copy-paste ready, cron-schedulable, no installs required.',
+      '25 bash scripts that prevent the most common server failures: disk full, SSL expiry, failed services, bad permissions. Copy-paste ready and cron-schedulable.',
     url: `${SITE_URL}/guides/bash-scripts-every-sysadmin-needs`,
     type: 'article',
     publishedTime: '2026-06-06T00:00:00Z',
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: '25 Bash Scripts Every Linux Sysadmin Needs | BashSnippets.xyz',
     description:
-      'The 25 bash scripts that prevent the most common server failures — disk full, SSL expiry, failed services, insecure permissions. Copy-paste ready, cron-schedulable, no installs required.',
+      '25 bash scripts that prevent the most common server failures: disk full, SSL expiry, failed services, bad permissions. Copy-paste ready and cron-schedulable.',
     images: [`${SITE_URL}/ogimage.png`],
   },
 };
@@ -42,7 +42,7 @@ const techArticleSchema = {
   '@type': 'TechArticle',
   headline: '25 Bash Scripts Every Linux Sysadmin Needs',
   description:
-    'The 25 bash scripts that prevent the most common server failures — disk full, SSL expiry, failed services, insecure permissions. Copy-paste ready, cron-schedulable, no installs required.',
+    '25 bash scripts that prevent the most common server failures: disk full, SSL expiry, failed services, bad permissions. Copy-paste ready and cron-schedulable.',
   url: `${SITE_URL}/guides/bash-scripts-every-sysadmin-needs`,
   datePublished: '2026-06-06',
   dateModified: '2026-06-06',

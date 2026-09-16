@@ -3,19 +3,20 @@ import Link from 'next/link';
 import Breadcrumb from '@/components/Breadcrumb';
 import { mdxComponents } from '@/components/MDXComponents';
 import { AUTHOR } from '@/lib/author';
+import { fitTitle } from '@/lib/meta-title';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 const TITLE =
   'Diagnosing a Hung Process: The Commands to Run Before You Kill It';
 const DESCRIPTION =
-  'A hung job never exits, never logs, and never tells you why. The exact commands to find out what it is blocked on — process state, wchan, syscall, open files, sockets — and why killing it first destroys the only evidence you had.';
+  'A hung job never exits and never logs why. The commands that show what it is blocked on (state, wchan, syscall, files, sockets) before a kill erases the clues.';
 
 // Breadcrumb last crumb uses the short form per the task brief.
 const BREADCRUMB = 'Diagnosing a Hung Process';
 
 export const metadata: Metadata = {
-  title: { absolute: `${TITLE} | BashSnippets.xyz` },
+  title: fitTitle(TITLE),
   description: DESCRIPTION,
   alternates: {
     canonical: `${SITE_URL}/guides/diagnose-a-hung-process`,

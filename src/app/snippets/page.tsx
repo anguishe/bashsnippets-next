@@ -8,7 +8,7 @@ import Link from 'next/link';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: `Bash Script Library — ${snippets.length} Copy-Paste Shell Scripts for Linux`,
+  title: { absolute: `Bash Script Library — ${snippets.length} Copy-Paste Shell Scripts for Linux` },
   description:
     `${snippets.length} copy-paste bash scripts with plain-English explanations.`,
   alternates: {

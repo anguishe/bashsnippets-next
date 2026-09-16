@@ -3,18 +3,20 @@ import Link from 'next/link';
 import Breadcrumb from '@/components/Breadcrumb';
 import { mdxComponents } from '@/components/MDXComponents';
 import { AUTHOR } from '@/lib/author';
+import { fitTitle } from '@/lib/meta-title';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 const TITLE =
   'List Open Ports on Linux: With the Process, Without Root, and Without netstat';
 const DESCRIPTION =
-  '"List open ports" is three questions — what is listening, who owns it, and is it reachable — and each needs a different command. ss with the filters and flags that matter, the -e trick that names the owning service without root, /proc/net/tcp by hand, lsof and fuser for the PID, nc and /dev/tcp for one port, what docker-proxy hides, and a CSV audit script that alerts once when a new listener appears.';
+  '"List open ports" is three questions: what listens, who owns it, is it reachable. ss flags, the no-root -e trick, lsof, fuser, nc, docker-proxy and an audit.';
 
 const BREADCRUMB = 'List Open Ports';
 
 export const metadata: Metadata = {
-  title: { absolute: `${TITLE} | BashSnippets.xyz` },
+  // <title> only; TITLE stays the H1. Bing flags titles over 65 characters.
+  title: fitTitle('List Open Ports on Linux: With the Process, Without Root'),
   description: DESCRIPTION,
   alternates: {
     canonical: `${SITE_URL}/guides/open-ports-linux`,

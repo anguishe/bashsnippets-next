@@ -15,6 +15,7 @@ import {
   shellcheckPages,
   type ShellcheckPage,
 } from '@/lib/shellcheck-pages';
+import { fitTitle } from '@/lib/meta-title';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 const DECODER_PATH = '/tools/shellcheck-error-decoder';
@@ -146,7 +147,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const url = `${SITE_URL}/shellcheck/${page.slug}`;
 
   return {
-    title: page.title,
+    title: fitTitle(page.metaTitle ?? page.title),
     description: page.description,
     keywords: page.keywords,
     alternates: { canonical: url },

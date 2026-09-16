@@ -25,7 +25,7 @@ export const tools: ToolMeta[] = [
     dateModified: '2026-06-06',
     title: 'Bash Exit Code Lookup',
     description:
-      'An unhandled exit code hides why a bash script failed and lets errors cascade silently into data loss. Enter any code 0-255 for the plain-English meaning, causes, and a copy-paste error handler.',
+      'An unexplained exit code hides why a bash script failed. Enter any code from 0 to 255 for its meaning, likely causes, and a copy-paste error handler.',
     quickAnswer:
       'Every bash command exits with a status code stored in `$?`. Zero means success; any non-zero value signals failure. When a cron job dies at 3am with no terminal attached, that number is often the only clue about what broke. Code 1 is a generic failure, 127 means the shell could not find the binary in `$PATH`, 130 means the process received SIGINT from Ctrl+C, and 137 typically means the Linux OOM killer sent SIGKILL. Ignoring `$?` lets a failed `cd` or `mkdir` cascade into commands running against the wrong directory. This browser tool maps any integer from 0 through 255 to a plain-English label, common causes, and representative commands that return that code. Type a number, browse the full table, or click Copy Handler to paste a trap block that prints the failing line and exits non-zero. The lookup runs entirely client-side — no install, no login, no data sent to a server.',
     category: 'reference',
@@ -66,7 +66,7 @@ export const tools: ToolMeta[] = [
     dateModified: '2026-06-04',
     title: 'Cron Job Builder',
     description:
-      'A wrong cron expression runs jobs at the wrong time or skips them entirely with no error output. Build cron expressions visually and verify the human-readable schedule before saving to crontab.',
+      'A wrong cron expression runs a job at the wrong time or never, with no error. Build the expression visually and check the plain-English schedule before saving.',
     quickAnswer:
       'Cron schedules recurring tasks on Linux using five time fields — minute, hour, day-of-month, month, and weekday — followed by the command to run. A single misplaced asterisk or off-by-one hour value runs your backup at the wrong time or not at all, with no error output from the cron daemon itself. Expressing `0 2 * * 1-5` as weekdays at 2am is easy to misread when you are editing crontab at midnight during an incident. This builder translates your selections into a valid five-field expression and shows a live human-readable summary so you can confirm the schedule before pasting into `crontab -e`. Pick presets for every five minutes, hourly, daily, weekly, or monthly runs, or switch to Custom to set each field. The output includes the full crontab line ready to copy. Works in any modern browser with JavaScript enabled. Pair it with disk monitoring or backup scripts, then schedule them with a line you have visually verified instead of guessing field order from man pages.',
     category: 'builder',
@@ -107,7 +107,7 @@ export const tools: ToolMeta[] = [
     dateModified: '2026-06-06',
     title: 'Chmod Permissions Builder',
     description:
-      'Wrong file permissions on a web server expose secrets or let compromised scripts overwrite application files. Build chmod commands visually — shows octal, symbolic notation, and the exact chmod command.',
+      'Wrong permissions on a web server expose secrets or let a compromised script overwrite files. Build chmod commands visually, with octal and symbolic notation.',
     quickAnswer:
       'Linux file permissions control who can read, write, or execute each file using three groups — owner, group, and other — represented by bits that combine into octal values like 644 or 755. Setting 777 on a web root lets any compromised PHP script overwrite your application. Setting 644 on a directory breaks navigation because directories need the execute bit to be entered. Converting between octal, symbolic notation like `rwxr-xr-x`, and the exact `chmod` command is where mistakes happen during incident response. This builder presents a permission matrix with Owner, Group, and Others checkboxes. Toggling read, write, and execute updates the octal value, symbolic string, and full `chmod` command live in the output panel. Preset buttons cover 644 for static files, 755 for directories and scripts, and 700 for private executables. Copy the complete command or just the mode. Runs entirely in your browser. Use it before deploying to production or when auditing a server where world-writable files could expose credentials.',
     category: 'builder',
@@ -148,7 +148,7 @@ export const tools: ToolMeta[] = [
     dateModified: '2026-06-06',
     title: 'Bash $PATH Debugger',
     description:
-      'Duplicate and missing PATH entries cause command-not-found errors and slow shell startup by scanning dead directories. Paste your PATH to find duplicates, empty entries, and ordering problems.',
+      'Duplicate and missing PATH entries cause command-not-found errors and slow shell startup. Paste your PATH to find duplicates, empty entries and bad ordering.',
     quickAnswer:
       'The `$PATH` environment variable is a colon-separated list of directories the shell searches when you type a command name without a full path. Duplicate entries waste lookup time on every command. Dead directories from uninstalled software slow startup. Missing entries cause exit code 127 even when the binary exists elsewhere on disk. Order matters: the shell uses the first match, so an older `python` in `/usr/bin` wins over a newer one in `/usr/local/bin` if it appears first. This debugger splits your pasted PATH into one directory per line, flags duplicates in amber, highlights empty entries in red, and outputs a deduplicated string you can paste into `~/.bashrc` or `~/.zshrc`. Run `echo $PATH`, paste the result, and review before editing your shell profile. No data leaves your browser. Use it when command-not-found errors appear after installing software, when CI builds behave differently from your laptop, or when cleaning up a PATH bloated by years of manual exports across profile files.',
     category: 'debug',
@@ -189,7 +189,7 @@ export const tools: ToolMeta[] = [
     dateModified: '2026-06-06',
     title: 'Bash Boilerplate Generator',
     description:
-      'A bash script without error handling silently continues after failures and leaves systems in a broken partial state. Generates a production-ready template with set -euo pipefail, traps, and argument parsing.',
+      'A bash script with no error handling keeps going after failures. Generate a production-ready template with set -euo pipefail, traps, and argument parsing.',
     quickAnswer:
       'A bash script without guardrails keeps running after failures. A mistyped `cd` followed by `rm -rf *` in the wrong directory is the textbook disaster that `set -euo pipefail` prevents. Writing traps, argument parsing, and help text from scratch on every new script wastes time and invites inconsistent error handling across your automation. This generator produces a complete `.sh` template with toggles for strict mode, logging, `getopts` flag parsing, long-option handling, and `--help` output. Enter a script name and one-line purpose; those values populate header comments and usage text. Click Generate Script, copy the output, save as `yourscript.sh`, and run `chmod +x`. The templates include cleanup traps on EXIT, named variables instead of magic numbers, and explicit non-zero exits on failure. Generation happens entirely client-side. Use it when starting a cron job, deployment hook, or maintenance script so safe defaults are in place before you write the business logic.',
     category: 'generator',
@@ -230,7 +230,7 @@ export const tools: ToolMeta[] = [
     dateModified: '2026-06-06',
     title: 'Rsync Command Builder',
     description:
-      'A wrong rsync flag silently overwrites destination files or skips critical data with no error output. Build rsync commands visually — toggle archive, compress, delete, dry-run, SSH, and exclude patterns with a live preview.',
+      'A wrong rsync flag overwrites files or skips data with no error. Build rsync commands visually: archive, compress, delete, dry-run, SSH, excludes, live preview.',
     quickAnswer:
       'rsync synchronizes directories locally or over SSH, transferring only changed blocks after the initial run. The wrong flag combination silently deletes destination files with `--delete`, skips permission preservation without `-a`, or overwrites production data without a dry-run preview. Remote backups need `-e ssh`, trailing slashes change whether the directory itself or its contents are copied, and exclude patterns must be repeated per rule or loaded from a file. This builder takes source and destination paths, toggles archive mode, compression, delete, partial resume, dry-run, and SSH transport, then assembles the full command in a live preview panel. Add comma-separated exclude patterns for `*.log`, `.git`, or `node_modules` without memorizing flag order. Click Copy Command to paste into your terminal. Always enable dry-run before `--delete` on a mirror job — deleted files do not come back. Runs in your browser with no account. Pair with the rsync remote backup snippet for cron scheduling and SSH key setup.',
     category: 'builder',
@@ -271,7 +271,7 @@ export const tools: ToolMeta[] = [
     dateModified: '2026-06-07',
     title: 'grep Pattern Builder',
     description:
-      'A wrong grep flag silently matches the wrong files or swallows error output with no warning. Build the exact grep command you need — recursive, case-insensitive, with context lines — and get a plain-English explanation for every output.',
+      'A wrong grep flag matches the wrong files or hides errors without warning. Build the grep command you need, with context lines and a plain-English explanation.',
     quickAnswer:
       'grep searches file contents for a regex or string pattern, returning every matching line by default. The wrong flag combination lets errors hide in plain sight: omitting -r on a directory finds nothing, missing -i causes case-sensitive mismatches that look like absent log entries, and running without -n makes it impossible to jump directly to the failing line number in a large file. On a busy server generating gigabytes of logs, knowing whether to use -c (count matches), -l (list files), or -q (exit code only) determines whether a search takes seconds or minutes. This builder takes a search pattern, file path, and optional file type filter, then assembles the complete grep command live as you toggle flags. It auto-enables -r when the path looks like a directory, suppresses -n when -c or -l override it, and generates correct --include flags from comma-separated file extensions. Each output includes a plain-English explanation of exactly what the command will do. Runs entirely in your browser with no install.',
     category: 'builder',
@@ -312,7 +312,7 @@ export const tools: ToolMeta[] = [
     dateModified: '2026-09-01',
     title: 'ShellCheck Error Decoder',
     description:
-      'ShellCheck warnings that go unfixed become the exact edge-case bugs that break in production on unexpected input. Enter any SC error code for the rule name, plain-English explanation, and a before/after fix example.',
+      'An unfixed ShellCheck warning is the edge case that breaks in production. Enter an SC code for its rule name, a plain-English explanation, a before/after fix.',
     quickAnswer:
       'ShellCheck analyzes bash scripts for mistakes that work on happy-path input but fail on edge cases — unquoted variables, unreachable commands, deprecated syntax, and pipelines that hide errors. An unquoted `$var` splits on whitespace and expands globs, breaking filenames with spaces. Reading the raw rule text means context switching between the error code, the wiki, and your editor. This decoder accepts any SC code such as SC2086 and returns the rule name, a plain-English explanation of what is wrong, why it matters in production, and a before/after example showing the fix. Click Copy Fix to paste the corrected line directly. Lookup runs client-side with no login. Fixing warnings before deploy prevents the exact failures ShellCheck was designed to catch — silent breakage on unexpected input. A warning-free script still needs the operational layer around it — strict mode, an ERR trap, lock, timeout and cleanup — packaged as bashlib.sh and template.sh in The Production Bash Toolkit at /starter-kit.',
     category: 'reference',
@@ -351,7 +351,7 @@ export const tools: ToolMeta[] = [
     component: 'BashTrapBuilder',
     title: 'Bash trap & Signal Handler Builder',
     description:
-      'A script that exits without a trap leaves temp files, lock files, and background jobs behind every time it crashes. Build your trap block visually — pick signals, choose cleanup actions, copy the result.',
+      'A script that exits without a trap leaves temp files, locks and background jobs behind. Build a trap block visually: pick signals and cleanup, copy the result.',
     quickAnswer:
       'Select signals (EXIT, ERR, INT, TERM) and cleanup actions, then copy the generated trap block into your script header.',
     category: 'builder',
@@ -398,7 +398,7 @@ export const tools: ToolMeta[] = [
     component: 'FindCommandBuilder',
     title: 'Find Command Builder',
     description:
-      'A find action placed before its filters runs on everything find walks — find -delete before -name empties the whole tree. Build find commands with tests ordered before actions, patterns quoted, and every flag explained.',
+      'find -delete placed before -name empties the whole tree. Build find commands with tests ahead of actions, patterns quoted, and every flag explained.',
     quickAnswer:
       'The find command searches a directory tree for files matching tests you combine: -name for a quoted glob, -type f or -type d, -mtime for age in days, -size for size, and -path to include or exclude subtrees. The order of the expression is the program — find evaluates left to right, so an action like -delete or -exec must come after the tests that narrow the matches, or it runs on everything find walks. Two traps cause most accidents: an unquoted -name *.log is expanded by the shell before find sees it, so always quote the pattern; and the age sign is easy to reverse — -mtime +30 means older than 30 days while -mtime -1 means within the last day. This builder assembles the command with tests before actions, quotes patterns for you, explains every flag in plain English, and flags -delete and -exec as the destructive actions to preview with -print first.',
     category: 'builder',
@@ -441,7 +441,7 @@ export const tools: ToolMeta[] = [
     dateModified: '2026-06-22',
     title: 'Hardened Cron Wrapper Generator',
     description:
-      'A bash script that runs long enough to overlap its own next run, or hangs forever on a dead socket, will take down a cron slot silently. Compose flock (single-instance lock), timeout (bounded runtime), and exponential-backoff retry into a hardened wrapper script — with timestamped logging and email-on-failure — in one tool.',
+      'A cron job that overlaps its next run or hangs on a dead socket fails silently. Generate a wrapper with flock, timeout, backoff retry, logging, failure email.',
     quickAnswer:
       'Cron jobs fail in three quiet ways: they overlap when a run takes longer than its interval; they hang when a command blocks on a dead socket or lock and never exits; and they die on a transient blip that would have succeeded on a second try. This tool composes the three guards: flock holds a kernel lock so only one copy runs at a time (and the kernel frees it on crash or kill, no stale PID files), timeout sends SIGTERM at a deadline and SIGKILL after a grace period for processes stuck in uninterruptible I/O, and a retry loop with exponential backoff and jitter survives a flaky network or a not-yet-ready dependency without hammering the recovering service. Toggle any combination, set the schedule, and get a ShellCheck-clean wrapper script and the crontab line that calls it.',
     category: 'generator',
@@ -489,7 +489,7 @@ export const tools: ToolMeta[] = [
     component: 'JqFilterBuilder',
     title: 'jq Filter Builder',
     description:
-      'Build jq filters by clicking through a real JSON response. Generates the filter and the full curl … | jq command, with a live preview evaluated against your JSON in the browser.',
+      'Build jq filters by clicking through a real JSON response. Get the filter and the full curl | jq command, with a live preview run against your JSON.',
     quickAnswer:
       "jq filters are the fastest way to pull fields out of a JSON API response in a bash script, but the syntax is easy to get subtly wrong — a missing -r leaves quotes on your value, a forgotten // turns a missing key into the literal null, and a select() with the wrong quoting matches nothing. This builder removes the guesswork. Paste a real response (or load a sample), then click through the actual structure to build the path; the tool shows the jq filter and the full curl … | jq command, and evaluates the filter against your JSON live so you can see exactly what comes out before you run it. It covers the patterns people actually script: nested field access, array indexing, iterating an array with a select() filter and projecting one field, defaults, and raw output. No data leaves your browser — parsing and evaluation happen client-side.",
     category: 'builder',

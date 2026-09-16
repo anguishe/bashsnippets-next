@@ -9,14 +9,14 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 export const metadata: Metadata = {
   title: 'Free Bash Tools — Cron Builder, Chmod & More',
   description:
-    'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, rsync command builder, and ShellCheck decoder.',
+    'Free bash tools in the browser: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, rsync builder, ShellCheck decoder.',
   alternates: {
     canonical: `${SITE_URL}/tools`,
   },
   openGraph: {
     title: 'Free Bash Tools — Cron Builder, Chmod & More',
     description:
-      'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, rsync command builder, and ShellCheck decoder.',
+      'Free bash tools in the browser: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, rsync builder, ShellCheck decoder.',
     url: `${SITE_URL}/tools`,
     type: 'website',
     images: [{ url: `${SITE_URL}/ogimage.png`, width: 1200, height: 630, alt: 'BashSnippets — Free Bash Tools' }],
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Free Bash Tools — Cron Builder, Chmod & More',
     description:
-      'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, rsync command builder, and ShellCheck decoder.',
+      'Free bash tools in the browser: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, rsync builder, ShellCheck decoder.',
     images: [`${SITE_URL}/ogimage.png`],
   },
 };
@@ -36,7 +36,7 @@ const collectionPageSchema = {
   name: 'Interactive Bash Tools',
   url: `${SITE_URL}/tools`,
   description:
-    'Free interactive bash tools: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, rsync command builder, and ShellCheck decoder.',
+    'Free bash tools in the browser: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, rsync builder, ShellCheck decoder.',
   hasPart: tools.map((tool) => ({
     '@type': 'WebApplication',
     name: tool.title,

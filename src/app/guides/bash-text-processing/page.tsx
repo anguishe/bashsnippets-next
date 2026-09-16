@@ -3,16 +3,18 @@ import Link from 'next/link';
 import Breadcrumb from '@/components/Breadcrumb';
 import { mdxComponents } from '@/components/MDXComponents';
 import { AUTHOR } from '@/lib/author';
+import { fitTitle } from '@/lib/meta-title';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 const TITLE =
   'Bash Text Processing: find, grep, sed, and awk for Logs and Config Files';
 const DESCRIPTION =
-  'The four commands that turn an unreadable log or a tree of config files into an answer — find to locate, grep to search, sed to transform, awk to summarize. The order matters, and the gotchas are the reason most one-liners do the wrong thing quietly.';
+  'find locates, grep searches, sed transforms, awk summarizes. The order that turns a log or a config tree into an answer, and the gotchas that fail quietly.';
 
 export const metadata: Metadata = {
-  title: { absolute: `${TITLE} | BashSnippets.xyz` },
+  // <title> only; TITLE stays the H1. Bing flags titles over 65 characters.
+  title: fitTitle('Bash Text Processing: find, grep, sed and awk for Logs'),
   description: DESCRIPTION,
   alternates: {
     canonical: `${SITE_URL}/guides/bash-text-processing`,

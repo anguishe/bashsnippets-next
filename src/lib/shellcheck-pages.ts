@@ -16,6 +16,8 @@ export interface ShellcheckPage {
   slug: string;
   severity: ShellcheckSeverity;
   title: string;
+  /** Shorter <title> when `title` (the H1) runs past Bing's 65 characters. */
+  metaTitle?: string;
   description: string;
   keywords: string[];
   datePublished: string;
@@ -30,8 +32,9 @@ export const shellcheckPages: ShellcheckPage[] = [
     slug: 'sc2086',
     severity: 'info',
     title: 'ShellCheck SC2086: Double Quote to Prevent Globbing and Word Splitting',
+    metaTitle: 'ShellCheck SC2086: Double Quote to Prevent Word Splitting',
     description:
-      'rm $file with a space in the name deletes two other files and exits 0. What SC2086 catches, the run that proves it, the fix, the variants inside [ ], for loops and arrays, and how to disable it for one line, one file, or only lint for this rule.',
+      'rm $file with a space in the name deleted two other files and exited 0. What SC2086 catches, the run that proves it, the fix and variants, and how to disable.',
     keywords: [
       'shellcheck sc2086',
       'sc2086',
@@ -55,7 +58,7 @@ export const shellcheckPages: ShellcheckPage[] = [
     severity: 'warning',
     title: 'ShellCheck SC2046: Quote This to Prevent Word Splitting',
     description:
-      'chmod 600 $(find . -name "*.key") locked down two files that are not keys and skipped the one that is. What SC2046 catches on unquoted command substitution, the real run, the find -exec and mapfile fixes, the ls and $(dirname $0) variants, and when disabling it is honest.',
+      'chmod 600 $(find . -name "*.key") locked the wrong files and skipped the key. What SC2046 catches, the real run, find -exec and mapfile fixes, when to disable.',
     keywords: [
       'shellcheck sc2046',
       'sc2046',
@@ -79,7 +82,7 @@ export const shellcheckPages: ShellcheckPage[] = [
     severity: 'warning',
     title: 'ShellCheck SC2063: Grep Uses Regex, but This Looks Like a Glob',
     description:
-      "grep -q '*.gz' reports no rotated logs while two sit in the directory, because a leading * is a literal asterisk in a regex. What SC2063 catches, the real run, the anchored-regex and grep -F fixes, the patterns that do not trigger it, and when to disable it.",
+      "grep -q '*.gz' found no rotated logs while two sat right there. What SC2063 catches, the real run, the anchored-regex and grep -F fixes, and when to disable it.",
     keywords: [
       'shellcheck sc2063',
       'sc2063',
@@ -102,8 +105,9 @@ export const shellcheckPages: ShellcheckPage[] = [
     slug: 'sc2115',
     severity: 'warning',
     title: 'ShellCheck SC2115: Use "${var:?}" to Ensure This Never Expands to /',
+    metaTitle: 'ShellCheck SC2115: Use "${var:?}" So This Never Expands to /',
     description:
-      'rm -rf "$STAGE/$RELEASE/"* with an empty $RELEASE deleted every release in the staging tree and printed "cleaned". What SC2115 catches, the real run, why set -u does not save you from an empty string, the ${var:?} fix that aborts before rm starts, and when to disable it.',
+      'rm -rf "$STAGE/$RELEASE/"* with an empty $RELEASE deleted every release. What SC2115 catches, why set -u misses it, and the ${var:?} fix that aborts first.',
     keywords: [
       'shellcheck sc2115',
       'sc2115',
@@ -127,7 +131,7 @@ export const shellcheckPages: ShellcheckPage[] = [
     severity: 'warning',
     title: 'ShellCheck SC2154: Variable Is Referenced but Not Assigned',
     description:
-      'A one-character typo sent a backup to /site-2026-09-01.tgz instead of the backup directory. What SC2154 catches, why it stays silent for UPPERCASE names, the real run with and without set -u, the : "${var:?}" and ${var:-default} fixes for variables that come from the environment, and how to disable it.',
+      'A one-character typo sent a backup to /site-2026-09-01.tgz. What SC2154 catches, why UPPERCASE names stay silent, the set -u run, and the ${var:?} fix.',
     keywords: [
       'shellcheck sc2154',
       'sc2154',
@@ -151,7 +155,7 @@ export const shellcheckPages: ShellcheckPage[] = [
     severity: 'warning',
     title: 'ShellCheck SC2034: Variable Appears Unused',
     description:
-      'This site\'s own script repo claimed ShellCheck-clean while three scripts carried a CROSS or KEY_BITS nothing read. What SC2034 catches, why an unused variable is usually a typo somewhere else, the real run, the export and _ fixes, and the file-level disable for sourced config files.',
+      'An unused variable is usually a typo somewhere else. What SC2034 catches, a real run from this site\'s own repo, the export and _ fixes, and when to disable it.',
     keywords: [
       'shellcheck sc2034',
       'sc2034',
@@ -175,7 +179,7 @@ export const shellcheckPages: ShellcheckPage[] = [
     severity: 'info',
     title: "ShellCheck SC2016: Expressions Don't Expand in Single Quotes",
     description:
-      'The disk alert that went out read "disk on $HOST is at $USAGE", literally. What SC2016 catches, the real run, the double-quote fix, why awk \'{print $5}\' and ssh host \'du $HOME\' pass but sed and mail -s do not, and the one-line disable for strings that must expand somewhere else.',
+      'A disk alert went out reading "$HOST is at $USAGE" literally. What SC2016 catches, the real run, the double-quote fix, what it exempts, and when to disable it.',
     keywords: [
       'shellcheck sc2016',
       'sc2016',

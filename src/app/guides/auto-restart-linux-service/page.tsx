@@ -3,18 +3,20 @@ import Link from 'next/link';
 import Breadcrumb from '@/components/Breadcrumb';
 import { mdxComponents } from '@/components/MDXComponents';
 import { AUTHOR } from '@/lib/author';
+import { fitTitle } from '@/lib/meta-title';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 const TITLE =
   'Auto-Restart a Stopped Service on Linux: systemd Restart=, Cron Watchdogs, and the Start-Limit Trap';
 const DESCRIPTION =
-  '"Down" is three different states — crashed, stopped on purpose, or running but not answering — and a watchdog that checks systemctl is-active handles exactly one of them. Let systemd restart crashes with Restart=, clear the start-limit trap that makes systemctl start refuse, probe for the hung case, and alert once per outage instead of once per minute.';
+  '"Down" is three states: crashed, stopped, or hung. Restart crashes with systemd Restart=, clear the start-limit trap, probe hung services, alert once.';
 
 const BREADCRUMB = 'Auto-Restart a Service';
 
 export const metadata: Metadata = {
-  title: { absolute: `${TITLE} | BashSnippets.xyz` },
+  // <title> only; TITLE stays the H1. Bing flags titles over 65 characters.
+  title: fitTitle('Auto-Restart a Stopped Service on Linux: systemd and Cron'),
   description: DESCRIPTION,
   alternates: {
     canonical: `${SITE_URL}/guides/auto-restart-linux-service`,

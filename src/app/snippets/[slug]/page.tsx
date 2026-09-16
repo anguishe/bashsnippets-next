@@ -16,6 +16,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { fitTitle } from '@/lib/meta-title';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
@@ -118,7 +119,7 @@ export async function generateMetadata({
   const displayTitle = snippet.metaTitle ?? snippet.title;
 
   return {
-    title: displayTitle,
+    title: fitTitle(displayTitle),
     description: snippet.description,
     ...(snippet.noindex && { robots: { index: false, follow: true } }),
     alternates: {

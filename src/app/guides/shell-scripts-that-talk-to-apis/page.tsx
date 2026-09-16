@@ -3,17 +3,18 @@ import Link from 'next/link';
 import Breadcrumb from '@/components/Breadcrumb';
 import { mdxComponents } from '@/components/MDXComponents';
 import { AUTHOR } from '@/lib/author';
+import { fitTitle } from '@/lib/meta-title';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 const TITLE = 'Shell Scripts That Talk to APIs';
 const DESCRIPTION =
-  'The reliable pattern for calling an HTTP API from bash: make curl fail when the API fails, parse the response with jq instead of regex, and alert to Slack when it breaks — with a full fetch → parse → alert script.';
+  'Call an HTTP API from bash reliably: make curl fail when the API fails, parse with jq, and alert to Slack when it breaks. A full fetch, parse and alert script.';
 
 const BREADCRUMB = 'Shell Scripts That Talk to APIs';
 
 export const metadata: Metadata = {
-  title: { absolute: `${TITLE} | BashSnippets.xyz` },
+  title: fitTitle(TITLE),
   description: DESCRIPTION,
   alternates: {
     canonical: `${SITE_URL}/guides/shell-scripts-that-talk-to-apis`,

@@ -92,7 +92,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'automated-file-backup',
     title: 'Automated File Backup',
     description:
-      'Accidental deletion or disk failure permanently destroys data with no undo on Linux. Timestamps each cp -r run with a date string so backups never overwrite each other.',
+      'A deleted file on Linux has no undo. This bash backup script timestamps every cp -r run with a date string, so no backup ever overwrites the one before it.',
     quickAnswer:
       'The cp command copies files and directories from one location to another. This script wraps cp -r with a date-stamped destination path, creating a new backup folder — like backup_2026-06-03_14-30 — each time it runs, so no backup overwrites a previous one. Without scheduled backups, a single accidental rm -rf or disk failure can permanently destroy days or weeks of work. There is no recycle bin on Linux servers. The script lets you set SOURCE (the folder to back up) and DEST (where backups are stored) at the top, then call it manually or schedule it with cron. A typical hourly backup of a 1 GB project folder completes in under five seconds. cp is part of coreutils on every Linux box and macOS, so there is nothing to install. Schedule with cron: 0 * * * * /home/user/backup.sh.',
     tags: ['backup', 'cron-ready', 'rsync'],
@@ -104,7 +104,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'delete-old-log-files',
     title: 'Delete Old Log Files',
     description:
-      'Unmanaged log files silently fill /var/log until disk writes fail and services crash. find -mtime deletes .log files older than N days — preview with -print before removing from production.',
+      'Unmanaged logs fill /var/log until writes fail and services crash. find -mtime deletes .log files older than N days; preview with -print before deleting.',
     quickAnswer:
       'The find command with -mtime locates files by age. Running find /var/log -name "*.log" -mtime +30 -delete removes every .log file in /var/log that has not been modified in more than 30 days. Without periodic cleanup, log files accumulate silently until a disk fills and your web server can no longer write access logs, your database stops accepting writes, or your application crashes mid-transaction. On a busy server generating 50 MB of logs per day, a 30-day window means 1.5 GB consumed before any file gets touched. Before running the delete, swap -delete for -print to preview exactly what will be removed — an essential safety step when running on production directories. find ships with findutils on every Linux distribution — no extra packages required. Schedule with cron: 0 3 * * 0 find /var/log -name "*.log" -mtime +30 -delete to run weekly at 3am.',
     tags: ['cleanup', 'find', 'cron-ready'],
@@ -116,7 +116,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'quick-system-info-report',
     title: 'Quick System Info Report',
     description:
-      'Guessing server state during an outage costs response time. One bash script snapshots hostname, uptime, CPU load, RAM, disk usage, and IP address in one run — no extra packages.',
+      'Guessing server state mid-outage costs time. One bash script reports hostname, uptime, CPU load, RAM, disk usage and IP address in a single run, no packages.',
     quickAnswer:
       "This script prints a one-screen health summary of a Linux box: hostname, kernel, uptime, logged-in users, CPU load average, memory used vs free, root-filesystem usage, and the top three processes by memory. Run it the moment a server feels slow or right after you SSH into an unfamiliar machine — it answers 'what is this box and is it healthy?' in under a second without installing anything. It uses only coreutils (uname, uptime, free, df, ps), so it works on a fresh minimal install where tools like htop are absent. Pipe the output to a file with a timestamp to build a cheap baseline you can diff against later when troubleshooting. Schedule it via cron every morning to catch creeping disk or memory pressure before users notice slowdowns. Every tool it calls is part of a base server install, so it runs unchanged on Ubuntu, Debian, Fedora, and CentOS — even a stripped minimal image.",
     tags: ['monitor', 'reporting', 'system'],
@@ -128,7 +128,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'search-files-for-text-grep',
     title: 'Search Files for Text with grep',
     description:
-      'Opening files manually to find a pattern across a codebase wastes time. grep -rn searches every file recursively and returns every match with filename and line number.',
+      'Opening files one by one to find a string wastes time. grep -rn searches every file under a directory and prints each match with its filename and line number.',
     quickAnswer:
       'The grep command searches files for a pattern and prints every matching line with its filename. This script wraps grep -rn — recursive search with line numbers — so you can locate any string across an entire directory tree in a single command. Without grep, tracking down a hardcoded credential, a renamed function, or a specific log message across hundreds of files means opening each file manually. Running grep -rn "TODO" /var/www/html --include="*.php" scans every PHP file under /var/www/html and returns the filename, line number, and the matched line for every result. The -i flag makes the search case-insensitive; --color=auto highlights each match in the terminal output. grep is mandated by POSIX, so it is already on every Linux distribution and macOS — no packages needed. Run directly in your terminal.',
     tags: ['grep', 'search', 'text'],
@@ -140,7 +140,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'check-if-website-is-up',
     title: 'Check If Website Is Up',
     description:
-      'Discovering a site is down from a user complaint means hours of lost traffic already gone. curl -s alerts on any non-200 HTTP status code — cron-schedulable for five-minute checks.',
+      'Learning a site is down from a user complaint means the outage already cost you. A bash curl check that alerts on any non-200 status, ready for a 5-minute cron.',
     quickAnswer:
       'The curl command with -o /dev/null -s -w "%{http_code}" fetches a URL silently and returns only the HTTP status code. This script stores that code in STATUS and compares it to 200 — the only code that means the server responded successfully. A site can be technically reachable but returning 500 (server error) or 404 (not found), both of which mean users cannot access your content. Without monitoring, you find out your site is down when a user tells you — often hours or days after the outage started. The --max-time 10 flag prevents the script from hanging indefinitely when a server is completely unreachable. curl comes preinstalled on macOS and nearly every Linux distribution; on a minimal image, apt install curl covers it. Schedule with cron every 5 minutes: */5 * * * * /home/user/uptimecheck.sh.',
     tags: ['monitor', 'curl', 'uptime'],
@@ -153,7 +153,7 @@ export const snippets: SnippetRegistryEntry[] = [
     title: 'Bash Error Handling with set -euo pipefail',
     metaTitle: 'Bash Error Handling: set -euo pipefail',
     description:
-      'Bash silently continues after failed commands by default — a broken cd followed by rm -rf destroys the wrong directory. set -euo pipefail exits on first failure before damage spreads.',
+      'Bash keeps going after a failed command, so a broken cd followed by rm -rf hits the wrong directory. set -euo pipefail stops the script at the first failure.',
     quickAnswer:
       'By default bash ignores failed commands and keeps running, which lets a single typo cascade into data loss. Adding set -euo pipefail on the second line of any script changes three behaviours: -e exits immediately when any command returns a non-zero exit code, -u treats unset variables as errors instead of silently substituting an empty string, and -o pipefail makes the whole pipeline fail if any stage fails rather than only checking the last command. The classic disaster this prevents: a script that runs cd /nonexistent (fails, ignored), then rm -rf * (now runs in the wrong directory). With set -e the script stops at the failed cd and rm never executes. Adding trap \'echo "Error on line $LINENO" >&2\' ERR gives you the exact line number on failure. These flags are bash built-ins available since bash 4.0 — standard on Ubuntu, Debian, and Fedora; on macOS use a Homebrew bash rather than the bundled 3.2.',
     tags: ['error-handling', 'best-practices', 'set'],
@@ -165,7 +165,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'bash-if-else-examples',
     title: 'Bash If/Else Examples',
     description:
-      'Comparison operator mistakes in bash scripts cause silent logic failures on unexpected input. Covers if/else, elif, integer and string test operators, file condition checks, and quoting safety.',
+      'The wrong comparison operator makes a bash if statement fail silently on unexpected input. if/else, elif, integer and string tests, file checks, and quoting.',
     quickAnswer:
       'A bash if statement tests whether a command exits with code 0 (success) or non-zero (failure). The test command — written as [ condition ] — evaluates comparisons and file checks. The full structure is: if [ condition ]; then ... elif [ condition ]; then ... else ... fi. Spaces inside the brackets are mandatory. For integers use -eq (equal), -gt (greater than), -lt (less than). For strings use = and !=. For files use -f (regular file exists), -d (directory exists), -e (either exists). A common mistake is using = for numbers — [ 5 = 10 ] does string comparison and gives unpredictable results with numbers. Always quote variables: [ "$VAR" = "value" ] handles empty strings safely where [ $VAR = "value" ] would cause a syntax error. The test command and if syntax are core bash, so this runs unmodified on every Linux distribution and on macOS.',
     tags: ['conditionals', 'basics', 'if'],
@@ -177,7 +177,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'create-dated-folder',
     title: 'Create a Dated Folder',
     description:
-      'Backup directories without timestamps overwrite previous runs and sort unpredictably. date +%Y-%m-%d auto-names folders so ls sorts them chronologically — no packages needed.',
+      'Backup folders without dates overwrite old runs and sort unpredictably. date +%Y-%m-%d names each folder so ls sorts them chronologically, no packages needed.',
     quickAnswer:
       'The date +%Y-%m-%d command outputs the current date in ISO 8601 format — for example 2026-06-03. Using this as a folder name means directories sort in chronological order automatically when you run ls, since lexicographic order matches date order for YYYY-MM-DD. The two-command workflow is: DATE=$(date +%Y-%m-%d) to capture the date string, then mkdir "$DATE" to create the folder. In a backup context, this creates a new unique folder every day without overwriting previous backups. Adding the hour and minute with date +%Y-%m-%d_%H-%M creates folders like 2026-06-03_14-30 for multiple runs per day. Wrap both commands in a cron job to auto-create a fresh folder at the start of each backup run. date and mkdir are coreutils built-ins present on every Linux distribution and macOS out of the box — no packages required.',
     tags: ['files', 'date', 'mkdir'],
@@ -189,7 +189,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'kill-a-process',
     title: 'Kill a Process with pkill and pgrep',
     description:
-      'The ps/grep/copy-PID/kill workflow takes four steps every time you need to stop a process. pkill by name collapses that to one command — pgrep -l previews matches before terminating.',
+      'ps, grep, copy the PID, kill: four steps every time. pkill stops a process by name in one command, and pgrep -l previews exactly what it will match first.',
     quickAnswer:
       'The pkill command terminates processes by name, skipping the four-step workflow of ps aux, grep, copying a PID, and running kill. Before killing anything, run pgrep -l processname to preview exactly which processes match — the -l flag shows both the PID and the process name so you can verify you are targeting the right ones. pkill processname then sends SIGTERM (graceful shutdown) to all matching processes. When a process refuses to stop, pkill -9 processname sends SIGKILL — the kernel terminates it immediately with no cleanup. Use -9 only after a normal pkill has failed, since force-killing databases or web servers can corrupt open files. The -f flag matches the full command string rather than just the binary name, which is how you kill a specific Python script without affecting all Python processes. pgrep and pkill ship in the procps package on Linux and come built into macOS, so both are available without installing anything.',
     tags: ['process', 'pkill', 'pgrep'],
@@ -201,7 +201,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'file-permissions-security',
     title: 'File Permissions Security Audit',
     description:
-      'World-writable files on a web server let any compromised script overwrite your application. find -perm 777 audits them and correct chmod 644/755 patterns restore safe permissions.',
+      'A world-writable file on a web server lets a compromised script overwrite your app. Audit permissions with find -perm and restore safe ones with chmod 644/755.',
     quickAnswer:
       'Linux file permissions control who can read, write, or execute a file. Each file has three permission groups — owner, group, and other — each with read (4), write (2), and execute (1) bits. The permission 644 means the owner can read and write (6), while group and others can only read (4). The permission 755 adds execute for all, which directories need so users can enter them. World-writable files with permission 777 let any user or process overwrite the file — on a web server this means a compromised PHP script can replace your application files. The audit script uses find with -perm 777 to locate these dangerous files and saves a report. The safe recursive pattern is two find commands: one sets files to 644, another sets directories to 755 — never chmod -R 644 because that removes execute bits from directories and breaks navigation. chmod and find are base utilities on every Linux distribution, so the audit and the fix both run without installing anything.',
     tags: ['chmod', 'security', 'find'],
@@ -213,7 +213,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'monitor-cpu-ram-usage',
     title: 'Monitor CPU and RAM Usage',
     description:
-      'A runaway process consuming 100% CPU goes undetected until the server becomes unresponsive. top -bn1 and free -m measure CPU and RAM in scripts so cron can alert before impact.',
+      'A runaway process at 100% CPU goes unnoticed until the server stops responding. Measure CPU and RAM in bash with top -bn1 and free -m so cron can alert first.',
     quickAnswer:
       'The top command in batch mode outputs system metrics non-interactively. Running top -bn1 produces a one-shot snapshot: -b enables batch mode (no terminal control codes), -n1 takes a single sample. The CPU idle percentage on the third line of output reveals load. The free command reports memory in bytes; free -m outputs megabytes. Piping both through awk extracts the specific fields needed for comparison. Without resource monitoring, a runaway process can consume 100% CPU or fill RAM with no warning until the server becomes unresponsive or the OOM killer starts terminating processes. Knowing when CPU stays above 90% for sustained periods distinguishes a traffic spike from a runaway process or a background job that never finished. top and free both come from the procps package that every Linux distribution installs by default. Schedule with cron every 5 minutes to catch problems before users notice: */5 * * * * /home/user/cpucheck.sh.',
     tags: ['monitor', 'system', 'awk'],
@@ -225,7 +225,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'bash-send-email-alert',
     title: 'Send Email Alerts from Bash',
     description:
-      'Monitoring scripts without email alerts mean failures go unnoticed until users report them. Wraps mailx or curl SMTP into a reusable alert function with per-run deduplication to prevent inbox flooding.',
+      'A monitoring script with no email alert fails silently until users notice. A reusable bash alert function over mailx or curl SMTP, with per-run deduplication.',
     quickAnswer:
       'The mail command sends email from the command line when a mail transfer agent (MTA) is configured on the system. The pattern is: echo "message body" | mail -s "Subject line" recipient@example.com. This works with any monitoring script — disk checks, uptime monitors, backup confirmations — by piping the alert text into mail and specifying the subject and recipient. On Ubuntu and Debian, install the tools with sudo apt install mailutils. For servers that block outbound SMTP (most cloud VPS providers do), configure msmtp to relay through an external SMTP service like Gmail or SendGrid using an app password. The rate-limiting pattern — a lockfile that prevents duplicate alerts within a cooldown window — stops your inbox from filling up when a problem persists across multiple cron runs. The mail command is the one dependency here: install mailutils on Ubuntu and Debian or mailx on Fedora before the script will send.',
     tags: ['email', 'alert', 'mailx'],
@@ -237,7 +237,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'mysql-database-backup',
     title: 'MySQL Database Backup Script',
     description:
-      'A mistaken DROP TABLE or storage failure permanently destroys database data with no built-in undo. mysqldump with gzip compression and 7-day cron rotation keeps nightly backups under 100 MB.',
+      'A mistaken DROP TABLE has no undo. Back up MySQL nightly with mysqldump and gzip, rotate dumps older than 7 days, and schedule the whole thing from cron.',
     quickAnswer:
       'The mysqldump command exports a MySQL database as SQL statements. Piping the output through gzip compresses the dump by 80 to 90 percent before writing it to disk, so a 500 MB database becomes a 50 to 100 MB file. This script combines mysqldump with a timestamp in the filename so each backup is unique and old ones never get overwritten. The find command with -mtime +7 -delete then removes backup files older than seven days, keeping disk usage bounded. Without automated backups, a single mistaken DROP TABLE or a storage failure permanently destroys your data — there is no undo. Running mysqldump every night at 2am via cron and keeping seven daily backups means you can restore to any point within the past week. Never hardcode the database password in the script file — use ~/.my.cnf so the password is not visible in process listings. mysqldump ships with the MySQL 8.0 and MariaDB 10.6 client packages, so it is already present anywhere those databases are installed.',
     tags: ['mysql', 'backup', 'cron-ready'],
@@ -249,7 +249,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'ssh-key-setup-script',
     title: 'SSH Key Setup Script',
     description:
-      'Password-based SSH is vulnerable to brute-force attacks and credential leaks on any internet-exposed server. Automates ssh-keygen -t ed25519 and ssh-copy-id to enable key-based auth in one run.',
+      'Password SSH on an internet-facing server invites brute-force attempts. A bash script runs ssh-keygen -t ed25519 and ssh-copy-id to set up key login in one go.',
     quickAnswer:
       'SSH key authentication replaces password login with a cryptographic key pair. The private key stays on your machine; the public key goes to the server. The ssh-keygen command generates both: ssh-keygen -t ed25519 -C "your@email.com" creates an Ed25519 key pair, the recommended type in 2026 because it is faster and more secure than RSA 2048. The -N "" flag skips the passphrase prompt for non-interactive generation. Once generated, ssh-copy-id user@server-ip appends your public key to ~/.ssh/authorized_keys on the remote host, enabling passwordless login. The .ssh directory must be chmod 700, the private key must be chmod 600, and the public key must be chmod 644 — SSH refuses to use keys with looser permissions as a security measure. Without key-based auth, every login requires a password that can be brute-forced or leaked. ssh-keygen and ssh-copy-id ship with the OpenSSH client, which is preinstalled on macOS and every mainstream Linux distribution.',
     tags: ['ssh', 'security', 'keys'],
@@ -261,7 +261,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'find-duplicate-files',
     title: 'Find Duplicate Files in Linux',
     description:
-      'Duplicate files accumulate silently in archives and download folders, wasting gigabytes of disk space. md5sum hashes every file and awk prints only the redundant copies — nothing to install.',
+      'Duplicate files pile up in archives and downloads and waste gigabytes. md5sum hashes every file and awk prints only the redundant copies. Nothing to install.',
     quickAnswer:
       'The md5sum command generates a 32-character hash that uniquely identifies a file by its content. Two files with the same hash are byte-for-byte identical regardless of their names or locations. This script pipes find output through md5sum to hash every file in a directory, sorts the results so identical hashes group together, then uses awk to print only the lines whose hash has been seen before — those are the duplicates. The original copy is never printed, only the redundant ones. Without this workflow, finding duplicates means comparing files manually or relying on GUI tools that may not scan server directories. On a Downloads folder or photo archive that has grown for years, duplicate detection commonly finds gigabytes of recoverable space. md5sum, find, sort, and awk come standard on every Linux distribution; on macOS the hashing command is md5 instead of md5sum.',
     tags: ['files', 'disk', 'find', 'awk'],
@@ -273,7 +273,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'restart-service-if-stopped',
     title: 'Restart a Service If It Stopped',
     description:
-      'A crashed nginx or postgresql stays down for hours without a watchdog to detect and recover it. systemctl is-active in a cron loop detects stopped services and restarts them within 60 seconds.',
+      'A crashed nginx or PostgreSQL stays down for hours with no watchdog. A cron script uses systemctl is-active to spot a stopped service and restart it.',
     quickAnswer:
       'The systemctl is-active command returns exit code 0 when a service is running and non-zero when it is stopped, failed, or not found. This makes it usable directly in a bash if statement without any output parsing. When the service is down, the script calls systemctl start and checks whether that command succeeded — two levels of verification rather than just attempting a restart and assuming it worked. The log file built with tee -a gives you an audit trail of every outage and recovery. The optional email alert sends different messages for recovery versus critical failure so you know whether the service came back up on its own. Without this watchdog, a crashed nginx or postgresql can stay down for hours until someone notices. Running the script every minute via cron — * * * * * /home/user/service-watchdog.sh — means maximum downtime before auto-recovery is under 60 seconds. Any distribution running systemd — Ubuntu, Debian, Fedora, CentOS, and the rest — ships systemctl, so the watchdog works wherever your services run.',
     tags: ['systemd', 'monitor', 'cron-ready'],
@@ -285,7 +285,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'find-large-files-linux',
     title: 'Find Large Files in Linux',
     description:
-      'Your disk hit 100% and the server stopped. Find the biggest files and directories fast with du and find — excludes virtual filesystems and ranks by size descending.',
+      'Disk at 100% and the server stopped. Find the biggest files and directories fast with du and find, skipping virtual filesystems, sorted largest first.',
     quickAnswer:
       'The du command measures actual disk consumption per directory. When a server hits 100% and services start failing — no new logs, no database writes, no deployments — you need the biggest offenders in seconds, not minutes. This script runs du -ah on a target directory, pipes through sort -rh to rank by size descending, and shows the top 20 largest entries. A second command uses find to locate individual files over 500 MB anywhere on the filesystem while excluding virtual filesystems like /proc and /sys that report false sizes. The combination covers both scenarios: directory bloat (a /var/log that grew to 40 GB) and single massive files (a forgotten database dump or core file). On a typical 25 GB VPS, this identifies 80% of reclaimable space in under 10 seconds. du, find, and sort are base tools present on every Linux distribution, so this runs on a stock server with nothing added.',
     tags: ['disk', 'du', 'find', 'cleanup', 'troubleshooting'],
@@ -297,7 +297,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'kill-process-on-port',
     title: 'Kill Process on Port',
     description:
-      'EADDRINUSE means something is squatting on your port. Find the process with lsof or ss, then kill it safely — script handles discovery, confirmation, and SIGTERM-to-SIGKILL escalation.',
+      'EADDRINUSE means something already holds your port. Find the process with lsof or ss and kill it safely, with confirmation and SIGTERM-to-SIGKILL escalation.',
     quickAnswer:
       'The EADDRINUSE error means another process already bound the port your application needs. Your dev server, API, or database proxy refuses to start until that port is freed. This script takes a port number as an argument, uses lsof -ti :PORT to find the PID holding it, shows you what the process is before killing it, and sends SIGTERM for a graceful shutdown. If the process ignores SIGTERM after a configurable timeout, it escalates to SIGKILL. The discovery step uses ss -ltnp as a fallback when lsof is unavailable — ss ships with every modern Linux distribution as part of iproute2. Never jump straight to kill -9: SIGTERM lets databases flush buffers, web servers finish active requests, and applications clean up temp files. SIGKILL skips all of that and can leave corrupted state. ss ships with iproute2 on every modern Linux distribution and lsof is a quick install away; on macOS, lsof is built in.',
     tags: ['ports', 'lsof', 'ss', 'kill', 'networking', 'troubleshooting'],
@@ -309,7 +309,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'rsync-remote-backup',
     title: 'Rsync Remote Backup',
     description:
-      'A local-only backup dies with the machine. Push an incremental, resumable copy to a remote server with rsync over SSH — script with exclude patterns, dry-run, and cron scheduling.',
+      'A local-only backup dies with the machine. Push an incremental, resumable copy to a remote server with rsync over SSH, with excludes, a dry run and cron.',
     quickAnswer:
       'A backup stored on the same machine as the data it protects is not a backup — it is a copy that dies in the same disk failure, ransomware event, or data center outage. rsync over SSH pushes incremental changes to a remote server, transferring only the bytes that differ since the last run. The flags -avz --delete mean: -a preserves permissions, timestamps, symlinks, and ownership; -v shows progress; -z compresses data in transit; --delete removes files on the destination that no longer exist on the source, keeping an exact mirror. The --partial flag resumes interrupted transfers instead of restarting from zero — critical on large backups over unstable connections. Combined with a cron schedule, this gives you nightly offsite backups with no manual intervention. A first run of 10 GB over a 100 Mbps link takes roughly 15 minutes; subsequent runs transfer only changed blocks, often completing in seconds. rsync ships on macOS and installs from the base repos of every major distribution with a single apt or dnf command.',
     tags: ['rsync', 'backup', 'ssh', 'cron', 'offsite', 'devops'],
@@ -344,6 +344,7 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'docker-prune-cleanup',
     title: 'Docker Cleanup Bash Script — Reclaim Disk Space from Docker Garbage',
+    metaTitle: 'Docker Cleanup Bash Script: Reclaim Disk from Docker Garbage',
     description:
       'A bash script that removes stopped containers, unused images, dangling volumes, and build cache from Docker — with a disk-usage report before and after.',
     quickAnswer:
@@ -357,7 +358,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'bash-for-loop-examples',
     title: 'Bash For Loop Examples',
     description:
-      'A for loop over the output of ls word-splits on filenames with spaces and silently skips files. Loop over a glob, a range, an array, or command output the safe way — with the quoting that stops the loop from doing the wrong thing quietly.',
+      'A for loop over ls output splits filenames with spaces and skips files silently. Loop over a glob, range, array, or command output with quoting that holds up.',
     quickAnswer:
       'A bash for loop repeats a block of code once per item in a list. The safe forms are: loop a glob directly (for f in *.log) to iterate files, which handles spaces and special characters correctly; loop a brace range (for i in {1..10}) or a C-style counter (for ((i=0; i<10; i++))) for numbers; and loop an array with the quoted expansion (for x in "${items[@]}") so each element stays intact. The form to avoid is for f in $(ls) — command substitution word-splits on whitespace, so a file named report final.txt becomes two loop iterations, report and final.txt, and the real file is never touched. Always quote the loop variable when you use it ("$f"), because the split happens at use, not only at the loop header. Glob over parse, quote on use, and the loop stops surprising you.',
     tags: ['bash', 'loops', 'for', 'scripting', 'beginner'],
@@ -369,7 +370,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'bash-read-file-line-by-line',
     title: 'Read a File Line by Line in Bash',
     description:
-      'A while-read loop silently dropped the last server in a monitoring list because the file had no trailing newline — and that was the server that went down. Read a file line by line the correct way: while IFS= read -r line, with the guard that catches the missing final line.',
+      'A while-read loop dropped the last server in a list: the file had no final newline. Read files line by line with while IFS= read -r and a last-line guard.',
     quickAnswer:
       'The correct way to read a file line by line in bash is while IFS= read -r line; do ... done < file.txt. Three parts matter. IFS= (empty) stops bash from trimming leading and trailing whitespace from each line. The -r flag stops read from treating backslashes as escape characters, so a path like C:\\\\temp survives intact. And redirecting the file in with < at the done keyword feeds the loop without spawning a subshell, so variables you set inside the loop are still set after it. The trap that bites everyone: if the file\'s last line has no trailing newline, read returns false on that final line and the loop skips it. Guard it with while IFS= read -r line || [[ -n "$line" ]]; do, which processes the leftover line when read hits end-of-file mid-line. Never loop for line in $(cat file) — that word-splits on spaces and reads words, not lines.',
     tags: ['bash', 'read', 'loops', 'files', 'intermediate'],
@@ -381,7 +382,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'bash-functions-arguments',
     title: 'Bash Functions and Arguments',
     description:
-      "A function reused the variable name 'target' without declaring it local, overwrote the caller's variable, and the cleanup step deleted the wrong directory. Write bash functions that take arguments, return values, and don't leak state — with the local keyword that stops a function from clobbering its caller.",
+      "A function reused 'target' without local, overwrote the caller's variable, and cleanup deleted the wrong directory. Bash function arguments, returns, and local.",
     quickAnswer:
       'A bash function is defined with name() { ...; } and receives arguments as positional parameters: $1, $2, and so on, with $@ for all of them, $# for the count, and $0 still the script name. Two rules prevent the worst bugs. First, declare every variable a function uses with local, because bash variables are global by default — a function that sets target= without local overwrites a target in the caller\'s scope, which is how a cleanup routine ends up deleting the wrong path. Second, return is an exit status, not a value: it only carries 0–255 and wraps around above that, so return 300 hands back 44. To return real data, echo it and capture with command substitution: result=$(my_func arg). Use return only for success or failure. For scripts with flags rather than fixed positions, parse with getopts instead of reading $1 by hand.',
     tags: ['bash', 'functions', 'arguments', 'scripting', 'intermediate'],
@@ -395,7 +396,7 @@ export const snippets: SnippetRegistryEntry[] = [
     quickAnswer:
       'A bash function is a named block you call like a command: define greet() { echo hi; } and then run greet. Arguments arrive inside as $1 and $2, never by name, and return only sets an exit code from 0 to 255; it cannot hand back a string. To return data, echo it and capture it with result=$(myfunc), or write into a variable the caller declared. Every variable is global unless you mark it local, so a helper that reuses a name like target silently overwrites the value the caller was holding, which is the bug behind more than one rm -rf on the wrong directory. This page covers declaring functions, local scope, returning values three ways, default arguments, and the local x=$(cmd) form that hides a failed command from set -e. Functions are bash builtins, so there is nothing to install on any Linux distribution or on macOS. Copy the script below as a starting library.',
     description:
-      'A bash function cannot return a string with return — that keyword sets an exit code only. Use echo plus command substitution or namerefs to return data, and local on every variable to stop silent global collisions.',
+      'return in a bash function sets an exit code, not a string. Return data with echo and command substitution or namerefs, and use local to stop global collisions.',
     tags: ['bash', 'functions', 'scripting', 'local-scope'],
     difficulty: 'intermediate',
     datePublished: '2026-06-10',
@@ -407,7 +408,7 @@ export const snippets: SnippetRegistryEntry[] = [
     quickAnswer:
       'A bash array holds a list where every element stays one unit, whatever characters it contains. Declare one with arr=(web-01 web-02 db-prod), append with arr+=(new-host), read the count with ${#arr[@]}, and iterate over a double-quoted ${arr[@]} expansion, which is what keeps an element containing a space intact. A space-separated string iterated with for h in $SERVERS splits on every space and glob character, so one hostname with a space becomes two nonexistent hosts and the script reports success for both. Associative arrays, declared with declare -A, map keys to values for lookups such as port[nginx]=80. This page covers indexed and associative arrays, safe iteration, slicing, reading a file into an array with mapfile, and passing arrays into functions. Arrays need bash 4 or later, the default on every current Linux distribution; macOS ships bash 3.2, so install a newer bash from Homebrew there.',
     description:
-      'Storing a list as a space-separated string breaks the moment one element contains a space, splitting one item into two. Arrays make the space a non-event — covering indexed and associative arrays, append, length, slicing, and safe iteration.',
+      'A list stored as a space-separated string splits once an item has a space. Bash arrays fix it: indexed and associative, append, length, slicing, safe iteration.',
     tags: ['bash', 'arrays', 'associative-arrays', 'scripting'],
     difficulty: 'intermediate',
     datePublished: '2026-06-10',
@@ -419,7 +420,7 @@ export const snippets: SnippetRegistryEntry[] = [
     quickAnswer:
       'Bash scripts receive arguments as $1, $2 and so on, with $# holding the count and $@ holding the full list. Positional arguments work for one or two required values; anything optional needs getopts, which parses short flags like -e prod -v in any order and stops with an error on a flag it does not recognise. Without parsing, ./deploy.sh --env prod stores the literal string --env in ENV and deploys to whatever default that falls through to, silently. This page covers the three forms: positional with ${1:?usage} validation, getopts for short flags, and a while/case loop for long flags like --env=prod, plus shift, the -- separator, and printing usage before exiting 2 on bad input. Everything is a bash builtin, so it runs on any Linux distribution and on macOS with nothing to install. The script below is a template to copy into any new command-line tool.',
     description:
-      'A script that reads $1 as a value will accept --env as that value and deploy nowhere, silently. Parse arguments properly with positional defaults, getopts for short flags, and a while+case loop for GNU-style long flags.',
+      'A script that reads $1 as a value takes --env as that value and deploys nowhere. Parse arguments with positional defaults, getopts, and while+case long flags.',
     tags: ['bash', 'arguments', 'getopts', 'cli'],
     difficulty: 'intermediate',
     datePublished: '2026-06-10',
@@ -428,10 +429,11 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'bash-string-manipulation',
     title: 'Bash String Manipulation: Substrings, Replace, and Parameter Expansion',
+    metaTitle: 'Bash String Manipulation: Substrings, Replace, Expansion',
     quickAnswer:
       'Bash parameter expansion manipulates strings without calling cut, sed or awk: ${#s} for length, ${s:7:11} for a substring, ${s#*://} to strip the shortest prefix through ://, ${s%%/*} to strip everything from the first slash onward, and ${s/old/new} to replace. Chained together, ${s#*://} followed by ${s%%/*} extracts the host from any URL, http or https, where cut -d/ -f3 silently returns the wrong field the moment the scheme changes length. Expansions run inside the shell with no subprocess, so a loop over ten thousand lines finishes in a fraction of the time the cut version needs. This page covers substrings, prefix and suffix removal, search and replace, case conversion with ${s^^} and ${s,,}, default values with ${s:-fallback}, and trimming whitespace. Everything here is built into bash 4 and later on every current Linux distribution; on macOS use Homebrew bash for the case-conversion forms.',
     description:
-      'Field-counting with cut -d/ -f3 returns the wrong slice the moment a URL gains an s for https. Parameter expansion matches on pattern boundaries with no subshell — substrings, prefix/suffix stripping, replace, case conversion, and defaults.',
+      'cut -d/ -f3 returns the wrong slice once a URL gains https. Bash parameter expansion: substrings, prefix and suffix stripping, replace, case, and defaults.',
     tags: ['bash', 'strings', 'parameter-expansion', 'scripting'],
     difficulty: 'intermediate',
     datePublished: '2026-06-10',
@@ -441,7 +443,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'bash-flock-single-instance',
     title: 'Prevent Overlapping Cron Jobs with flock',
     description:
-      'A cron job that runs long overlaps the next run and stacks copies until the box falls over. Lock it to a single instance with flock — a kernel-held lock that releases on crash, no stale PID files.',
+      'A long cron job overlaps its next run and stacks copies until the box falls over. flock locks it to one instance with a kernel lock that releases on crash.',
     tags: ['flock', 'cron', 'locking', 'concurrency', 'sysadmin'],
     difficulty: 'intermediate',
     datePublished: '2026-06-22',
@@ -451,7 +453,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'bash-timeout-command',
     title: 'Stop a Hung Command with timeout',
     description:
-      "A hung cron job is worse than a failed one — it never exits, never frees its lock, and the job silently stops running. Bound any command's runtime with timeout, escalate to SIGKILL, and read the exit code.",
+      "A hung cron job never exits, never frees its lock, and quietly stops the job running. Bound a command with timeout, escalate to SIGKILL, and read the exit code.",
     tags: ['timeout', 'cron', 'signals', 'hang', 'sysadmin'],
     difficulty: 'intermediate',
     datePublished: '2026-06-22',
@@ -461,7 +463,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'bash-retry-with-backoff',
     title: 'Retry a Command with Exponential Backoff in Bash',
     description:
-      'A deploy that dies on the first transient error wastes your night re-running it by hand. Retry with exponential backoff and jitter — and learn which failures to retry and which to fail fast on.',
+      'A deploy that dies on the first transient error costs a night of manual re-runs. Retry with exponential backoff and jitter, and know when to fail fast instead.',
     tags: ['retry', 'backoff', 'resilience', 'devops', 'scripting'],
     difficulty: 'intermediate',
     datePublished: '2026-06-22',
@@ -470,8 +472,9 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'bash-curl-api-requests',
     title: 'Make API Requests in Bash with curl (That Actually Fail When the API Does)',
+    metaTitle: 'Make API Requests in Bash with curl (That Fail Loudly)',
     description:
-      'A curl wrapper for bash that checks HTTP status, times out, and retries transient errors — because plain curl exits 0 on an HTTP 500 and silently poisons everything downstream.',
+      'Plain curl exits 0 on an HTTP 500 and poisons everything downstream. A bash curl wrapper that checks the status code, times out, and retries transient errors.',
     tags: ['bash', 'curl', 'api', 'http', 'devops'],
     difficulty: 'intermediate',
     datePublished: '2026-07-08',
@@ -480,8 +483,9 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'bash-parse-json-jq',
     title: 'Parse JSON in Bash with jq (Stop Using grep and cut on API Responses)',
+    metaTitle: 'Parse JSON in Bash with jq (Stop Using grep and cut)',
     description:
-      'How to read fields out of a JSON API response with jq — and why -r, // defaults, and -e are the three things that separate a reliable parse from one that breaks the next time the API reformats.',
+      'Read fields from a JSON API response with jq, and the three things (-r, // defaults, -e) that keep the parse working the next time the API changes its output.',
     tags: ['bash', 'jq', 'json', 'api', 'parsing'],
     difficulty: 'intermediate',
     datePublished: '2026-07-08',
@@ -490,8 +494,9 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'bash-slack-webhook-alerts',
     title: 'Send Slack Alerts from Bash with Incoming Webhooks (So Cron Jobs Stop Failing Silently)',
+    metaTitle: 'Send Slack Alerts from Bash with Incoming Webhooks',
     description:
-      'Post failure alerts to Slack from a bash script with a curl one-liner, a jq-built payload, and a trap on ERR — so a broken backup tells you the night it breaks instead of the day you need it.',
+      'Post failure alerts to Slack from bash with curl, a jq-built payload and an ERR trap, so a broken backup tells you the night it breaks, not the day you need it.',
     tags: ['bash', 'slack', 'webhook', 'alerting', 'devops'],
     difficulty: 'intermediate',
     datePublished: '2026-07-08',
@@ -500,8 +505,9 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'bash-sed-find-replace',
     title: 'Find and Replace in Files with sed (Without Corrupting Half Your Tree)',
+    metaTitle: 'sed Find and Replace in Files Without Corrupting Your Tree',
     description:
-      'How to find and replace text in files with sed — in-place edits, GNU vs macOS -i, word boundaries, capture groups, and a safe bulk-replace script with a dry run.',
+      'Find and replace text in files with sed: in-place edits, GNU vs macOS -i, word boundaries, capture groups, and a safe bulk-replace script with a dry run.',
     tags: ['sed', 'text-processing', 'find-replace', 'scripting', 'sysadmin'],
     difficulty: 'beginner',
     datePublished: '2026-08-09',
@@ -510,8 +516,9 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'bash-trap-cleanup',
     title: 'Bash trap: Clean Up Temp Files on Exit (Even When the Script Dies)',
+    metaTitle: 'Bash trap: Clean Up Temp Files on Exit, Even When It Dies',
     description:
-      'A script that dies mid-run leaves temp litter and half-written files behind. Use trap on EXIT with mktemp and an atomic mv so every path out of the script cleans up after itself.',
+      'A script that dies mid-run leaves temp files and half-written output behind. trap on EXIT with mktemp and an atomic mv cleans up on every way out of the script.',
     tags: ['trap', 'mktemp', 'cleanup', 'error-handling', 'cron-ready'],
     difficulty: 'intermediate',
     datePublished: '2026-08-09',
@@ -520,8 +527,9 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'find-ip-address-linux',
     title: 'Find Your IP Address on Linux: Local, Public, Gateway, DNS, and MAC',
+    metaTitle: 'Find Your IP Address on Linux: Local, Public, Gateway, DNS',
     description:
-      'A firewall rule or backup target built on the wrong IP locks you out or ships data to the wrong box. Find local, public, gateway, DNS, and MAC with ip, resolvectl, and curl.',
+      'A firewall rule built on the wrong IP locks you out. Find your local, public, gateway, DNS, and MAC address on Linux with ip, resolvectl, and curl.',
     tags: ['networking', 'ip', 'dns', 'curl', 'security'],
     difficulty: 'beginner',
     datePublished: '2026-09-10',
@@ -530,8 +538,9 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'bash-environment-variables',
     title: 'Bash Environment Variables: export, unset, Subshells, and Why Cron Can\'t See Yours',
+    metaTitle: 'Bash Environment Variables: export, Subshells, and Cron',
     description:
-      'A variable you set but never exported is invisible to every child process — the deploy reads an empty token and runs anyway. export, source, env -i, and ${VAR:?} with live output.',
+      'A variable you never exported is invisible to child processes, so the deploy reads an empty token and runs anyway. export, source, env -i and ${VAR:?}, live.',
     tags: ['environment', 'export', 'cron-ready', 'variables', 'error-handling'],
     difficulty: 'beginner',
     datePublished: '2026-09-10',
@@ -540,8 +549,9 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'ssh-run-remote-commands',
     title: 'Run Commands on a Remote Server over SSH from Bash (One Host or Twenty)',
+    metaTitle: 'Run Commands on a Remote Server over SSH from Bash',
     description:
-      'A loop that runs ssh on twenty hosts and ignores exit codes reports done while three boxes never changed. One command, a heredoc block, -t, BatchMode, -n, and per-host exit codes.',
+      'An ssh loop that ignores exit codes reports done while three hosts never changed. Run one command or a heredoc on one host or twenty, with per-host exit codes.',
     tags: ['ssh', 'remote', 'automation', 'exit-codes', 'security'],
     difficulty: 'intermediate',
     datePublished: '2026-09-10',
@@ -560,6 +570,7 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'service-watchdog',
     title: 'Service Watchdog: Check a systemd Unit and Restart It Once — Bash Script',
+    metaTitle: 'Service Watchdog: Check a systemd Unit and Restart It Once',
     description:
       'A cron bash watchdog for systemd units: restarts a stopped service, probes a hung one, bounds start-limit resets, and alerts once per outage, not per minute.',
     tags: ['systemd', 'monitor', 'cron-ready', 'flock', 'watchdog'],
@@ -570,6 +581,7 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'log-retention-cleanup',
     title: 'Log Retention Cleanup: Keep the Newest N, Delete Older Than D Days — Bash Script',
+    metaTitle: 'Log Retention Script: Keep Newest N, Delete Older Than D Days',
     description:
       'A logrotate alternative for directories it does not own: keep the newest N dated folders, delete the rest past D days, dry-run by default, exit 1 on no match.',
     tags: ['cleanup', 'find', 'cron-ready', 'retention', 'backup'],
