@@ -1,6 +1,6 @@
 # BashSnippets — Post Queue, September 2026
 
-> **2026-09-16: the dates below are superseded.** Nothing had been posted by 9/16. The new cadence is two a week (Tue + Thu), running Thu 9/17 → Tue 11/3, and the table is in `docs/ACTION-PLAN-2026-09-16.md` H6. Bodies, titles, canonicals, tags and recipes in this file are unchanged. Keep ticking rows here.
+> **2026-09-16: order, dates, file names and ticking all moved to [`docs/cross-posts/queue/README.md`](cross-posts/queue/README.md).** The drafts were renumbered 01–14 in posting order (#01 posted 9/16, then Tue + Thu to 11/3); the old → new number map is at the bottom of that README. The tables below keep the old paths as history. The **Recipes** section below is still the how-to for every platform.
 
 Written 2026-09-10. Work top to bottom; the order **is** the posting order. Tick the `[ ]` as you go
 and paste the live URL next to it. Body text lives in the linked files, never here.
@@ -308,7 +308,7 @@ Fill in each day, yes or no — the gaps are information too.
 | Sun 9/13 |  |  |
 | Mon 9/14 |  |  |
 | Tue 9/15 |  |  |
-| Wed 9/16 |  |  |
+| Wed 9/16 | yes | a couple of threads (Travis) |
 | Thu 9/17 |  |  |
 | Fri 9/18 |  |  |
 | Sat 9/19 |  |  |

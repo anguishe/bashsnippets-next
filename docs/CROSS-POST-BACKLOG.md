@@ -1,5 +1,7 @@
 # BashSnippets — Cross-Post Backlog & Manual Config
 
+> **2026-09-16:** queued drafts moved to `docs/cross-posts/queue/` and renumbered in posting order (map in its README); `03-*` → `already-live/`, `12–17` → `reserve/`. Paths below are historical.
+
 Generated 2026-08-31. Source of truth for *posted* = the `canonical_url` field on the 37 live
 dev.to articles (dev.to public API, `username=bashsnippets`). Each canonical maps 1:1 to a site page,
 so anything in the sitemap with no matching canonical has never been cross-posted.

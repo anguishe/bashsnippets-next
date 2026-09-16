@@ -59,7 +59,7 @@ upkeep: `ACTION-PLAN-2026-09-16.md`. Thresholds proposed by Claude, Travis may c
 | — | Competitor SERP teardown per head cluster | 🔒 **deferred by Travis** until all fixes + queued content ship | §5 |
 | 3.A | Bing sitemap stuck "Processing" since 5/27 → resubmitted | ✅ 2026-09-10, crawled *Success* 2026-09-11 | Bing WMT → Sitemaps (72 discovered 9/11; expect 78 by 9/22) |
 | 3.B | Site push: 26-snippet guide mesh, 4 guides → ShellCheck pages, 4 quickAnswers, sameAs unified, CTA copy, **6 new snippets + 6 repo scripts** | ✅ 2026-09-11 | sitemap 72 → 78; `docs/MANUAL-ACTIONS-2026-09-10.md` §0 |
-| 3.C | Cross-posting (10 drafts + 3 new + 2 kit) | 🔓 unshelved 2026-09-10 · ⚠️ **0 posted as of 9/16** → re-dated to Tue+Thu, 9/17 → 11/3 | `ACTION-PLAN-2026-09-16.md` H6 (dates) + `POST-QUEUE-2026-09.md` (bodies, recipes) |
+| 3.C | Cross-posting (10 drafts + 3 new + 2 kit) | 🔓 unshelved 2026-09-10 · ⚠️ **0 posted as of 9/16** → re-ordered + renumbered 01–14 on 9/16, #01 posted 9/16, then Tue+Thu → 11/3 | `docs/cross-posts/queue/README.md` (order of record) + `POST-QUEUE-2026-09.md` (recipes) |
 | 3.D | First earned links: awesome-list PRs, Show HN, Reddit kit, listings | ⏳ drafted, Travis posts | `docs/POST-QUEUE-2026-09.md` §D–G |
 | 3.D2 | Google without quota: dev.to canonicals re-pointed, deep links only, mesh | ✅ 2026-09-11, 7/7 via the dev.to editor, API-verified | MANUAL-ACTIONS-2026-09-10 §1.1 |
 | 3.E | Income surfaces | 🔓 **reopened 2026-09-16, due 2026-11-04.** Lead magnet ✅ 9/11. Patched toolkit zip uploaded to Gumroad ✅ 9/16 (old zip removed). Gumroad Discover = Travis (H5). Gumroad description fixed by Travis ✅ 9/16 (Kali-only test line, single-buyer license). Sponsors + productized service stay deferred | `ACTION-PLAN-2026-09-16.md` |

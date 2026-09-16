@@ -53,22 +53,7 @@ Do the same for the badge lines ("MIT license" → "commercial use license") and
 **Impact:** 0 of 4 due posts shipped. This is the whole demand test.
 **Fix:** the queue below replaces the dates in `POST-QUEUE-2026-09.md` §A/§B1. Bodies, titles, canonicals and tags are unchanged, and every draft is already paste-ready and built on real runs. **Tue + Thu evenings, about 15 min each** (dev.to post, then the Medium import from §B2 the same evening). HN daily comments become optional. Show HN stays a single shot, earliest Tue 9/29, and only if Travis has a free evening.
 
-| # | Date | Draft (`docs/cross-posts/`) |
-|---|---|---|
-| 1 | Thu 9/17 | `22-open-ports-linux-devto.md` |
-| 2 | Tue 9/22 | `24-bash-sed-find-replace-devto.md` |
-| 3 | Thu 9/24 | `25-bash-trap-cleanup-devto.md` |
-| 4 | Tue 9/29 | `21-shellcheck-sc2086-devto.md` |
-| 5 | Thu 10/1 | `23-safe-bash-script-template-devto.md` |
-| 6 | Tue 10/6 | `01-bash-scripts-every-sysadmin-needs-devto.md` |
-| 7 | Thu 10/8 | `02-bash-text-processing-devto.md` |
-| 8 | Tue 10/13 | `04-rsync-command-builder-devto.md` |
-| 9 | Thu 10/15 | `05-grep-pattern-builder-devto.md` |
-| 10 | Tue 10/20 | `06-jq-filter-builder-devto.md` |
-| 11 | Thu 10/22 | `07-delete-old-log-files-devto.md` |
-| 12 | Tue 10/27 | `08-file-permissions-security-devto.md` |
-| 13 | Thu 10/29 | `09-bash-send-email-alert-devto.md` |
-| 14 | Tue 11/3 | `10-ssh-key-setup-script-devto.md` |
+**Superseded 2026-09-16 (later the same day):** the order was re-set from the Bing cluster demand and the files renumbered 01–14 in posting order. The table of record is `docs/cross-posts/queue/README.md`: #01 open ports posted Wed 9/16, then Tue + Thu through Tue 11/3.
 
 Plus once, any evening before 10/21: the two awesome-shell PRs (§D1, about 20 min). That's the cheapest shot at a first earned link, and it isn't blocked by the 50-star rule.
 

@@ -8,12 +8,12 @@ First, a missing `-r`. jq outputs JSON by default, so a string arrives with its 
 
 Second, missing keys don't error. jq emits `null`, which lands in bash as a literal four-character string — non-empty, so `[ -n ]` guards pass and backup-null.tar.gz gets written. The `//` operator supplies a real fallback.
 
-Third, select() quoting. The program sits inside single quotes, so string matches inside it need double quotes:
+Third, select() compares exactly. A value that is almost right matches nothing, and nothing is not an error:
 
 ```bash
 jq -r '.items[] | select(.active == true) | .name'
 ```
 
-Misquote it and nothing fails — select() matches zero elements, prints nothing, and exits 0, so the silence reads as success.
+If the API sends `"active": "true"` as a string, that item is skipped. If you match `"Web-01"` against `"web-01"`, zero elements come back. Either way jq prints nothing and exits 0, so the silence reads as success.
 
-All three share the same fingerprint: exit code zero, plausible output, wrong result. The fastest way I've found to catch them before they ship is building the filter against the actual response: this [interactive jq filter builder with a live in-browser preview](https://bashsnippets.xyz/tools/jq-filter-builder) lets you click through your real JSON to build the path, handles the `-r`, `//`, and select() quoting for you, and shows exactly what the filter emits before anything runs.
+All three share the same fingerprint: exit code zero, plausible output, wrong result. The fastest way I've found to catch them before they ship is building the filter against the actual response: this [interactive jq filter builder with a live in-browser preview](https://bashsnippets.xyz/tools/jq-filter-builder) lets you click through your real JSON to build the path, handles the `-r`, the `//` fallback and select() quoting for you, and shows exactly what the filter emits before anything runs.
