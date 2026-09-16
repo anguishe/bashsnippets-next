@@ -24,7 +24,7 @@ queue are already taken on dev.to, except where a row says so. dev.to returns
 
 **Medium (M)** — 2–3 days after the dev.to post. Import, never paste.
 1. <https://medium.com/p/import> → paste the **live bashsnippets.xyz page URL** (the canonical, not the dev.to URL) → Import.
-2. In the draft, select-all the imported page text and replace it with the article body from the row's file (drop the YAML block; for the 01–10 rows use the `-medium.md` file, which already has the H1 and closing line).
+2. In the draft, select-all the imported page text and replace it by **pasting the rendered `queue/NN-…-medium.html` opened in a browser** (Ctrl+A, Ctrl+C there). Never paste the `.md`: Medium shows markdown literally and curls the quotes in commands (2026-09-16). See `queue/README.md`.
 3. **Title field: type the title without the leading `# `.** Both broken Medium titles (section C) came from pasting the markdown H1 into the title box.
 4. Add 5 tags (bash, linux, devops, sysadmin + one topic tag). Publish.
 5. Scroll to the bottom of the published post and confirm the *"Originally published at bashsnippets.xyz/…"* line exists. **Missing line = no canonical → unpublish and re-import.**

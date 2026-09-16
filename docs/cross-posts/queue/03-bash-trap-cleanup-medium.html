@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>I Killed My Report Script Mid-Write. The Output File Never Noticed. — Medium paste</title>
+<style>body{max-width:720px;margin:2rem auto;font:18px/1.6 Georgia,serif;padding:0 1rem}pre{background:#f2f2f2;padding:1rem;overflow:auto}code{font-family:monospace}</style>
+</head><body>
+<p>The failure this pattern prevents is a quiet one. A script writes its output straight to the path a consumer reads, dies halfway, and the consumer loads the torn file as though it were complete. Nobody sees an error, because the only process that failed is gone, and everything downstream of it exited 0 on partial data. Meanwhile <code>/tmp</code> collects the working files of every run that never reached its cleanup line at the bottom.</p>
+<p>I did not want to trust the fix on paper, so I tested it the unfriendly way on my own machine, bash 5.3.9. A small generator writes a CSV, with a <code>sleep 30</code> planted between its first and second row to stand in for a slow API. I started it, waited one second, and sent it SIGTERM from outside.</p>
+<p>This is the shape it runs in:</p>
+<pre><code>#!/bin/bash
+set -euo pipefail
+FINAL_PATH="${1:?usage: report.sh /path/to/output.csv}"
+
+TMP_FILE=$(mktemp)             # unique path, created 0600
+cleanup() {
+  local code=$?                # first line: capture before anything overwrites it
+  rm -f "$TMP_FILE"
+  exit "$code"
+}
+trap cleanup EXIT              # registered on the line after mktemp
+
+generate_rows &gt; "$TMP_FILE"    # every write goes to the temp path
+mv "$TMP_FILE" "$FINAL_PATH"   # atomic on one filesystem
+</code></pre>
+<p>What the kill left behind: exit status 143, which is 128 plus signal 15. The temp path <code>mktemp</code> had handed out came back <code>No such file or directory</code>, so the trap ran on the way down. And <code>out.csv</code> still held the previous run's three complete lines. A consumer reading it at that moment gets yesterday's data, whole. Stale is something monitoring can see. Torn is not.</p>
+<h3>Every way out is covered</h3>
+<p>Walk the exits. The generator fails halfway: <code>set -e</code> aborts, the <code>EXIT</code> trap removes the partial temp file, the published file is untouched. A signal arrives — Ctrl-C, a shutdown's SIGTERM, my <code>kill</code> — and the same trap runs, as the run above shows. The script succeeds: <code>mv</code> has already moved the temp file, so <code>rm -f</code> finds nothing, complains about nothing, and the status passes through.</p>
+<p><code>EXIT</code> is the reason this is four lines instead of twenty. It is a bash pseudo-signal that fires on normal completion, an explicit <code>exit 1</code>, a <code>set -e</code> abort, and after the handling of a real signal. Trap <code>INT</code> or <code>TERM</code> separately only when you want signal-specific behaviour, such as logging who killed you.</p>
+<p>Two scoping rules each save a confused hour. A trap set inside <code>$( )</code> or a <code>( )</code> group belongs to that subshell and fires when the subshell exits, so cleanup traps go at the top level. And a second <code>trap … EXIT</code> replaces the first — traps do not stack — so when two resources need releasing, a temp file and a background <code>ssh -L</code> tunnel for instance, both go in one handler.</p>
+<h3>The ordering that launders a failure</h3>
+<p>The comment on the <code>local code=$?</code> line is the part people move. I ran four versions of the handler against a script that ends in <code>exit 3</code>, and bash turned out more forgiving than the folklore:</p>
+<ul>
+<li>A trap that removes the file and never calls <code>exit</code>: the script exits <strong>3</strong>. Bash keeps the original status.</li>
+<li>A trap ending in a bare <code>exit</code>: <strong>3</strong>. Inside an EXIT trap, a bare <code>exit</code> reuses the status the script was leaving with.</li>
+<li>Capture first, then <code>rm -f</code>, then <code>exit "$code"</code>: <strong>3</strong>.</li>
+<li><code>rm -f</code> first, then <code>local code=$?</code>, then <code>exit "$code"</code>: <strong>0</strong>.</li>
+</ul>
+<p>The one version that reports success after a failure is the one that looks most careful. It captures <code>$?</code> — after <code>rm</code> has succeeded, so it captures rm's zero and exits with it. Cron sees success, alerting sees success, and the cleanup has removed the evidence too. Capture on the first line, clean second, exit last.</p>
+<h3>Why mktemp and not /tmp/myscript.$$</h3>
+<p>A predictable temp path is two bugs. Overlapping runs, retried jobs and helpers can collide on the same name and interleave their writes, which produces exactly the garbage this pattern is meant to prevent. And <code>/tmp</code> is world-writable, so a guessable name invites something else on the box to plant a file or a symlink where you are about to write. <code>mktemp</code> returns a unique path, created atomically, readable only by you. When a script needs several working files, make one directory with <code>mktemp -d</code> and remove it whole in the same handler; every intermediate file inherits the cleanup.</p>
+<h3>What trap cannot do, and why the design survives it</h3>
+<p><code>kill -9</code> cannot be caught. No trap runs, and power loss is no different. That is not an argument against the trap; it is why the rest of the design looks the way it does. Orphans from an uncatchable death land in <code>/tmp</code>, where reboot or tmpfiles ageing clears them, rather than in a data directory. And <code>mv</code> means even an uncatchable death cannot publish a torn file, because being half-written and being at the published path are never true at the same moment.</p>
+<p>One cheap gate is worth adding wherever a consumer trusts your output: before the <code>mv</code>, check the temp file's size with <code>wc -c</code> against a floor, and exit non-zero instead of publishing an implausibly small result. An upstream that "succeeded" with an empty body then pages a human instead of reaching the dashboard.</p>
+<p>A cleanup path you have never executed is a cleanup path you are guessing about. Plant a sleep, kill it from another terminal, and check three things: <code>/tmp</code> is clean, the output still holds the old complete file, and the exit code is not zero. It takes about a minute.</p>
+<hr>
+<p>The complete script, the FAQ on subshell scoping and signal lists, and the line-by-line breakdown: <a href="https://bashsnippets.xyz/snippets/bash-trap-cleanup">https://bashsnippets.xyz/snippets/bash-trap-cleanup</a></p>
+<p>The same survival kit continues with <a href="https://bashsnippets.xyz/snippets/bash-error-handling">bash error handling</a>, so failures stop the script and the trap has something honest to report, <a href="https://bashsnippets.xyz/snippets/bash-timeout-command">the timeout command</a>, so a hang dies and cleans up instead of blocking forever, and the <a href="https://bashsnippets.xyz/tools/cron-wrapper-generator">Cron Wrapper Generator</a>, which assembles the lot around any command. The rest of the library is at <a href="https://bashsnippets.xyz">https://bashsnippets.xyz</a></p>
+<p>Originally published at <a href="https://bashsnippets.xyz/snippets/bash-trap-cleanup">https://bashsnippets.xyz/snippets/bash-trap-cleanup</a></p>
+</body></html>

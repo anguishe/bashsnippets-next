@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>find -mtime +30 Kept a File That Was 30.5 Days Old. I Checked With touch -d. — Medium paste</title>
+<style>body{max-width:720px;margin:2rem auto;font:18px/1.6 Georgia,serif;padding:0 1rem}pre{background:#f2f2f2;padding:1rem;overflow:auto}code{font-family:monospace}</style>
+</head><body>
+<p>Nothing on my Linux machine deletes anything by age unless I tell it to. <code>~/.cache</code> alone holds 47 GB right now — 13 GB of pip downloads, 11 GB of uv, 5 GB of browser cache — each one a program doing exactly its job, none of them with a retention policy. Application logs have the same shape: a writer that never stops and no reader. That is how a disk goes from fine to full without a single thing malfunctioning.</p>
+<p>The standard fix is an age-based cleanup with <code>find</code>. It is also a command that deletes files, so before trusting it with anything real, I tested its three sharp edges on files I backdated with <code>touch -d</code>.</p>
+<h3>Why a full disk lies to you</h3>
+<p>The reason prevention beats diagnosis here is what a full disk looks like when it arrives. The moment the filesystem runs out of blocks, every process that tries to write gets <code>ENOSPC</code> back from the kernel, and almost no application reports that as "the disk is full". You get a failed save in one program, a crashed build in another and a database complaint in a third, all worded differently, while the process that filled the disk goes quiet because it cannot write either. By the time symptoms appear they point everywhere except the cause.</p>
+<h3>Aging files out with find</h3>
+<p>The tool has shipped with every Linux and macOS box for decades:</p>
+<pre><code>LOG_DIR="/var/log/myapp"
+DAYS=30
+
+# Preview pass — read this list before letting anything delete
+find "$LOG_DIR" -type f -name "*.log" -mtime +"$DAYS" -print
+</code></pre>
+<p>Run that, read the output, and when the list holds exactly what you expect, swap <code>-print</code> for <code>-delete</code> and run it again. The three runs below are why the preview is not optional.</p>
+<h3>Edge one: -mtime +30 does not mean 30 days</h3>
+<p>I created four logs dated 29 days, exactly 30 days, 30 and a half days, and 31 days back. <code>find . -name "*.log" -mtime +30 -print</code> printed one of them: the 31-day file. The 30.5-day file survived.</p>
+<p><code>find</code> measures age in whole 24-hour periods and throws the fraction away, so 30.5 days old counts as 30, and the <code>+</code> means strictly greater than. <code>-mtime +29</code> printed three files: 30, 30.5 and 31 days. If your policy says "keep 30 days", <code>+29</code> is the flag that enforces it. The off-by-one is invisible in a quick test and surfaces a month later as "why is that file still there".</p>
+<h3>Edge two: -delete goes last, always</h3>
+<p>On a copy of the same directory I put the predicates in the wrong order: <code>find . -delete -name "*.log"</code>. Afterwards the directory had zero entries. Every log, the non-log <code>keep.txt</code>, everything.</p>
+<p><code>find</code> evaluates its expression strictly left to right, and <code>-delete</code> is an action that runs and returns true. Put it first and it executes on every file <code>find</code> walks, before <code>-name</code> ever gets a vote. There is no warning and no prompt. The fix is order: tests first, <code>-delete</code> at the very end.</p>
+<h3>Edge three: never pipe filenames to rm</h3>
+<p>The reflex is <code>find … | xargs rm</code>. I made four files — <code>app v2.log</code>, <code>app</code>, <code>v2.log</code> and <code>keep.txt</code> — and ran <code>find . -name "app v2.log" | xargs rm</code>. When it finished, <code>app</code> and <code>v2.log</code> were gone. <code>app v2.log</code>, the one file the command was aimed at, was still there.</p>
+<p><code>xargs</code> split the filename on the space and handed <code>rm</code> two arguments, both of which happened to exist. That is the worst possible outcome: the target survives, two innocent files die, and <code>rm</code> reports nothing unusual. <code>-delete</code> never leaves <code>find</code> — no pipe, no word splitting — so it cannot do that. If you genuinely need another command, <code>-print0 | xargs -0</code> keeps each name in one piece.</p>
+<h3>The blast-radius controls</h3>
+<p><code>-type f</code> keeps directories and symlinks out of the match. And the path should name one application's log directory — <code>/var/log/nginx</code>, <code>/var/log/myapp</code> — never <code>/var/log</code> wholesale, which holds logs the OS still needs and files that must never be deleted by age. Retention for a database transaction log is a backup problem, not a <code>find</code> problem.</p>
+<h3>Then take yourself out of the loop</h3>
+<p>The version that actually prevents a full disk is the one that runs without you: the path and the age limit in named variables, a crontab line running it weekly, and the cleanup's own output appended to a log with a timestamp, so every run leaves a record. Whatever grows without bound gets aged out on a schedule, long before it matters.</p>
+<p>Three runs on backdated files took less time than reading this post. Each one would have been an incident on a real directory.</p>
+<p>Full script with the multi-directory loop, the <code>.gz</code> variant for rotated logs, a before/after disk-usage report and ready-made cron lines: <a href="https://bashsnippets.xyz/snippets/delete-old-log-files">https://bashsnippets.xyz/snippets/delete-old-log-files</a></p>
+<p>Deleting old logs is the recovery; hearing about a filling disk before it hits 100 % is the upgrade — the <a href="https://bashsnippets.xyz/snippets/disk-space-warning">disk space warning script</a> does that, and when the space thief is not a log at all, <a href="https://bashsnippets.xyz/snippets/find-large-files-linux">find large files</a> names it. The rest of the library is at <a href="https://bashsnippets.xyz">https://bashsnippets.xyz</a></p>
+<p>Originally published at <a href="https://bashsnippets.xyz/snippets/delete-old-log-files">https://bashsnippets.xyz/snippets/delete-old-log-files</a></p>
+</body></html>

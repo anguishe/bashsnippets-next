@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>SC2086 Is ShellCheck's Lowest-Severity Warning. It Let rm Delete Two Files I Never Named. — Medium paste</title>
+<style>body{max-width:720px;margin:2rem auto;font:18px/1.6 Georgia,serif;padding:0 1rem}pre{background:#f2f2f2;padding:1rem;overflow:auto}code{font-family:monospace}</style>
+</head><body>
+<p>ShellCheck files SC2086 at <strong>info</strong>, the lowest severity it shows by default, in the same tier as remarks about <code>echo</code> flags. It fires on every unquoted <code>$var</code>, so on a script that has never been linted it is often most of the output, and it is the rule people reach for first when they start a <code>.shellcheckrc</code>. It reads like a style nag. I wanted to know what treating it like one actually costs, so I built the smallest case I could on my own machine: three files and a four-line script.</p>
+<p>The directory held <code>quarterly</code>, <code>report.txt</code> and <code>quarterly report.txt</code>. The script set <code>report="quarterly report.txt"</code> and ran <code>rm $report</code>, with <code>set -euo pipefail</code> at the top.</p>
+<p>It deleted <code>quarterly</code>. It deleted <code>report.txt</code>. It left <code>quarterly report.txt</code>, the one file it was asked to remove, exactly where it was. And it exited 0, because as far as <code>rm</code> could tell it had been handed two names and both existed. Strict mode had nothing to catch; nothing failed. In a real cleanup job that is a wrong-file deletion with a green exit code, and the first sign is the next job looking for a file that is no longer there.</p>
+<h3>What bash does before rm ever runs</h3>
+<p>The mechanism is that an unquoted <code>$report</code> is not handed to <code>rm</code> as one thing. Bash expands the variable, splits the result on whitespace, expands any <code>*</code> or <code>?</code> it finds against the current directory, and only then builds the argument list. <code>rm $report</code> with a space in the value has become <code>rm quarterly report.txt</code> — two arguments — by the time <code>rm</code> wakes up. Double quotes switch both steps off: <code>rm "$report"</code> is one argument, no globbing, done.</p>
+<p>Then the lint run on the same four lines, ShellCheck 0.11.0 and bash 5.3.9:</p>
+<pre><code>$ shellcheck before.sh
+
+In before.sh line 4:
+rm $report
+   ^-----^ SC2086 (info): Double quote to prevent globbing and word splitting.
+
+Did you mean:
+rm "$report"
+</code></pre>
+<p>Info. The same severity ShellCheck gives a remark about <code>echo</code> flags. There is no severity level for "deletes files you did not name and reports success," so this is where it lives, and that label is the reason it is the first rule people exclude.</p>
+<h3>Where the same bug hides</h3>
+<p>The glob half is quieter. <code>pattern="*.log"</code> followed by <code>echo Looking for $pattern</code> prints the names of the log files in the directory instead of the pattern, because the star was expanded before <code>echo</code> saw it. Hand that unquoted pattern to <code>find -name</code> and it breaks the same way: one matching file and <code>find</code> searches for that literal name, two and it dies with <code>paths must precede expression</code>. ShellCheck flags it as SC2086 too; its separate code, SC2061, is for a glob typed straight into the command, <code>find . -name *.log</code>.</p>
+<p>Inside <code>[ ]</code> the failure changes shape. <code>[</code> is a command, so <code>[ $name = "root" ]</code> with an empty <code>$name</code> gives <code>test</code> two arguments instead of three. It complains about a unary operator on stderr, the condition evaluates false, and the script keeps walking. The branch you were guarding is skipped without an exit. Inside <code>[[ ]]</code> bash does not split at all, which is why ShellCheck stays quiet there and why "switch to double brackets" is a legitimate fix rather than a dodge.</p>
+<p>And <code>for f in $files</code> — the one place where splitting is usually on purpose — ShellCheck 0.11.0 does not flag at all. It assumes you meant it. The loop still breaks on the first element containing a space. What you need is a list that can hold spaces, which in bash means an array, and an unquoted array expansion gets a different, louder code: SC2068, at error severity.</p>
+<h3>The honest case for turning it off</h3>
+<p>Here is the nuance a blanket disable throws away. There are two real situations where the split is the point: a flag string read from a config file — <code>opts="-r -n"</code> then <code>grep $opts pattern .</code> — and arguments passed through a thin wrapper. ShellCheck cannot know the split is intentional, so it warns. You have two honest exits. Make it an array, <code>opts=(-r -n)</code> and <code>grep "${opts[@]}" pattern .</code>, which ShellCheck accepts without comment. Or keep the string and put <code># shellcheck disable=SC2086</code> on the line above, with the reason after a second <code>#</code>, so the next reader knows it was a decision and not a leftover.</p>
+<p>That directive covers one command. The repo-wide <code>.shellcheckrc</code> covers every command you will ever write in that repo, including the <code>rm</code>. That is the difference between disabling a check and disabling your own judgement.</p>
+<p>There is also the opposite move, which most people who disable the rule never find: <code>shellcheck --include=SC2086 script.sh</code> reports this rule and nothing else, and still exits 1 when it finds one. That is how you enforce quoting as a CI gate on a repo that is still working through its other forty findings — the exact situation that makes people reach for <code>disable=</code> in the first place.</p>
+<h3>What it costs to filter by severity</h3>
+<p>Quoted, <code>rm "$report"</code> on the same directory deletes one file, the right one. ShellCheck's lowest severity holds the failure worth caring about most, and filtering by severity is exactly how it gets thrown away.</p>
+<p>The full write-up, with every run pasted from ShellCheck 0.11.0 — the <code>[ ]</code> case, the for-loop that lints clean and still breaks, and the one-line, one-file and one-project ways to disable it: <a href="https://bashsnippets.xyz/shellcheck/sc2086">https://bashsnippets.xyz/shellcheck/sc2086</a></p>
+<p>If the code on your screen is not SC2086, the <a href="https://bashsnippets.xyz/tools/shellcheck-error-decoder">ShellCheck Error Decoder</a> explains any SC code with a before/after fix, <a href="https://bashsnippets.xyz/shellcheck/sc2046">SC2046</a> is the same trap for <code>$(command)</code> output, and the rest of the library is at <a href="https://bashsnippets.xyz">https://bashsnippets.xyz</a></p>
+<p>Originally published at <a href="https://bashsnippets.xyz/shellcheck/sc2086">https://bashsnippets.xyz/shellcheck/sc2086</a></p>
+</body></html>

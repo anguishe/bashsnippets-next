@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>I Pointed rsync --delete at a Nearly Empty Directory. It Deleted 3,800 Files and Exited 0. — Medium paste</title>
+<style>body{max-width:720px;margin:2rem auto;font:18px/1.6 Georgia,serif;padding:0 1rem}pre{background:#f2f2f2;padding:1rem;overflow:auto}code{font-family:monospace}</style>
+</head><body>
+<p>The rsync accident that ends backups is not an error. It is rsync doing exactly what it was told, successfully, to the wrong directory. I wanted to see how quiet that is, so I rebuilt it in a scratch directory on my own machine with rsync 3.5.0.</p>
+<p>The destination held 3,800 files, standing in for a nightly mirror. The source held one file, <code>index.nginx-debian.html</code> — what Debian's nginx package leaves behind in <code>/var/www/html</code> after you move a site's web root somewhere else and forget that the backup script still points at the old path. Then the mirror command anyone would have in that script: <code>rsync -a --delete src/ dst/</code>.</p>
+<p>It exited 0. Afterwards the destination held one file: <code>index.nginx-debian.html</code>. Three thousand eight hundred files gone, in a run that any cron wrapper, healthcheck ping or <code>✓ backup complete</code> log line would have recorded as a success. Run that nightly and every green checkmark in the dashboard is a record of the deletion.</p>
+<h3>Exit 0 doesn't mean what your monitoring thinks</h3>
+<p>The bug is not in rsync. It is in what we assume its exit code promises. rsync reserves non-zero codes for failures on its own terms: an unreachable host, a protocol error, an I/O failure, source files vanishing mid-transfer (code 24), a partial transfer (code 23). Making a destination match a near-empty source is none of those. It is the requested operation, delivered without incident. A monitor that checks the exit code answers "did rsync finish?" and most of us have labelled that answer "is the data safe?" Those are different questions.</p>
+<h3>rsync's sharp edges fail by succeeding</h3>
+<p>Once you see that shape, you find it all over the command. A trailing slash on the source means "copy the contents"; no trailing slash means "copy the directory itself", which nests a second directory inside your destination and, on a <code>--delete</code> mirror, changes what gets compared and therefore what gets removed. Both versions run clean. Drop <code>-a</code> and rsync stops preserving permissions, symlinks and timestamps, and because its quick check decides "already transferred" by size and modification time, a destination full of transfer-time mtimes never matches again, so every run quietly becomes a full re-copy that still exits 0. Hand a comma-separated list to a single <code>--exclude</code> and it is treated as one pattern with a comma in it, so it matches nothing and <code>node_modules</code> rides along every night. None of these produce an error. Each completes a different operation from the one in your head.</p>
+<h3>The flag that shows the damage first</h3>
+<p>The habit that prevents the whole class is previewing every destructive sync. Same scratch directories, same command, with <code>--dry-run</code> and <code>-v</code>:</p>
+<pre><code>$ rsync -a --delete --dry-run -v src/ dst/
+sending incremental file list
+deleting photo-999.jpg
+deleting photo-998.jpg
+deleting photo-997.jpg
+…
+</code></pre>
+<p>Thousands of <code>deleting</code> lines, and afterwards the destination still held all 3,800 files. A wall of deletions in a preview you are reading is impossible to miss. The same wall executed in a log nobody opens is a green checkmark.</p>
+<p>One detail the documentation does not shout: the <code>-v</code> is not optional. I ran <code>--dry-run</code> without it against a second scratch directory and it printed nothing at all and exited 0. A dry run you cannot see is not a preview. Use <code>-v</code>, or <code>--itemize-changes</code> if you want one line per file with a change code.</p>
+<h3>So the builder makes the preview the default</h3>
+<p>The <a href="https://bashsnippets.xyz/tools/rsync-command-builder">Rsync Command Builder</a> assembles the command in a live preview while you toggle the real options: archive mode, verbose output, compression, resume for unreliable links (<code>--partial --progress</code>), SSH transport, a bandwidth cap for syncs that share a link with people trying to use it, and exclude patterns. You type the excludes comma-separated and it emits one individually quoted <code>--exclude</code> flag per pattern, so the shell never expands your glob and the comma mistake cannot happen.</p>
+<p>The opinions built into it are the point. Turn on <code>--delete</code> without dry-run and a red warning appears: those deletions are permanent, preview them first. Turn dry-run on and it switches to a green note telling you to remove <code>--dry-run</code> only after you have read the output. The Mirror preset ships with dry-run already enabled — mirroring is the one mode where you switch the safety off on purpose instead of remembering to switch it on. The whole thing runs in your browser; nothing you type leaves the page.</p>
+<p>The scratch run took a fraction of a second to delete 3,800 files and report success. The preview took the same fraction of a second to list every one of them. The only difference was a flag.</p>
+<p>Build the command with the guardrails on: <a href="https://bashsnippets.xyz/tools/rsync-command-builder">https://bashsnippets.xyz/tools/rsync-command-builder</a></p>
+<p>For the script around it — cron scheduling, SSH keys, a hardened nightly job — the <a href="https://bashsnippets.xyz/snippets/rsync-remote-backup">Rsync Remote Backup</a> snippet pairs with this tool, <a href="https://bashsnippets.xyz/snippets/automated-file-backup">Automated File Backup</a> covers the local variant, and the rest of the library is at <a href="https://bashsnippets.xyz">https://bashsnippets.xyz</a></p>
+<p>Originally published at <a href="https://bashsnippets.xyz/tools/rsync-command-builder">https://bashsnippets.xyz/tools/rsync-command-builder</a></p>
+</body></html>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>set -euo pipefail Is Missing a Letter. My ERR Trap Stayed Silent Until I Added -E. — Medium paste</title>
+<style>body{max-width:720px;margin:2rem auto;font:18px/1.6 Georgia,serif;padding:0 1rem}pre{background:#f2f2f2;padding:1rem;overflow:auto}code{font-family:monospace}</style>
+</head><body>
+<p>Here is a nine-line script that does everything the strict-mode articles tell you to. <code>set -euo pipefail</code> on line 2. On line 3, an ERR trap whose entire job is to print the failing command and its line number: <code>trap 'echo "✗ failed: ${BASH_COMMAND} (line ${LINENO})" &gt;&amp;2' ERR</code>. Then a helper function that runs <code>mkdir /proc/export</code>, a directory that cannot be created, standing in for a full disk or a missing mount.</p>
+<p>I ran it on my machine, bash 5.3.9. It printed <code>start</code>, then mkdir's own complaint, then exited 1. The trap said nothing. No failing command, no line number — the two facts it was registered to report. From a nightly job, that is the log you get: a start banner, one stderr line if you are lucky, and an exit code that tells you something broke but not what.</p>
+<p>Then I changed one character, <code>set -Eeuo pipefail</code>, and ran it again. Same mkdir error, followed by <code>✗ failed: mkdir /proc/export (line 5)</code>, and exit 1. The trap had been fine all along. Nobody had told it to follow the script into the function, and a function is where most real failures happen.</p>
+<h3>Three flags, three promises, one missing</h3>
+<p><code>set -euo pipefail</code> gets pasted as a single incantation. It is three flags making three separate promises, and each has its own list of places where it quietly declines to keep them.</p>
+<p><code>-e</code> says exit when a command fails and nobody is checking. Bash defines "checking" generously: the condition of an <code>if</code>, anything left of <code>&amp;&amp;</code> or <code>||</code>, anything under <code>!</code> — and, the part that surprises people, everything inside a function that was <em>called</em> from one of those positions. A careful helper becomes unguarded the moment somebody wraps it in <code>if helper; then</code>, and nothing warns you.</p>
+<p><code>-u</code> says an unset variable is an error rather than an empty string — the difference between <code>rm -rf "$BUILD_DIR/"</code> and <code>rm -rf /</code> when the variable is spelled <code>BUILDDIR</code> in one place.</p>
+<p><code>-o pipefail</code> says a pipeline fails if any stage fails, not only the last one. Without it, <code>curl … | jq …</code> proceeds happily when curl dies and <code>jq</code> parses the empty result into something harmless.</p>
+<p>None of those is the letter I was missing.</p>
+<h3>Why the trap said nothing</h3>
+<p><code>trap … ERR</code> fires on the same conditions that make <code>-e</code> exit, so it looks like the natural place to print a diagnostic. But by default <strong>the ERR trap is not inherited by functions, command substitutions, or subshells</strong>. My failing <code>mkdir</code> was one level down, inside a function. Errexit did its job and killed the script. The trap, registered in the top-level shell, never saw a failure that happened in the function's scope. Exit 1, and silence — which is precisely the log entry that tells you nothing at 03:00.</p>
+<p>The fix is <code>-E</code>, <code>errtrace</code>, which makes the ERR trap follow you into functions and subshells. The handler I run now names the command, not only the line, because bash keeps the pieces in <code>BASH_COMMAND</code> and <code>BASH_LINENO</code>:</p>
+<pre><code>#!/bin/bash
+set -Eeuo pipefail
+CROSS="✗"
+
+on_err() {
+  local code=$?     # first line, before anything else overwrites it
+  echo "$CROSS failed: '${BASH_COMMAND}' (line ${BASH_LINENO[0]}, exit ${code})" &gt;&amp;2
+}
+trap on_err ERR
+</code></pre>
+<p>With that at the top, a failure anywhere in the script logs the command, the line and the exit status instead of nothing. <code>-E</code> is the flag missing from nearly every strict-mode line on the internet. If you take one thing from this, take the E.</p>
+<h3>The other silent spot: local</h3>
+<p>The second silent spot is a line most of us have written dozens of times: <code>local out=$(some_command)</code>. On the same box, a function running <code>local out=$(false)</code> under <code>set -euo pipefail</code> carried on to its next line and the script exited 0. That line never triggers errexit, and no trap fires for it, because <code>local</code> is a command in its own right and its exit status — success, it declared the variable — is the one bash sees. The command substitution's failure is discarded before anyone looks. Declare on one line, assign on the next, and the failure is yours again. It is two lines instead of one everywhere you capture output into a local, and it is the bug behind ShellCheck's masked-return-value warning, which is not pedantry.</p>
+<p>One caveat so you do not chase a ghost: with <code>-E</code> set, a failure inside an explicit <code>( subshell )</code> fires the trap twice — once in the subshell, once in the parent as the non-zero status propagates. That is expected. If duplicate alerts matter, guard on a flag or move the work out of the subshell.</p>
+<h3>Cleanup on every path, and when to leave it all off</h3>
+<p>The ERR trap tells you what broke; the EXIT trap is what stops the script leaving a half-written file behind for the next stage to load as if it were complete. It runs on every termination, and the rule that makes or breaks it is the same one as above: capture <code>$?</code> on the first line of the handler. Move <code>local code=$?</code> below the <code>rm -f "$TMP_FILE"</code> and it reports rm's status — zero, forever — and the script exits clean after a failure. That is how a script with strict mode at the top ends up reporting success: I ran that ordering against an <code>exit 3</code> on bash 5.3.9 and the script exited 0.</p>
+<p>Strict mode is also not the right default everywhere. A health checker that runs twenty probes and expects some to fail will spend more <code>|| true</code> than logic fighting <code>-e</code>. <code>.bashrc</code> should never set it, because one failed command would close your terminal. And <code>grep -q</code> used as a test returns non-zero as data, not as an error. The guide covers where to leave it off, rather than pretending the flags are free.</p>
+<h3>What the log says now</h3>
+<p>The template I start from now opens with <code>set -Eeuo pipefail</code>, both traps registered before any work happens, <code>$?</code> captured first in each handler, locals declared and assigned on separate lines. When it fails, the log says which line and which command. That is the whole difference between a script that exits 1 and a script that tells you why.</p>
+<p>The full template with every behaviour checked against bash 5.3 — where errexit goes silent, the <code>nounset</code> defaults for variables that are only unbound in staging, and the assembled skeleton: <a href="https://bashsnippets.xyz/guides/safe-bash-script-template">https://bashsnippets.xyz/guides/safe-bash-script-template</a></p>
+<p>If you would rather not type it, the <a href="https://bashsnippets.xyz/tools/bash-boilerplate-generator">Bash Boilerplate Generator</a> emits this shape with your script name filled in, <a href="https://bashsnippets.xyz/snippets/bash-trap-cleanup">trap cleanup on exit</a> works the mktemp-and-atomic-mv half in full, and the rest of the library is at <a href="https://bashsnippets.xyz">https://bashsnippets.xyz</a></p>
+<p>Originally published at <a href="https://bashsnippets.xyz/guides/safe-bash-script-template">https://bashsnippets.xyz/guides/safe-bash-script-template</a></p>
+</body></html>
