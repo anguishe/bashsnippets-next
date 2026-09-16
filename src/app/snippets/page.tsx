@@ -10,14 +10,14 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 export const metadata: Metadata = {
   title: `Bash Script Library — ${snippets.length} Copy-Paste Shell Scripts for Linux`,
   description:
-    `${snippets.length} copy-paste bash scripts with plain-English explanations. Tested on Ubuntu 22.04 LTS and macOS Ventura.`,
+    `${snippets.length} copy-paste bash scripts with plain-English explanations.`,
   alternates: {
     canonical: `${SITE_URL}/snippets`,
   },
   openGraph: {
     title: `Bash Script Library — ${snippets.length} Copy-Paste Shell Scripts for Linux`,
     description:
-      `${snippets.length} copy-paste bash scripts with plain-English explanations. Tested on Ubuntu 22.04 LTS and macOS Ventura.`,
+      `${snippets.length} copy-paste bash scripts with plain-English explanations.`,
     url: `${SITE_URL}/snippets`,
     type: 'website',
     images: [{ url: `${SITE_URL}/ogimage.png`, width: 1200, height: 630, alt: 'BashSnippets — Bash Script Library' }],
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: `Bash Script Library — ${snippets.length} Copy-Paste Shell Scripts for Linux`,
     description:
-      `${snippets.length} copy-paste bash scripts with plain-English explanations. Tested on Ubuntu 22.04 LTS and macOS Ventura.`,
+      `${snippets.length} copy-paste bash scripts with plain-English explanations.`,
     images: [`${SITE_URL}/ogimage.png`],
   },
 };
@@ -147,8 +147,7 @@ export default function SnippetsPage() {
         </h1>
 
         <p className="mt-4 max-w-2xl text-muted leading-relaxed">
-          {snippets.length} copy-paste bash scripts with plain-English explanations. Tested on
-          Ubuntu 22.04 LTS and macOS Ventura.
+          {snippets.length} copy-paste bash scripts with plain-English explanations. ShellCheck-clean.
         </p>
 
         <div className="my-8 flex flex-wrap gap-6 text-sm">
@@ -170,7 +169,10 @@ export default function SnippetsPage() {
           className="mt-8 flex flex-wrap gap-2"
           aria-label="Filter by difficulty"
         >
-          {filterLinks.map((link) => (
+          {filterLinks
+            // Drop jump links to difficulty groups with no snippets (the group isn't rendered).
+            .filter((link) => !link.href.startsWith('#') || snippets.some((s) => s.difficulty === link.href.slice(1)))
+            .map((link) => (
             <a
               key={link.href}
               href={link.href}

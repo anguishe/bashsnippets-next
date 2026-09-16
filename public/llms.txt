@@ -4,12 +4,12 @@
 
 ## Author
 
-Travis — self-taught Linux developer based in Florida, publishing here and on dev.to under the handle Anguishe. Every script on this site was tested personally on Debian/Ubuntu and Fedora before it was published. Author page: https://bashsnippets.xyz/about
+Travis — self-taught Linux developer based in Florida, publishing here and on dev.to under the handle Anguishe. Every script on this site is ShellCheck-clean; outputs pasted on the site come from real runs on Kali Linux (bash 5.3). Author page: https://bashsnippets.xyz/about
 
 ## What This Site Contains
 
 # keep in sync with the sitemap: 45 indexable snippets, 12 tools, 9 guides, 7 ShellCheck deep dives (sitemap = 79 with the 6 static pages)
-- 44 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
+- 45 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
 - 12 interactive tools at /tools/ including script builders, command generators, and debuggers
 - 9 pillar guides at /guides/ covering cron survival, CI/CD, text processing, APIs, bash strict mode, hung-process diagnosis, service auto-restart and watchdogs, listing open ports, and the sysadmin script set
 - 7 ShellCheck deep dives at /shellcheck/ — one page per rule (SC2086, SC2046, SC2063, SC2115, SC2154, SC2034, SC2016), each with the breakage run for real, ShellCheck 0.11.0's exact output, the fix, the variants, and when to disable the rule
@@ -121,7 +121,7 @@ Hub: the ShellCheck Error Decoder at https://bashsnippets.xyz/tools/shellcheck-e
 - [Bash Boilerplate Generator](https://bashsnippets.xyz/tools/bash-boilerplate-generator): Generate a production-ready bash script template with error handling and argument parsing.
 - [Rsync Command Builder](https://bashsnippets.xyz/tools/rsync-command-builder): Build rsync commands visually with archive, compress, delete, SSH, and exclude pattern toggles.
 - [grep Pattern Builder](https://bashsnippets.xyz/tools/grep-pattern-builder): Build grep commands from toggles — recursive, case-insensitive, context lines, file type filters — with a plain-English explanation for every output.
-- [The Production Bash Toolkit](https://bashsnippets.xyz/starter-kit): Paid resource ($9, one-time) — 52-page PDF field guide plus a ZIP with an operational script system, 31-function bashlib.sh shared library, template.sh, and examples. ShellCheck-clean, MIT licensed.
+- [The Production Bash Toolkit](https://bashsnippets.xyz/starter-kit): Paid resource ($9, one-time) — 52-page PDF field guide plus a ZIP with an operational script system, 30-function bashlib.sh shared library, template.sh, and examples. ShellCheck-clean; commercial use, single-buyer license.
 
 ## License
 

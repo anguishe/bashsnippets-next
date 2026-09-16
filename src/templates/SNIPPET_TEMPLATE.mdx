@@ -21,7 +21,7 @@ difficulty: "beginner"
 tags: ["monitor", "cron-ready", "example-tag"]
 
 # Distros you actually tested on (minimum 2). Reference in a "Tested on" section in the body.
-testedOn: ["Ubuntu 22.04 LTS", "Debian 12", "macOS Ventura"]
+testedOn: ["Kali Linux 2026.3 (bash 5.3)"]
 
 # Quick Answer: 134–167 words, self-contained, above the fold on the rendered page. Lead with the command/concept, then what breaks without it, then how to run or schedule it.
 quickAnswer: "The example-command reads or changes something on your system. This script wraps that command with a configurable threshold or path at the top, compares the result against your limit, and exits with code 1 when the limit is crossed — so cron jobs and monitoring hooks can detect failure. Without this check, the first sign of trouble is often a crashed service or corrupted write, not an alert. Set THRESHOLD and TARGET at the top of the script, run chmod +x, then execute manually or schedule with cron. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, and macOS Ventura when the listed commands are pre-installed. No extra packages required for the base version."
@@ -64,7 +64,7 @@ Save as `your-script.sh`. Change `THRESHOLD` and `TARGET` at the top before runn
 # Script: your-script.sh
 # Purpose: Alert when disk usage exceeds a threshold — prevent full-disk service crashes
 # Usage: ./your-script.sh [THRESHOLD_%]  (default: 80)
-# Tested: Ubuntu 22.04 LTS, Debian 12, macOS Ventura
+# Tested: Kali 2026.3 (bash 5.3) — name only what actually ran
 set -euo pipefail
 
 # ── CONFIGURATION ──────────────────────────────────────────────

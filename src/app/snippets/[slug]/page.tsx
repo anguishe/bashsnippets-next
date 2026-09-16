@@ -257,7 +257,10 @@ export default async function SnippetPage({ params }: PageProps) {
 
         <ToolkitCTA className="mx-auto my-12 max-w-3xl" placement="snippet" />
 
-        <EmailCapture className="mx-auto my-12 max-w-3xl" placement="snippet" />
+        {/* Subscribers land on bashlib-starter after confirming; asking them to sign up again is a dead end. */}
+        {slug !== 'bashlib-starter' && (
+          <EmailCapture className="mx-auto my-12 max-w-3xl" placement="snippet" />
+        )}
 
         <div className="my-10 flex items-start gap-4 rounded-lg border border-border bg-bg2 p-5">
           <Image

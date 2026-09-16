@@ -272,8 +272,8 @@ export default function Home() {
             Copy-Paste Scripts That Work
           </h2>
           <p className="mb-10 text-muted">
-            Every snippet runs on Ubuntu 22.04 LTS, Debian 12, Fedora 39, and
-            macOS Ventura. Tested personally — including the failure cases.
+            Every snippet is ShellCheck-clean and explains the failure cases,
+            not just the happy path.
           </p>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">

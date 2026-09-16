@@ -5,7 +5,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
-const GUMROAD_URL = 'https://anguish0.gumroad.com/l/toolkit';
+// ?wanted=true opens Gumroad's checkout directly instead of the product page.
+const GUMROAD_URL = 'https://anguish0.gumroad.com/l/toolkit?wanted=true';
 
 export const metadata: Metadata = {
   title: { absolute: 'Production Bash Toolkit — Field Guide + Script System | BashSnippets.xyz' },
@@ -41,7 +42,7 @@ const toolkitFaq = [
   {
     question: 'Can I use the toolkit commercially?',
     answer:
-      'Yes. Everything ships under the MIT license — unlimited personal and commercial use, no attribution required. The LICENSE file in the ZIP spells out exactly what you are allowed to deploy.',
+      'Yes. Use the code in unlimited personal and commercial projects, modify it, and ship it inside your own scripts and infrastructure. The one limit: do not resell or redistribute the kit itself. LICENSE.txt in the ZIP spells out the terms.',
   },
   {
     question: 'How is the toolkit delivered?',
@@ -51,12 +52,12 @@ const toolkitFaq = [
   {
     question: 'How is this different from the free snippets and the GitHub repo?',
     answer:
-      'The free snippets and the GitHub scripts each solve one problem at a time. The toolkit is a cohesive operational system: interconnected scripts that share the 31-function bashlib.sh library, the same strict-mode conventions, and one deployment baseline you copy to every new host.',
+      'The free snippets and the GitHub scripts each solve one problem at a time. The toolkit is a cohesive operational system: interconnected scripts that share the 30-function bashlib.sh library, the same strict-mode conventions, and one deployment baseline you copy to every new host.',
   },
   {
     question: 'What systems does it run on?',
     answer:
-      'Tested on Ubuntu 22.04+, Debian 12, and macOS with Homebrew bash. Every file passes ShellCheck with no suppressions, so it drops into repos with existing shell lint gates without carve-outs.',
+      'Written for bash 4+ on Linux, with portability helpers for macOS (Homebrew bash). Tested on Kali Linux with bash 5.3. Every script passes shellcheck -x -S style, so it drops into repos with existing shell lint gates.',
   },
   {
     question: 'Is this a subscription?',
@@ -136,8 +137,17 @@ export default function StarterKitPage() {
         </h1>
 
         <p className="mt-4 font-mono text-sm text-green">
-          $9 — instant download — MIT license
+          $9 — instant download — commercial use license
         </p>
+
+        <TrackedOutboundLink
+          href={GUMROAD_URL}
+          event="toolkit_purchase_click"
+          params={{ placement: 'top' }}
+          className="mt-5 inline-block rounded-md bg-green px-6 py-3 font-mono text-sm font-semibold text-bg no-underline transition-colors hover:bg-[#2ea043]"
+        >
+          Get the Production Bash Toolkit — $9 →
+        </TrackedOutboundLink>
 
         <div className="mt-10 space-y-4 text-sm leading-relaxed text-muted">
           <p>
@@ -171,7 +181,7 @@ export default function StarterKitPage() {
             that pass locally and explode in production, and how to handle secrets
             in CI without leaking them in process listings. The ZIP holds the
             runnable system: an interconnected set of operational scripts, a
-            31-function shared library, a copy-paste template for new work,
+            30-function shared library, a copy-paste template for new work,
             worked examples, plus README and LICENSE files so you know exactly
             what you are allowed to deploy commercially.
           </p>
@@ -233,7 +243,7 @@ export default function StarterKitPage() {
                 <span className="font-mono font-semibold text-green">bashlib.sh</span>
               </p>
               <p className="mt-1 text-sm leading-relaxed text-muted">
-                31-function shared library sourced by every script in the system.
+                30-function shared library sourced by every script in the system.
                 Leveled logging that survives cron redirection, error traps that
                 name the failing line, retry with exponential backoff,
                 single-instance locking, safe-delete guards, and a notify()
@@ -259,7 +269,7 @@ export default function StarterKitPage() {
                 <span className="font-mono font-semibold text-green">README + LICENSE + examples</span>
               </p>
               <p className="mt-1 text-sm leading-relaxed text-muted">
-                Deployment order, sourcing conventions, and MIT license terms
+                Deployment order, sourcing conventions, and license terms
                 spelled out. Worked examples show how each script composes with
                 bashlib.sh so you are not guessing which functions to call.
               </p>
@@ -293,9 +303,11 @@ export default function StarterKitPage() {
             word-splitting bug that passes on your laptop but truncates a path
             under cron, or an unset variable that{' '}
             <code className="font-mono text-xs text-green">set -u</code> turns
-            into a 3am page. Every file in this toolkit passes ShellCheck with
-            no suppressions. That means you can drop the ZIP into a repo with
-            existing shell lint gates and not carve out exceptions. For teams
+            into a 3am page. Every script in this toolkit passes{' '}
+            <code className="font-mono text-xs text-green">shellcheck -x -S style</code>
+            , and the few deliberate exceptions carry an inline directive that says
+            why. That means you can drop the ZIP into a repo with existing shell
+            lint gates without adding carve-outs of your own. For teams
             that treat bash as production code, not glue, that difference shows
             up the first time someone runs{' '}
             <code className="font-mono text-xs text-green">shellcheck *.sh</code>{' '}
@@ -327,11 +339,11 @@ export default function StarterKitPage() {
           </h2>
           <p className="text-sm leading-relaxed text-muted">
             One ZIP download plus one PDF. The ZIP contains the full operational
-            script system, bashlib.sh (31-function shared library), template.sh,
+            script system, bashlib.sh (30-function shared library), template.sh,
             README, LICENSE, and examples. The PDF is the 52-page field guide.
-            Everything is ShellCheck-clean. Tested on Ubuntu 22.04+, Debian 12,
-            and macOS with Homebrew bash. MIT license — unlimited personal and
-            commercial use, no attribution required in your cron output.
+            Everything is ShellCheck-clean. Tested on Kali Linux with bash 5.3,
+            with portability helpers for macOS. Unlimited personal and commercial
+            use of the code; the kit itself is licensed to one buyer.
           </p>
         </section>
 
@@ -339,12 +351,13 @@ export default function StarterKitPage() {
           <TrackedOutboundLink
             href={GUMROAD_URL}
             event="toolkit_purchase_click"
+            params={{ placement: 'bottom' }}
             className="inline-block rounded-md bg-green px-6 py-3 font-mono text-sm font-semibold text-bg no-underline transition-colors hover:bg-[#2ea043]"
           >
             Get the Production Bash Toolkit — $9 →
           </TrackedOutboundLink>
           <p className="mt-3 font-mono text-xs text-muted">
-            Instant download · MIT License · No subscription
+            Instant download · Commercial use · No subscription
           </p>
         </div>
 

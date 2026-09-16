@@ -14,7 +14,7 @@ faq:
   - question: "Will it work on macOS?"
     answer: "It has only been tested on Kali Linux with bash 5.3. run_with_timeout calls the GNU timeout command, which macOS does not ship; install coreutils or skip that one function. The rest uses bash built-ins, mktemp, mkdir and ps, which macOS has, but untested is untested: run bash lib/bashlib-starter.test.sh on your Mac before you rely on it."
   - question: "How is this different from the Production Bash Toolkit?"
-    answer: "The toolkit's bashlib.sh has 31 functions, including coloured leveled logging, safe_rm, notifications and portability helpers, plus backup, healthcheck, cleanup and cron-wrapper scripts built on it. Nine of the ten functions here share their names and arguments with it, so a script written against the starter keeps working when you switch. run_with_timeout is starter-only; the toolkit handles timeouts in cron-wrapper.sh."
+    answer: "The toolkit's bashlib.sh has 30 functions, including coloured leveled logging, safe_rm, notifications and portability helpers, plus backup, healthcheck, cleanup and cron-wrapper scripts built on it. Nine of the ten functions here share their names and arguments with it, so a script written against the starter keeps working when you switch. run_with_timeout is starter-only; the toolkit handles timeouts in cron-wrapper.sh."
 howToSteps:
   - name: "Download the library"
     text: "curl -fsSLO https://raw.githubusercontent.com/anguishe/bashsnippets/main/lib/bashlib-starter.sh into the directory your scripts live in."
@@ -337,7 +337,7 @@ It has only been tested on Kali Linux with bash 5.3. `run_with_timeout` calls th
 
 ### How is this different from the Production Bash Toolkit?
 
-The toolkit's `bashlib.sh` has 31 functions, including coloured leveled logging, safe_rm, notifications and portability helpers, plus backup, healthcheck, cleanup and cron-wrapper scripts built on it. Nine of the ten functions here share their names and arguments with it, so a script written against the starter keeps working when you switch. `run_with_timeout` is starter-only; the toolkit handles timeouts in `cron-wrapper.sh`.
+The toolkit's `bashlib.sh` has 30 functions, including coloured leveled logging, safe_rm, notifications and portability helpers, plus backup, healthcheck, cleanup and cron-wrapper scripts built on it. Nine of the ten functions here share their names and arguments with it, so a script written against the starter keeps working when you switch. `run_with_timeout` is starter-only; the toolkit handles timeouts in `cron-wrapper.sh`. The full library, those scripts and the 52-page field guide are in [the Production Bash Toolkit](/starter-kit).
 
 ---
 

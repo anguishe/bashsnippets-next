@@ -153,11 +153,11 @@ export default function AboutPage() {
             How scripts are tested
           </h2>
           <p className="text-sm leading-relaxed text-muted">
-            Every script on this site runs on Ubuntu 22.04 LTS before it goes up.
-            Scripts with filesystem or process interactions also get tested on
-            Debian 12. macOS notes come from running the same scripts on macOS
-            Ventura using Homebrew&apos;s bash 5.x — macOS ships bash 3.2 from 2007,
-            which is missing features these scripts rely on.
+            Every script on this site passes ShellCheck before it goes up, and the
+            outputs pasted on newer pages come from real runs on Kali Linux with
+            bash 5.3. macOS notes flag where the bash 3.2 macOS ships from 2007 is
+            missing features these scripts rely on — install Homebrew&apos;s bash
+            5.x there.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-muted">
             I test the failure cases, not just the happy path. The &quot;Common
@@ -194,11 +194,10 @@ export default function AboutPage() {
           <h2 className="mb-3 font-heading text-xl font-bold text-text">Stack</h2>
           <p className="text-sm leading-relaxed text-muted">
             Static HTML migrated to Next.js 15 with TypeScript and MDX. Hosted on
-            Vercel. Scripts tested on Ubuntu 22.04 LTS, Debian 12, Fedora 39, and
-            macOS Ventura. The site has no database — snippet content lives in MDX
-            files, and most interactive tools are React components rendered
-            client-side, with a few still embedding a standalone HTML page in an
-            iframe.
+            Vercel. Scripts are ShellCheck-clean, and the outputs pasted on the site
+            come from real runs on Kali Linux (bash 5.3). The site has no database —
+            snippet content lives in MDX files, and the interactive tools are React
+            components rendered client-side.
           </p>
         </section>
 
