@@ -8,7 +8,7 @@
 ---
 
 ## CRITICAL: fix immediately
-### C1 · Make the license wording match the zip (Travis decides which one changes)
+### C1 · Make the license wording match the zip — ✅ shipped 2026-09-16 (option A)
 **File:** `src/app/starter-kit/page.tsx:44,139,262,333,347`, `public/llms.txt:124`, or `LICENSE.txt` in the zip
 **Impact:** the only sales page, plus its FAQ schema that assistants quote, says MIT. The buyer receives a single-buyer, no-redistribution license. That invites a refund or chargeback, and it's the kind of mismatch a Show HN thread finds in minutes.
 **Fix, option A (recommended; keeps the kit sellable):** change the page to match the file.
@@ -21,7 +21,7 @@ Do the same for the badge lines ("MIT license" → "commercial use license") and
 ---
 
 ## HIGH: this week (by Tue 9/22)
-### H1 · Remove the unbacked claims on `/starter-kit`, `/about`, `/snippets`, `llms.txt`
+### H1 · Remove the unbacked claims on `/starter-kit`, `/about`, `/snippets`, `llms.txt` — ✅ shipped 2026-09-16
 **Files:** `starter-kit/page.tsx:59,296-297,332` · `about/page.tsx:196-197` · `snippets/page.tsx:13,20,29` · `llms.txt:7`
 **Impact:** follows the real-runs-only rule. "No suppressions" is false: the zip has 13.
 **Fix:**
@@ -29,17 +29,17 @@ Do the same for the badge lines ("MIT license" → "commercial use license") and
 - "Tested on Ubuntu 22.04+, Debian 12, and macOS" → "Tested on Kali Linux (bash 5.3)", unless Travis runs it elsewhere first.
 - Recount `bashlib.sh` functions by hand. The grep finds 30, while `ToolkitCTA.tsx:32` and 6 other places say 31. Fix every occurrence to whatever the true count is.
 
-### H2 · Buy button under the price line
+### H2 · Buy button under the price line — ✅ shipped 2026-09-16
 **File:** `src/app/starter-kit/page.tsx` (~139)
 **Impact:** the only button sits about 858 words down. The warm visitor who arrives from a CTA sees the price and no button.
 **Fix:** copy the existing `TrackedOutboundLink` block from `:340` to sit directly under the price line. Point both buttons at `https://anguish0.gumroad.com/l/toolkit?wanted=true`, which opens checkout directly.
 
-### H3 · Make the lead-magnet page sell
+### H3 · Make the lead-magnet page sell — ✅ shipped 2026-09-16
 **Files:** `src/app/snippets/[slug]/page.tsx:260`, `src/content/snippets/bashlib-starter.mdx:338-340`
 **Impact:** every confirmed subscriber lands here. Today the page asks them to subscribe again and never links the toolkit in its prose.
 **Fix:** skip `EmailCapture` when `slug === 'bashlib-starter'`, and turn "Production Bash Toolkit" in the FAQ answer into a link to `/starter-kit`.
 
-### H4 · Link the two orphans that serve the biggest Bing clusters
+### H4 · Link the two orphans that serve the biggest Bing clusters — ✅ shipped 2026-09-16
 **Files:** `src/content/guides/open-ports-linux.mdx` → `/snippets/ports-audit` · `src/content/guides/auto-restart-linux-service.mdx` → `/snippets/service-watchdog`
 **Impact:** open ports is 26% of Bing queries, and the service-watchdog cluster sits at position 2.0. Both scripts have zero inbound content links.
 **Fix:** one sentence plus a link in each guide, next to the section the script automates. `npm run indexnow` after deploy.
@@ -60,12 +60,12 @@ Plus once, any evening before 10/21: the two awesome-shell PRs (§D1, about 20 m
 ---
 
 ## MEDIUM: before 2026-10-21 (beta ends)
-### M1 · Bring titles and descriptions inside Bing's limits
+### M1 · Bring titles and descriptions inside Bing's limits — ✅ shipped 2026-09-16 (`4ce6715`)
 **Files:** the title template (layout / `generateMetadata` in the snippet, tool, guide and ShellCheck routes), plus registry descriptions
 **Impact:** 34/79 titles are over 65 characters and 68/79 descriptions over 160, on the only channel with measured traffic.
 **Fix:** drop the ` | BashSnippets.xyz` suffix when the full title would pass 65 characters (fixes 15 in one change). Trim descriptions to 150–160 characters, keeping the answer-first wording. Rebuild, then `npm run indexnow` for all 79.
 
-### M2 · Purchase tracking you can trust
+### M2 · Purchase tracking you can trust — ✅ shipped 2026-09-16 (`3f79ff1`; count of record = Gumroad views by referrer)
 **Files:** `src/components/TrackedOutboundLink.tsx:26`, `src/lib/track.ts:5`
 **Fix:** `rel="noopener"` (drop `noreferrer`) on the Gumroad link, so Gumroad attributes the source. Check `toolkit_purchase_click` in GA4 DebugView once. If it's consent-gated, treat **Gumroad's own view and sale counts as the metric of record** for 11/04.
 

@@ -84,13 +84,13 @@ const STRONGEST_GUIDE = guides[0];
 
 export const metadata: Metadata = {
   title: { absolute: 'Bash Guides | BashSnippets.xyz' },
-  description: 'In-depth bash guides for Linux sysadmins.',
+  description: 'In-depth bash guides for Linux sysadmins: scripts that survive cron, safe strict mode, open ports, hung processes, service watchdogs, CI/CD and API calls.',
   alternates: {
     canonical: `${SITE_URL}/guides`,
   },
   openGraph: {
     title: 'Bash Guides | BashSnippets.xyz',
-    description: 'In-depth bash guides for Linux sysadmins.',
+    description: 'In-depth bash guides for Linux sysadmins: scripts that survive cron, safe strict mode, open ports, hung processes, service watchdogs, CI/CD and API calls.',
     url: `${SITE_URL}/guides`,
     type: 'website',
     images: [
@@ -105,7 +105,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Bash Guides | BashSnippets.xyz',
-    description: 'In-depth bash guides for Linux sysadmins.',
+    description: 'In-depth bash guides for Linux sysadmins: scripts that survive cron, safe strict mode, open ports, hung processes, service watchdogs, CI/CD and API calls.',
     images: [`${SITE_URL}/ogimage.png`],
   },
 };
@@ -115,7 +115,7 @@ const collectionPageSchema = {
   '@type': 'CollectionPage',
   name: 'Bash Guides',
   url: `${SITE_URL}/guides`,
-  description: 'In-depth bash guides for Linux sysadmins.',
+  description: 'In-depth bash guides for Linux sysadmins: scripts that survive cron, safe strict mode, open ports, hung processes, service watchdogs, CI/CD and API calls.',
   hasPart: guides.map((guide) => ({
     '@type': 'TechArticle',
     name: guide.title,

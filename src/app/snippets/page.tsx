@@ -10,14 +10,14 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 export const metadata: Metadata = {
   title: { absolute: `Bash Script Library — ${snippets.length} Copy-Paste Shell Scripts for Linux` },
   description:
-    `${snippets.length} copy-paste bash scripts with plain-English explanations.`,
+    `${snippets.length} copy-paste bash scripts for Linux with plain-English explanations: backups, disk alerts, cron, SSH, ports and logs. ShellCheck-clean.`,
   alternates: {
     canonical: `${SITE_URL}/snippets`,
   },
   openGraph: {
     title: `Bash Script Library — ${snippets.length} Copy-Paste Shell Scripts for Linux`,
     description:
-      `${snippets.length} copy-paste bash scripts with plain-English explanations.`,
+      `${snippets.length} copy-paste bash scripts for Linux with plain-English explanations: backups, disk alerts, cron, SSH, ports and logs. ShellCheck-clean.`,
     url: `${SITE_URL}/snippets`,
     type: 'website',
     images: [{ url: `${SITE_URL}/ogimage.png`, width: 1200, height: 630, alt: 'BashSnippets — Bash Script Library' }],
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: `Bash Script Library — ${snippets.length} Copy-Paste Shell Scripts for Linux`,
     description:
-      `${snippets.length} copy-paste bash scripts with plain-English explanations.`,
+      `${snippets.length} copy-paste bash scripts for Linux with plain-English explanations: backups, disk alerts, cron, SSH, ports and logs. ShellCheck-clean.`,
     images: [`${SITE_URL}/ogimage.png`],
   },
 };
