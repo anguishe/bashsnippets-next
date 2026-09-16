@@ -4,9 +4,11 @@
 has to reconstruct it from git log and five dated audits again. Update the status board and the
 changelog at the end of every session that ships or decides anything.
 
-Last updated: **2026-09-11**. Owner: Travis. Maintained by Claude Code.
+Last updated: **2026-09-16**. Owner: Travis. Maintained by Claude Code.
 
-> **Resumed and cleared 2026-09-11.** [`docs/HANDOFF-2026-09-11.md`](HANDOFF-2026-09-11.md) lists what is left (all Travis: Buttondown, HN account, old clones, posting from Fri 9/11) and the dates.
+> **2026-09-16 — monetization date moved to 2026-11-04** (Travis: income by WoW: Forever launch, light weekly upkeep after). Work from [`docs/ACTION-PLAN-2026-09-16.md`](ACTION-PLAN-2026-09-16.md); evidence in [`docs/AUDIT-2026-09-16.md`](AUDIT-2026-09-16.md). The posting queue never started (dev.to newest = 2026-07-30), so it restarts at two a week, Thu 9/17 → Tue 11/3.
+>
+> Earlier resume point: [`docs/HANDOFF-2026-09-11.md`](HANDOFF-2026-09-11.md) (Travis items 1, 2, 8, 10 still open).
 
 Companion files: `CLAUDE.md` (architecture + rules), `CONTRIBUTING.md` (workflow),
 `OWNERSHIP.md` (accounts), `docs/MANUAL-ACTIONS-2026-09-01.md` (human steps with evidence),
@@ -25,10 +27,11 @@ customer at any price (one $0.00 self-test order). GA4 shows 116 sessions in thr
 Travis. Google has never served a content page. Bing and Microsoft Copilot are the only channels
 with measured, growing signal.
 
-**Kill signal (fires ~2026-10-06):** five weeks of email capture on every content page with zero
-signups = demand failure → freeze the site at 1 h/month and move hours to a business with customers.
-Secondary: fewer than 15 Gumroad outbound clicks in six weeks across 63 pages. The clock started
-2026-09-01, the first day the form actually rendered. **Buttondown includes 1 test subscriber (Travis, 2026-09-11) — subtract it from every read.**
+**Monetization read (moved 2026-09-16 from ~10/06 to Wed 2026-11-04):** ≥ 1 real sale or ≥ 5 real
+signups with ≥ 10 of the 14 queued posts shipped = maintain at ~45 min/week; 0 sales and < 5 signups
+after ≥ 10 posts = demand failure → freeze at 1 h/month; < 10 posts shipped = the test never ran →
+freeze. Read Buttondown and Gumroad directly (GA4 purchase clicks likely undercount). Table and weekly
+upkeep: `ACTION-PLAN-2026-09-16.md`. Thresholds proposed by Claude, Travis may change them. **Buttondown includes 1 test subscriber (Travis, 2026-09-11) — subtract it from every read.**
 
 ---
 
@@ -56,10 +59,11 @@ Secondary: fewer than 15 Gumroad outbound clicks in six weeks across 63 pages. T
 | — | Competitor SERP teardown per head cluster | 🔒 **deferred by Travis** until all fixes + queued content ship | §5 |
 | 3.A | Bing sitemap stuck "Processing" since 5/27 → resubmitted | ✅ 2026-09-10, crawled *Success* 2026-09-11 | Bing WMT → Sitemaps (72 discovered 9/11; expect 78 by 9/22) |
 | 3.B | Site push: 26-snippet guide mesh, 4 guides → ShellCheck pages, 4 quickAnswers, sameAs unified, CTA copy, **6 new snippets + 6 repo scripts** | ✅ 2026-09-11 | sitemap 72 → 78; `docs/MANUAL-ACTIONS-2026-09-10.md` §0 |
-| 3.C | Cross-posting (10 drafts + 3 new + 2 kit) | 🔓 **UNSHELVED** by Travis 2026-09-10 — Claude drafts, Travis posts | `docs/POST-QUEUE-2026-09.md` §A–B |
+| 3.C | Cross-posting (10 drafts + 3 new + 2 kit) | 🔓 unshelved 2026-09-10 · ⚠️ **0 posted as of 9/16** → re-dated to Tue+Thu, 9/17 → 11/3 | `ACTION-PLAN-2026-09-16.md` H6 (dates) + `POST-QUEUE-2026-09.md` (bodies, recipes) |
 | 3.D | First earned links: awesome-list PRs, Show HN, Reddit kit, listings | ⏳ drafted, Travis posts | `docs/POST-QUEUE-2026-09.md` §D–G |
 | 3.D2 | Google without quota: dev.to canonicals re-pointed, deep links only, mesh | ✅ 2026-09-11, 7/7 via the dev.to editor, API-verified | MANUAL-ACTIONS-2026-09-10 §1.1 |
-| 3.E | Income surfaces (lead magnet, Gumroad Discover, Sponsors, productized fix) | 🔒 **deferred by Travis 2026-09-10** — traffic + indexing first | plan file §3 Track E |
+| 3.E | Income surfaces | 🔓 **reopened 2026-09-16, due 2026-11-04.** Lead magnet ✅ 9/11. Gumroad Discover + patched zip = Travis (H5). Sales-page truth fixes C1/H1–H3 = Claude, awaiting go. Sponsors + productized service stay deferred | `ACTION-PLAN-2026-09-16.md` |
+| 3.F | 2026-09-16 audit: sales page says MIT (zip is single-buyer), "no suppressions" (13), unbacked Tested-on lines; buy button 858 words down; 7 orphan snippets; 34/79 titles + 68/79 descriptions over Bing limits | ⏳ findings filed, fixes need Travis's go | `AUDIT-2026-09-16.md` |
 | — | YouTube Shorts engine (`~/Projects/bashsnippets-content-engine`) | ⏸ parked by Travis 2026-09-01 | §6 |
 | — | Google / GSC work | 🔒 closed until **2026-11-30** | zero earned links gates everything there |
 
@@ -145,9 +149,9 @@ and `public/llms.txt`. Then `npm run indexnow -- <url>`.
    (open-ports = 26 % of Bing queries), `service-watchdog` (cluster at position 2.0),
    `log-retention-cleanup` (backup cluster = only one with clicks). Sitemap 78.
 
-Parked: the JSX→MDX migration (2.2). Cross-posting is **unshelved** (Travis 2026-09-10): the queue is
-`docs/POST-QUEUE-2026-09.md`; drafts with `REVIEW: incident dramatized` still need Travis to vet the
-war story before posting.
+Parked: the JSX→MDX migration (2.2). Cross-posting is **unshelved** (Travis 2026-09-10): bodies in
+`docs/POST-QUEUE-2026-09.md`, dates in `ACTION-PLAN-2026-09-16.md` H6. Every queued draft is built on
+real runs; only reserve drafts 12–15 are unqueued.
 
 ---
 
@@ -171,7 +175,7 @@ war story before posting.
 | `~/Projects/bashsnippets-next` (`anguishe/bashsnippets-next`) | the site | live = HEAD, clean |
 | `~/Projects/bashsnippets` (`anguishe/bashsnippets`) | public MIT script library | 36 scripts, 0 ahead/0 behind, ShellCheck-clean. `bash-error-handling` (9 teaching blocks) and `kill-a-process` (command reference) deliberately have no script — `NO_REPO_SCRIPT` in `src/lib/snippets.ts`. Open ideas from July, never done: PR into awesome-shell / awesome-sysadmin lists, pin the repo, profile README. |
 | `~/Projects/bash-snippets` (`anguishe/anguishe.github.io`) | pre-Next static site | **dead** — Pages 404, CNAME gone. 17 uncommitted June CSS tweaks stashed 2026-09-01 (`git stash list` there). Leave it. |
-| `~/Projects/bashsnippets-content-engine` | YouTube Shorts render pipeline (Piper TTS + PIL + ffmpeg), own git repo | Stage C done 2026-08-12, day-01 rendered, dormant. Channel @BashSnippets: 9 subs, 9 Shorts, last upload 2026-05-09. **Parked** until the site's kill signal reads (~2026-10-06). |
+| `~/Projects/bashsnippets-content-engine` | YouTube Shorts render pipeline (Piper TTS + PIL + ffmpeg), own git repo | Stage C done 2026-08-12, day-01 rendered, dormant. Channel @BashSnippets: 9 subs, 9 Shorts, last upload 2026-05-09. **Parked** until the site's monetization read (2026-11-04). |
 
 ---
 
@@ -180,9 +184,10 @@ war story before posting.
 | Date | What |
 |---|---|
 | **2026-09-13** | Bing WMT → Sitemaps: *Last crawl* populated, status Success, 78 discovered (was "Processing" since 5/27). |
-| **2026-09-24** | Week-1 + week-2 dev.to queue must have shipped (Thu) for the 10/06 read to be honest. |
+| **Tue + Thu, 9/17 → 11/3** | Posting cadence, 14 drafts (ACTION-PLAN H6). |
 | **2026-09-22** | 2.4 re-check against the **9/10 baselines** (MANUAL-ACTIONS-2026-09-10 §3): Bing indexed 54 / 3M imp 816 / clicks 13 / kw 448; Copilot 124; GSC links to any URL ≠ `/` = 0; GSC indexed 1; GA4 sessions 3; Buttondown 0; Gumroad $0. Also: did Bing recrawl the 12 restored pages? |
-| **~2026-10-06** | First honest read of the kill signal (5 weeks of email capture). |
+| 2026-10-21 | WoW beta ends; Medium items M1–M3 done by here. |
+| **2026-11-04** | **Monetization read** (WoW: Forever launch day): maintain or freeze, per §1. Replaces the ~10/06 kill signal. |
 | 2026-11-30 | GSC reopens for review. |
 | 2027-04-30 | Domain expiry (auto-renew on). |
 
@@ -195,7 +200,7 @@ war story before posting.
 - **Every deploy ends with `npm run indexnow`.** Submit the sitemap, then confirm in Bing WMT → IndexNow.
 - Do not spend GSC "Request indexing" quota on snippet pages. Do not click "Validate fix".
 - Do not buy a .com and 301. The deficit migrates with you.
-- Cross-posting stays shelved until 2.4. Every one of the 10 drafts needs Travis to vet the war story first.
+- Cross-posting is live: Claude drafts on real runs, Travis posts. No invented incidents (see `bashsnippets-real-runs-only`).
 - New guide = 4 files + `homeGuides` + `llms.txt`. The sitemap generator hardcodes guide URLs.
 - New ShellCheck deep dive = MDX + registry entry in `src/lib/shellcheck-pages.ts` + `llms.txt`. The sitemap picks the registry up; the decoder tool lists it automatically. Not a guide — `homeGuides` stays untouched.
 - GSC on Browser 4 is `authuser=0`. Bing WMT and every other console are on the same profile.
@@ -211,7 +216,9 @@ war story before posting.
 | `CONTRIBUTING.md` | practical add-a-snippet / tool / guide workflow |
 | `README.md` | repo front page |
 | `OWNERSHIP.md` | every account and ID |
-| `docs/HANDOFF-2026-09-11.md` | **resume point** after the 9/11 pause — open work for Travis and Claude, in order |
+| `docs/ACTION-PLAN-2026-09-16.md` | **current work queue** to the 2026-11-04 monetization read |
+| `docs/AUDIT-2026-09-16.md` | the 2026-09-16 monetization-readiness audit (score 55) |
+| `docs/HANDOFF-2026-09-11.md` | previous resume point — Travis items 1, 2, 8, 10 still open |
 | `docs/MANUAL-ACTIONS-2026-09-10.md` | **current** human-only setup/config steps (dev.to canonicals, GitHub profile, Bing crawl control, Buttondown welcome, Medium titles, deploy verify) |
 | `docs/POST-QUEUE-2026-09.md` | the posting queue: dev.to days 1–14, Medium imports, CoderLegion, awesome-list PRs, Show HN, Reddit kit, listings — Travis posts, ticks rows |
 | `docs/MANUAL-ACTIONS-2026-09-01.md` | human-only steps with exact instructions and evidence (Phase 1 all closed; 2.4 open) |
@@ -247,6 +254,7 @@ rewritten, because rewriting would have invalidated commit IDs other docs cite.
 
 ## 11. Changelog
 
+- **2026-09-16 — audit + monetization date → 2026-11-04.** Travis: income by the WoW: Forever launch (11/04), light weekly upkeep after. Read-only audit (`AUDIT-2026-09-16.md`, 55/100): build/lint/tsc clean, 79/79 live URLs 200 + `index, follow`, CTA 77 / email form 74, no ads/affiliates. Live: GSC 3 M = 0 clicks / 86 imp (homepage); GA4 28 d = 2 users; dev.to newest 2026-07-30 — **none of the queue has been posted**. Findings: `/starter-kit` claims MIT but the zip's LICENSE.txt is single-buyer/no-redistribution; "no suppressions" false (13); Tested-on Ubuntu/Debian/macOS lines unbacked; "31-function" vs 30 found; only buy button ~858 words down; lead-magnet page re-asks for signup and never links the toolkit; 7 new snippets have zero inbound content links; 34/79 titles + 68/79 descriptions over Bing limits. Kill signal replaced by the 11/04 read (§1); posting re-dated to Tue+Thu 9/17 → 11/3; 3.E reopened. No site code changed. Bing/Buttondown/Gumroad not re-read (Bing logged out; extension blocks the other two).
 - **2026-09-11 (seventh pass) — starter page, Day 1 cross-posts, HN cadence.** `/snippets/bashlib-starter` shipped (library in full, identical to the repo file, real 31-check test output, 5 FAQs; `getRepoScriptUrl` gains a `REPO_PATH` override for `lib/`; sitemap 79; `llms.txt` 45 snippets; commits `0e7ddd8`, repo `82e3f98`). Buttondown *After confirming* now redirects to that page. Day 1 (draft 22) Medium body and a CoderLegion excerpt written. HN: account exists since ~May, first comments 9/11, daily reminder `.ics` + log in `POST-QUEUE` §E2. Travis decided: live articles stay as they are, real runs only going forward; reserve drafts 12–15 rewritten on real runs (`POST-QUEUE` §B4).
 - **2026-09-11 (sixth pass) — calendar and toolkit.** 2026-09-11 is a **Friday**; every weekday label in these docs had been computed as if it were Thursday. 40 labels shifted back one day (posting Day 1 = today, Fri 9/11; the rhythm is unchanged), the week-1+2 deadline moved to Thu 9/24, and the earliest Show HN is Tue 9/29. Toolkit temp-cleanup bug fixed in a new zip, with the Gumroad upload left to Travis (HANDOFF item 10). The free starter got the same registry fix, so `tmp="$(make_temp_file)"` works in both and stays ShellCheck-clean in user scripts; its test is now 31 checks.
 - **2026-09-11 (fifth pass) — the lead magnet exists.** `anguishe/bashsnippets` `lib/bashlib-starter.sh`: ten functions (strict mode + ERR trap naming the failing line, cleanup on every exit path, lock, timeout, retry, log/die/require_cmd), 27-check test on the failure paths, README section; Buttondown *After confirming* now redirects there. Scripts repo audit: 9 scripts had drifted behind their site pages and lacked `set -euo pipefail` — synced; 3 missing header links added; 2 unbacked "Tested: Ubuntu/Fedora/macOS" lines removed from repo + site; README table sorted; all 42 ShellCheck-clean (repo `63334af`, site `f012e77`). Found a bug in the paid toolkit: `tmp=$(make_temp_file)` leaks the file (HANDOFF item 10).

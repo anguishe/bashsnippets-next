@@ -1,5 +1,7 @@
 # BashSnippets — Post Queue, September 2026
 
+> **2026-09-16: the dates below are superseded.** Nothing had been posted by 9/16. The new cadence is two a week (Tue + Thu), running Thu 9/17 → Tue 11/3, and the table is in `docs/ACTION-PLAN-2026-09-16.md` H6. Bodies, titles, canonicals, tags and recipes in this file are unchanged. Keep ticking rows here.
+
 Written 2026-09-10. Work top to bottom; the order **is** the posting order. Tick the `[ ]` as you go
 and paste the live URL next to it. Body text lives in the linked files, never here.
 Platform rules: `docs/CROSS-POST-BACKLOG.md`. House style: `~/.claude/skills/bashsnippets-article/SKILL.md`.
