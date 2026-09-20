@@ -14,35 +14,44 @@ How to post each platform: `docs/POST-QUEUE-2026-09.md` → *Recipes* (D = dev.t
 
 Checked live 2026-09-16 before numbering: dev.to has 37 published posts (newest 2026-07-30), 0 drafts, and none of these canonicals is taken. CoderLegion's newest post is 2026-07-08, 0 drafts.
 
-## 02–14 are already sitting on dev.to as DRAFTS (created 2026-09-20)
+## 02–14 are SCHEDULED on dev.to (2026-09-20) — nothing to post by hand
 
-`scripts/devto-drafts.mjs` pushed every remaining queue file to dev.to as an **unpublished draft**,
-with the title, 4 tags, `canonical_url`, description and cover image already set from the file's front
-matter. Verified on the account: 13 drafts, 0 published, bodies intact (no front-matter leak, code
-fences balanced).
+All thirteen are queued to publish themselves at **08:00 America/Chicago** on the dates in the
+table below. Verified after scheduling: every one returns **404 to an anonymous fetch**, the public
+feed still shows #01 as newest, all canonicals point at bashsnippets.xyz, tags intact, 0 unscheduled
+leftovers.
 
-**So the Tue/Thu job is no longer "paste a file and set four fields". It is "open the draft, pick a
-date".** dev.to's API cannot schedule — `published_at` is not a create field — but **its editor can**,
-so the whole queue can be scheduled in one sitting and then survives a busy October.
-Steps: `docs/MANUAL-ACTIONS-2026-09-20.txt` §1.
+**dev.to's API can schedule — it just isn't documented.** The published API reference lists no
+`published_at` on create or update, and DEV's editor guide only describes the hexagon button. But
+`PUT /api/articles/{id}` with `{"article": {"published": true, "published_at": "2026-09-22 08:00 -0500"}}`
+sets **SCHEDULED**, not live. Confirmed empirically before committing to it, by fetching the article
+URL with no cookies and getting 404. `scripts/devto-schedule.mjs` does all thirteen; it is idempotent
+and re-running it skips anything already on the right date.
 
-| # | draft id | # | draft id | # | draft id |
-|---|---|---|---|---|---|
-| 02 | `4700404` | 07 | `4700411` | 12 | `4700417` |
-| 03 | `4700405` | 08 | `4700413` | 13 | `4700419` |
-| 04 | `4700406` | 09 | `4700414` | 14 | `4700422` |
-| 05 | `4700407` | 10 | `4700415` | | |
-| 06 | `4700410` | 11 | `4700416` | | |
+⚠ **`published_at` is also parsed out of front matter in `body_markdown`**, which is how this was
+first found — but that route leaves the front matter block inside the stored body. The JSON field
+needs no body edit, so use the JSON field.
 
-Drafts are listed at <https://dev.to/dashboard> (newest first). **Re-running the script is safe** — it
-skips any queue file whose canonical is already on the account, published or draft.
+⚠ **dev.to throttles article writes hard** ("Retry later" as a plain-text body, not JSON). The
+script spaces writes 8s apart and backs off 35s on a throttle. Don't remove that.
 
-⚠ **Editing a draft's body on dev.to does not change the file here, and vice versa.** If a queue file
-is edited after 2026-09-20, delete that draft on dev.to and re-run the script for it.
+| # | id | publishes | # | id | publishes | # | id | publishes |
+|---|---|---|---|---|---|---|---|---|
+| 02 | `4700404` | Tue 09-22 | 07 | `4700411` | Thu 10-08 | 12 | `4700417` | Tue 10-27 |
+| 03 | `4700405` | Thu 09-24 | 08 | `4700413` | Tue 10-13 | 13 | `4700419` | Thu 10-29 |
+| 04 | `4700406` | Tue 09-29 | 09 | `4700414` | Thu 10-15 | 14 | `4700422` | Tue 11-03 |
+| 05 | `4700407` | Thu 10-01 | 10 | `4700415` | Tue 10-20 | | | |
+| 06 | `4700410` | Tue 10-06 | 11 | `4700416` | Thu 10-22 | | | |
 
-**Ticking is still manual and it matters:** #01 went up on 9/16 and sat unticked for four days, so the
-file could not answer "what has shipped" — which is the exact number the 11/04 read turns on. Paste the
-live URL into the Done column the same evening.
+**11-03 is stored as `14:00Z`, not `13:00Z`, and that is correct** — US DST ends 2026-11-01, so
+08:00 Chicago is CST (−0600) for the last post and CDT (−0500) for the other twelve.
+
+⚠ **Editing a queue file here no longer reaches dev.to.** The article is scheduled with the body it
+already has. A content change means editing the file *and* PUTting the new `body_markdown` to that
+id — tell Claude rather than doing one without the other.
+
+**Still manual, and still the thing that decides the 11/04 read:** the Medium companion each
+Tue/Thu, and ticking the Done column. #01 went live 9/16 and sat unticked for four days.
 
 | # | Post on | dev.to title (exact) | dev.to file | canonical_url | tags | Medium (same evening, paste the .html) | Why this slot | Done / URL |
 |---|---|---|---|---|---|---|---|---|

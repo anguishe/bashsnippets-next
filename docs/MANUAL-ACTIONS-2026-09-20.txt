@@ -27,67 +27,31 @@ Nothing is public yet. Drafts are private until you schedule or publish them.
 
 
 ================================================================================
-1. TONIGHT (Sun 9/20) - SCHEDULE ALL 13 DRAFTS - about 15 minutes
+1. SCHEDULE THE 13 DEV.TO POSTS - DONE 2026-09-20 BY CLAUDE
 ================================================================================
-This is the highest-value 15 minutes between now and November 4th.
+Superseded. This section used to be a 15-minute job in the dev.to editor. It is
+not needed: dev.to's API can schedule after all.
 
-dev.to's API cannot schedule posts, but its editor can. So the drafts are already
-sitting there and all you are doing is putting a date on each one.
+All 13 are SCHEDULED, publishing at 08:00 America/Chicago:
+  02 Tue 09-22 . 03 Thu 09-24 . 04 Tue 09-29 . 05 Thu 10-01 . 06 Tue 10-06
+  07 Thu 10-08 . 08 Tue 10-13 . 09 Thu 10-15 . 10 Tue 10-20 . 11 Thu 10-22
+  12 Tue 10-27 . 13 Thu 10-29 . 14 Tue 11-03
 
-STEP 1  Open https://dev.to/dashboard in the browser logged in as bashsnippets.
-        You should see 13 drafts at the top, newest first.
+Verified: all 13 return 404 to an anonymous fetch, public feed still shows #01
+as newest, canonicals and tags intact, 0 unscheduled leftovers.
 
-STEP 2  Click the first draft to open it in the editor.
+The method, since it is undocumented and worth keeping:
+  PUT https://dev.to/api/articles/{id}
+  {"article": {"published": true, "published_at": "2026-09-22 08:00 -0500"}}
+Neither the Forem API reference nor DEV's editor guide lists published_at. It
+works anyway. Also parsed out of body_markdown front matter, but that route
+leaves the front matter inside the stored body - use the JSON field.
+dev.to throttles article writes hard and answers "Retry later" as PLAIN TEXT,
+not JSON, so a naive JSON.parse crashes. scripts/devto-schedule.mjs spaces
+writes 8s apart and backs off 35s.
 
-STEP 3  Look at the BOTTOM LEFT of the editor, next to the Publish button.
-        There is a small HEXAGON icon. Click it.
-        Date and time inputs appear ("Schedule Publication").
-
-STEP 4  Set the date from the table below. Set the time to 08:00 AM your time
-        for every post - one consistent time, so you never have to think about it.
-        (Time of day is your call. 8 AM Central puts it in front of US morning
-        and European afternoon readers. Just keep it the same every time.)
-
-STEP 5  Click Publish. It will NOT go out now - it goes out on the date you set.
-        dev.to will show the post as scheduled.
-
-STEP 6  Repeat for the other 12. Work down the table in order.
-
-        POST   DRAFT ID    SCHEDULE FOR
-        ----   --------    ------------------
-        02     4700404     Tue 2026-09-22
-        03     4700405     Thu 2026-09-24
-        04     4700406     Tue 2026-09-29
-        05     4700407     Thu 2026-10-01
-        06     4700410     Tue 2026-10-06
-        07     4700411     Thu 2026-10-08
-        08     4700413     Tue 2026-10-13
-        09     4700414     Thu 2026-10-15
-        10     4700415     Tue 2026-10-20
-        11     4700416     Thu 2026-10-22
-        12     4700417     Tue 2026-10-27
-        13     4700419     Thu 2026-10-29
-        14     4700422     Tue 2026-11-03
-
-        Match drafts to post numbers by title - the titles are in
-        docs/cross-posts/queue/README.md, in this same order.
-
-STEP 7  Sanity check before you close the tab: the dashboard should show 13
-        scheduled posts and 0 drafts. Post #02 should say 9/22.
-
-IF THERE IS NO HEXAGON ICON
-        Some editor modes do not show it. Switch the editor to the Rich + Markdown
-        editor (not the Basic Markdown editor) and look again. If it is still not
-        there, skip scheduling - leave them as drafts and publish each one manually
-        on its date. That costs about 30 seconds per post instead of 15 minutes
-        once, but the drafts already being written is still most of the saving.
-        Tell Claude either way.
-
-DO NOT
-        Do not edit a draft's body on dev.to. The file here and the draft there are
-        not linked. If a post needs a content change, tell Claude - the fix goes in
-        the file, then that one draft gets deleted and recreated.
-
+NEW RULE: editing a queue .md file no longer reaches dev.to. Content change =
+edit the file AND PUT the new body to that id. Tell Claude.
 
 ================================================================================
 2. TOMORROW (Mon 9/21) - CODERLEGION, TWO POSTS - about 10 minutes
@@ -288,7 +252,7 @@ nothing this week.
 ================================================================================
 CHECKLIST
 ================================================================================
-  [ ] 1.  Sun 9/20  Schedule 13 dev.to drafts          15 min   <- do this first
+  [x] 1.  Sun 9/20  Schedule 13 dev.to posts           DONE by Claude
   [ ] 2.  Mon 9/21  CoderLegion x2                     10 min
   [ ] 3.  Tue 9/22  Medium #02                          7 min
   [ ] 5D. Tue 9/22  Metric re-check                     5 min
