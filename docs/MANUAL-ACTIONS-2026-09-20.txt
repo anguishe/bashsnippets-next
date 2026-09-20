@@ -1,0 +1,278 @@
+================================================================================
+MANUAL ACTIONS - Sunday 2026-09-20
+Everything below needs your hands. Claude cannot do these.
+Target: the 2026-11-04 monetization read.
+================================================================================
+
+WHY THIS EXISTS
+---------------
+The 11/04 read only counts if at least 10 of the 14 queued posts ship.
+Fewer than 10 = "the test never ran" = automatic freeze, no matter what sales do.
+
+There are 13 posts left and exactly 13 slots left (9/22 through 11/3). Zero slack.
+And those slots sit underneath WoW beta (to 10/21), launch (11/04), and Super Dad
+(daily to 11/12). Every Tuesday you miss is gone for good.
+
+So section 1 is the whole ballgame. Do it tonight and the rest of October is safe
+whatever else happens.
+
+WHAT CLAUDE ALREADY DID TODAY (you do not need to repeat any of this)
+  - Pushed all 13 remaining posts to dev.to as unpublished DRAFTS. Title, 4 tags,
+    canonical_url, description and cover image are already set on each one.
+    Verified on the account: 13 drafts, 0 published, bodies clean.
+  - Confirmed post #01 went live 9/16 and ticked it in the queue with its URL.
+  - Recorded the draft IDs in docs/cross-posts/queue/README.md.
+
+Nothing is public yet. Drafts are private until you schedule or publish them.
+
+
+================================================================================
+1. TONIGHT (Sun 9/20) - SCHEDULE ALL 13 DRAFTS - about 15 minutes
+================================================================================
+This is the highest-value 15 minutes between now and November 4th.
+
+dev.to's API cannot schedule posts, but its editor can. So the drafts are already
+sitting there and all you are doing is putting a date on each one.
+
+STEP 1  Open https://dev.to/dashboard in the browser logged in as bashsnippets.
+        You should see 13 drafts at the top, newest first.
+
+STEP 2  Click the first draft to open it in the editor.
+
+STEP 3  Look at the BOTTOM LEFT of the editor, next to the Publish button.
+        There is a small HEXAGON icon. Click it.
+        Date and time inputs appear ("Schedule Publication").
+
+STEP 4  Set the date from the table below. Set the time to 08:00 AM your time
+        for every post - one consistent time, so you never have to think about it.
+        (Time of day is your call. 8 AM Central puts it in front of US morning
+        and European afternoon readers. Just keep it the same every time.)
+
+STEP 5  Click Publish. It will NOT go out now - it goes out on the date you set.
+        dev.to will show the post as scheduled.
+
+STEP 6  Repeat for the other 12. Work down the table in order.
+
+        POST   DRAFT ID    SCHEDULE FOR
+        ----   --------    ------------------
+        02     4700404     Tue 2026-09-22
+        03     4700405     Thu 2026-09-24
+        04     4700406     Tue 2026-09-29
+        05     4700407     Thu 2026-10-01
+        06     4700410     Tue 2026-10-06
+        07     4700411     Thu 2026-10-08
+        08     4700413     Tue 2026-10-13
+        09     4700414     Thu 2026-10-15
+        10     4700415     Tue 2026-10-20
+        11     4700416     Thu 2026-10-22
+        12     4700417     Tue 2026-10-27
+        13     4700419     Thu 2026-10-29
+        14     4700422     Tue 2026-11-03
+
+        Match drafts to post numbers by title - the titles are in
+        docs/cross-posts/queue/README.md, in this same order.
+
+STEP 7  Sanity check before you close the tab: the dashboard should show 13
+        scheduled posts and 0 drafts. Post #02 should say 9/22.
+
+IF THERE IS NO HEXAGON ICON
+        Some editor modes do not show it. Switch the editor to the Rich + Markdown
+        editor (not the Basic Markdown editor) and look again. If it is still not
+        there, skip scheduling - leave them as drafts and publish each one manually
+        on its date. That costs about 30 seconds per post instead of 15 minutes
+        once, but the drafts already being written is still most of the saving.
+        Tell Claude either way.
+
+DO NOT
+        Do not edit a draft's body on dev.to. The file here and the draft there are
+        not linked. If a post needs a content change, tell Claude - the fix goes in
+        the file, then that one draft gets deleted and recreated.
+
+
+================================================================================
+2. TOMORROW (Mon 9/21) - CODERLEGION, TWO POSTS - about 10 minutes
+================================================================================
+The 9/16 CoderLegion slot was missed, so two go up together. CoderLegion's rule
+here is one per week, and these are excerpts with a deep link, not full articles.
+
+FILES  docs/cross-posts/queue/01-open-ports-linux-coderlegion.md
+       docs/cross-posts/queue/10-rsync-command-builder-coderlegion.md
+
+STEP 1  Go to https://coderlegion.com and start a new post.
+
+STEP 2  Open the .md file. Copy the body.
+        DO NOT paste the leading "# " heading line into the title box. Type the
+        title in by hand without the "# ". Both previously broken titles on Medium
+        and CoderLegion came from exactly this.
+
+STEP 3  Check the link inside the excerpt points at the specific page
+        (bashsnippets.xyz/guides/open-ports-linux, not bashsnippets.xyz/).
+
+STEP 4  If CoderLegion offers a canonical URL field, put the bashsnippets.xyz page
+        URL in it. If it does not, publish anyway - the deep link is the point.
+
+STEP 5  Publish. Repeat for the second file.
+
+STEP 6  Tick both rows in docs/cross-posts/queue/README.md, CoderLegion table.
+
+NEXT CODERLEGION SLOTS   Mon 9/28 -> 11-grep-pattern-builder-coderlegion.md
+                         Mon 10/5 -> 12-jq-filter-builder-coderlegion.md
+
+
+================================================================================
+3. EVERY TUE + THU FROM 9/22 - MEDIUM ONLY - about 7 minutes
+================================================================================
+Once section 1 is done, dev.to publishes itself. The only recurring job is the
+Medium companion, the same evening the dev.to post goes out.
+
+IMPORTANT: Medium is a bonus, not the gate. The 11/04 read counts dev.to posts.
+If an evening gets away from you, skip Medium and do not skip anything else.
+
+STEP 1  Go to https://medium.com/p/import
+
+STEP 2  Paste the LIVE bashsnippets.xyz page URL - the canonical from the queue
+        table, NOT the dev.to URL. Click Import. Open the draft it makes.
+
+STEP 3  In a file manager, double-click docs/cross-posts/queue/NN-...-medium.html
+        so it opens in a browser tab. Click in the page, Ctrl+A, Ctrl+C.
+
+        PASTE THE .html, NEVER THE .md. Medium shows markdown literally - "##" and
+        backticks arrive as visible text - and then its smart punctuation turns
+        'quotes' into curly quotes and --diff into an em-dash, which breaks every
+        command in the post. This is what happened to post #01 on 9/16.
+
+STEP 4  In the Medium draft, click in the body, Ctrl+A, Ctrl+V.
+
+STEP 5  Type the title into Medium's title box by hand. No "# ".
+
+STEP 6  Before publishing, check one code block: straight 'quotes' and --flags must
+        have survived. If they curled, you pasted the .md.
+
+STEP 7  Add the 5 tags from the queue table. Publish.
+
+STEP 8  Scroll to the bottom of the published post. There must be a line reading
+        "Originally published at bashsnippets.xyz/...".
+        NO LINE = NO CANONICAL = unpublish and re-import. Do not leave it up.
+
+STEP 9  Paste the live URL into the Done column of the queue README.
+
+STILL OUTSTANDING: post #01's Medium version went up as raw markdown on 9/16.
+Fix it when convenient: open the published Medium post, Edit, select the whole
+body, paste 01-open-ports-linux-medium.html the same way, delete the
+"# For Months..." line if it survived, Save and publish.
+
+
+================================================================================
+4. TICKING THE QUEUE - 20 seconds, and it is not optional
+================================================================================
+Post #01 went live 9/16 and sat unticked for four days. The Done column is how the
+file answers "how many have shipped", and that count is literally what decides the
+11/04 read. If it is not ticked, it did not happen as far as the read is concerned.
+
+Paste the live URL into the Done column in docs/cross-posts/queue/README.md the
+same evening a post goes out. Or, once a week, tell Claude "tick the queue" and it
+will read dev.to and fill them in from the live account.
+
+
+================================================================================
+5. ONE-OFF JOBS - any evening - about 30 minutes total
+================================================================================
+
+5A. TURN ON GUMROAD DISCOVER - 5 minutes
+    Discover is Gumroad's own marketplace. It is the only channel where buyers are
+    already standing around, and the site has never had a paying customer, so
+    there is nothing to protect.
+
+    THE MONEY, so you are deciding with real numbers:
+      Direct sale of the $9 toolkit:   9.00 - 10% (0.90) - 0.50 = $7.60 to you
+      Discover-attributed sale:        9.00 - 30% (2.70)        = $6.30 to you
+      Difference: $1.30 per sale, and only on sales Discover brings you that you
+      would not otherwise have had. Take it.
+
+    STEP 1  Log in to Gumroad, open the Production Bash Toolkit product.
+    STEP 2  Find the Discover / marketplace setting. Gumroad has moved this
+            between the product edit page and the product's Share tab across
+            redesigns, so if the wording differs from what you expect, search
+            "Discover" in Gumroad's help rather than guessing.
+    STEP 3  Discover listings normally require a CATEGORY and TAGS. Use the
+            developer/programming category, and tags: bash, shell, linux,
+            devops, sysadmin.
+    STEP 4  Turn the toggle on and save.
+    STEP 5  Check the public product page still shows the single-buyer license
+            wording, not MIT. That was fixed on 9/16 and must stay fixed.
+
+5B. TWO awesome-shell PULL REQUESTS - 20 minutes
+    Cheapest available shot at the site's first earned inbound link. The site has
+    never had one. Self-promotion is explicitly allowed by that list's rules.
+    Honest odds: medium-low. Costs 20 minutes.
+
+    Go to https://github.com/alebcay/awesome-shell, edit README.md, one PR each.
+    Entries use "* " bullets and no trailing period. Full text, both PR titles and
+    the PR body to paste, are in docs/POST-QUEUE-2026-09.md section D1 - copy them
+    from there exactly, including the disclosure line.
+
+    PR 1: Add ShellCheck Error Decoder  -> Shell Script Development, right after
+          the shellcheck line
+    PR 2: Add Cron Wrapper Generator    -> Shell Script Development, after
+          bash-language-server
+
+5C. READ THE THREE NUMBERS - 5 minutes
+    Claude cannot log in to these. Write the numbers down or paste them into chat.
+      - Buttondown subscriber count. SUBTRACT 1 (your own test address from 9/11).
+      - Gumroad: total sales, and product views since 9/01.
+      - Gumroad views by referrer. This is the purchase-click number of record for
+        11/04 - GA4's purchase events are consent-blocked for most visitors and
+        undercount.
+
+5D. THE 9/22 METRIC RE-CHECK
+    Already on your calendar for Tuesday. Compare against the 9/10 baselines in
+    docs/MANUAL-ACTIONS-2026-09-10.md section 3:
+      Bing indexed 54 / impressions 816 / clicks 13 / keywords 448
+      Copilot citations 124
+      GSC links to any URL other than "/" = 0, GSC indexed 1
+      GA4 sessions 3, Buttondown 0 real, Gumroad $0
+    Also check: did Bing recrawl the 12 restored pages?
+
+
+================================================================================
+6. THE OTHER INCOME LINE - 757 CUSTOM GRAPHICS
+================================================================================
+Read this one honestly: BashSnippets has 2 GA4 users in 28 days and no customer
+ever. Its best case by 11/04 is a first sale, not income. The nearer money is
+Saltwater Studio client work, and there is one sale sitting finished and unsent.
+
+WHERE IT ACTUALLY STANDS
+  The pitch site is built and gated (previewMode: true forces noindex + robots
+  disallow on every page). The cold-outreach email to Rebecca is WRITTEN, at
+  docs/pitch/PITCH-EMAIL.md in the 757-custom-graphics project.
+
+  The README says plainly: "The client has not yet been contacted."
+  The email has a {{LIVE_URL}} placeholder in it and the site has no deployment -
+  there is no .vercel project in the repo.
+
+SO THE BLOCKER IS NOT HER. IT IS TWO STEPS ON THIS SIDE:
+  STEP 1  The site has to be deployed somewhere she can open, still noindexed.
+          That is a Claude job - say the word and it gets deployed with
+          previewMode left at true.
+  STEP 2  You replace {{LIVE_URL}} in the email with that address and send it to
+          757customgraphics@gmail.com.
+
+  Do not flip previewMode to false until she signs.
+
+Angel Denise is already $100/month recurring, so that line is live and needs
+nothing this week.
+
+
+================================================================================
+CHECKLIST
+================================================================================
+  [ ] 1.  Sun 9/20  Schedule 13 dev.to drafts          15 min   <- do this first
+  [ ] 2.  Mon 9/21  CoderLegion x2                     10 min
+  [ ] 3.  Tue 9/22  Medium #02                          7 min
+  [ ] 5D. Tue 9/22  Metric re-check                     5 min
+  [ ] 5A. any night Gumroad Discover on                 5 min
+  [ ] 5B. any night Two awesome-shell PRs              20 min
+  [ ] 5C. any night Read Buttondown + Gumroad           5 min
+  [ ] 6.  any night Say the word on 757, then send     5 min + Claude
+  [ ] 3.  ongoing   Medium every Tue/Thu                7 min each
+  [ ] 4.  ongoing   Tick the queue the same evening    20 sec each

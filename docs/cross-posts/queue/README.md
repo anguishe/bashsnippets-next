@@ -14,9 +14,39 @@ How to post each platform: `docs/POST-QUEUE-2026-09.md` → *Recipes* (D = dev.t
 
 Checked live 2026-09-16 before numbering: dev.to has 37 published posts (newest 2026-07-30), 0 drafts, and none of these canonicals is taken. CoderLegion's newest post is 2026-07-08, 0 drafts.
 
+## 02–14 are already sitting on dev.to as DRAFTS (created 2026-09-20)
+
+`scripts/devto-drafts.mjs` pushed every remaining queue file to dev.to as an **unpublished draft**,
+with the title, 4 tags, `canonical_url`, description and cover image already set from the file's front
+matter. Verified on the account: 13 drafts, 0 published, bodies intact (no front-matter leak, code
+fences balanced).
+
+**So the Tue/Thu job is no longer "paste a file and set four fields". It is "open the draft, pick a
+date".** dev.to's API cannot schedule — `published_at` is not a create field — but **its editor can**,
+so the whole queue can be scheduled in one sitting and then survives a busy October.
+Steps: `docs/MANUAL-ACTIONS-2026-09-20.txt` §1.
+
+| # | draft id | # | draft id | # | draft id |
+|---|---|---|---|---|---|
+| 02 | `4700404` | 07 | `4700411` | 12 | `4700417` |
+| 03 | `4700405` | 08 | `4700413` | 13 | `4700419` |
+| 04 | `4700406` | 09 | `4700414` | 14 | `4700422` |
+| 05 | `4700407` | 10 | `4700415` | | |
+| 06 | `4700410` | 11 | `4700416` | | |
+
+Drafts are listed at <https://dev.to/dashboard> (newest first). **Re-running the script is safe** — it
+skips any queue file whose canonical is already on the account, published or draft.
+
+⚠ **Editing a draft's body on dev.to does not change the file here, and vice versa.** If a queue file
+is edited after 2026-09-20, delete that draft on dev.to and re-run the script for it.
+
+**Ticking is still manual and it matters:** #01 went up on 9/16 and sat unticked for four days, so the
+file could not answer "what has shipped" — which is the exact number the 11/04 read turns on. Paste the
+live URL into the Done column the same evening.
+
 | # | Post on | dev.to title (exact) | dev.to file | canonical_url | tags | Medium (same evening, paste the .html) | Why this slot | Done / URL |
 |---|---|---|---|---|---|---|---|---|
-| 01 | Wed 9/16 (today) | For Months My Dev Server Came Up on 3001. Tonight I Found Out Who Had 3000. | `01-open-ports-linux-devto.md` | `https://bashsnippets.xyz/guides/open-ports-linux` | bash, linux, security, sysadmin | `01-*-medium.html` (tags: Bash, Linux, Security, Sysadmin, Docker) | open ports = 26% of all Bing queries; true port-3000 story | [ ] |
+| 01 | Wed 9/16 (today) | For Months My Dev Server Came Up on 3001. Tonight I Found Out Who Had 3000. | `01-open-ports-linux-devto.md` | `https://bashsnippets.xyz/guides/open-ports-linux` | bash, linux, security, sysadmin | `01-*-medium.html` (tags: Bash, Linux, Security, Sysadmin, Docker) | open ports = 26% of all Bing queries; true port-3000 story | [x] https://dev.to/bashsnippets/for-months-my-dev-server-came-up-on-3001-tonight-i-found-out-who-had-3000-54k1 |
 | 02 | Tue 9/22 | set -euo pipefail Is Missing a Letter. My ERR Trap Stayed Silent Until I Added -E. | `02-safe-bash-script-template-devto.md` | `https://bashsnippets.xyz/guides/safe-bash-script-template` | bash, linux, devops, scripting | `02-*-medium.html` (tags: Bash, Linux, DevOps, Programming, Shell Scripting) | strict mode / trap ERR cluster (35 queries); links the free bashlib starter | [ ] |
 | 03 | Thu 9/24 | I Killed My Report Script Mid-Write. The Output File Never Noticed. | `03-bash-trap-cleanup-devto.md` | `https://bashsnippets.xyz/snippets/bash-trap-cleanup` | bash, linux, devops, sysadmin | `03-*-medium.html` (tags: Bash, Linux, DevOps, Programming, Shell Scripting) | cleanup-on-exit; links the free bashlib starter | [ ] |
 | 04 | Tue 9/29 | SC2086 Is ShellCheck's Lowest-Severity Warning. It Let rm Delete Two Files I Never Named. | `04-shellcheck-sc2086-devto.md` | `https://bashsnippets.xyz/shellcheck/sc2086` | bash, linux, shellcheck, devops | `04-*-medium.html` (tags: Bash, Linux, DevOps, Programming, Shellcheck) | ShellCheck codes cluster; decoder + 7 deep dives | [ ] |
@@ -37,7 +67,7 @@ Row 11's title shows `&#124;` only because a raw `|` would break the table: the 
 
 | Week of | File | Done |
 |---|---|---|
-| Wed 9/16 (with #01) | `01-open-ports-linux-coderlegion.md` | [ ] |
+| Wed 9/16 (with #01) | `01-open-ports-linux-coderlegion.md` | [ ] ⚠ **missed — post it Mon 9/21 together with the rsync excerpt** |
 | Mon 9/21 | `10-rsync-command-builder-coderlegion.md` | [ ] |
 | Mon 9/28 | `11-grep-pattern-builder-coderlegion.md` | [ ] |
 | Mon 10/5 | `12-jq-filter-builder-coderlegion.md` (third point corrected 2026-09-16 against a real jq 1.8.1 run) | [ ] |
