@@ -241,23 +241,45 @@ Read this one honestly: BashSnippets has 2 GA4 users in 28 days and no customer
 ever. Its best case by 11/04 is a first sale, not income. The nearer money is
 Saltwater Studio client work, and there is one sale sitting finished and unsent.
 
-WHERE IT ACTUALLY STANDS
-  The pitch site is built and gated (previewMode: true forces noindex + robots
-  disallow on every page). The cold-outreach email to Rebecca is WRITTEN, at
-  docs/pitch/PITCH-EMAIL.md in the 757-custom-graphics project.
+WHERE IT ACTUALLY STANDS  (corrected 2026-09-20 - the earlier read was wrong)
 
-  The README says plainly: "The client has not yet been contacted."
-  The email has a {{LIVE_URL}} placeholder in it and the site has no deployment -
-  there is no .vercel project in the repo.
+  The site is NOT unbuilt and NOT undeployed. It has been LIVE since 2026-09-06 at
 
-SO THE BLOCKER IS NOT HER. IT IS TWO STEPS ON THIS SIDE:
-  STEP 1  The site has to be deployed somewhere she can open, still noindexed.
-          That is a Claude job - say the word and it gets deployed with
-          previewMode left at true.
-  STEP 2  You replace {{LIVE_URL}} in the email with that address and send it to
-          757customgraphics@gmail.com.
+        https://757-custom-graphics.vercel.app
 
-  Do not flip previewMode to false until she signs.
+  An earlier note here said there was no deployment, because there is no .vercel
+  directory in the project folder. That was a bad inference - deploys come from the
+  GitHub integration on branch main, so the folder never needed to be linked.
+
+  Verified 2026-09-20: every page returns 200, every page carries
+  noindex, nofollow, robots.txt is Disallow: /, all internal links resolve, no
+  placeholder or banned strings in the served HTML, no "LLC", address is city/zip
+  only. The URL is publicly reachable with NO login wall - checked with a
+  cookie-less request, which matters because a Vercel auth wall would have shown
+  Rebecca a login screen instead of her website.
+
+  The pitch email is at docs/pitch/PITCH-EMAIL.md in the 757-custom-graphics
+  project. Its {{LIVE_URL}} placeholder is now FILLED IN with the address above.
+
+SO THERE IS EXACTLY ONE STEP LEFT, AND IT IS YOURS
+
+  Send the email. It is 119 words, written, checked, and has been sitting unsent
+  since 9/11.
+
+  STEP 1  Open docs/pitch/PITCH-EMAIL.md
+  STEP 2  Copy the body only - "Hi Rebecca" down through "Saltwater Studio, Navarre".
+          Do not copy the note block above the --- line, that is for us.
+  STEP 3  Subject line: Your Google listing sends people to Facebook
+  STEP 4  Send to 757customgraphics@gmail.com
+  STEP 5  Tell Claude you sent it, so the repo stops saying "not yet contacted".
+
+  BEFORE YOU HIT SEND, two things must still be true:
+    - src/config/site.ts still says previewMode: true. The email tells her "it
+      isn't public and Google can't see it". If that boolean ever flipped, that
+      sentence is false and the email must not go as written.
+    - Nobody has contacted her since. If they have, this is the wrong email.
+
+  DO NOT flip previewMode to false until she signs.
 
 Angel Denise is already $100/month recurring, so that line is live and needs
 nothing this week.
