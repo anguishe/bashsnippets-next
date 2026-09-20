@@ -3,12 +3,30 @@
 File numbers **are** the posting order. Post #01 today, then Tuesdays and Thursdays through Tue 11/3 (14 posts, needed for the 2026-11-04 read).
 How to post each platform: `docs/POST-QUEUE-2026-09.md` → *Recipes* (D = dev.to, M = Medium, C = CoderLegion). Paste the live URL into the Done column.
 
-**Medium: paste the `.html`, never the `.md`.** Medium does not read markdown on paste: `##`, backticks and code fences arrive as literal text, and its smart punctuation then turns `'quotes'` into curly quotes and `--diff` into "— diff", which breaks every command. Post #01 went up that way on 2026-09-16.
-1. Medium → Import the canonical URL (recipe M step 1), open the draft.
-2. Double-click `NN-…-medium.html` so it opens in the browser → **Ctrl+A, Ctrl+C**.
-3. In the Medium draft, select the whole body (click in it, Ctrl+A) → **Ctrl+V**. Headings, code blocks, inline code and links come across as formatting. The title is not in the file — type it into Medium's title box (no `# `).
-4. Before publishing, check one command in a code block: straight `'quotes'` and `--flags` must survive. Then add the tags from this table and publish.
-5. After editing any `-medium.md` or `-devto.md`, rebuild the pages: `node scripts/medium-html.mjs`.
+**Medium: new story + manual canonical. Do NOT use Import any more (changed 2026-09-20).**
+
+The old recipe imported the canonical URL to get the canonical link, then select-all-replaced the
+imported body with the rendered `.html` because the import mangles code blocks. Two steps fighting
+each other, and the import step is what broke post #01. Medium has a manual canonical field, so the
+import is unnecessary:
+
+1. <https://medium.com/new-story> — a blank story, no import.
+2. Double-click `NN-…-medium.html` so it opens in a browser → **Ctrl+A, Ctrl+C**.
+3. Click into the Medium body → **Ctrl+V**. Headings, code blocks, inline code and links come across
+   as real formatting. **Paste the `.html`, never the `.md`** — Medium renders markdown literally
+   (`##` and backticks arrive as visible text) and then curls `'quotes'` and turns `--flag` into an
+   em-dash, which breaks every command.
+4. Type the title into Medium's title box by hand. The `.html` has no title in it, and pasting a
+   markdown `# ` heading into that box is what produced both previously broken titles.
+5. ⚠ **Set the canonical — this is the whole point and it is the step that can be forgotten.**
+   Story settings (the ⋯ menu) → **Advanced settings** → *"This story was originally published
+   elsewhere"* → paste the `canonical_url` from this table → **Save canonical link**.
+   Without it Medium's copy competes with bashsnippets.xyz instead of feeding it.
+6. Add the tags from this table.
+7. **Schedule for later** → the same date as the dev.to post, 08:00. Medium publishes within five
+   minutes of the time you set, in your local timezone.
+8. Verify before moving on: one code block still shows straight `'quotes'` and `--flags`, and the
+   canonical is saved. Then paste the Medium URL into the Done column.
 
 **Fix #01 live:** open the published Medium post → Edit, select the whole body, paste `01-open-ports-linux-medium.html` the same way, remove the `# For Months…` line if it survives, **Save and publish**.
 
@@ -74,15 +92,34 @@ Row 11's title shows `&#124;` only because a raw `|` would break the table: the 
 
 ## CoderLegion — one excerpt per week, deep link only (recipe C)
 
-| Week of | File | Done |
-|---|---|---|
-| Wed 9/16 (with #01) | `01-open-ports-linux-coderlegion.md` | [ ] ⚠ **missed — post it Mon 9/21 together with the rsync excerpt** |
-| Mon 9/21 | `10-rsync-command-builder-coderlegion.md` | [ ] |
-| Mon 9/28 | `11-grep-pattern-builder-coderlegion.md` | [ ] |
-| Mon 10/5 | `12-jq-filter-builder-coderlegion.md` (third point corrected 2026-09-16 against a real jq 1.8.1 run) | [ ] |
+**All ten excerpts are now postable (audited 2026-09-20).** Six of them (`06`, `07`, `08`, `09`,
+`13`, `14`) were 2026-09-01 drafts that had never been checked against a real run. Three of those
+six opened on incidents that **never happened** and have been rebuilt from scratch on real runs from
+this box; the other three were clean and are unchanged. Detail in `docs/CODERLEGION-AUDIT-2026-09-20.md`.
 
-The other `-coderlegion.md` files (06, 07, 08, 09, 13, 14) are 2026-09-01 versions that were never rebuilt on real runs. They are not scheduled; check one against a real run before posting it.
-Do not paste a leading `# ` into any title box (CoderLegion and Medium both kept it last time).
+⚠ **#01 slipped its 9/16 slot, so everything shifts one week.** The cadence rule is **one per week**
+and doubling up on 9/21 would break it, so the queue below simply moves down. **Seven land before
+the 11/04 read and three land after — which is fine: the read counts dev.to posts, not these.**
+CoderLegion's job here is the deep link, not the deadline.
+
+| Week of | File | Status | Done |
+|---|---|---|---|
+| Mon 9/21 | `01-open-ports-linux-coderlegion.md` | clean, was the missed 9/16 slot | [ ] |
+| Mon 9/28 | `10-rsync-command-builder-coderlegion.md` | clean | [ ] |
+| Mon 10/5 | `11-grep-pattern-builder-coderlegion.md` | clean | [ ] |
+| Mon 10/12 | `12-jq-filter-builder-coderlegion.md` | clean (third point corrected 2026-09-16 against a real jq 1.8.1 run) | [ ] |
+| Mon 10/19 | `06-bash-scripts-every-sysadmin-needs-coderlegion.md` | ✅ audited, no incident claim; `$5+0` awk coercion re-verified | [ ] |
+| Mon 10/26 | `07-delete-old-log-files-coderlegion.md` | ♻️ **rebuilt** — opened on an SSD that filled up, which never happened | [ ] |
+| Mon 11/2 | `08-bash-text-processing-coderlegion.md` | ♻️ **rebuilt** — opened on "took down checkout on eleven services", which never happened | [ ] |
+| Mon 11/9 | `09-bash-send-email-alert-coderlegion.md` | ♻️ **rebuilt** — opened on a disk alert missed during an outage, which never happened | [ ] |
+| Mon 11/16 | `13-file-permissions-security-coderlegion.md` | ✅ audited, no incident claim; `-perm 777` vs `-perm -o+w` re-verified | [ ] |
+| Mon 11/23 | `14-ssh-key-setup-script-coderlegion.md` | ✅ audited, no incident claim; all claims are documented SSH behaviour | [ ] |
+
+All ten: 205–249 words, exactly one code block, deep link (never the homepage), varied anchor text,
+no banned words, and all ten target URLs verified **200** on 2026-09-20.
+
+**CoderLegion has no canonical field on this post type**, which is why these are excerpts and never
+the full article body. Never paste a full cross-post here.
 
 ## Renumbering map (old draft number → queue number)
 

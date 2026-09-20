@@ -1,0 +1,150 @@
+================================================================================
+CATCHING MEDIUM AND CODERLEGION UP TO DEV.TO
+Written 2026-09-20. dev.to is fully scheduled; these two are not.
+================================================================================
+
+WHERE EACH PLATFORM STANDS
+
+  dev.to        DONE. 13 posts scheduled by API, 09-22 -> 11-03, 08:00 Central.
+                Publishes itself. Nothing to do, ever.
+  Medium        1 of 14 live and BROKEN (raw markdown). 13 not started.
+                Has native scheduling -> can be batched to "done" in one sitting.
+  CoderLegion   0 of 10 posted. No API worth using. One per week by hand,
+                about 5 minutes each.
+
+WHY THE THREE ARE DIFFERENT
+
+  dev.to has an API that schedules (undocumented, but real).
+  Medium's API stopped issuing tokens in 2023, so scripting is out - but Medium
+  has a native scheduler, so a single sitting still gets you to the same place.
+  CoderLegion runs Question2Answer (PHP) with no public API. The only automation
+  in existence is a third-party MCP that replays your PHPSESSID and Q2A session
+  cookies - that is handing full account control to a third-party package, for a
+  platform where the whole campaign is 50 minutes of clicking. Not worth it.
+
+  OPTIONAL 30-SECOND CHECK: medium.com/me/settings/security -> if an "Integration
+  tokens" section exists, you have a legacy token and Claude can script the
+  DRAFTS (correct canonical, no paste-mangling). It still could not schedule
+  them. Tell Claude what you see. If the section is missing, skip it - expected.
+
+
+================================================================================
+PART 1 - MEDIUM: ONE SITTING, ~60 MIN, THEN NEVER AGAIN
+================================================================================
+Do this once and Medium matches dev.to: every post scheduled, nothing recurring.
+
+WHAT CHANGED: DO NOT USE IMPORT ANY MORE
+  The old recipe imported the canonical URL (to get the canonical link), then
+  select-all-replaced the imported body with the .html because the import
+  mangles code blocks. Two steps fighting each other - and the import step is
+  what broke post #01. Medium has a manual canonical field, so the import is
+  unnecessary. New story, paste, set canonical, schedule. One pass.
+
+FIRST, FIX POST #01 (it is live and wrong) - 5 min
+  1. Open your published Medium copy of "For Months My Dev Server Came Up on
+     3001". It went up as raw markdown on 9/16 - "##" and backticks are visible
+     as text and the quotes are curled.
+  2. Edit -> click in the body -> Ctrl+A.
+  3. Open queue/01-open-ports-linux-medium.html in a browser, Ctrl+A, Ctrl+C.
+  4. Back in Medium: Ctrl+V.
+  5. Delete the leftover "# For Months..." line if it survived.
+  6. Check Advanced settings still has the canonical (it was imported, so it
+     should). If not, add it - see step 5 below.
+  7. Save and publish.
+
+THEN, FOR EACH OF POSTS 02 THROUGH 14 - about 4 min each
+  1. https://medium.com/new-story        <- blank story. NO import.
+  2. Double-click queue/NN-<slug>-medium.html so it opens in a browser.
+     Click in the page, Ctrl+A, Ctrl+C.
+  3. Back in the Medium draft: click in the body, Ctrl+V.
+     PASTE THE .html, NEVER THE .md. Medium renders markdown literally and then
+     curls 'quotes' and turns --flag into an em-dash, breaking every command.
+  4. TYPE the title into Medium's title box by hand. No "# ".
+     The .html has no title in it. Pasting a markdown heading into that box is
+     what produced both previously broken titles.
+  5. *** SET THE CANONICAL. THIS IS THE STEP THAT CAN BE FORGOTTEN. ***
+     Story settings (the "..." menu) -> Advanced settings ->
+     "This story was originally published elsewhere" ->
+     paste the canonical_url from the table below -> Save canonical link.
+     Without it, Medium's copy competes with bashsnippets.xyz instead of
+     feeding it. This is the only step that can do active harm if skipped.
+  6. Add the 5 tags from the table below.
+  7. Schedule for later -> the date below, 08:00. Medium publishes within five
+     minutes of the time you set, in your local timezone.
+  8. VERIFY BEFORE MOVING ON: one code block still shows straight 'quotes' and
+     --flags, and the canonical is saved. Then paste the Medium URL into the
+     Done column in queue/README.md.
+
+  THE TABLE - same dates as dev.to, so the two land together
+
+   #   date        canonical_url (paste into Advanced settings)
+   --  ----------  ---------------------------------------------------------
+   02  Tue 09-22   https://bashsnippets.xyz/guides/safe-bash-script-template
+   03  Thu 09-24   https://bashsnippets.xyz/snippets/bash-trap-cleanup
+   04  Tue 09-29   https://bashsnippets.xyz/shellcheck/sc2086
+   05  Thu 10-01   https://bashsnippets.xyz/snippets/bash-sed-find-replace
+   06  Tue 10-06   https://bashsnippets.xyz/guides/bash-scripts-every-sysadmin-needs
+   07  Thu 10-08   https://bashsnippets.xyz/snippets/delete-old-log-files
+   08  Tue 10-13   https://bashsnippets.xyz/guides/bash-text-processing
+   09  Thu 10-15   https://bashsnippets.xyz/snippets/bash-send-email-alert
+   10  Tue 10-20   https://bashsnippets.xyz/tools/rsync-command-builder
+   11  Thu 10-22   https://bashsnippets.xyz/tools/grep-pattern-builder
+   12  Tue 10-27   https://bashsnippets.xyz/tools/jq-filter-builder
+   13  Thu 10-29   https://bashsnippets.xyz/snippets/file-permissions-security
+   14  Tue 11-03   https://bashsnippets.xyz/snippets/ssh-key-setup-script
+
+  Tags per post are in queue/README.md, "Medium (same evening...)" column.
+
+  IF YOU ONLY HAVE 20 MINUTES: do 02, 03, 04 and stop. Medium is a bonus - the
+  11/04 read counts dev.to posts. Never let Medium delay anything else.
+
+
+================================================================================
+PART 2 - CODERLEGION: 5 MIN A WEEK, MONDAYS
+================================================================================
+No batching - the rule is one per week and these are excerpts, not articles.
+
+ALL TEN ARE NOW POSTABLE. Six were 9/01 drafts never checked against a real run;
+three of those opened on incidents that never happened and were rebuilt on real
+runs from this box on 9/20. Full record: docs/CODERLEGION-AUDIT-2026-09-20.md.
+
+  Mon 09-21  01-open-ports-linux-coderlegion.md          (missed its 9/16 slot)
+  Mon 09-28  10-rsync-command-builder-coderlegion.md
+  Mon 10-05  11-grep-pattern-builder-coderlegion.md
+  Mon 10-12  12-jq-filter-builder-coderlegion.md
+  Mon 10-19  06-bash-scripts-every-sysadmin-needs-coderlegion.md
+  Mon 10-26  07-delete-old-log-files-coderlegion.md      (rebuilt)
+  Mon 11-02  08-bash-text-processing-coderlegion.md      (rebuilt)
+  Mon 11-09  09-bash-send-email-alert-coderlegion.md     (rebuilt)
+  Mon 11-16  13-file-permissions-security-coderlegion.md
+  Mon 11-23  14-ssh-key-setup-script-coderlegion.md
+
+  #01 slipped its 9/16 slot so everything moved down a week. Seven land before
+  the 11/04 read and three after. That is fine - the read counts dev.to posts.
+  Do NOT double up to catch up; one per week is the rule.
+
+STEPS, EACH MONDAY - 5 min
+  1. https://coderlegion.com -> New post.
+  2. Open the week's .md file. Skip the <!-- --> comment lines at the top,
+     they are notes to us. Copy the body.
+  3. TYPE the title by hand, WITHOUT the leading "# ".
+     Every broken title so far came from pasting the markdown H1 into the box.
+  4. Confirm the link inside points at the specific page, not the homepage.
+     All ten were verified live (200) on 9/20.
+  5. If a canonical field is offered on this post type, fill it with the
+     bashsnippets.xyz URL. It usually is not - publish anyway, the deep link is
+     the point. This is exactly why these are EXCERPTS and never the full
+     article body: no canonical means a full copy would compete with the page.
+  6. Tick the row in queue/README.md.
+  7. Do not post another CoderLegion piece for 7 days.
+
+
+================================================================================
+THE ONE THING THAT MATTERS MORE THAN BOTH OF THESE
+================================================================================
+Neither platform decides the 11/04 read - dev.to does, and it is already done.
+
+Medium and CoderLegion are distribution and one earned-link attempt. If a week
+gets away from you, drop them without guilt. The items that actually move money
+are in ~/NOV-4-INCOME-MANUAL-ACTIONS.txt, and the top one is still the 757
+Custom Graphics email, unsent since 9/11.

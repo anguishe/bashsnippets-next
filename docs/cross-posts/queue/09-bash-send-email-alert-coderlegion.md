@@ -1,16 +1,21 @@
 <!-- Posting cadence rule: max 1 CoderLegion post per week. Check the last CoderLegion publish date before posting this. -->
+<!-- Rebuilt 2026-09-20 on a real run (this box: Kali, bash 5.3.9). Prior version opened on a "logged a filling disk for hours while I found out from the outage" incident that never happened. -->
 
-# Why your bash email alerts never arrive (and the two-line fix that does)
+# Every disk-alert script I had piped into a command this machine does not have
 
-A monitoring script that writes warnings to a log file isn't alerting anyone — mine logged a filling disk for hours while I found out from the outage. The pattern that fixes it is piping the finding into `mail`:
+The standard bash alerting pattern ends the same way everywhere you read it: pipe the finding into `mail`. So I checked what my own box would actually do with that line.
 
-```bash
-echo "Disk on $(hostname) at ${USAGE}% — $(date '+%F %T')" \
-  | mail -s "[ALERT] disk space on $(hostname)" you@example.com
+```
+$ type -a mail mailx sendmail
+mail not found
+mailx not found
+sendmail not found
 ```
 
-Two traps make this fail silently. First, `mail` exiting 0 means the message was handed to the local MTA, not that it was delivered — on a server with no MTA configured for outbound mail, it often lands in root's spool under `/var/mail`, a file nobody reads. Confirm real delivery by tailing `/var/log/mail.log` after a test send. Second, cron's minimal `PATH` can fail to find `mail` at all, so test from inside cron, not your login shell. Where direct sending is blocked, relay through SMTP with `msmtp` and an app password.
+Nothing. No MTA, no `mailutils`, no fallback. Any alert script written the usual way would have run its check correctly, found the problem correctly, piped the message into a command that does not exist, and told me nothing.
 
-One more guard: a tripped threshold stays tripped, so dedupe with a marker file and only re-alert after 24 hours — otherwise you train yourself to ignore the channel.
+This fails quieter than it sounds. Under `set -euo pipefail` you at least get a non-zero exit somewhere a cron wrapper might notice. Without it, the pipeline's exit status is the *last* command's, cron mails you nothing because cron's mail also needs an MTA, and the script looks like it ran fine.
 
-The complete version, with the [full bash email alert script, Gmail SMTP relay setup, and dedupe guard](https://bashsnippets.xyz/snippets/bash-send-email-alert), covers the message body and cron scheduling too.
+Check for the binary before you rely on it, not after an incident. And on a box that *does* have `mail`, exit 0 still only means the message reached a local MTA — on a host with no outbound relay it lands in a spool file under `/var/mail` that nobody reads. Confirm real delivery once by tailing `/var/log/mail.log`. Cron's minimal `PATH` is a second reason to test from inside cron rather than your login shell.
+
+The msmtp relay config and the rate-limiting guard are in the [bash email alert walkthrough](https://bashsnippets.xyz/snippets/bash-send-email-alert).

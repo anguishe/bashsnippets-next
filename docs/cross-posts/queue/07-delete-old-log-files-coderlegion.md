@@ -1,17 +1,18 @@
 <!-- POSTING CADENCE RULE: maximum 1 CoderLegion post per week. Do not publish this in the same week as any other CoderLegion post. -->
+<!-- Rebuilt 2026-09-20 on real runs (GNU findutils 4.11.0, bash 5.3.9). Prior version opened on an SSD-filled-up incident that never happened. -->
 
-# Old log files will fill your disk — age them out with find -mtime
+# My 30-day log cleanup kept a file that was 30 and a half days old
 
-A directory of logs nobody reads took my SSD to zero free bytes, and the symptoms scattered: every process that tried to write got `ENOSPC` at once, so a build, a database write, and an editor autosave all failed with errors that never mentioned the disk. Prevention is one command:
+I set three log files to known ages with `touch -d` — exactly 30 days, 30 days and 12 hours, and 31 days — then ran what I thought was a 30-day retention policy:
 
 ```bash
-find /var/log/myapp -type f -name "*.log" -mtime +30 -print
+find . -name '*.log' -mtime +30
 ```
 
-Read the list it prints. When it matches what you expect, swap `-print` for `-delete` and run it again — never skip the preview on a new directory.
+It returned one file: the 31-day-old one. The 30.5-day file stayed. So did the 30-day file.
 
-Two traps. First, `-mtime +30` counts whole 24-hour periods and `+` means strictly greater, so a file from exactly 30 days ago survives until day 31; a true 30-day policy is `-mtime +29`. Second, prefer `-delete` over piping to `xargs rm` — the pipe re-splits filenames on whitespace, so `app v2.log` reaches `rm` as two arguments. Keep `-delete` last in the expression: `find` evaluates left to right, and placed early it fires on everything it walks.
+`-mtime` counts *whole* 24-hour periods and throws away the remainder, and `+30` means strictly greater than 30 of them. A file aged 30 days and 12 hours counts as 30, and 30 is not greater than 30. A real 30-day policy is `-mtime +29`. Re-running with `+29` returned all three, which is what I wanted in the first place.
 
-Point it at one app's directory, never `/var/log` wholesale, and schedule it weekly in cron.
+Two more things that bit during the same session. Piping to `xargs rm` split `app v2.log` on the space — `rm` reported `cannot remove 'ws/app'` and `cannot remove 'v2.log'`, and the file survived. And `-delete` is an action that returns true, so putting it before your filter is catastrophic: `find ord -delete -name '*.log'` removed a file called `keep.txt` and then the directory itself. Preview with `-print`, keep `-delete` last.
 
-The full version — multi-directory loop, `.gz` variant, before/after disk report, cron lines — is in this [guide to deleting old log files with find -mtime](https://bashsnippets.xyz/snippets/delete-old-log-files).
+The multi-directory loop, the `.gz` variant, and the cron lines are in the [find -mtime log retention walkthrough](https://bashsnippets.xyz/snippets/delete-old-log-files).

@@ -54,80 +54,37 @@ NEW RULE: editing a queue .md file no longer reaches dev.to. Content change =
 edit the file AND PUT the new body to that id. Tell Claude.
 
 ================================================================================
-2. TOMORROW (Mon 9/21) - CODERLEGION, TWO POSTS - about 10 minutes
+2. MEDIUM AND CODERLEGION - SEE THE DEDICATED GUIDE
 ================================================================================
-The 9/16 CoderLegion slot was missed, so two go up together. CoderLegion's rule
-here is one per week, and these are excerpts with a deep link, not full articles.
+Full steps: docs/MEDIUM-CODERLEGION-CATCHUP.txt
 
-FILES  docs/cross-posts/queue/01-open-ports-linux-coderlegion.md
-       docs/cross-posts/queue/10-rsync-command-builder-coderlegion.md
+What changed on 2026-09-20:
 
-STEP 1  Go to https://coderlegion.com and start a new post.
+  MEDIUM - STOP USING IMPORT. New story -> paste the .html -> set the canonical
+  by hand (Advanced settings -> "This story was originally published
+  elsewhere") -> Schedule for later. Import only ever existed to get the
+  canonical, it mangles the body, and it is what broke post #01. Medium has a
+  native scheduler, so ALL 13 can be done in ONE sitting of about an hour and
+  then never touched again, exactly like dev.to.
+  Post #01's Medium copy is live and wrong right now (raw markdown) - 5 min fix.
+  No API: Medium stopped issuing integration tokens in 2023.
 
-STEP 2  Open the .md file. Copy the body.
-        DO NOT paste the leading "# " heading line into the title box. Type the
-        title in by hand without the "# ". Both previously broken titles on Medium
-        and CoderLegion came from exactly this.
+  CODERLEGION - all ten excerpts are now postable. Six had never been checked
+  against a real run; three of those opened on incidents that never happened and
+  were rebuilt 9/20 on real runs from this box.
+  Record: docs/CODERLEGION-AUDIT-2026-09-20.md
+  One per week, Mondays, ~5 min, starting Mon 9/21 with 01-open-ports-linux.
+  ** Do NOT double up on 9/21 to catch up. ** The cadence rule is one per week;
+  #01 slipping its 9/16 slot just moves the whole queue down a week. Seven land
+  before 11/04 and three after, which is fine.
+  No API worth using: CoderLegion is Question2Answer, and the only automation
+  that exists replays your session cookies through a third-party package.
 
-STEP 3  Check the link inside the excerpt points at the specific page
-        (bashsnippets.xyz/guides/open-ports-linux, not bashsnippets.xyz/).
-
-STEP 4  If CoderLegion offers a canonical URL field, put the bashsnippets.xyz page
-        URL in it. If it does not, publish anyway - the deep link is the point.
-
-STEP 5  Publish. Repeat for the second file.
-
-STEP 6  Tick both rows in docs/cross-posts/queue/README.md, CoderLegion table.
-
-NEXT CODERLEGION SLOTS   Mon 9/28 -> 11-grep-pattern-builder-coderlegion.md
-                         Mon 10/5 -> 12-jq-filter-builder-coderlegion.md
-
-
-================================================================================
-3. EVERY TUE + THU FROM 9/22 - MEDIUM ONLY - about 7 minutes
-================================================================================
-Once section 1 is done, dev.to publishes itself. The only recurring job is the
-Medium companion, the same evening the dev.to post goes out.
-
-IMPORTANT: Medium is a bonus, not the gate. The 11/04 read counts dev.to posts.
-If an evening gets away from you, skip Medium and do not skip anything else.
-
-STEP 1  Go to https://medium.com/p/import
-
-STEP 2  Paste the LIVE bashsnippets.xyz page URL - the canonical from the queue
-        table, NOT the dev.to URL. Click Import. Open the draft it makes.
-
-STEP 3  In a file manager, double-click docs/cross-posts/queue/NN-...-medium.html
-        so it opens in a browser tab. Click in the page, Ctrl+A, Ctrl+C.
-
-        PASTE THE .html, NEVER THE .md. Medium shows markdown literally - "##" and
-        backticks arrive as visible text - and then its smart punctuation turns
-        'quotes' into curly quotes and --diff into an em-dash, which breaks every
-        command in the post. This is what happened to post #01 on 9/16.
-
-STEP 4  In the Medium draft, click in the body, Ctrl+A, Ctrl+V.
-
-STEP 5  Type the title into Medium's title box by hand. No "# ".
-
-STEP 6  Before publishing, check one code block: straight 'quotes' and --flags must
-        have survived. If they curled, you pasted the .md.
-
-STEP 7  Add the 5 tags from the queue table. Publish.
-
-STEP 8  Scroll to the bottom of the published post. There must be a line reading
-        "Originally published at bashsnippets.xyz/...".
-        NO LINE = NO CANONICAL = unpublish and re-import. Do not leave it up.
-
-STEP 9  Paste the live URL into the Done column of the queue README.
-
-STILL OUTSTANDING: post #01's Medium version went up as raw markdown on 9/16.
-Fix it when convenient: open the published Medium post, Edit, select the whole
-body, paste 01-open-ports-linux-medium.html the same way, delete the
-"# For Months..." line if it survived, Save and publish.
+  NEITHER DECIDES THE 11/04 READ. dev.to does, and dev.to is done. If an evening
+  gets away from you, drop these two before you drop anything else on this page.
 
 
-================================================================================
-4. TICKING THE QUEUE - 20 seconds, and it is not optional
+3. TICKING THE QUEUE - 20 seconds, and it is not optional
 ================================================================================
 Post #01 went live 9/16 and sat unticked for four days. The Done column is how the
 file answers "how many have shipped", and that count is literally what decides the
@@ -139,10 +96,10 @@ will read dev.to and fill them in from the live account.
 
 
 ================================================================================
-5. ONE-OFF JOBS - any evening - about 30 minutes total
+4. ONE-OFF JOBS - any evening - about 30 minutes total
 ================================================================================
 
-5A. TURN ON GUMROAD DISCOVER - 5 minutes
+4A. TURN ON GUMROAD DISCOVER - 5 minutes
     Discover is Gumroad's own marketplace. It is the only channel where buyers are
     already standing around, and the site has never had a paying customer, so
     there is nothing to protect.
@@ -165,7 +122,7 @@ will read dev.to and fill them in from the live account.
     STEP 5  Check the public product page still shows the single-buyer license
             wording, not MIT. That was fixed on 9/16 and must stay fixed.
 
-5B. TWO awesome-shell PULL REQUESTS - 20 minutes
+4B. TWO awesome-shell PULL REQUESTS - 20 minutes
     Cheapest available shot at the site's first earned inbound link. The site has
     never had one. Self-promotion is explicitly allowed by that list's rules.
     Honest odds: medium-low. Costs 20 minutes.
@@ -180,7 +137,7 @@ will read dev.to and fill them in from the live account.
     PR 2: Add Cron Wrapper Generator    -> Shell Script Development, after
           bash-language-server
 
-5C. READ THE THREE NUMBERS - 5 minutes
+4C. READ THE THREE NUMBERS - 5 minutes
     Claude cannot log in to these. Write the numbers down or paste them into chat.
       - Buttondown subscriber count. SUBTRACT 1 (your own test address from 9/11).
       - Gumroad: total sales, and product views since 9/01.
@@ -188,7 +145,7 @@ will read dev.to and fill them in from the live account.
         11/04 - GA4's purchase events are consent-blocked for most visitors and
         undercount.
 
-5D. THE 9/22 METRIC RE-CHECK
+4D. THE 9/22 METRIC RE-CHECK
     Already on your calendar for Tuesday. Compare against the 9/10 baselines in
     docs/MANUAL-ACTIONS-2026-09-10.md section 3:
       Bing indexed 54 / impressions 816 / clicks 13 / keywords 448
@@ -199,7 +156,7 @@ will read dev.to and fill them in from the live account.
 
 
 ================================================================================
-6. THE OTHER INCOME LINE - 757 CUSTOM GRAPHICS
+5. THE OTHER INCOME LINE - 757 CUSTOM GRAPHICS
 ================================================================================
 Read this one honestly: BashSnippets has 2 GA4 users in 28 days and no customer
 ever. Its best case by 11/04 is a first sale, not income. The nearer money is
@@ -252,13 +209,13 @@ nothing this week.
 ================================================================================
 CHECKLIST
 ================================================================================
-  [x] 1.  Sun 9/20  Schedule 13 dev.to posts           DONE by Claude
-  [ ] 2.  Mon 9/21  CoderLegion x2                     10 min
-  [ ] 3.  Tue 9/22  Medium #02                          7 min
-  [ ] 5D. Tue 9/22  Metric re-check                     5 min
-  [ ] 5A. any night Gumroad Discover on                 5 min
-  [ ] 5B. any night Two awesome-shell PRs              20 min
-  [ ] 5C. any night Read Buttondown + Gumroad           5 min
-  [ ] 6.  any night Say the word on 757, then send     5 min + Claude
-  [ ] 3.  ongoing   Medium every Tue/Thu                7 min each
-  [ ] 4.  ongoing   Tick the queue the same evening    20 sec each
+  [x] 1.  Sun 9/20    Schedule 13 dev.to posts        DONE by Claude 9/20
+  [ ] 5.  this week   Send the 757 email               5 min   <- top money item
+  [ ] 2b. Mon 9/21    CoderLegion #01                  5 min
+  [ ] 2a. one sitting Medium: all 13 + fix #01        ~60 min
+  [ ] 4D. Tue 9/22    Metric re-check vs 9/10          5 min
+  [ ] 4A. any night   Gumroad Discover on              5 min
+  [ ] 4B. any night   Two awesome-shell PRs           20 min
+  [ ] 4C. any night   Read Buttondown + Gumroad        5 min
+  [ ] 2b. Mondays     CoderLegion, 1 per week          5 min each (to 11/23)
+  [ ] 3.  ongoing     Tick the queue same evening     20 sec each
