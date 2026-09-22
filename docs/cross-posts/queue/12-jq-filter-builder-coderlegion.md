@@ -1,4 +1,4 @@
-<!-- Posting cadence rule: max 1 CoderLegion post per week. Do not publish this in the same week as any other BashSnippets CoderLegion excerpt. -->
+<!-- SCHEDULED on CoderLegion 2026-09-21 as https://coderlegion.com/28027 - publishes Tue 2026-10-27 08:00 CDT, same minute as dev.to #12. Editing this file does NOT reach CoderLegion: edit the post there too. -->
 
 ## Three ways a jq one-liner lies to your bash script
 

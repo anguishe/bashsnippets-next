@@ -1,6 +1,6 @@
-<!-- Posting cadence rule: max 1 CoderLegion post per week. Do not queue this alongside another CoderLegion post in the same week. -->
+<!-- SCHEDULED on CoderLegion 2026-09-21 as https://coderlegion.com/28026 - publishes Thu 2026-10-22 08:00 CDT, same minute as dev.to #11. Editing this file does NOT reach CoderLegion: edit the post there too. -->
 
-# Why `grep "error|failed"` finds nothing in a log full of failures
+# Why grep "error|failed" finds nothing in a log full of failures
 
 If grep returns empty on a file you know contains matches, suspect the pattern before the file. Default grep uses Basic Regular Expressions (BRE), where `|`, `+`, `?`, and `()` are literal characters unless backslash-escaped. So `grep "error|failed" app.log` searches for the literal twelve-character string `error|failed` — pipe included — which no logger ever writes. Alternation needs Extended Regular Expressions via `-E`:
 

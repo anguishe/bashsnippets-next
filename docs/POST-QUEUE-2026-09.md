@@ -118,6 +118,8 @@ line already; delete the duplicate if Medium adds its own.
 
 ### B3. CoderLegion — one tool excerpt per week (recipe C)
 
+> **Superseded 2026-09-21:** all 14 CoderLegion excerpts are posted or scheduled alongside dev.to. See `cross-posts/queue/README.md`. The table below is history.
+
 | Week of | Excerpt file (`docs/cross-posts/`) | Deep link (must be the only link) | Done |
 |---|---|---|---|
 | Fri 9/11 | `22-open-ports-linux-coderlegion.md` | `https://bashsnippets.xyz/guides/open-ports-linux` | [ ] |

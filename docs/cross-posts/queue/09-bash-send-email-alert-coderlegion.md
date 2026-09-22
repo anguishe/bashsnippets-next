@@ -1,4 +1,4 @@
-<!-- Posting cadence rule: max 1 CoderLegion post per week. Check the last CoderLegion publish date before posting this. -->
+<!-- SCHEDULED on CoderLegion 2026-09-21 as https://coderlegion.com/28024 - publishes Thu 2026-10-15 08:00 CDT, same minute as dev.to #09. Editing this file does NOT reach CoderLegion: edit the post there too. -->
 <!-- Rebuilt 2026-09-20 on a real run (this box: Kali, bash 5.3.9). Prior version opened on a "logged a filling disk for hours while I found out from the outage" incident that never happened. -->
 
 # Every disk-alert script I had piped into a command this machine does not have

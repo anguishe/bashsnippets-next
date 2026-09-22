@@ -1,0 +1,124 @@
+GUMROAD DISCOVER + AWESOME-SHELL PULL REQUESTS - step by step
+Written 2026-09-21. Replaces C4 and C5 in ~/NOV-4-INCOME-MANUAL-ACTIONS.txt.
+================================================================================
+
+
+PART 1 - GUMROAD DISCOVER (5 min now, then it switches itself on later)
+================================================================================
+
+READ THIS FIRST - the old C4 note was wrong
+  Discover is not a switch you can flip today. Gumroad's help center
+  (gumroad.com/help/article/79-gumroad-discover) sets two gates:
+
+    ACCOUNT gate  - payout settings filled in
+                  - at least $100 USD balance from genuine sales (self-purchases
+                    and friends buying do not count)
+                  - a risk-team review, about 3 weeks after passing $100
+    PRODUCT gate  - at least 1 successful (non-refunded) sale
+                  - a category selected
+
+  The toolkit has 0 sales, so it cannot be on Discover before 11/04. At $9 it
+  takes about 14 real sales to reach $100. What you CAN do tonight is make the
+  product ready, so it lists by itself the day the account qualifies.
+
+  The money, for later: direct sale $9 - 10% - $0.50 = $7.60 to you.
+  Discover sale $9 - 30% = $6.30 to you (gumroad.com/pricing). Products on
+  Discover are also opted into Gumroad Affiliates automatically.
+
+STEPS
+  1  Log in at https://gumroad.com (the anguisheh1 Chrome is already logged in).
+  2  Settings -> Payments. Confirm payout details are complete. Without these
+     nothing else counts.
+  3  Products -> Production Bash Toolkit -> Edit.
+  4  Find the Category field (on the product edit page, or under the Share tab
+     after a redesign). Pick the programming / software development category.
+  5  Tags, if offered: bash, shell, linux, devops, sysadmin
+  6  Save.
+  7  Products dashboard -> find the "Discover" eligibility column/status for
+     the toolkit. Expect "not eligible" until the $100 gate. That is correct,
+     not a fault.
+  8  While you are there, check the public product page still shows the
+     single-buyer license wording (fixed 9/16), not MIT.
+
+  Done = category saved + payouts complete. Nothing else to do until sales
+  pass $100. Tell Claude the eligibility wording you see in step 7 and it
+  will be recorded.
+
+
+PART 2 - TWO awesome-shell PULL REQUESTS (20 min, one evening)
+================================================================================
+
+HONEST ODDS - lower than the earlier notes said
+  github.com/alebcay/awesome-shell (37.6k stars) had its last merge on
+  2025-08-28. Pull requests from September 2026 sit open, and some were
+  closed without merging. The upside is still the site's first-ever inbound
+  link from a big repo. The PR page itself is a (nofollow) link even if it
+  never merges. Spend 20 minutes on it, not more, and do not chase it.
+
+RULES THAT APPLY (from the list's contributing guide)
+  - One addition per pull request.
+  - Entries are "* [Name](url) - description" with no trailing period.
+  - Self-promotion is allowed. The 50-star rule is for GitHub projects. These
+    are web tools, so it does not literally apply. The PR body says so openly.
+
+WHERE EACH LINE GOES - section "## Shell Script Development" (alphabetical)
+  PR 1 goes on the line directly AFTER:
+    * [shellcheck](https://github.com/koalaman/shellcheck) - Static analysis tool for shell scripts
+  PR 2 goes on the line directly AFTER:
+    * [critic.sh](https://github.com/Checksum/critic.sh) - Dead simple testing framework for Bash with coverage reporting
+    (and before the "dispatch" line). The old note said "after
+    bash-language-server"; alphabetically that is wrong, so use critic.sh.
+
+THE EXACT LINES TO PASTE
+  PR 1:
+* [ShellCheck Error Decoder](https://bashsnippets.xyz/tools/shellcheck-error-decoder) - Paste any SCxxxx code for the rule name, a plain-English explanation and a before/after fix; companion to shellcheck
+
+  PR 2:
+* [Cron Wrapper Generator](https://bashsnippets.xyz/tools/cron-wrapper-generator) - Generates a hardened cron wrapper script composing flock, timeout and exponential-backoff retry with logging and email-on-failure
+
+  (Both URLs checked 200 on 2026-09-21.)
+
+STEPS - GitHub website, no terminal needed. Log in as anguishe.
+  1  Open https://github.com/alebcay/awesome-shell/blob/master/README.md
+  2  Click the pencil ("Edit this file"). GitHub says you need a fork ->
+     click "Fork this repository". It opens the editor on your copy.
+  3  Ctrl+F for:  koalaman/shellcheck
+     Put the cursor at the END of that line, press Enter, paste the PR 1 line.
+     Check: exactly one new line, starting with "* [", no blank line added.
+  4  Click "Commit changes...".
+       Commit message:  Add ShellCheck Error Decoder
+       Choose: "Create a new branch for this commit and start a pull request"
+       (GitHub names it patch-1; fine.)
+     -> "Propose changes".
+  5  On the "Open a pull request" page:
+       Title:  Add ShellCheck Error Decoder
+       Body:   paste the PR BODY below, with <name> = ShellCheck Error Decoder
+     -> "Create pull request".
+  6  PR 2: go back to step 1 (the ORIGINAL alebcay URL, not your fork's
+     patch-1 branch, or PR 2 would carry PR 1's change as well).
+     Ctrl+F for:  Checksum/critic.sh  -> new line after it -> paste PR 2 line.
+     Commit message + PR title:  Add Cron Wrapper Generator
+     Body: same template, <name> = Cron Wrapper Generator.
+  7  Paste both PR URLs to Claude (or into POST-QUEUE-2026-09.md section D1),
+     so the next session knows they exist and does not open duplicates.
+
+PR BODY (paste, swap <name> and the middle sentence)
+--------------------------------------------------------------------------------
+Adds <name> to Shell Script Development.
+
+What it is: a free, no-login browser tool at bashsnippets.xyz. <one sentence from the entry>.
+Every script it emits is ShellCheck-clean and follows set -euo pipefail.
+Why here: it sits next to shellcheck in the workflow: you run shellcheck, then paste the code it prints.
+Disclosure: I built it. Per CONTRIBUTING, self-authored entries are acceptable. It is not a GitHub
+project, so the 50-star rule does not apply, but say the word if you would rather it did.
+--------------------------------------------------------------------------------
+  For PR 2, "Why here" becomes: it produces the wrapper that sits around a
+  cron job - flock for single-instance, timeout, retry - which is the part
+  most cron scripts skip.
+
+AFTER
+  Do not bump or ping the maintainer. If either merges, tell Claude: that is
+  the first earned backlink, and it goes into docs/PLAN.md as a milestone.
+  Claude can also open both PRs from the terminal (gh is logged in as anguishe)
+  if you say "open the awesome-shell PRs". It posts publicly under your name,
+  so it waits for that go-ahead.

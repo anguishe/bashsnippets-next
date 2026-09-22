@@ -60,6 +60,8 @@ Plus once, any evening before 10/21: the two awesome-shell PRs (§D1, about 20 m
 ---
 
 ## MEDIUM: before 2026-10-21 (beta ends)
+
+> **2026-09-21:** H6 posting is fully automated. All 14 posts are live or scheduled on dev.to, Medium and CoderLegion (queue README). The 11/04 post-count gate is met by the schedule itself.
 ### M1 · Bring titles and descriptions inside Bing's limits — ✅ shipped 2026-09-16 (`4ce6715`)
 **Files:** the title template (layout / `generateMetadata` in the snippet, tool, guide and ShellCheck routes), plus registry descriptions
 **Impact:** 34/79 titles are over 65 characters and 68/79 descriptions over 160, on the only channel with measured traffic.

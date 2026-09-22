@@ -1,4 +1,4 @@
-<!-- Posting cadence rule: max 1 CoderLegion post per week. This is the week of Fri 9/11; the next one (04, rsync) is Mon 9/21. -->
+<!-- POSTED on CoderLegion 2026-09-16 as https://coderlegion.com/27426 -->
 
 # Who owns that port? One ss flag answers it without sudo
 

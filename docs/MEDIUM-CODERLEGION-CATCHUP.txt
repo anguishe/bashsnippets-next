@@ -7,10 +7,10 @@ WHERE EACH PLATFORM STANDS
 
   dev.to        DONE. 13 posts scheduled by API, 09-22 -> 11-03, 08:00 Central.
                 Publishes itself. Nothing to do, ever.
-  Medium        1 of 14 live and BROKEN (raw markdown). 13 not started.
-                Has native scheduling -> can be batched to "done" in one sitting.
-  CoderLegion   0 of 10 posted. No API worth using. One per week by hand,
-                about 5 minutes each.
+  Medium        DONE 2026-09-21. #01 fixed + canonical set; 02-14 scheduled
+                natively for the same minute as dev.to.
+  CoderLegion   DONE 2026-09-21. #01 live since 9/16; 02-14 scheduled on-site
+                (native "Schedule Post Time") for the same minute as dev.to.
 
 WHY THE THREE ARE DIFFERENT
 
@@ -29,7 +29,7 @@ WHY THE THREE ARE DIFFERENT
 
 
 ================================================================================
-PART 1 - MEDIUM: ONE SITTING, ~60 MIN, THEN NEVER AGAIN
+PART 1 - MEDIUM: DONE 2026-09-21 BY CLAUDE (kept below as the recipe of record)
 ================================================================================
 Do this once and Medium matches dev.to: every post scheduled, nothing recurring.
 
@@ -100,51 +100,9 @@ THEN, FOR EACH OF POSTS 02 THROUGH 14 - about 4 min each
 
 
 ================================================================================
-PART 2 - CODERLEGION: 5 MIN A WEEK, MONDAYS
+PART 2 - CODERLEGION: DONE 2026-09-21 - NOTHING TO DO
 ================================================================================
-No batching - the rule is one per week and these are excerpts, not articles.
-
-ALL TEN ARE NOW POSTABLE. Six were 9/01 drafts never checked against a real run;
-three of those opened on incidents that never happened and were rebuilt on real
-runs from this box on 9/20. Full record: docs/CODERLEGION-AUDIT-2026-09-20.md.
-
-  Mon 09-21  01-open-ports-linux-coderlegion.md          (missed its 9/16 slot)
-  Mon 09-28  10-rsync-command-builder-coderlegion.md
-  Mon 10-05  11-grep-pattern-builder-coderlegion.md
-  Mon 10-12  12-jq-filter-builder-coderlegion.md
-  Mon 10-19  06-bash-scripts-every-sysadmin-needs-coderlegion.md
-  Mon 10-26  07-delete-old-log-files-coderlegion.md      (rebuilt)
-  Mon 11-02  08-bash-text-processing-coderlegion.md      (rebuilt)
-  Mon 11-09  09-bash-send-email-alert-coderlegion.md     (rebuilt)
-  Mon 11-16  13-file-permissions-security-coderlegion.md
-  Mon 11-23  14-ssh-key-setup-script-coderlegion.md
-
-  #01 slipped its 9/16 slot so everything moved down a week. Seven land before
-  the 11/04 read and three after. That is fine - the read counts dev.to posts.
-  Do NOT double up to catch up; one per week is the rule.
-
-STEPS, EACH MONDAY - 5 min
-  1. https://coderlegion.com -> New post.
-  2. Open the week's .md file. Skip the <!-- --> comment lines at the top,
-     they are notes to us. Copy the body.
-  3. TYPE the title by hand, WITHOUT the leading "# ".
-     Every broken title so far came from pasting the markdown H1 into the box.
-  4. Confirm the link inside points at the specific page, not the homepage.
-     All ten were verified live (200) on 9/20.
-  5. If a canonical field is offered on this post type, fill it with the
-     bashsnippets.xyz URL. It usually is not - publish anyway, the deep link is
-     the point. This is exactly why these are EXCERPTS and never the full
-     article body: no canonical means a full copy would compete with the page.
-  6. Tick the row in queue/README.md.
-  7. Do not post another CoderLegion piece for 7 days.
-
-
-================================================================================
-THE ONE THING THAT MATTERS MORE THAN BOTH OF THESE
-================================================================================
-Neither platform decides the 11/04 read - dev.to does, and it is already done.
-
-Medium and CoderLegion are distribution and one earned-link attempt. If a week
-gets away from you, drop them without guilt. The items that actually move money
-are in ~/NOV-4-INCOME-MANUAL-ACTIONS.txt, and the top one is still the 757
-Custom Graphics email, unsent since 9/11.
+All 13 excerpts (02-14) are scheduled on CoderLegion to publish alongside dev.to,
+posts 28017-28029. The weekly Monday plan below this line in older copies is
+retired. Table, workflow and the canonical finding: queue/README.md, CoderLegion
+section.

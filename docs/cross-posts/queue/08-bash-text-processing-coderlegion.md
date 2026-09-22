@@ -1,4 +1,4 @@
-<!-- CoderLegion posting cadence rule: maximum 1 CoderLegion post per week. If another BashSnippets excerpt has gone up this week, hold this one. Excerpt only — never post the full article body here (no canonical support). -->
+<!-- SCHEDULED on CoderLegion 2026-09-21 as https://coderlegion.com/28023 - publishes Tue 2026-10-13 08:00 CDT, same minute as dev.to #08. Editing this file does NOT reach CoderLegion: edit the post there too. -->
 <!-- Rebuilt 2026-09-20 on a real run (GNU findutils 4.11.0, GNU sed 4.9). Prior version opened on an "eleven services went down" incident that never happened. -->
 
 # I escaped the dot correctly and sed still rewrote a file marked DO NOT CHANGE

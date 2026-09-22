@@ -1,4 +1,4 @@
-<!-- Posting cadence rule: maximum 1 CoderLegion post per week. Check the date of the last CoderLegion post before publishing this one. -->
+<!-- SCHEDULED on CoderLegion 2026-09-21 as https://coderlegion.com/28021 - publishes Tue 2026-10-06 08:00 CDT, same minute as dev.to #06. Editing this file does NOT reach CoderLegion: edit the post there too. -->
 
 **Catch a filling disk weeks before it becomes an outage**
 

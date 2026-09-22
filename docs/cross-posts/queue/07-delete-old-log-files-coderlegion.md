@@ -1,4 +1,4 @@
-<!-- POSTING CADENCE RULE: maximum 1 CoderLegion post per week. Do not publish this in the same week as any other CoderLegion post. -->
+<!-- SCHEDULED on CoderLegion 2026-09-21 as https://coderlegion.com/28022 - publishes Thu 2026-10-08 08:00 CDT, same minute as dev.to #07. Editing this file does NOT reach CoderLegion: edit the post there too. -->
 <!-- Rebuilt 2026-09-20 on real runs (GNU findutils 4.11.0, bash 5.3.9). Prior version opened on an SSD-filled-up incident that never happened. -->
 
 # My 30-day log cleanup kept a file that was 30 and a half days old

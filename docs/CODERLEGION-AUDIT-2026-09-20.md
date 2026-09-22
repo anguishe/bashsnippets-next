@@ -90,6 +90,8 @@ stands as written. The page's existing-key guard and multi-server section both e
 
 ## Schedule consequence
 
+> **Superseded 2026-09-21:** posted with dev.to (Tue/Thu, same minute), not weekly. 02–05 were added. Ids are in the queue README.
+
 One per week, and #01 slipped its 9/16 slot, so the queue moves down one week: 9/21, 9/28, 10/5,
 10/12, 10/19, 10/26, 11/2, 11/9, 11/16, 11/23. **Seven land before the 11/04 read, three after.**
 That is acceptable — the read counts dev.to posts. CoderLegion's job is the deep link, not the date.

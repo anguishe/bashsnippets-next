@@ -1,4 +1,4 @@
-<!-- Posting cadence rule: max 1 CoderLegion post per week. -->
+<!-- SCHEDULED on CoderLegion 2026-09-21 as https://coderlegion.com/28029 - publishes Tue 2026-11-03 08:00 CST, same minute as dev.to #14. Editing this file does NOT reach CoderLegion: edit the post there too. -->
 # Passwordless SSH login proves less than you think
 
 Setting up SSH keys has a trap: every success signal can be green while the thing you cared about stays broken. `ssh-copy-id` exiting 0 means a line was appended to `authorized_keys` — nothing more. A passwordless login afterwards means *some* auth method worked, not necessarily your key: SSH walks an ordered method list, and a refused key falls back to password silently, with the refusal logged only server-side. The usual silent killer is permissions — sshd's `StrictModes` ignores `authorized_keys` entirely if `~/.ssh` or your home directory is group-writable.

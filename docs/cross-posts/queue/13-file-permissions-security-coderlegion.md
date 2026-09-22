@@ -1,4 +1,4 @@
-<!-- POSTING CADENCE RULE: maximum 1 CoderLegion post per week. Do not publish this within 7 days of the previous CoderLegion post. -->
+<!-- SCHEDULED on CoderLegion 2026-09-21 as https://coderlegion.com/28028 - publishes Thu 2026-10-29 08:00 CDT, same minute as dev.to #13. Editing this file does NOT reach CoderLegion: edit the post there too. -->
 
 # Finding the world-writable files on your server before someone else does
 
