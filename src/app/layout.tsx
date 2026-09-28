@@ -213,9 +213,9 @@ export default function RootLayout({
         <CookieConsent />
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
-        <Script id="ga4-init" strategy="afterInteractive">
+        <Script id="ga4-init" strategy="lazyOnload">
           {`
             (function() {
               var match = document.cookie.match(/(?:^|; )bs_consent=([^;]*)/);
