@@ -16,7 +16,8 @@ function loadKey() {
     const m = env.match(/^INDEXNOW_KEY=(.+)$/m);
     if (m) return m[1].trim();
   } catch {}
-  throw new Error('INDEXNOW_KEY not found in env or .env.local');
+  // Key is public by protocol (served at /<key>.txt), so CI can fall back to it.
+  return 'a7fae2a4e86d4822ab3f636599173c8f';
 }
 const KEY = loadKey();
 
@@ -46,5 +47,6 @@ const res = await fetch('https://api.indexnow.org/indexnow', {
 console.log(`IndexNow: HTTP ${res.status} — submitted ${urlList.length} URLs`);
 if (res.status >= 400) {
   console.error(await res.text());
-  process.exit(1);
+  // Manual runs fail loudly; postbuild (CI) must never fail the deploy.
+  if (process.env.VERCEL !== '1') process.exit(1);
 }
