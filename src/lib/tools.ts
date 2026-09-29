@@ -368,7 +368,7 @@ export const tools: ToolMeta[] = [
       {
         question: 'What is the difference between trap EXIT and trap ERR in bash?',
         answer:
-          'EXIT fires every time the script exits, regardless of why — success, failure, or Ctrl+C. ERR fires only when a command returns a non-zero exit code, and only when set -e is active. For cleanup that must always run, use EXIT. For logging failures at the exact line they occur, use ERR.',
+          'EXIT fires every time the script exits, regardless of why — success, failure, or Ctrl+C. ERR fires when a command returns a non-zero exit code, under the same rules set -e uses (not inside if or while tests, or before || and &&); it does not need set -e, and it only reaches inside functions when set -E is on. For cleanup that must always run, use EXIT. For logging failures at the exact line they occur, use ERR.',
       },
       {
         question: 'Should I use single or double quotes in a bash trap statement?',

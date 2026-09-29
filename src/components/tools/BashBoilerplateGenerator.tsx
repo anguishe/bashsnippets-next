@@ -156,11 +156,12 @@ export default function BashBoilerplateGenerator() {
       lines.push('');
       const lockBase = scriptName.replace(/\.sh$/, '') || 'script';
       lines.push(`LOCKFILE="/tmp/${lockBase}.lock"`);
-      lines.push('if [ -e "$LOCKFILE" ] && kill -0 "$(cat "$LOCKFILE")" 2>/dev/null; then');
-      lines.push('  echo "Already running (pid $(cat "$LOCKFILE"))"; exit 1');
+      lines.push('# flock holds a kernel lock on fd 9 until this script exits, even on kill -9:');
+      lines.push('# no stale PID file, no check-then-write race, and no trap needed to release it.');
+      lines.push('exec 9>"$LOCKFILE"');
+      lines.push('if ! flock -n 9; then');
+      lines.push('  echo "Already running (lock held on $LOCKFILE)"; exit 1');
       lines.push('fi');
-      lines.push('echo $$ > "$LOCKFILE"');
-      lines.push("trap 'rm -f \"$LOCKFILE\"' EXIT");
     }
 
     if (root) {
@@ -175,7 +176,10 @@ export default function BashBoilerplateGenerator() {
       lines.push('cleanup() {');
       lines.push('  echo "Cleaning up..."');
       lines.push('}');
-      lines.push('trap cleanup EXIT INT TERM');
+      lines.push('# EXIT runs cleanup once; INT/TERM exit with 128+N, which then fires EXIT.');
+      lines.push('trap cleanup EXIT');
+      lines.push("trap 'exit 130' INT");
+      lines.push("trap 'exit 143' TERM");
     }
 
     lines.push('');

@@ -20,7 +20,7 @@ interface TrapState {
 
 const SIGNALS: { id: SignalId; num: string; desc: string }[] = [
   { id: 'EXIT', num: '0', desc: 'Fires when the script exits for ANY reason — success or failure.' },
-  { id: 'ERR', num: '', desc: 'Fires when any command returns a non-zero exit code (needs set -e).' },
+  { id: 'ERR', num: '', desc: 'Fires when a command fails, under the same rules as set -e (no set -e needed). set -E carries it into functions.' },
   { id: 'INT', num: '2', desc: 'Fires when the user presses Ctrl+C.' },
   { id: 'TERM', num: '15', desc: 'Fires when the OS or another process sends kill / systemctl stop.' },
   { id: 'HUP', num: '1', desc: 'Fires when the terminal closes or the SSH session drops.' },
@@ -37,7 +37,7 @@ const ACTIONS: { id: ActionId; label: string; code: string }[] = [
 
 const SIGNAL_REFERENCE: { sig: string; fires: string; use: string }[] = [
   { sig: 'EXIT (0)', fires: 'Script exits for any reason — success, failure, or interrupt.', use: 'The one trap that always runs. Put resource teardown here.' },
-  { sig: 'ERR', fires: 'A command returns a non-zero exit code (only while set -e is on).', use: 'Log the exact failing line with $LINENO before the script dies.' },
+  { sig: 'ERR', fires: 'A command returns a non-zero exit code, under the same rules as set -e (not in if/while tests or before || / &&). Does not need set -e; without set -E it does not fire inside functions.', use: 'Log the exact failing line with $LINENO before the script dies.' },
   { sig: 'INT (2)', fires: 'User presses Ctrl+C at the terminal.', use: 'Print an interrupted message and exit 130 so callers see it was cancelled.' },
   { sig: 'TERM (15)', fires: 'kill, systemctl stop, or docker stop sends SIGTERM.', use: 'Graceful shutdown of long-running scripts and Docker entrypoints.' },
   { sig: 'HUP (1)', fires: 'Terminal closes or the SSH session drops.', use: 'Decide whether to abort or keep running when the session is lost.' },
@@ -149,26 +149,36 @@ function generateCombined(s: TrapState, sigs: SignalId[]): GenResult {
     fn.push('  local line_no="$2"');
   }
   if (s.actions.log && s.sigName) fn.push('  local sig="${3:-EXIT}"');
-  fn.push('  # ERR and EXIT can both fire on one failure; run the body only once.');
-  fn.push('  [[ "${_CLEANED:-0}" -eq 1 ]] && return 0');
-  fn.push('  _CLEANED=1');
-  const td = teardownLines(s, '  ');
-  if (td.length) {
-    fn.push('');
+  const fatal = sigs.filter((sig) => sig === 'INT' || sig === 'TERM' || sig === 'HUP');
+  const td = teardownLines(s, '    ');
+  const hasBody = td.length > 0 || s.actions.log;
+  if (hasBody) {
+    fn.push('  # ERR and EXIT can both fire on one failure; run the body only once.');
+    fn.push('  if [[ "${_CLEANED:-0}" -ne 1 ]]; then');
+    fn.push('    _CLEANED=1');
     td.forEach((l) => fn.push(l));
+    if (s.actions.log) logLine(s, '    ', '$sig').forEach((l) => fn.push(l));
+    fn.push('  fi');
   }
-  if (s.actions.log) {
-    fn.push('');
-    logLine(s, '  ', '$sig').forEach((l) => fn.push(l));
+  if (fatal.length) {
+    // Without this the handler returns and the script resumes after Ctrl-C or kill.
+    if (hasBody) fn.push('');
+    fn.push('  # A fatal signal must still stop the script: exit 128 + signal number.');
+    fn.push('  case "${3:-EXIT}" in');
+    fatal.forEach((sig) => fn.push('    ' + sig + ') exit ' + exitCodeFor(sig) + ' ;;'));
+    fn.push('  esac');
   }
+  if (!hasBody && !fatal.length) fn.push('  :  # no action configured');
   fn.push('}');
 
   const traps: string[] = [];
   traps.push('# Single quotes: cleanup is resolved when the signal fires, not at definition (SC2064).');
   sigs.forEach((sig) => {
-    traps.push("trap 'cleanup $? $LINENO " + sig + "' " + sig);
+    // Fatal signals pass their own 128+N code; $? would be the last command's status.
+    const code = sig === 'INT' || sig === 'TERM' || sig === 'HUP' ? exitCodeFor(sig) : '$?';
+    traps.push("trap 'cleanup " + code + " $LINENO " + sig + "' " + sig);
   });
-  return { fn, traps, needsCleanFlag: true };
+  return { fn, traps, needsCleanFlag: hasBody };
 }
 
 function generatePerSignal(s: TrapState, sigs: SignalId[]): GenResult {
@@ -251,7 +261,12 @@ function build(s: TrapState): { full: string; trap: string } {
   head.push('# Script: myscript.sh');
   head.push('# Purpose: A script without a trap leaves temp files, locks, and jobs behind when it crashes.');
   head.push('# Usage: ./myscript.sh');
-  if (s.header) head.push('set -euo pipefail');
+  if (s.header) {
+    // -E (errtrace) lets the ERR trap fire inside functions and subshells too.
+    head.push(s.signals.ERR ? 'set -Eeuo pipefail' : 'set -euo pipefail');
+  } else if (s.signals.ERR) {
+    head.push('set -E   # errtrace: the ERR trap also fires inside functions');
+  }
   // Only declare the convention vars the generated code references (keeps it SC2034-clean).
   if (usesCheck || usesCross) head.push('');
   if (usesCheck) head.push('CHECK="✓"');
@@ -484,7 +499,7 @@ export default function BashTrapBuilder() {
         </div>
         {errWarn && (
           <div role="alert" className="mb-3 rounded-lg border border-amber bg-[#3a2e10] px-3.5 py-2.5 font-mono text-[12px] leading-relaxed text-amber">
-            ERR only fires while set -e is active. You disabled the set -euo pipefail header, so the ERR trap will never run. Re-enable the header or drop ERR.
+            Without set -e, ERR still fires on each failing command, but the script keeps running afterwards. In combined style that means cleanup runs at the first failure while the script carries on. Re-enable the header or use per-signal style.
           </div>
         )}
         <pre
