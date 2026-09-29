@@ -145,17 +145,17 @@ export const tools: ToolMeta[] = [
     slug: 'path-debugger',
     component: 'PathDebugger',
     datePublished: '2026-06-02',
-    dateModified: '2026-06-06',
+    dateModified: '2026-09-28',
     title: 'Bash $PATH Debugger',
     description:
       'Duplicate and missing PATH entries cause command-not-found errors and slow shell startup. Paste your PATH to find duplicates, empty entries and bad ordering.',
     quickAnswer:
-      'The `$PATH` environment variable is a colon-separated list of directories the shell searches when you type a command name without a full path. Duplicate entries waste lookup time on every command. Dead directories from uninstalled software slow startup. Missing entries cause exit code 127 even when the binary exists elsewhere on disk. Order matters: the shell uses the first match, so an older `python` in `/usr/bin` wins over a newer one in `/usr/local/bin` if it appears first. This debugger splits your pasted PATH into one directory per line, flags duplicates in amber, highlights empty entries in red, and outputs a deduplicated string you can paste into `~/.bashrc` or `~/.zshrc`. Run `echo $PATH`, paste the result, and review before editing your shell profile. No data leaves your browser. Use it when command-not-found errors appear after installing software, when CI builds behave differently from your laptop, or when cleaning up a PATH bloated by years of manual exports across profile files.',
+      'The `$PATH` environment variable is a colon-separated list of directories the shell searches when you type a command name without a full path. Duplicate entries waste lookup time on every command. Dead directories from uninstalled software slow startup. Missing entries cause exit code 127 even when the binary exists elsewhere on disk. Order matters: the shell uses the first match, so an older `python` in `/usr/bin` wins over a newer one in `/usr/local/bin` if it appears first. This debugger splits your pasted PATH into one directory per line, flags duplicates plus empty and relative entries, writes a shell one-liner that checks every directory on disk, and outputs a deduplicated string you can paste into `~/.bashrc` or `~/.zshrc`. Run `echo $PATH`, paste the result, and review before editing your shell profile. No data leaves your browser. Use it when command-not-found errors appear after installing software, when CI builds behave differently from your laptop, or when cleaning up a PATH bloated by years of manual exports across profile files.',
     category: 'debug',
     howToUse: [
       'Run `echo $PATH` in your terminal and paste the output into the input field.',
       'The tool splits the colon-separated PATH string and lists each directory as a separate entry.',
-      'Review the output for duplicates (shown in amber) and empty entries (shown in red) that waste lookup time.',
+      'Review the output for duplicates, empty entries and relative entries, then run the generated check in your shell to find directories that do not exist.',
       'Copy the cleaned PATH string with duplicates removed and add it to your ~/.bashrc or ~/.zshrc.',
     ],
     faqs: [

@@ -3,13 +3,14 @@
 import CopyButton from '@/components/CopyButton';
 import { useClipboard } from './shared/useClipboard';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { PATH_CHECK_COMMAND, buildKeepExisting, shQuote } from './shared/pathCheck';
 
 const EXAMPLE_PATH =
   '/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/usr/bin:/usr/games:/usr/local/games:/snap/bin:/home/user/.local/bin:/nonexistent/dir';
 
-const VALID_PREFIXES = ['/usr', '/bin', '/sbin', '/home', '/opt', '/snap', '/var', '/etc', '/tmp'];
-
-type EntryStatus = 'exists' | 'missing' | 'duplicate' | 'empty' | 'unknown' | 'relative';
+// A browser cannot see the visitor's disk, so no entry is ever reported as existing or missing.
+// Absolute entries are marked "check" and the generated shell lines below test them for real.
+type EntryStatus = 'check' | 'duplicate' | 'empty' | 'relative';
 
 interface PathRow {
   entry: string;
@@ -17,26 +18,21 @@ interface PathRow {
   note: string;
 }
 
-function classifyEntry(entry: string): 'empty' | 'relative' | 'missing' | 'exists' | 'unknown' {
+function classifyEntry(entry: string): 'empty' | 'relative' | 'check' {
   if (entry === '') return 'empty';
   // A non-absolute entry (".", "./bin", "../x", or any path not starting with /)
   // is a security risk: PATH is resolved relative to the current working directory.
   if (entry.charAt(0) !== '/') return 'relative';
-  if (entry.includes('nonexistent') || entry.includes('..')) return 'missing';
-  for (const prefix of VALID_PREFIXES) {
-    if (entry.indexOf(prefix) === 0) return 'exists';
-  }
-  return 'unknown';
+  return 'check';
 }
+
 
 function badgeClass(status: EntryStatus): string {
   const map: Record<EntryStatus, string> = {
-    exists: 'bg-green-dim text-green border-green',
-    missing: 'bg-[#3d2f0d] text-amber border-amber',
+    check: 'bg-[#0d2a4a] text-blue border-blue',
     relative: 'bg-[#2d1515] text-[#f85149] border-[#f85149]',
     duplicate: 'bg-bg3 text-muted border-border',
-    empty: 'bg-bg3 text-muted border-border',
-    unknown: 'bg-[#0d2a4a] text-blue border-blue',
+    empty: 'bg-[#3d2f0d] text-amber border-amber',
   };
   return map[status];
 }
@@ -46,10 +42,13 @@ export default function PathDebugger() {
   const [analyzed, setAnalyzed] = useState(false);
   const [error, setError] = useState('');
   const [rows, setRows] = useState<PathRow[]>([]);
-  const [stats, setStats] = useState({ total: 0, exist: 0, missing: 0, dupes: 0, risky: 0 });
+  const [stats, setStats] = useState({ total: 0, toCheck: 0, empty: 0, dupes: 0, risky: 0 });
   const [cleanedPath, setCleanedPath] = useState('');
+  const [keepExisting, setKeepExisting] = useState('');
   const [showToast, setShowToast] = useState(false);
   const { copied, copy } = useClipboard();
+  const checkClip = useClipboard();
+  const keepClip = useClipboard();
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const analyzePath = useCallback(() => {
@@ -61,15 +60,16 @@ export default function PathDebugger() {
       setAnalyzed(true);
       setRows([]);
       setCleanedPath('');
-      setStats({ total: 0, exist: 0, missing: 0, dupes: 0, risky: 0 });
+      setKeepExisting('');
+      setStats({ total: 0, toCheck: 0, empty: 0, dupes: 0, risky: 0 });
       return;
     }
 
     const entries = raw.split(':');
     const seen: Record<string, number> = {};
     const resultRows: PathRow[] = [];
-    let countExist = 0;
-    let countMissing = 0;
+    let countCheck = 0;
+    let countEmpty = 0;
     let countDupes = 0;
     let countRisky = 0;
     const cleanedEntries: string[] = [];
@@ -91,7 +91,7 @@ export default function PathDebugger() {
           // A bare/empty PATH element is treated as "." by the shell — same CWD risk.
           status = 'empty';
           note = 'Empty entry (bare colon) — shell treats this as the current directory';
-          countMissing++;
+          countEmpty++;
         } else if (cls === 'relative') {
           status = 'relative';
           note =
@@ -99,19 +99,12 @@ export default function PathDebugger() {
               ? 'CRITICAL — relative path is first in PATH; a planted binary here shadows every system command'
               : 'Security risk — relative path; a binary in the working directory can shadow real commands';
           countRisky++;
-        } else if (cls === 'missing') {
-          status = 'missing';
-          note = 'Likely invalid — verify on your system';
-          countMissing++;
-        } else if (cls === 'exists') {
-          status = 'exists';
-          note = 'Likely valid';
-          countExist++;
-          cleanedEntries.push(entry);
         } else {
-          status = 'unknown';
-          note = 'Unknown — verify manually';
-          countExist++;
+          status = 'check';
+          note = entry.includes('..')
+            ? 'Contains .. — works, but write the resolved directory instead. Existence: run the check below'
+            : "Absolute path — a browser can't see your disk; run the check below to confirm it exists";
+          countCheck++;
           cleanedEntries.push(entry);
         }
       }
@@ -121,13 +114,14 @@ export default function PathDebugger() {
 
     setStats({
       total: entries.length,
-      exist: countExist,
-      missing: countMissing,
+      toCheck: countCheck,
+      empty: countEmpty,
       dupes: countDupes,
       risky: countRisky,
     });
     setRows(resultRows);
-    setCleanedPath(`export PATH=${cleanedEntries.join(':')}`);
+    setCleanedPath(`export PATH=${shQuote(cleanedEntries.join(':'))}`);
+    setKeepExisting(buildKeepExisting(cleanedEntries));
     setAnalyzed(true);
   }, [pathInput]);
 
@@ -172,8 +166,8 @@ export default function PathDebugger() {
             className="min-h-[120px] w-full resize-y rounded-md border border-border bg-bg3 px-3 py-3 font-mono text-[13px] leading-relaxed text-text outline-none focus:border-green"
           />
 
-          <p className="my-2.5 font-mono text-xs leading-snug text-amber">
-            &quot;Load My PATH&quot; only works when this page is opened locally in a terminal browser — it cannot read your actual system PATH from a web browser.
+          <p className="my-2.5 font-mono text-xs leading-snug text-muted">
+            A web page cannot read your system or your disk. This tool checks the text you paste; the shell lines it generates check the directories for real.
           </p>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -189,18 +183,7 @@ export default function PathDebugger() {
               onClick={loadExample}
               className="rounded-md border border-border bg-bg3 px-5 py-2.5 font-mono text-[13px] text-text hover:border-muted"
             >
-              Load My PATH
-            </button>
-          </div>
-
-          <div className="mt-3.5 font-mono text-xs text-muted">
-            Or try an example:{' '}
-            <button
-              type="button"
-              onClick={loadExample}
-              className="text-muted underline hover:text-text"
-            >
-              load example $PATH
+              Load example $PATH
             </button>
           </div>
         </div>
@@ -226,12 +209,14 @@ export default function PathDebugger() {
                     <span className="rounded-full border border-blue bg-bg3 px-3 py-1 font-mono text-[11px] font-semibold tracking-wide text-blue">
                       {stats.total} director{stats.total === 1 ? 'y' : 'ies'}
                     </span>
-                    <span className="rounded-full border border-green bg-green-dim px-3 py-1 font-mono text-[11px] font-semibold tracking-wide text-green">
-                      {stats.exist} exist
+                    <span className="rounded-full border border-blue bg-[#0d2a4a] px-3 py-1 font-mono text-[11px] font-semibold tracking-wide text-blue">
+                      {stats.toCheck} to check on disk
                     </span>
-                    <span className="rounded-full border border-amber bg-[#3d2f0d] px-3 py-1 font-mono text-[11px] font-semibold tracking-wide text-amber">
-                      {stats.missing} missing
-                    </span>
+                    {stats.empty > 0 && (
+                      <span className="rounded-full border border-amber bg-[#3d2f0d] px-3 py-1 font-mono text-[11px] font-semibold tracking-wide text-amber">
+                        {stats.empty} empty
+                      </span>
+                    )}
                     <span className="rounded-full border border-border bg-bg3 px-3 py-1 font-mono text-[11px] font-semibold tracking-wide text-muted">
                       {stats.dupes} duplicate{stats.dupes === 1 ? '' : 's'}
                     </span>
@@ -273,9 +258,26 @@ export default function PathDebugger() {
                     </table>
                   </div>
 
-                  <div>
+                  <div className="mb-6">
                     <div className="mb-2 font-mono text-[11px] uppercase tracking-widest text-green">
-                      Cleaned export PATH= (duplicates, missing + relative entries removed)
+                      Check every entry on your machine
+                    </div>
+                    <p className="mb-2 font-mono text-xs leading-relaxed text-muted">
+                      Run this in the shell whose PATH you pasted. It prints one line per empty, relative or missing entry and nothing when all of them exist.
+                    </p>
+                    <div className="relative rounded-md border border-border bg-bg3 p-3.5">
+                      <pre className="whitespace-pre-wrap break-all pr-16 font-mono text-xs leading-relaxed text-text">
+                        {PATH_CHECK_COMMAND}
+                      </pre>
+                      <div className="absolute right-2.5 top-2.5">
+                        <CopyButton copied={checkClip.copied} onClick={() => void checkClip.copy(PATH_CHECK_COMMAND)} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <div className="mb-2 font-mono text-[11px] uppercase tracking-widest text-green">
+                      Cleaned export PATH= (duplicates, empty + relative entries removed)
                     </div>
                     <div className="relative rounded-md border border-border bg-bg3 p-3.5">
                       <pre className="whitespace-pre-wrap break-all pr-16 font-mono text-xs leading-relaxed text-text">
@@ -286,6 +288,25 @@ export default function PathDebugger() {
                       </div>
                     </div>
                   </div>
+
+                  {keepExisting && (
+                    <div>
+                      <div className="mb-2 font-mono text-[11px] uppercase tracking-widest text-green">
+                        Same list, keeping only directories that exist
+                      </div>
+                      <p className="mb-2 font-mono text-xs leading-relaxed text-muted">
+                        Tests each directory with <code className="text-text">[[ -d ]]</code> on the machine where you run it, so a directory missing there is dropped and the order is kept.
+                      </p>
+                      <div className="relative rounded-md border border-border bg-bg3 p-3.5">
+                        <pre className="whitespace-pre-wrap break-all pr-16 font-mono text-xs leading-relaxed text-text">
+                          {keepExisting}
+                        </pre>
+                        <div className="absolute right-2.5 top-2.5">
+                          <CopyButton copied={keepClip.copied} onClick={() => void keepClip.copy(keepExisting)} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
