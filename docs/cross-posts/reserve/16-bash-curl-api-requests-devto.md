@@ -1,3 +1,4 @@
+<!-- HOLD 2026-09-28: this draft opens on an invented incident (price-list cron). The live snippet page now opens on a real run (httpbin 502 -> exit 0, empty file). Rewrite this opening from that run before scheduling. -->
 ---
 title: "My Nightly Job Reported Success for a Month While It Poisoned Every Price Downstream"
 published: true

@@ -22,10 +22,31 @@ howToSteps:
     text: "After the retry budget is exhausted, return 1 so the calling script — and cron — knows the request genuinely failed rather than assuming empty output was fine."
 author: "Travis"
 datePublished: 2026-07-08
-dateModified: 2026-07-08
+dateModified: 2026-09-28
 ---
 
-The nightly job had been "working" for a month. It pulled a price list from a partner API, wrote it to a file, and the rest of the pipeline built from that file. Then one morning every downstream price was zero. The partner had put their API behind a new gateway that returned a 502 HTML page during deploys — and our script had been faithfully saving that HTML, parsing nothing out of it, and writing zeros ever since the last time they deployed. `curl` had exited 0 every single night. Nothing in the logs looked wrong, because to bash, nothing *was* wrong. That's the ten minutes of feeling foolish I'm not proud of: the fix was one line I'd skipped because the happy path worked.
+I pointed a plain `curl` at an endpoint that answers every request with a 502, the way an API does in the middle of a bad deploy, and saved the result the way a nightly job would:
+
+```text
+$ curl -s -o page.html https://httpbin.org/status/502; echo "exit=$?"
+exit=0
+$ wc -c < page.html
+0
+```
+
+Exit 0, and a zero-byte file where the data should be. Nothing downstream can tell. `set -euo pipefail` has nothing to trip on, the parser reads an empty file, and whatever gets built from it is quietly wrong until someone notices the numbers. Same endpoint, same box, through the wrapper below:
+
+```text
+$ ./api-request.sh https://httpbin.org/status/502
+✗ 502 (attempt 1/3) — retrying
+✗ 502 (attempt 2/3) — retrying
+✗ 502 (attempt 3/3) — retrying
+✗ gave up after 3 attempts
+$ echo $?
+1
+```
+
+Three tries, about six and a half seconds, and a non-zero exit that cron and the next step can both see.
 
 ## Why does curl succeed when the request failed?
 
@@ -94,6 +115,20 @@ api_get() {
 api_get "$API_URL"
 ```
 
+A 404 gets one try, because retrying a wrong URL only repeats the mistake, and a good response goes to stdout with the status on stderr:
+
+```text
+$ ./api-request.sh https://httpbin.org/status/404
+✗ 404 — not retryable, this is our request
+
+$ echo $?
+1
+$ ./api-request.sh https://api.github.com/repos/anguishe/bashsnippets > repo.json
+✓ 200 OK
+$ jq -r .full_name repo.json
+anguishe/bashsnippets
+```
+
 The body goes to stdout so you can pipe it straight into `jq`; the status commentary goes to stderr so it doesn't pollute the data. Because `api_get` returns non-zero when the API is truly down, the caller can do `data=$(api_get "$url") || exit 1` and mean it.
 
 ## Why not just use --fail?
@@ -102,6 +137,6 @@ The body goes to stdout so you can pipe it straight into `jq`; the status commen
 
 ## What this still doesn't cover
 
-This handles a single request. It does not walk paginated results, refresh an OAuth token that expired mid-run, or read a `Retry-After` header to back off politely (it uses a fixed delay). Those are real and worth adding when the API demands them — see the [Shell Scripts That Talk to APIs](/guides/shell-scripts-that-talk-to-apis) guide for the fuller pattern. But the status-code check and the timeouts are the two things that turn "silently wrong for a month" into "fails tonight, loudly."
+This handles a single request. It does not walk paginated results, refresh an OAuth token that expired mid-run, or read a `Retry-After` header to back off politely (it uses a fixed delay). Those are real and worth adding when the API demands them — see the [Shell Scripts That Talk to APIs](/guides/shell-scripts-that-talk-to-apis) guide for the fuller pattern. But the status-code check and the timeouts are the two things that turn "exit 0 and an empty file" into "fails tonight, loudly."
 
 Once you've got a clean 2xx body, the next job is reading fields out of it without regex — that's [parsing JSON with jq](/snippets/bash-parse-json-jq). And when a request finally does fail for real, you want to hear about it: [send the failure to Slack](/snippets/bash-slack-webhook-alerts).
