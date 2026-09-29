@@ -51,7 +51,7 @@ const techArticleSchema = {
   description: DESCRIPTION,
   url: `${SITE_URL}/guides/open-ports-linux`,
   datePublished: '2026-09-01',
-  dateModified: '2026-09-01',
+  dateModified: '2026-09-28',
   author: { '@type': 'Person', ...AUTHOR },
   publisher: {
     '@type': 'Organization',

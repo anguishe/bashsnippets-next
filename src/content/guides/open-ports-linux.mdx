@@ -4,7 +4,7 @@ description: "\"List open ports\" is three questions — what is listening, who 
 slug: open-ports-linux
 author: "Travis"
 datePublished: 2026-09-01
-dateModified: 2026-09-01
+dateModified: 2026-09-28
 ---
 
 ## List Open Ports on Linux
@@ -294,6 +294,26 @@ docker port open-webui
 ```
 
 So the host-side listener list answers "which host ports are exposed" but never "what application is behind them" — `docker ps` does, via its `PORTS` column. And it cuts the other way: a container port that is **not** published does not appear in the host's `ss` output at all, because it exists in a different network namespace. To list those you have to enter the namespace — `nsenter -t "$(docker inspect -f '{{.State.Pid}}' name)" -n ss -ltn` — or run `ss` inside the container if the image has it. A host-level port audit that ignores this will happily report a database as "not listening" while it serves the whole compose stack on an internal bridge.
+
+## How do I stop a Docker port from listening on 0.0.0.0?
+
+Bind it to loopback. `ufw` will not do it for you: published ports are forwarded in Docker's own iptables chains before the host's `INPUT` rules ever see the packet, so a `deny 3000` rule leaves the container reachable. For one container, put the address in the publish flag (`-p 127.0.0.1:3000:8080`). To make loopback the default for every container that does not ask for an address, set it on the daemon and restart it:
+
+```bash
+echo '{ "ip": "127.0.0.1" }' | sudo tee /etc/docker/daemon.json
+sudo systemctl restart docker
+```
+
+That is the fix this box got. After a `docker restart open-webui`, the same two checks read:
+
+```text
+$ ss -Hltn 'sport = :3000'
+LISTEN 0      4096   127.0.0.1:3000 0.0.0.0:*
+$ docker ps --filter name=open-webui --format '{{.Names}}  {{.Ports}}'
+open-webui  127.0.0.1:3000->8080/tcp
+```
+
+The `[::]:3000` socket is gone too. `"ip"` is only a default, though. A publish flag with an explicit `0.0.0.0`, or a tool that writes the host address itself, still binds every interface, so re-run `ss` after the restart instead of trusting the file. If you reach the service from another device, keep it on the LAN address rather than `0.0.0.0` and put a firewall rule in the `DOCKER-USER` chain, which is the one chain Docker leaves for you.
 
 ## The audit script
 
