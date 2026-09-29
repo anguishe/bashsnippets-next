@@ -1,24 +1,29 @@
-<!-- HOLD 2026-09-28: this draft opens on an invented incident (price-list cron). The live snippet page now opens on a real run (httpbin 502 -> exit 0, empty file). Rewrite this opening from that run before scheduling. -->
+<!-- REWRITTEN 2026-09-29 on the real run from the live snippet page (httpbin 502 -> exit 0 + 0-byte file; wrapper 3 tries -> exit 1; 404 one try; 200 -> jq). Same canonical as queue #23 (404 on a local http.server): post ONE of them, not both. -->
 ---
-title: "My Nightly Job Reported Success for a Month While It Poisoned Every Price Downstream"
+title: "curl Got a 502, Wrote an Empty File, and Exited 0"
 published: true
-description: "curl exits 0 on an HTTP 500. My nightly sync saved a gateway's error page as price data for weeks — all green logs. Check the status code yourself."
+description: "curl exits 0 on an HTTP 502. A real run: plain curl saves a zero-byte file and reports success; a status-checking wrapper retries three times and exits 1."
 tags: bash, linux, devops, sysadmin
 canonical_url: https://bashsnippets.xyz/snippets/bash-curl-api-requests
 cover_image: https://bashsnippets.xyz/ogimage.png
 ---
 
-For a month, the most reliable-looking job on my server was a nightly cron that pulled a price list from a partner's API. curl fetched, the response landed in a file, and the rest of the pipeline built its numbers from that file. Exit code 0, every single night. Then one morning I opened the output and every price in it was zero.
+I pointed a plain `curl` at an endpoint that answers every request with a 502, the way an API does in the middle of a bad deploy, and saved the result the way a nightly job would:
 
-The partner, it turned out, had moved their API behind a new gateway. During their deploys, that gateway answered with a 502 — not a dropped connection, a complete, well-formed HTML error page. My script had been saving that page as if it were data. The parser found no prices inside HTML, defaulted every field to zero, and wrote the file anyway. No alert ever fired, because as far as bash could tell, nothing had failed. curl ran. It exited 0. The log stayed green.
+```text
+$ curl -s -o page.html https://httpbin.org/status/502; echo "exit=$?"
+exit=0
+$ wc -c < page.html
+0
+```
 
-The eventual fix was a handful of lines I had skipped when I first wrote the script. The part I'm not proud of is why I skipped them: the happy path worked on day one, and I called it done.
+Exit 0, and a zero-byte file where the data should be. If that line lived in a cron job, the log would say success, the next step would read an empty file, and whatever it built would be quietly wrong until somebody noticed the numbers. Nothing in the script would ever complain, because as far as bash can tell, nothing failed.
 
 ## The exit code answers a different question than the one you're asking
 
 curl's exit status reports the transport, not the conversation. If DNS resolved, the connection opened, and a complete response came back, then curl's actual job — moving bytes — succeeded, and it exits 0. Whether those bytes were your JSON or a gateway's apology page is an application-level concern, and the exit code carries no application-level news. A 200 and a 500 are the same successful round trip.
 
-That's why `set -euo pipefail` did nothing for me here, even though it sat at the top of the script like it always does. `set -e` aborts on a non-zero exit, and there was never a non-zero exit. The command worked; the request failed; bash only knows about the first of those two events. A script that equates "curl returned" with "the API answered correctly" is trusting somebody else's deploy schedule with its own data integrity.
+That's why `set -euo pipefail` at the top of a script does nothing here. `set -e` aborts on a non-zero exit, and there was never a non-zero exit. The command worked; the request failed; bash only knows about the first of those two events. A script that equates "curl returned" with "the API answered correctly" is trusting somebody else's deploy schedule with its own data integrity.
 
 ## Make the status code something bash can see
 
@@ -46,11 +51,37 @@ The two timeouts are what make this safe under cron. `--connect-timeout 5` caps 
 
 ## Why not --fail?
 
-curl ships a blunt version of all this: `--fail` makes it exit 22 on 4xx and 5xx, which trips `set -e`. For a one-liner at a terminal it's a genuine improvement. I stopped reaching for it in unattended scripts for two reasons. It discards the response body on error — when an API answers 400 with `{"error":"missing field x"}`, `--fail` hands you an exit code and deletes the sentence that explains it. And it collapses every HTTP failure into one code, so the script can't tell a retryable 503 from a permanent 404 without capturing the status anyway — at which point the flag has nothing left to add.
+curl ships a blunt version of all this: `--fail` makes it exit 22 on 4xx and 5xx, which trips `set -e`. For a one-liner at a terminal it's a genuine improvement. I don't reach for it in unattended scripts, for two reasons. It discards the response body on error — when an API answers 400 with `{"error":"missing field x"}`, `--fail` hands you an exit code and deletes the sentence that explains it. And it collapses every HTTP failure into one code, so the script can't tell a retryable 503 from a permanent 404 without capturing the status anyway — at which point the flag has nothing left to add.
 
-## The two mornings
+## The same endpoint, checked
 
-Run my month-long incident through the checked version and it dies on night one. The gateway's 502 lands in the transient branch, the retries exhaust, the function returns non-zero, and cron finally has a failure it can report. I would have known at breakfast the first morning — with the error page sitting in the log, naming the gateway — instead of reverse-engineering the story from a file full of zeros a month later. The distance between those two mornings is one status check the happy path let me skip.
+Here is that 502 again, same box, through the wrapper from the snippet page (the retry loop around the `case` above):
+
+```text
+$ ./api-request.sh https://httpbin.org/status/502
+✗ 502 (attempt 1/3) — retrying
+✗ 502 (attempt 2/3) — retrying
+✗ 502 (attempt 3/3) — retrying
+✗ gave up after 3 attempts
+$ echo $?
+1
+```
+
+Three tries, about six and a half seconds, and a non-zero exit that cron and the next step can both see. A 404 gets one try, because retrying a wrong URL only repeats the mistake, and a good response goes to stdout with the status on stderr, so the data stays pipeable:
+
+```text
+$ ./api-request.sh https://httpbin.org/status/404
+✗ 404 — not retryable, this is our request
+
+$ echo $?
+1
+$ ./api-request.sh https://api.github.com/repos/anguishe/bashsnippets > repo.json
+✓ 200 OK
+$ jq -r .full_name repo.json
+anguishe/bashsnippets
+```
+
+The first run is a job that stays green while it writes nothing. The second is a job that fails tonight, loudly, with the status code in the log.
 
 The full wrapper — retry loop with a budget, both timeouts, body on stdout and diagnostics on stderr so the data stays pipeable — is at https://bashsnippets.xyz/snippets/bash-curl-api-requests
 
