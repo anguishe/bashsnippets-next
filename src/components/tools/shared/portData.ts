@@ -661,7 +661,7 @@ export function buildCards(sockets: Socket[]): Card[] {
     const exposed = wildcard || scope === 'public' || scope === 'named';
     const units = g.map((s) => s.unit ?? '');
     const isDocker =
-      g.some((s) => s.procs.some((p) => p.name === 'docker-proxy')) ||
+      g.some((s) => s.procs.some((p) => p.name.startsWith('docker-prox'))) || // netstat cuts it to docker-prox
       units.some((u) => u === 'docker.service' || u === 'containerd.service');
     const filter = portFilter(port);
     const listFlag = proto === 'udp' ? '-lunp' : '-ltnp';

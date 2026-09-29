@@ -561,10 +561,14 @@ Expected: `BACKLOG_FULL` (Recv-Q 3 ≥ Send-Q 2), plus `LOOPBACK_ONLY`.
 
 ### Fixtures still to capture (TRAVIS-RUNS, need root)
 
-- **F7: `sudo ss -tulpn`**: the same box as root, so every row has `users:` (including
-  `docker-proxy`, `systemd-resolve`, `tor`). Expected: no `NO_OWNER`; `DOCKER_PUBLISH` keyed on the
-  `docker-proxy` process name, not on the cgroup. OUTPUT PLACEHOLDER.
-- **F8: `sudo netstat -tulpn`**: expected: no preamble, program names on every row. OUTPUT PLACEHOLDER.
+- **F7: `sudo ss -tulpn`** → `scripts/fixtures/open-ports/f7-ss-tulpn-root.txt` (captured 9/28 22:51,
+  after the Docker `ip=127.0.0.1` fix). Every row has `users:`; `docker-proxy` owns `127.0.0.1:3000`
+  (loopback, so no `DOCKER_PUBLISH`). 36 rows → 21 cards, 0 `NO_OWNER`.
+- **F8: `sudo netstat -tulpn`** → `f8-netstat-tulpn-root.txt`. No preamble, a program on every row,
+  names cut at the column (`docker-prox`, `localsend_a`), so the parser matches `docker-prox*`.
+  Same 21 cards as F7.
+- Redactions for F7/F8 on top of the F1 rules: the Supabase CLI rows (5432x, since stopped) and the
+  firewalled Ollama row are dropped; the gateway process is shown as `node`.
 - **F9 (optional): ufw + docker publish**: only if Travis wants the FAQ #4 claim. See the approval
   package TRAVIS-RUNS for the exact commands. OUTPUT PLACEHOLDER.
 

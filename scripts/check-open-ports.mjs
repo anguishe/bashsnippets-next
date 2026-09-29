@@ -120,6 +120,41 @@ check(() => {
   assert.deepEqual(flagIds(cards[0]).slice(0, 2), ['BACKLOG_FULL', 'LOOPBACK_ONLY']);
 });
 
+// F7: sudo ss -tulpn: every row has an owner; Docker publishes to loopback only after the 9/28 fix
+check(() => {
+  const { res, cards } = run('f7-ss-tulpn-root');
+  assert.equal(res.format, 'ss-netid');
+  assert.equal(res.nonRoot, false);
+  assert.equal(res.unparsed.length, 0);
+  assert.equal(res.dataRows, 36);
+  assert.equal(cards.length, 21);
+  assert.equal(cards.filter((c) => c.owner === null).length, 0, 'root: no NO_OWNER');
+  assert.equal(cardAt(cards, '127.0.0.1:3000').owner, 'docker-proxy');
+  assert.equal(count(cards, 'DOCKER_PUBLISH'), 0, 'loopback publish is not a warning');
+  assert.equal(count(cards, 'DEV_SERVER_WILDCARD'), 3);
+  assert.equal(cards.filter(isFlagged).length, 3);
+});
+
+// F8: sudo netstat -tulpn: no preamble, names cut at the column
+check(() => {
+  const { res, cards } = run('f8-netstat-tulpn-root');
+  assert.equal(res.format, 'netstat');
+  assert.equal(res.nonRoot, false, 'no preamble as root');
+  assert.equal(res.unparsed.length, 0);
+  assert.equal(cards.length, 21, 'same box, same cards as F7');
+  assert.equal(cards.filter((c) => c.owner === null).length, 0);
+  assert.equal(cardAt(cards, '127.0.0.1:3000').owner, 'docker-prox');
+  assert.equal(res.truncatedNames, true);
+});
+
+// netstat's cut name still counts as Docker (hand-made row)
+check(() => {
+  const listing = 'Active Internet connections (only servers)\n' +
+    'Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name\n' +
+    'tcp        0      0 0.0.0.0:8095            0.0.0.0:*               LISTEN      4242/docker-prox\n';
+  assert.equal(count(buildCards(parseListing(listing).sockets), 'DOCKER_PUBLISH'), 1);
+});
+
 // Negatives
 check(() => assert.equal(run('n1-empty').res.format, 'empty'));
 check(() => assert.equal(run('n2-ps-aux').res.format, 'unknown'));

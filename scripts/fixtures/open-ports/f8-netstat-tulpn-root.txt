@@ -1,0 +1,38 @@
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 127.0.0.54:53           0.0.0.0:*               LISTEN      860/systemd-resolve
+tcp        0      0 127.0.0.1:18791         0.0.0.0:*               LISTEN      1096/node
+tcp        0      0 127.0.0.1:18789         0.0.0.0:*               LISTEN      1096/node
+tcp        0      0 0.0.0.0:5355            0.0.0.0:*               LISTEN      860/systemd-resolve
+tcp        0      0 127.0.0.1:38077         0.0.0.0:*               LISTEN      1044/containerd
+tcp        0      0 127.0.0.1:3000          0.0.0.0:*               LISTEN      2790035/docker-prox
+tcp        0      0 0.0.0.0:53317           0.0.0.0:*               LISTEN      2711283/localsend_a
+tcp        0      0 127.0.0.1:43347         0.0.0.0:*               LISTEN      1096/node
+tcp        0      0 127.0.0.53:53           0.0.0.0:*               LISTEN      860/systemd-resolve
+tcp        0      0 127.0.0.1:9050          0.0.0.0:*               LISTEN      1061/tor
+tcp6       0      0 ::1:18789               :::*                    LISTEN      1096/node
+tcp6       0      0 :::5355                 :::*                    LISTEN      860/systemd-resolve
+tcp6       0      0 :::3217                 :::*                    LISTEN      2702223/next-server
+tcp6       0      0 :::3111                 :::*                    LISTEN      154558/next-server
+tcp6       0      0 :::3917                 :::*                    LISTEN      2687939/next-server
+tcp6       0      0 :::53317                :::*                    LISTEN      2711283/localsend_a
+udp        0      0 0.0.0.0:53317           0.0.0.0:*                           2711283/localsend_a
+udp        0      0 0.0.0.0:53317           0.0.0.0:*                           2711283/localsend_a
+udp        0      0 0.0.0.0:53317           0.0.0.0:*                           2711283/localsend_a
+udp        0      0 0.0.0.0:53317           0.0.0.0:*                           2711283/localsend_a
+udp        0      0 127.0.0.54:53           0.0.0.0:*                           860/systemd-resolve
+udp        0      0 127.0.0.53:53           0.0.0.0:*                           860/systemd-resolve
+udp        0      0 0.0.0.0:5353            0.0.0.0:*                           1096/node
+udp        0      0 224.0.0.251:5353        0.0.0.0:*                           7889/chrome --type=
+udp        0      0 224.0.0.251:5353        0.0.0.0:*                           7889/chrome --type=
+udp        0      0 224.0.0.251:5353        0.0.0.0:*                           7889/chrome --type=
+udp        0      0 224.0.0.251:5353        0.0.0.0:*                           7889/chrome --type=
+udp        0      0 0.0.0.0:5353            0.0.0.0:*                           1096/node
+udp        0      0 0.0.0.0:5353            0.0.0.0:*                           1096/node
+udp        0      0 0.0.0.0:5353            0.0.0.0:*                           1096/node
+udp        0      0 0.0.0.0:5355            0.0.0.0:*                           860/systemd-resolve
+udp6       0      0 :::53317                :::*                                2711283/localsend_a
+udp6       0      0 :::53317                :::*                                2711283/localsend_a
+udp6       0      0 fe80::db8:1:546         :::*                                1004/NetworkManager
+udp6       0      0 fe80::db8:2:546         :::*                                1004/NetworkManager
+udp6       0      0 :::5355                 :::*                                860/systemd-resolve
