@@ -50,7 +50,37 @@ const PRESETS: Preset[] = [
 ];
 
 // ── Pure logic (no React) ───────────────────────────────────────
-function buildParts(source: string, dest: string, excludes: string, s: RsyncState, bwlimit: number): string[] {
+// Single-quote a path only when the shell would split or expand it; keep a leading ~/ outside so it expands.
+function quotePath(p: string): string {
+  if (!p || /^[A-Za-z0-9_./~+:@%=,-]+$/.test(p)) return p;
+  const sq = (x: string) => "'" + x.replace(/'/g, "'\\''") + "'";
+  return p.startsWith('~/') ? `~/${sq(p.slice(2))}` : sq(p);
+}
+
+interface SshOpts {
+  port: string;
+  key: string;
+}
+
+function sshCommand(o: SshOpts): string {
+  const bits = ['ssh'];
+  if (/^\d+$/.test(o.port.trim()) && o.port.trim() !== '22') bits.push('-p', o.port.trim());
+  if (o.key.trim()) bits.push('-i', o.key.trim().replace(/'/g, ''));
+  return bits.length === 1 ? '-e ssh' : `-e '${bits.join(' ')}'`;
+}
+
+// The trailing slash on the source decides whether rsync copies the directory or its contents.
+function slashNote(source: string, dest: string): string {
+  const src = source.trim();
+  if (!src) return '';
+  const d = dest.trim() || 'DEST';
+  const name = src.replace(/\/+$/, '').split(/[/:]/).pop() || src;
+  return src.endsWith('/')
+    ? `Source ends in /: copies the contents of ${name} into ${d}. Drop the slash to create ${d.replace(/\/?$/, '/')}${name} instead.`
+    : `No trailing slash: copies the directory ${name} itself, so the files land in ${d.replace(/\/?$/, '/')}${name}/. Add a slash to copy only its contents.`;
+}
+
+function buildParts(source: string, dest: string, excludes: string, s: RsyncState, bwlimit: number, ssh: SshOpts): string[] {
   let shortFlags = '';
   if (s.archive) shortFlags += 'a';
   if (s.verbose) shortFlags += 'v';
@@ -65,7 +95,7 @@ function buildParts(source: string, dest: string, excludes: string, s: RsyncStat
     parts.push('--progress');
   }
   if (s.bwlimitOn && bwlimit > 0) parts.push(`--bwlimit=${bwlimit}`);
-  if (s.ssh) parts.push('-e ssh');
+  if (s.ssh) parts.push(sshCommand(ssh));
 
   if (excludes.trim()) {
     excludes.split(',').forEach((raw) => {
@@ -74,8 +104,8 @@ function buildParts(source: string, dest: string, excludes: string, s: RsyncStat
     });
   }
 
-  parts.push(source);
-  parts.push(dest || '[destination]');
+  parts.push(quotePath(source));
+  parts.push(dest ? quotePath(dest) : '[destination]');
   return parts;
 }
 
@@ -104,6 +134,8 @@ export default function RsyncCommandBuilder() {
   const [dest, setDest] = useState('');
   const [excludes, setExcludes] = useState('');
   const [bwlimit, setBwlimit] = useState(1000);
+  const [sshPort, setSshPort] = useState('');
+  const [sshKey, setSshKey] = useState('');
   const [state, setState] = useState<RsyncState>({
     archive: true,
     verbose: true,
@@ -131,15 +163,15 @@ export default function RsyncCommandBuilder() {
 
   const rawCommand = useMemo(() => {
     if (!source.trim()) return '';
-    return rawCommandFrom(buildParts(source.trim(), dest.trim(), excludes, state, bwlimit));
-  }, [source, dest, excludes, state, bwlimit]);
+    return rawCommandFrom(buildParts(source.trim(), dest.trim(), excludes, state, bwlimit, { port: sshPort, key: sshKey }));
+  }, [source, dest, excludes, state, bwlimit, sshPort, sshKey]);
 
   const commandHtml = useMemo(() => {
     if (!source.trim()) {
       return '<span style="color:#8b949e;font-style:italic;"># Enter a source path to generate the rsync command</span>';
     }
-    return highlightCommand(buildParts(source.trim(), dest.trim(), excludes, state, bwlimit));
-  }, [source, dest, excludes, state, bwlimit]);
+    return highlightCommand(buildParts(source.trim(), dest.trim(), excludes, state, bwlimit, { port: sshPort, key: sshKey }));
+  }, [source, dest, excludes, state, bwlimit, sshPort, sshKey]);
 
   const handleCopy = useCallback(() => {
     if (rawCommand) void copy(rawCommand);
@@ -208,8 +240,13 @@ export default function RsyncCommandBuilder() {
             value={dest}
             onChange={(e) => setDest(e.target.value)}
             placeholder="user@host:/backup/ or /mnt/backup/"
-            className="mb-5 w-full rounded-md border border-border bg-bg3 px-3 py-2.5 font-mono text-[13px] text-text outline-none focus:border-green"
+            className="mb-3 w-full rounded-md border border-border bg-bg3 px-3 py-2.5 font-mono text-[13px] text-text outline-none focus:border-green"
           />
+          {slashNote(source, dest) && (
+            <p className="mb-5 rounded-md border-l-[3px] border-blue bg-bg2 px-3 py-2 font-mono text-xs leading-relaxed text-text" aria-live="polite">
+              {slashNote(source, dest)}
+            </p>
+          )}
 
           <div className="mb-3 font-mono text-[11px] uppercase tracking-wide text-muted">Option toggles</div>
 
@@ -218,6 +255,27 @@ export default function RsyncCommandBuilder() {
           {checkbox('compress', 'Compress (-z)', 'Compresses data during transfer — saves bandwidth on slow links')}
           {checkbox('partial', 'Resume / partial (--partial --progress)', 'Keeps partially transferred files and shows progress — essential for large files over unreliable connections')}
           {checkbox('ssh', 'Over SSH (-e ssh)', 'Transfers data over an encrypted SSH tunnel')}
+          {state.ssh && (
+            <div className="mb-3 ml-6 flex flex-wrap gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                aria-label="SSH port"
+                value={sshPort}
+                onChange={(e) => setSshPort(e.target.value)}
+                placeholder="port (22)"
+                className="w-24 rounded-md border border-border bg-bg3 px-2 py-1.5 font-mono text-xs text-text outline-none transition-colors hover:border-green focus:border-green"
+              />
+              <input
+                type="text"
+                aria-label="SSH key path"
+                value={sshKey}
+                onChange={(e) => setSshKey(e.target.value)}
+                placeholder="key (~/.ssh/id_ed25519)"
+                className="min-w-[12rem] flex-1 rounded-md border border-border bg-bg3 px-2 py-1.5 font-mono text-xs text-text outline-none transition-colors hover:border-green focus:border-green"
+              />
+            </div>
+          )}
           {checkbox('dryrun', 'Dry run (--dry-run)', 'Simulates the transfer without making any changes — always run this before --delete')}
           {checkbox('del', 'Delete extraneous (--delete)', 'Removes files on the destination that no longer exist in the source')}
 

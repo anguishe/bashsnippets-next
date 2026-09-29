@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
 
 // ── Types ───────────────────────────────────────────────────────
-type RegexEngine = 'basic' | 'extended' | 'perl';
+type RegexEngine = 'basic' | 'extended' | 'perl' | 'fixed';
 type PartType = 'cmd' | 'flag' | 'include' | 'pattern' | 'path';
 interface Part {
   text: string;
@@ -25,6 +25,7 @@ const ENGINES: { id: RegexEngine; label: string; note: string }[] = [
   { id: 'basic', label: 'Basic (BRE)', note: 'Default grep. + ? | ( ) are literal unless escaped with a backslash.' },
   { id: 'extended', label: '-E (ERE)', note: 'Extended regex — use + ? | ( ) without backslashes. Same as egrep.' },
   { id: 'perl', label: '-P (PCRE)', note: 'Perl-compatible regex — adds \\d, \\w, lookaheads. GNU grep only (not macOS/BSD).' },
+  { id: 'fixed', label: '-F (fixed)', note: 'No regex at all: every character is literal, so . * [ ] need no escaping. Fastest, and the right choice for searching an exact string such as an IP or a URL.' },
 ];
 
 // ── Pure logic (no React) ───────────────────────────────────────
@@ -72,8 +73,19 @@ interface BuildArgs {
   filenames: boolean;
   word: boolean;
   quiet: boolean;
+  onlyMatching: boolean;
   contextOn: boolean;
   contextN: number;
+}
+
+// PCRE-only syntax that GNU grep without -P does not understand (checked on GNU grep 3.12:
+// '\d' matches nothing, and a lookahead only produces a warning).
+function pcreWarning(pattern: string, engine: RegexEngine): string {
+  if (engine === 'perl' || engine === 'fixed') return '';
+  if (/\\d|\(\?[=!<]/.test(pattern)) {
+    return 'This pattern uses PCRE syntax (\\d or a lookaround). GNU grep without -P treats it differently and matches nothing. Switch to -P, or write [0-9] for \\d. macOS/BSD grep has no -P at all.';
+  }
+  return '';
 }
 
 function buildParts(a: BuildArgs): Part[] {
@@ -91,6 +103,8 @@ function buildParts(a: BuildArgs): Part[] {
   if (a.filenames) flags += 'l';
   if (a.engine === 'extended') flags += 'E';
   if (a.engine === 'perl') flags += 'P';
+  if (a.engine === 'fixed') flags += 'F';
+  if (a.onlyMatching && !a.count && !a.filenames && !a.quiet) flags += 'o';
   if (a.word) flags += 'w';
   if (a.quiet) flags += 'q';
 
@@ -103,6 +117,8 @@ function buildParts(a: BuildArgs): Part[] {
   buildIncludes(a.filetype).forEach((inc) => parts.push({ text: inc, type: 'include' }));
 
   const quotedPattern = '"' + a.pattern.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+  // A pattern that starts with - would be read as an option; -e marks it as the pattern.
+  if (a.pattern.startsWith('-')) parts.push({ text: '-e', type: 'flag' });
   parts.push({ text: quotedPattern, type: 'pattern' });
 
   if (a.path.trim()) parts.push({ text: a.path.trim(), type: 'path' });
@@ -140,6 +156,7 @@ function buildExplanation(a: BuildArgs): string {
   if (a.caseI) mods.push('case-insensitive');
   if (a.engine === 'extended') mods.push('extended regex');
   if (a.engine === 'perl') mods.push('Perl regex');
+  if (a.engine === 'fixed') mods.push('as a literal string, no regex');
   if (mods.length) subject += ` (${mods.join(', ')})`;
 
   let output = '';
@@ -151,6 +168,7 @@ function buildExplanation(a: BuildArgs): string {
     output = ', printing the count of matching lines per file';
   } else {
     const outParts: string[] = [];
+    if (a.onlyMatching) outParts.push('printing only the matched text, one match per line');
     if (a.lineNums) outParts.push('showing line numbers');
     if (useContext) outParts.push(`with ${ctx} lines of context before and after each match`);
     if (outParts.length) output = ', ' + outParts.join(' and ');
@@ -209,7 +227,12 @@ function runSample(sample: string, a: BuildArgs): SampleResult {
   if (!a.pattern) {
     return { html: escapeHtml(sample), matchCount: 0, error: false };
   }
-  let source = a.engine === 'basic' ? breToJs(a.pattern) : a.pattern;
+  let source =
+    a.engine === 'basic'
+      ? breToJs(a.pattern)
+      : a.engine === 'fixed'
+        ? a.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        : a.pattern;
   if (a.word) source = `\\b(?:${source})\\b`;
   let regex: RegExp;
   try {
@@ -249,6 +272,7 @@ export default function GrepPatternBuilder() {
   const [filenames, setFilenames] = useState(false);
   const [word, setWord] = useState(false);
   const [quiet, setQuiet] = useState(false);
+  const [onlyMatching, setOnlyMatching] = useState(false);
   const [contextOn, setContextOn] = useState(false);
   const [contextN, setContextN] = useState(2);
 
@@ -271,10 +295,11 @@ export default function GrepPatternBuilder() {
       filenames,
       word,
       quiet,
+      onlyMatching,
       contextOn,
       contextN,
     }),
-    [pattern, path, filetype, engine, caseI, recursive, lineNums, invert, count, filenames, word, quiet, contextOn, contextN],
+    [pattern, path, filetype, engine, caseI, recursive, lineNums, invert, count, filenames, word, quiet, onlyMatching, contextOn, contextN],
   );
 
   const rawCommand = useMemo(() => {
@@ -438,6 +463,7 @@ export default function GrepPatternBuilder() {
 
           {toggle('grep-word', 'Word boundary only', '-w', word, setWord, "Won't match 'errors' or 'errored' when searching 'error' — matches whole words only")}
           {toggle('grep-quiet', 'Quiet mode (exit code only)', '-q', quiet, setQuiet, 'Suppress output; exits 0 if a match is found, 1 if not. Ideal for if-statement checks in scripts.')}
+          {toggle('grep-only', 'Only the matching part', '-o', onlyMatching, setOnlyMatching, 'Print just the text that matched, one match per line: pulls IPs, IDs or URLs out of a log.')}
 
           {/* Regex engine: -E vs -P */}
           <div className="mt-4 mb-2 text-[11px] text-muted">Regex engine:</div>
@@ -459,6 +485,11 @@ export default function GrepPatternBuilder() {
             ))}
           </div>
           <p className="mt-2 text-[11px] leading-relaxed text-muted">{selectedEngine.note}</p>
+          {pcreWarning(pattern, engine) && (
+            <p role="alert" className="mt-2 rounded-md border-l-[3px] border-amber bg-bg2 px-3 py-2 text-[11px] leading-relaxed text-amber">
+              {pcreWarning(pattern, engine)}
+            </p>
+          )}
 
           <div className="mt-4 rounded-md border-l-[3px] border-blue bg-blue-dim px-3.5 py-3 text-[11px] leading-relaxed text-muted">
             <strong className="text-text">Note:</strong> <code className="text-amber">-c</code> and <code className="text-amber">-l</code> override <code className="text-amber">-n</code> — per-file counts and filenames suppress line-number output.

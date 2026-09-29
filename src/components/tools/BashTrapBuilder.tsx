@@ -7,7 +7,7 @@ import { useCallback, useMemo, useState } from 'react';
 
 // ── Types ───────────────────────────────────────────────────────
 type SignalId = 'EXIT' | 'ERR' | 'INT' | 'TERM' | 'HUP' | 'PIPE';
-type ActionId = 'temp' | 'lock' | 'jobs' | 'log' | 'terminal';
+type ActionId = 'temp' | 'tempdir' | 'lock' | 'jobs' | 'log' | 'terminal';
 type Style = 'combined' | 'persignal';
 
 interface TrapState {
@@ -29,6 +29,7 @@ const SIGNALS: { id: SignalId; num: string; desc: string }[] = [
 
 const ACTIONS: { id: ActionId; label: string; code: string }[] = [
   { id: 'temp', label: 'Remove temp files', code: 'rm -f "$TMPFILE"' },
+  { id: 'tempdir', label: 'Remove a temp directory', code: 'rm -rf -- "$WORKDIR"' },
   { id: 'lock', label: 'Remove lock file', code: 'rm -f "$LOCKFILE"' },
   { id: 'jobs', label: 'Kill background jobs', code: 'kill "${job_pids[@]}"' },
   { id: 'log', label: 'Log exit reason', code: 'echo exit code + line' },
@@ -48,23 +49,23 @@ const PRESETS: { label: string; signals: Record<SignalId, boolean>; actions: Rec
   {
     label: 'Temp-file cleanup',
     signals: { EXIT: true, ERR: true, INT: false, TERM: false, HUP: false, PIPE: false },
-    actions: { temp: true, lock: false, jobs: false, log: true, terminal: false },
+    actions: { temp: true, tempdir: false, lock: false, jobs: false, log: true, terminal: false },
   },
   {
     label: 'Lock file',
     signals: { EXIT: true, ERR: false, INT: true, TERM: true, HUP: false, PIPE: false },
-    actions: { temp: false, lock: true, jobs: false, log: true, terminal: false },
+    actions: { temp: false, tempdir: false, lock: true, jobs: false, log: true, terminal: false },
   },
   {
     label: 'Restore terminal',
     signals: { EXIT: true, ERR: false, INT: true, TERM: true, HUP: false, PIPE: false },
-    actions: { temp: false, lock: false, jobs: false, log: false, terminal: true },
+    actions: { temp: false, tempdir: false, lock: false, jobs: false, log: false, terminal: true },
   },
 ];
 
 const DEFAULT_STATE: TrapState = {
   signals: { EXIT: true, ERR: true, INT: false, TERM: false, HUP: false, PIPE: false },
-  actions: { temp: true, lock: false, jobs: false, log: true, terminal: false },
+  actions: { temp: true, tempdir: false, lock: false, jobs: false, log: true, terminal: false },
   style: 'combined',
   header: true,
   sigName: true,
@@ -87,6 +88,10 @@ function teardownLines(s: TrapState, indent: string): string[] {
   if (s.actions.temp) {
     L.push(indent + '# Remove the temp file so a crash never leaves it behind.');
     L.push(indent + 'rm -f "$TMPFILE"');
+  }
+  if (s.actions.tempdir) {
+    L.push(indent + '# One rm for everything the script wrote: no per-file bookkeeping to forget.');
+    L.push(indent + 'rm -rf -- "$WORKDIR"');
   }
   if (s.actions.lock) {
     L.push(indent + '# Release the lock so the next run is not blocked by a stale file.');
@@ -125,6 +130,10 @@ function topVars(s: TrapState): string[] {
   if (s.actions.temp) {
     L.push('# Create the temp file up front so the trap can always remove it.');
     L.push('TMPFILE=$(mktemp)');
+  }
+  if (s.actions.tempdir) {
+    L.push('# A private temp directory: put every scratch file in it, remove it once.');
+    L.push('WORKDIR=$(mktemp -d)');
   }
   if (s.actions.lock) {
     L.push('LOCKFILE="/var/lock/myscript.lock"');

@@ -61,6 +61,33 @@ function parseField(field: string, min: number, max: number): Set<number> | null
   return values;
 }
 
+// cron accepts 7 for Sunday and three-letter names in the month and weekday fields.
+function normalizeNames(field: string, names: string[], base: number): string {
+  return field.replace(/[a-z]{3}/gi, (m) => {
+    const i = names.findIndex((n) => n.toLowerCase() === m.toLowerCase());
+    return i < 0 ? m : String(i + base);
+  });
+}
+
+function parseDow(field: string): Set<number> | null {
+  const set = parseField(normalizeNames(field, DOW_NAMES, 0), 0, 7);
+  if (set?.has(7)) {
+    set.delete(7);
+    set.add(0);
+  }
+  return set;
+}
+
+function parseMonth(field: string): Set<number> | null {
+  return parseField(normalizeNames(field, MONTH_NAMES, 1), 1, 12);
+}
+
+// man 5 crontab: when both day fields are restricted, a day matches if EITHER matches.
+function domDowOrWarning(domF: string, dowF: string): string {
+  if (domF === '*' || dowF === '*') return '';
+  return `Both day fields are set, so cron runs on day ${domF} of the month OR on weekday ${dowF}, not only when both match (man 5 crontab). To run only when both match, keep one field as * and test the other inside the command, e.g. [ "$(date +%u)" = 1 ] && …`;
+}
+
 function matchesSet(set: Set<number> | null, value: number): boolean {
   return set === null || set.has(value);
 }
@@ -95,8 +122,8 @@ function nextRunTimes(
     minSet = parseField(minuteField, 0, 59);
     hourSet = parseField(hourField, 0, 23);
     domSet = parseField(domField, 1, 31);
-    monthSet = parseField(monthField, 1, 12);
-    dowSet = parseField(dowField, 0, 6);
+    monthSet = parseMonth(monthField);
+    dowSet = parseDow(dowField);
   } catch {
     return null;
   }
@@ -211,11 +238,13 @@ function describeCron(minF: string, hourF: string, domF: string, monthF: string,
     parseField(minF, 0, 59);
     parseField(hourF, 0, 23);
     parseField(domF, 1, 31);
-    parseField(monthF, 1, 12);
-    parseField(dowF, 0, 6);
+    parseMonth(monthF);
+    parseDow(dowF);
   } catch {
     return '';
   }
+  monthF = normalizeNames(monthF, MONTH_NAMES, 1);
+  dowF = normalizeNames(dowF, DOW_NAMES, 0);
   const parts: string[] = [describeTime(minF, hourF)];
   const domEvery = domF === '*';
   const dowEvery = dowF === '*';
@@ -244,6 +273,7 @@ const CRON_SHORTCUTS: Record<string, [string, string, string, string, string]> =
 
 interface DecodedCron {
   description: string;
+  warning?: string;
   command: string;
   runs: Date[] | null;
   error: string | null;
@@ -282,7 +312,7 @@ function decodeCrontabLine(input: string): DecodedCron {
   if (!description) {
     return { description: '', command: '', runs: null, error: 'Could not parse those 5 fields — check the ranges' };
   }
-  return { description, command, runs: nextRunTimes(mi, ho, da, mo, dw, 5), error: null };
+  return { description, warning: domDowOrWarning(da, dw), command, runs: nextRunTimes(mi, ho, da, mo, dw, 5), error: null };
 }
 
 export default function CronJobBuilder() {
@@ -564,6 +594,12 @@ export default function CronJobBuilder() {
             dangerouslySetInnerHTML={{ __html: outputHtml }}
           />
 
+          {domDowOrWarning(dom, dow) && (
+            <div className="mt-3 rounded-md border-l-[3px] border-amber bg-bg2 px-3.5 py-3 text-xs leading-relaxed text-amber">
+              {domDowOrWarning(dom, dow)}
+            </div>
+          )}
+
           <div className="mt-3 rounded-md border border-border bg-bg2 p-3.5">
             <div className="mb-2 text-[11px] text-muted">Next 10 scheduled runs:</div>
             <div className="font-mono text-xs leading-relaxed text-text">
@@ -624,6 +660,11 @@ export default function CronJobBuilder() {
               ) : (
                 <div className="rounded-md border border-border bg-bg2 p-3.5">
                   <div className="text-sm font-semibold text-green">{decoded.description}</div>
+                  {decoded.warning && (
+                    <div className="mt-2 rounded-md border-l-[3px] border-amber bg-bg3 px-3 py-2 text-xs leading-relaxed text-amber">
+                      {decoded.warning}
+                    </div>
+                  )}
                   {decoded.command && (
                     <div className="mt-2 font-mono text-xs text-muted">
                       Runs: <span className="text-text">{decoded.command}</span>

@@ -16,6 +16,9 @@ type ExecTerm = 'semi' | 'plus';
 
 interface FindState {
   path: string;
+  depthOn: boolean;
+  maxDepth: number;
+  emptyOn: boolean;
   nameOn: boolean;
   namePattern: string;
   nameInsensitive: boolean;
@@ -38,6 +41,9 @@ interface FindState {
 
 const DEFAULT_STATE: FindState = {
   path: '.',
+  depthOn: false,
+  maxDepth: 1,
+  emptyOn: false,
   nameOn: true,
   namePattern: '*.log',
   nameInsensitive: false,
@@ -137,6 +143,14 @@ function quote(raw: string): string {
   return '"' + raw.replace(/"/g, '\\"') + '"';
 }
 
+/** Quote a start path only when the shell would split or expand it; keep a leading ~/ outside so it still expands. */
+function quotePath(raw: string): string {
+  const p = raw.trim() || '.';
+  if (/^[A-Za-z0-9_./~+:@%-]+$/.test(p)) return p;
+  const sq = (x: string) => "'" + x.replace(/'/g, "'\\''") + "'";
+  return p.startsWith('~/') ? `~/${sq(p.slice(2))}` : sq(p);
+}
+
 function timeToken(s: FindState): { flag: string; value: string } {
   const flag = s.timeUnit === 'days' ? '-mtime' : '-mmin';
   const sign = s.timeSign === 'older' ? '+' : '-';
@@ -156,13 +170,22 @@ function sizeToken(s: FindState): string {
 function buildParts(s: FindState): Part[] {
   const parts: Part[] = [
     { text: 'find', type: 'cmd' },
-    { text: s.path.trim() || '.', type: 'path' },
+    { text: quotePath(s.path), type: 'path' },
   ];
+
+  // -maxdepth is a global option: GNU find warns unless it comes before the tests.
+  if (s.depthOn) {
+    parts.push({ text: '-maxdepth', type: 'flag' });
+    parts.push({ text: String(s.maxDepth), type: 'value' });
+  }
 
   // ── Tests (filters) ──
   if (s.nameOn && s.namePattern.trim()) {
     parts.push({ text: s.nameInsensitive ? '-iname' : '-name', type: 'flag' });
     parts.push({ text: quote(s.namePattern.trim()), type: 'value' });
+  }
+  if (s.emptyOn) {
+    parts.push({ text: '-empty', type: 'flag' });
   }
   if (s.typeOn) {
     parts.push({ text: '-type', type: 'flag' });
@@ -239,11 +262,20 @@ const TYPE_LABEL: Record<FileType, string> = {
 /** One plain-English line per active flag, in the same order as the command. */
 function buildExplanations(s: FindState): FlagExplain[] {
   const out: FlagExplain[] = [];
-  const path = s.path.trim() || '.';
+  const path = quotePath(s.path);
   out.push({
     token: path,
-    text: `Starts the search at ${path} and walks every file and subdirectory beneath it.`,
+    text: `Starts the search at ${path} and walks every file and subdirectory beneath it.${path !== (s.path.trim() || '.') ? ' The path is quoted because it contains characters the shell would split or expand.' : ''}`,
   });
+  if (s.depthOn) {
+    out.push({
+      token: `-maxdepth ${s.maxDepth}`,
+      text:
+        s.maxDepth === 0
+          ? 'Tests only the starting path itself, without descending.'
+          : `Descends at most ${s.maxDepth} level${s.maxDepth === 1 ? '' : 's'} below the start path (1 = its direct contents only). A global option, so it goes right after the path.`,
+    });
+  }
 
   if (s.nameOn && s.namePattern.trim()) {
     const pattern = s.namePattern.trim();
@@ -253,6 +285,10 @@ function buildExplanations(s: FindState): FlagExplain[] {
       token: `${flag} ${quote(pattern)}`,
       text: `Keeps names matching the glob ${pattern}${caseNote}. The pattern is quoted so the shell cannot expand it before find runs.`,
     });
+  }
+
+  if (s.emptyOn) {
+    out.push({ token: '-empty', text: 'Matches empty regular files and empty directories.' });
   }
 
   if (s.typeOn) {
@@ -485,6 +521,17 @@ export default function FindCommandBuilder() {
                 </label>
               </div>
             )}
+          </div>
+
+          {/* Depth */}
+          <div className="mb-3 rounded-md border border-border bg-bg2 px-3 py-2.5">
+            {toggle('find-depth-on', 'Max depth', '-maxdepth', s.depthOn, (v) => set('depthOn', v), 'Stop descending after N levels. 1 = only the direct contents of the start path.')}
+            {s.depthOn && <div className="mt-2.5">{numberInput(s.maxDepth, (v) => set('maxDepth', v), 'Maximum depth')}</div>}
+          </div>
+
+          {/* Empty */}
+          <div className="mb-3 rounded-md border border-border bg-bg2 px-3 py-2.5">
+            {toggle('find-empty-on', 'Empty files and directories', '-empty', s.emptyOn, (v) => set('emptyOn', v), 'Match zero-byte files and directories with nothing in them.')}
           </div>
 
           {/* Type */}

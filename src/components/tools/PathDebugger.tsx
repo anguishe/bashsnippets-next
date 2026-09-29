@@ -3,7 +3,7 @@
 import CopyButton from '@/components/CopyButton';
 import { useClipboard } from './shared/useClipboard';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { PATH_CHECK_COMMAND, buildKeepExisting, shQuote } from './shared/pathCheck';
+import { PATH_CHECK_COMMAND, PATH_SOURCES_COMMAND, buildKeepExisting, shQuote } from './shared/pathCheck';
 
 const EXAMPLE_PATH =
   '/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/usr/bin:/usr/games:/usr/local/games:/snap/bin:/home/user/.local/bin:/nonexistent/dir';
@@ -49,6 +49,7 @@ export default function PathDebugger() {
   const { copied, copy } = useClipboard();
   const checkClip = useClipboard();
   const keepClip = useClipboard();
+  const sourcesClip = useClipboard();
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const analyzePath = useCallback(() => {
@@ -274,6 +275,25 @@ export default function PathDebugger() {
                       </div>
                     </div>
                   </div>
+
+                  {stats.dupes > 0 && (
+                    <div className="mb-6">
+                      <div className="mb-2 font-mono text-[11px] uppercase tracking-widest text-green">
+                        Where is each entry added?
+                      </div>
+                      <p className="mb-2 font-mono text-xs leading-relaxed text-muted">
+                        A duplicate usually means two startup files add the same directory, or one file is sourced twice. This lists every PATH= line in the usual bash and zsh startup files, with its line number.
+                      </p>
+                      <div className="relative rounded-md border border-border bg-bg3 p-3.5">
+                        <pre className="whitespace-pre-wrap break-all pr-16 font-mono text-xs leading-relaxed text-text">
+                          {PATH_SOURCES_COMMAND}
+                        </pre>
+                        <div className="absolute right-2.5 top-2.5">
+                          <CopyButton copied={sourcesClip.copied} onClick={() => void sourcesClip.copy(PATH_SOURCES_COMMAND)} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="mb-6">
                     <div className="mb-2 font-mono text-[11px] uppercase tracking-widest text-green">

@@ -16,3 +16,7 @@ export function buildKeepExisting(entries: string[]): string {
   const list = entries.map(shQuote).join(' ');
   return `clean=; for d in ${list}; do [[ -d $d ]] && clean+="\${clean:+:}$d"; done; export PATH="$clean"`;
 }
+
+// Finds the startup-file line that adds each entry, so a duplicate can be removed at its source.
+export const PATH_SOURCES_COMMAND =
+  "grep -nE '(^|[^A-Za-z_])PATH=' ~/.bashrc ~/.bash_profile ~/.bash_login ~/.profile ~/.zshrc ~/.zprofile /etc/environment /etc/profile /etc/bash.bashrc /etc/profile.d/*.sh 2>/dev/null";

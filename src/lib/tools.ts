@@ -22,7 +22,7 @@ export const tools: ToolMeta[] = [
     slug: 'bash-exit-code-lookup',
     component: 'BashExitCodeLookup',
     datePublished: '2026-06-02',
-    dateModified: '2026-06-06',
+    dateModified: '2026-09-28',
     title: 'Bash Exit Code Lookup',
     description:
       'An unexplained exit code hides why a bash script failed. Enter any code from 0 to 255 for its meaning, likely causes, and a copy-paste error handler.',
@@ -63,7 +63,7 @@ export const tools: ToolMeta[] = [
     slug: 'cron-job-builder',
     component: 'CronJobBuilder',
     datePublished: '2026-06-02',
-    dateModified: '2026-06-04',
+    dateModified: '2026-09-28',
     title: 'Cron Job Builder',
     description:
       'A wrong cron expression runs a job at the wrong time or never, with no error. Build the expression visually and check the plain-English schedule before saving.',
@@ -104,7 +104,7 @@ export const tools: ToolMeta[] = [
     slug: 'chmod-permissions-builder',
     component: 'ChmodPermissionsBuilder',
     datePublished: '2026-06-02',
-    dateModified: '2026-06-06',
+    dateModified: '2026-09-28',
     title: 'Chmod Permissions Builder',
     description:
       'Wrong permissions on a web server expose secrets or let a compromised script overwrite files. Build chmod commands visually, with octal and symbolic notation.',
@@ -227,7 +227,7 @@ export const tools: ToolMeta[] = [
     slug: 'rsync-command-builder',
     component: 'RsyncCommandBuilder',
     datePublished: '2026-06-06',
-    dateModified: '2026-06-06',
+    dateModified: '2026-09-28',
     title: 'Rsync Command Builder',
     description:
       'A wrong rsync flag overwrites files or skips data with no error. Build rsync commands visually: archive, compress, delete, dry-run, SSH, excludes, live preview.',
@@ -268,7 +268,7 @@ export const tools: ToolMeta[] = [
     slug: 'grep-pattern-builder',
     component: 'GrepPatternBuilder',
     datePublished: '2026-06-07',
-    dateModified: '2026-06-07',
+    dateModified: '2026-09-28',
     title: 'grep Pattern Builder',
     description:
       'A wrong grep flag matches the wrong files or hides errors without warning. Build the grep command you need, with context lines and a plain-English explanation.',
@@ -309,7 +309,7 @@ export const tools: ToolMeta[] = [
     slug: 'shellcheck-error-decoder',
     component: 'ShellcheckErrorDecoder',
     datePublished: '2026-06-02',
-    dateModified: '2026-09-01',
+    dateModified: '2026-09-28',
     title: 'ShellCheck Error Decoder',
     description:
       'An unfixed ShellCheck warning is the edge case that breaks in production. Enter an SC code for its rule name, a plain-English explanation, a before/after fix.',
@@ -356,7 +356,7 @@ export const tools: ToolMeta[] = [
       'Select signals (EXIT, ERR, INT, TERM) and cleanup actions, then copy the generated trap block into your script header.',
     category: 'builder',
     datePublished: '2026-06-10',
-    dateModified: '2026-06-10',
+    dateModified: '2026-09-28',
     howToUse: [
       'Select the signals you want to trap in panel 01.',
       'Choose cleanup actions (temp files, lock files, background jobs) in panel 02.',
@@ -403,7 +403,7 @@ export const tools: ToolMeta[] = [
       'The find command searches a directory tree for files matching tests you combine: -name for a quoted glob, -type f or -type d, -mtime for age in days, -size for size, and -path to include or exclude subtrees. The order of the expression is the program — find evaluates left to right, so an action like -delete or -exec must come after the tests that narrow the matches, or it runs on everything find walks. Two traps cause most accidents: an unquoted -name *.log is expanded by the shell before find sees it, so always quote the pattern; and the age sign is easy to reverse — -mtime +30 means older than 30 days while -mtime -1 means within the last day. This builder assembles the command with tests before actions, quotes patterns for you, explains every flag in plain English, and flags -delete and -exec as the destructive actions to preview with -print first.',
     category: 'builder',
     datePublished: '2026-06-17',
-    dateModified: '2026-06-17',
+    dateModified: '2026-09-28',
     howToUse: [
       'Set the starting path, then add tests (-name, -type, -mtime, -size) to narrow what matches before adding any action.',
       'Leave name patterns to the builder — it quotes -name values so the shell does not expand the glob before find runs.',

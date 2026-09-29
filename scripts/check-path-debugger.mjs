@@ -1,11 +1,11 @@
 // Runs the shell lines the PATH debugger generates in a real bash and asserts what they print.
 // Usage: node scripts/check-path-debugger.mjs   (no test runner in this repo; exits 1 on failure)
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { PATH_CHECK_COMMAND, buildKeepExisting, shQuote } from '../src/components/tools/shared/pathCheck.ts';
+import { PATH_CHECK_COMMAND, PATH_SOURCES_COMMAND, buildKeepExisting, shQuote } from '../src/components/tools/shared/pathCheck.ts';
 
 const root = mkdtempSync(join(tmpdir(), 'pathdbg-'));
 const present = join(root, 'bin');
@@ -41,7 +41,17 @@ try {
   // 5. Empty input generates nothing rather than an export that empties PATH.
   assert.equal(buildKeepExisting([]), '');
 
-  console.log('✓ path-debugger: 5 checks passed');
+  // 6. The where-is-it-set grep finds the startup-file line (HOME points at the scratch dir).
+  writeFileSync(join(root, '.bashrc'), '# comment\nexport PATH="$HOME/bin:$PATH"\nMYPATH=x\n');
+  // grep exits 2 because most of the listed files do not exist; only stdout matters here.
+  const found = spawnSync('/bin/bash', ['-c', PATH_SOURCES_COMMAND], {
+    env: { PATH: '/usr/bin:/bin', HOME: root },
+    encoding: 'utf8',
+  }).stdout;
+  const own = found.split('\n').filter((l) => l.startsWith(root));
+  assert.deepEqual(own, [`${join(root, '.bashrc')}:2:export PATH="$HOME/bin:$PATH"`], 'MYPATH= must not match');
+
+  console.log('✓ path-debugger: 6 checks passed');
 } finally {
   rmSync(root, { recursive: true, force: true });
 }

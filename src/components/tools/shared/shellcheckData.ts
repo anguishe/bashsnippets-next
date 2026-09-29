@@ -226,6 +226,34 @@ export const SC_DATABASE: Record<string, ShellCheckEntry> = {
     before: 'rm "~/Desktop/$filename"',
     after: 'rm "$HOME/Desktop/$filename"',
   },
+  SC1017: {
+    code: 'SC1017', severity: 'error', category: 'Portability',
+    title: "Literal carriage return. Run script through tr -d '\\r'",
+    explanation: 'The file has Windows CRLF line endings, so every line ends in an invisible \\r. The shebang becomes /bin/bash\\r (bad interpreter), and bash script.sh reads set -e\\r as an invalid option, so strict mode never turns on. Strip the carriage returns and add *.sh text eol=lf to .gitattributes.',
+    before: '#!/bin/bash^M\necho ok^M',
+    after: "sed -i 's/\\r$//' script.sh",
+  },
+  SC2068: {
+    code: 'SC2068', severity: 'error', category: 'Quoting',
+    title: 'Double quote array expansions to avoid re-splitting elements',
+    explanation: 'Unquoted $@ or ${arr[@]} splits every element again on spaces and expands globs, so an argument like "my file.txt" arrives as two arguments. Quote it: "$@" passes each element through exactly as given.',
+    before: 'for a in $@; do echo "$a"; done',
+    after: 'for a in "$@"; do echo "$a"; done',
+  },
+  SC2206: {
+    code: 'SC2206', severity: 'warning', category: 'Quoting',
+    title: 'Quote to prevent word splitting/globbing, or split robustly with mapfile or read -a',
+    explanation: 'arr=($var) splits on IFS and also expands any * or ? in the value against the current directory. read -ra splits on whitespace without globbing.',
+    before: 'arr=($line)',
+    after: 'read -ra arr <<< "$line"',
+  },
+  SC2207: {
+    code: 'SC2207', severity: 'warning', category: 'Quoting',
+    title: 'Prefer mapfile or read -a to split command output (or quote to avoid splitting)',
+    explanation: 'files=($(cmd)) splits the output on every space, not only on newlines, and globs each word. mapfile -t reads one element per line and leaves the text alone.',
+    before: 'files=($(find . -name "*.log"))',
+    after: 'mapfile -t files < <(find . -name "*.log")',
+  },
 };
 
 export const QUICK_CODES = [

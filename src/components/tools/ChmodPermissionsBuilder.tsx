@@ -63,6 +63,29 @@ function parseOctal(input: string): { perms: Record<string, boolean>; special: S
   return { perms: newPerms, special };
 }
 
+// Accepts the mode column of ls -l ("-rwxr-x---", "drwxrwxrwt"), with or without the type letter.
+function parseLsMode(input: string): { perms: Record<string, boolean>; special: SpecialBits } | null {
+  const m = /^[-dlcbps]?([r-][w-][xsS-])([r-][w-][xsS-])([r-][w-][xtT-])$/.exec(input.trim());
+  if (!m) return null;
+  const newPerms: Record<string, boolean> = {};
+  SCOPES.forEach((scope, i) => {
+    const t = m[i + 1];
+    newPerms[permKey(scope, 'read')] = t[0] === 'r';
+    newPerms[permKey(scope, 'write')] = t[1] === 'w';
+    newPerms[permKey(scope, 'execute')] = /[xst]/.test(t[2]);
+  });
+  const special: SpecialBits = {
+    setuid: /[sS]/.test(m[1][2]),
+    setgid: /[sS]/.test(m[2][2]),
+    sticky: /[tT]/.test(m[3][2]),
+  };
+  return { perms: newPerms, special };
+}
+
+function parseMode(input: string) {
+  return parseOctal(input) ?? parseLsMode(input);
+}
+
 function applySpecialToSymbolic(sym: string, sp: SpecialBits): string {
   const c = sym.split('');
   if (sp.setuid) c[2] = c[2] === 'x' ? 's' : 'S';
@@ -95,10 +118,13 @@ export default function ChmodPermissionsBuilder() {
   const octal = specialDigit > 0 ? `${specialDigit}${octal3}` : octal3;
   const symbolic = applySpecialToSymbolic(SCOPES.map(symbolicForScope).join(''), special);
   const command = `chmod ${octal} filename`;
+  // Same mode in symbolic form: = sets each class exactly, so the result does not depend on the old mode.
+  const symbolicCommand = `chmod u=${symbolicForScope('owner').replace(/-/g, '')}${special.setuid ? 's' : ''},g=${symbolicForScope('group').replace(/-/g, '')}${special.setgid ? 's' : ''},o=${symbolicForScope('others').replace(/-/g, '')}${special.sticky ? 't' : ''} filename`;
+  const symClip = useClipboard();
 
   const applyOctal = useCallback((value: string) => {
     setOctalDraft(value);
-    const parsed = parseOctal(value);
+    const parsed = parseMode(value);
     if (parsed) {
       setPerms(parsed.perms);
       setSpecial(parsed.special);
@@ -145,20 +171,19 @@ export default function ChmodPermissionsBuilder() {
       <div id="permission-grid" className="mx-auto max-w-[900px] px-6 py-10">
         <div className="mb-8 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-bg2 px-4 py-3">
           <label htmlFor="octal-input" className="font-mono text-xs font-semibold uppercase tracking-wide text-muted">
-            Load octal
+            Load octal or ls -l mode
           </label>
           <input
             id="octal-input"
             type="text"
-            inputMode="numeric"
             value={octalDraft}
-            maxLength={4}
+            maxLength={10}
             onChange={(e) => applyOctal(e.target.value)}
-            placeholder="755"
-            className="w-24 rounded-md border border-border bg-bg3 px-3 py-2 font-mono text-sm text-text transition-colors hover:border-green focus:border-green focus:outline-none"
+            placeholder="755 or rwxr-x---"
+            className="w-40 rounded-md border border-border bg-bg3 px-3 py-2 font-mono text-sm text-text transition-colors hover:border-green focus:border-green focus:outline-none"
           />
-          {octalDraft && !parseOctal(octalDraft) ? (
-            <span className="font-mono text-xs text-amber">3–4 octal digits (0–7)</span>
+          {octalDraft && !parseMode(octalDraft) ? (
+            <span className="font-mono text-xs text-amber">3–4 octal digits, or 9 mode letters like rwxr-x---</span>
           ) : null}
           <div className="ml-auto flex flex-wrap gap-2">
             {PRESETS.map((p) => (
@@ -250,6 +275,17 @@ export default function ChmodPermissionsBuilder() {
             <CopyButton copied={copied} onClick={handleCopy} />
           </div>
           <div className="mb-4 break-all font-mono text-xl font-semibold text-text max-sm:text-[15px]">{command}</div>
+          <div className="mb-4 flex items-start justify-between gap-3 rounded-md border border-border bg-bg2 px-3 py-2">
+            <div>
+              <div className="font-mono text-[11px] uppercase tracking-widest text-muted">Same mode, symbolic</div>
+              <div className="break-all font-mono text-sm text-text">{symbolicCommand}</div>
+            </div>
+            <CopyButton copied={symClip.copied} onClick={() => void symClip.copy(symbolicCommand)} />
+          </div>
+          <p className="mb-4 font-mono text-xs leading-relaxed text-muted">
+            A whole tree: directories need x to be entered, files usually do not. Set them separately with{' '}
+            <span className="text-text">find DIR -type d -exec chmod 755 {'{}'} + ; find DIR -type f -exec chmod 644 {'{}'} +</span>
+          </p>
           <div className="flex flex-wrap gap-3 max-sm:flex-col">
             <button
               type="button"
