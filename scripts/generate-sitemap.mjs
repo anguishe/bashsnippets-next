@@ -21,6 +21,7 @@ const staticEntries = [
   { url: `${SITE_URL}/guides/diagnose-a-hung-process`,           lastmod: '2026-09-16', changefreq: 'weekly',  priority: 0.8  },
   { url: `${SITE_URL}/guides/auto-restart-linux-service`,        lastmod: '2026-09-16', changefreq: 'weekly',  priority: 0.8  },
   { url: `${SITE_URL}/guides/open-ports-linux`,                  lastmod: '2026-09-16', changefreq: 'weekly',  priority: 0.8  },
+  { url: `${SITE_URL}/guides/systemd-timers-vs-cron`,            lastmod: '2026-09-28', changefreq: 'weekly',  priority: 0.8  },
 ];
 
 /**

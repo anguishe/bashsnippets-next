@@ -93,6 +93,8 @@ You can lock a command without touching it at all, straight from the crontab lin
 
 `flock` runs `sync.sh` only if it can grab `/run/lock/sync.lock`; if a previous minute's run is still holding it, this minute's run exits immediately and does nothing. This is the fastest retrofit for a job that's already misbehaving — you don't even have to redeploy the script.
 
+On a systemd box there is a second option: a `Type=oneshot` service run by a timer never overlaps itself, because systemd queues the next tick instead of starting a second copy. [systemd timers vs cron](/guides/systemd-timers-vs-cron) shows that queueing in the journal.
+
 <Callout type="warning">
 `-n` skips; `-w 30` waits up to 30 seconds then gives up. Pick `-n` for frequent jobs where a skipped run is harmless (a metrics push, a sync that catches up next minute), and `-w` for jobs that must eventually run but can tolerate a short queue. Never use a bare `flock` with no `-n` and no `-w` on a fast cron — that blocks forever, and your "skipped" runs quietly pile up as stuck processes.
 </Callout>

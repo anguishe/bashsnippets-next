@@ -1,0 +1,216 @@
+---
+title: "Argument List Too Long: Delete or Move Thousands of Files in Bash"
+metaTitle: "Fix \"Argument list too long\" for rm, ls, cp and mv in Bash"
+description: "rm *.log fails with Argument list too long and deletes nothing: the glob outgrew ARG_MAX. Use find -delete, find -exec +, or xargs -0 instead of the glob."
+slug: "argument-list-too-long"
+tags: ["find", "xargs", "cleanup", "troubleshooting", "cron-ready"]
+quickAnswer: "Argument list too long means the shell expanded a glob such as *.log into more bytes of file names than the kernel accepts for a single program, so exec fails with E2BIG before rm, ls, cp or mv even starts, and nothing is deleted or moved. The limit is ARG_MAX (getconf ARG_MAX, 2097152 bytes on current Linux), shared with the environment. The fix is to stop passing the list as arguments. find DIR -maxdepth 1 -name '*.log' -delete deletes without building any list. find DIR -name '*.log' -exec mv -t /dest {} + and printf '%s\\0' *.log | xargs -0 rm -- batch the names into as many commands as fit. printf works because it is a bash builtin: builtins never call exec, so the limit does not apply to them. Raising ulimit -s makes the ceiling higher but not unlimited, and a directory that grows past the new one fails again."
+faq:
+  - question: "What is the maximum number of arguments in Linux?"
+    answer: "There is no fixed count. The limit is in bytes: ARG_MAX, which getconf ARG_MAX reports (2097152 on current Linux, one quarter of the default 8 MB stack). It covers every argument string, its terminating null byte, a pointer per argument, and the whole environment. Short file names fit more; long paths fit fewer. xargs --show-limits prints the usable figure after the environment is subtracted."
+  - question: "Why does echo *.log work but rm *.log fail?"
+    answer: "echo and printf are bash builtins. They run inside the shell and never call exec, so ARG_MAX never applies to them. rm, ls, cp and mv are separate programs, and the kernel refuses to exec any program whose argument list is larger than ARG_MAX. That is why printf '%s\\0' *.log | xargs -0 rm works: the builtin prints the names and xargs splits them into batches that fit."
+  - question: "Is find -delete faster than xargs rm?"
+    answer: "Usually, and it is simpler. find -delete unlinks each file itself as it walks the directory, with no second process and no batching. xargs rm runs rm once per batch, which is still far better than -exec rm {} \\; (one rm per file). On this page's test, find -delete removed 200,000 files in 0.67 seconds."
+  - question: "How do I move a very large number of files without Argument list too long?"
+    answer: "Use find with -exec and mv's -t option so the target comes first: find src -maxdepth 1 -name '*.log' -exec mv -t /dest {} +. The + packs as many names into each mv as fit under ARG_MAX, and -t lets them come last. For cp use cp -t the same way."
+  - question: "Can I increase ARG_MAX?"
+    answer: "Only a little. On Linux, ARG_MAX is one quarter of the stack size limit, but the kernel caps it at 6 MB: on the test machine, ulimit -s 65536 raised getconf ARG_MAX from 2097152 to 6291456, not to 16 MB. That moves the ceiling without removing it; a directory that keeps growing fails again later. Changing the command to find or xargs removes the problem for any number of files."
+howToSteps:
+  - name: "Count the files without expanding the glob"
+    text: "Run find DIR -maxdepth 1 -type f -name 'PATTERN' -printf . | wc -c. It prints the number of matching files without ever holding the list in an argument, so it cannot hit the limit."
+  - name: "Dry-run the script"
+    text: "Save bulk-delete-files.sh, chmod +x it, and run ./bulk-delete-files.sh DIR 'PATTERN'. It prints how many files match and the ARG_MAX on this machine, and deletes nothing."
+  - name: "Delete with --apply"
+    text: "Run ./bulk-delete-files.sh DIR 'PATTERN' --apply. It deletes the matching files with find -delete, prints how many remain, and exits 1 on a later run that finds nothing to match."
+author: "Travis"
+datePublished: "2026-09-28"
+dateModified: "2026-09-28"
+---
+
+<Callout type="info" title="Usually found in the middle of another emergency">
+
+A directory with hundreds of thousands of files is typically also the reason the filesystem is out of inodes. If `No space left on device` brought you here, see [No Space Left on Device With Free Space](/snippets/no-space-left-on-device-inodes) first. For age-based cleanup of a log directory, see [Delete Old Log Files](/snippets/delete-old-log-files).
+
+</Callout>
+
+You found the directory full of files and typed the obvious `rm *.log`. Bash answered `Argument list too long` and deleted nothing. The same happens to `ls *.log`, `cp *.log`, `mv *.log`, and to a script that has worked for months until the directory it cleans crossed an invisible size. The glob is not the problem. The shell expanded it happily. The kernel refused to start `rm` with that many bytes of arguments, and it failed before `rm` removed anything.
+
+## What Does the Error Look Like?
+
+Reproduced here on 2026-09-28 (Kali, bash 5.3.9, GNU findutils 4.11.0) in a scratch directory with 200,000 empty files named `job-000001.log` to `job-200000.log`:
+
+```text
+$ getconf ARG_MAX
+2097152
+$ ls spool | wc -l
+200000
+$ rm spool/*.log
+bash: line 6: /usr/bin/rm: Argument list too long
+exit=126
+$ ls spool | wc -l
+200000
+```
+
+Exit 126, "cannot execute", and all 200,000 files still there. `ls` with the same glob fails the same way:
+
+```text
+$ ls spool/*.log | wc -l
+bash: line 8: /usr/bin/ls: Argument list too long
+0
+exit=126
+```
+
+The glob itself expands fine. The builtin `echo` receives all of it, because a builtin never goes through the kernel's `exec`:
+
+```text
+$ echo spool/*.log | wc -c
+4200000
+```
+
+4,200,000 bytes of names, twice the 2,097,152-byte `ARG_MAX`, before counting the pointer the kernel stores for each argument. `xargs` reports the real budget after the environment takes its share:
+
+```text
+$ printf "%s\0" spool/*.log | xargs -0 --show-limits true
+Your environment variables take up 264 bytes
+POSIX upper limit on argument length (this system): 2094840
+POSIX smallest allowable upper limit on argument length (all systems): 4096
+Maximum length of command we could actually use: 2094576
+Size of command buffer we are actually using: 131072
+```
+
+## How Do I Fix Argument List Too Long?
+
+Stop handing the list to one program. Three ways, from simplest to most general:
+
+```bash
+# 1. Let find delete: no argument list at all.
+find spool -maxdepth 1 -type f -name '*.log' -delete
+
+# 2. Any command: find batches names into as many invocations as fit.
+find spool -maxdepth 1 -type f -name '*.log' -exec mv -t /archive {} +
+
+# 3. Keep the glob, but print it with a builtin and let xargs batch it.
+printf '%s\0' spool/*.log | xargs -0 rm --
+```
+
+The third form was run here on a copy of the 200,000 files:
+
+```text
+$ printf "%s\0" spool2/*.log | xargs -0 rm -- ; ls spool2 | wc -l
+xargs exit=0
+0
+```
+
+`-maxdepth 1` keeps `find` to the one directory, matching what the glob would have matched. `\0` separators with `-0` keep names with spaces or newlines intact. The `--` stops a file named `-rf` being read as an option. And `{} +` rather than `{} \;` is the difference between a handful of `mv` processes and 200,000 of them.
+
+## The Script
+
+Save as `bulk-delete-files.sh`. It counts matches without ever building an argument list, dry-runs by default, and deletes with `find -delete` on `--apply`.
+
+```bash
+#!/bin/bash
+# Script: bulk-delete-files.sh
+# Purpose: rm ./*.log on a directory with hundreds of thousands of files dies with "Argument list too long" and deletes nothing — this deletes by pattern with find, which never builds an argument list, and dry-runs first.
+# Usage: ./bulk-delete-files.sh DIR PATTERN [--apply]   e.g. ./bulk-delete-files.sh /var/spool/app '*.log' --apply
+set -euo pipefail
+export LC_ALL=C
+
+CHECK="✓"
+CROSS="✗"
+
+DIR="${1:?usage: $0 DIR PATTERN [--apply]}"
+PATTERN="${2:?usage: $0 DIR PATTERN [--apply]}"
+APPLY=0
+[[ "${3:-}" == "--apply" ]] && APPLY=1
+
+[[ -d "$DIR" ]] || { echo "$CROSS $DIR is not a directory" >&2; exit 2; }
+[[ "$(realpath "$DIR")" == "/" ]] && { echo "$CROSS refusing to run on /" >&2; exit 2; }
+
+# -maxdepth 1 matches what the shell glob would have matched: this directory only.
+# -printf . prints one byte per file, so counting 500,000 names never holds them in memory.
+COUNT=$(find "$DIR" -maxdepth 1 -type f -name "$PATTERN" -printf . | wc -c)
+
+if (( COUNT == 0 )); then
+  echo "$CROSS no files matching '$PATTERN' in $DIR" >&2
+  exit 1
+fi
+
+echo "$COUNT files match '$PATTERN' in $DIR (ARG_MAX here: $(getconf ARG_MAX) bytes)"
+if (( ! APPLY )); then
+  echo "dry run: re-run with --apply to delete them"
+  exit 0
+fi
+
+find "$DIR" -maxdepth 1 -type f -name "$PATTERN" -delete
+echo "$CHECK deleted $COUNT files; $(find "$DIR" -maxdepth 1 -type f -name "$PATTERN" -printf . | wc -c) matching files remain"
+```
+
+Quote the pattern when you call it (`'*.log'`), so the shell passes it to `find` instead of expanding it and failing on the way in.
+
+## What Does the Script Print?
+
+On the 200,000-file directory:
+
+```text
+$ ./bulk-delete-files.sh spool "*.log"
+200000 files match '*.log' in spool (ARG_MAX here: 2097152 bytes)
+dry run: re-run with --apply to delete them
+exit=0
+$ time ./bulk-delete-files.sh spool "*.log" --apply
+200000 files match '*.log' in spool (ARG_MAX here: 2097152 bytes)
+✓ deleted 200000 files; 0 matching files remain
+
+real	0m0.673s
+user	0m0.181s
+sys	0m0.483s
+exit=0
+$ ./bulk-delete-files.sh spool "*.log"
+✗ no files matching '*.log' in spool
+exit=1
+```
+
+Two hundred thousand files in under a second. The last run exits 1 on purpose: from cron, a pattern that suddenly matches nothing is more often a wrong path than a clean directory, and it should say so.
+
+## How Do I Schedule It?
+
+Nightly, for a spool directory that a job fills and nothing empties:
+
+```text
+20 2 * * * /usr/local/sbin/bulk-delete-files.sh /var/spool/app 'job-*.log' --apply >> /var/log/bulk-delete.log 2>&1
+```
+
+For age-based retention (keep the newest N, delete the rest after D days) use [Log Retention Cleanup](/snippets/log-retention-cleanup) instead; this script deletes everything that matches. The [find command builder](/tools/find-command-builder) builds the `find` line for other patterns and actions. Cleanup jobs that run unattended need a lock and a log line proving they ran, which [The Production Bash Toolkit](/starter-kit) packages as `bashlib.sh` and a `cleanup.sh`.
+
+## Frequently Asked Questions
+
+### What is the maximum number of arguments in Linux?
+
+There is no fixed count. The limit is in bytes: `ARG_MAX`, which `getconf ARG_MAX` reports (2097152 on current Linux, one quarter of the default 8 MB stack). It covers every argument string, its terminating null byte, a pointer per argument, and the whole environment. Short file names fit more; long paths fit fewer. `xargs --show-limits` prints the usable figure after the environment is subtracted.
+
+### Why does echo *.log work but rm *.log fail?
+
+`echo` and `printf` are bash builtins. They run inside the shell and never call `exec`, so `ARG_MAX` never applies to them. `rm`, `ls`, `cp` and `mv` are separate programs, and the kernel refuses to exec any program whose argument list is larger than `ARG_MAX`. That is why `printf '%s\0' *.log | xargs -0 rm` works: the builtin prints the names and `xargs` splits them into batches that fit.
+
+### Is find -delete faster than xargs rm?
+
+Usually, and it is simpler. `find -delete` unlinks each file itself as it walks the directory, with no second process and no batching. `xargs rm` runs `rm` once per batch, which is still far better than `-exec rm {} \;` (one `rm` per file). On this page's test, `find -delete` removed 200,000 files in 0.67 seconds.
+
+### How do I move a very large number of files without Argument list too long?
+
+Use `find` with `-exec` and `mv`'s `-t` option so the target comes first: `find src -maxdepth 1 -name '*.log' -exec mv -t /dest {} +`. The `+` packs as many names into each `mv` as fit under `ARG_MAX`, and `-t` lets them come last. For `cp` use `cp -t` the same way.
+
+### Can I increase ARG_MAX?
+
+Only a little. On Linux, `ARG_MAX` is one quarter of the stack size limit, but the kernel caps it at 6 MB. Here, `ulimit -s 65536` raised `getconf ARG_MAX` from 2097152 to 6291456, not to 16 MB. That moves the ceiling without removing it; a directory that keeps growing fails again later. Changing the command to `find` or `xargs` removes the problem for any number of files.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Delete Old Log Files](/snippets/delete-old-log-files) — `find -mtime +N -delete` for age-based cleanup
+- [Log Retention Cleanup](/snippets/log-retention-cleanup) — keep the newest N, delete the rest past D days
+- [No Space Left on Device With Free Space](/snippets/no-space-left-on-device-inodes) — when the file count itself is what filled the disk
+- [Find Duplicate Files](/snippets/find-duplicate-files) — `find` with `-print0` on a large tree

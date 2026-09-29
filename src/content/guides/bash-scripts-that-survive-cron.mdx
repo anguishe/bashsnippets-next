@@ -90,6 +90,8 @@ Not every cron job needs all of this — wrapping a one-line `date` echo in floc
 
 Start with logging on everything, add a lock to anything that mutates state, add a timeout to anything that touches the network, and add retries to anything with a dependency that boots or recovers on its own clock. That covers the overwhelming majority of the jobs that take servers down.
 
+One risk none of these guards covers: the machine being off at the scheduled minute. Cron never runs a missed job later, so a laptop or a box that reboots at the wrong time skips runs with no error. [systemd timers vs cron](/guides/systemd-timers-vs-cron) measures that gap and shows the `Persistent=true` timer that catches up after boot.
+
 <Callout type="info">
 The single highest-leverage change you can make today: add <code>{`>> /var/log/<job>.log 2>&1`}</code> to every line in your crontab. You can harden incrementally after that — but you can't fix what you can't see, and right now most of your cron failures are invisible.
 </Callout>

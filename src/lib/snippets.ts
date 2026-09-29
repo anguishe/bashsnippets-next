@@ -599,6 +599,61 @@ export const snippets: SnippetRegistryEntry[] = [
     datePublished: '2026-09-11',
     dateModified: '2026-09-11',
   },
+  {
+    slug: 'port-listening-but-connection-refused',
+    title: 'Port Is Listening but Connection Refused: Check the Bind Address — Bash Script',
+    metaTitle: 'Port Listening but Connection Refused? Check the Bind Address',
+    description:
+      'ss shows the port listening, yet other machines get Connection refused. The service is bound to 127.0.0.1. Check the bind address per port and fix it.',
+    tags: ['ports', 'ss', 'networking', 'troubleshooting', 'security'],
+    difficulty: 'beginner',
+    datePublished: '2026-09-28',
+    dateModified: '2026-09-28',
+  },
+  {
+    slug: 'no-space-left-on-device-inodes',
+    title: 'No Space Left on Device but df Shows Free Space: Out of Inodes — Bash Script',
+    metaTitle: 'No Space Left on Device With Free Space? Check Inodes (df -i)',
+    description:
+      'Writes fail with No space left on device while df -h shows free space: the filesystem is out of inodes. Check df -i and find the directory with the files.',
+    tags: ['disk', 'inodes', 'df', 'troubleshooting', 'cron-ready'],
+    difficulty: 'intermediate',
+    datePublished: '2026-09-28',
+    dateModified: '2026-09-28',
+  },
+  {
+    slug: 'journalctl-disk-usage-vacuum',
+    title: 'journalctl Disk Usage: Check and Limit the systemd Journal Size — Bash Script',
+    metaTitle: 'journalctl Disk Usage: Check and Limit the systemd Journal',
+    description:
+      'The systemd journal keeps logs until its own cap, up to 4G by default. Check it with journalctl --disk-usage, vacuum it as root, and set SystemMaxUse.',
+    tags: ['systemd', 'journald', 'disk', 'logs', 'cron-ready'],
+    difficulty: 'beginner',
+    datePublished: '2026-09-28',
+    dateModified: '2026-09-28',
+  },
+  {
+    slug: 'fix-bad-interpreter-crlf',
+    title: '/bin/bash^M: bad interpreter — Fix CRLF Line Endings in Bash Scripts',
+    metaTitle: 'Fix /bin/bash^M: bad interpreter (CRLF Line Endings)',
+    description:
+      '/bin/bash^M: bad interpreter means the script has Windows CRLF line endings. Find them with file or cat -A, strip them with sed, stop git adding them back.',
+    tags: ['crlf', 'shellcheck', 'git', 'troubleshooting', 'sed'],
+    difficulty: 'beginner',
+    datePublished: '2026-09-28',
+    dateModified: '2026-09-28',
+  },
+  {
+    slug: 'argument-list-too-long',
+    title: 'Argument List Too Long: Delete or Move Thousands of Files in Bash',
+    metaTitle: 'Fix "Argument list too long" for rm, ls, cp and mv in Bash',
+    description:
+      'rm *.log fails with Argument list too long and deletes nothing: the glob outgrew ARG_MAX. Use find -delete, find -exec +, or xargs -0 instead of the glob.',
+    tags: ['find', 'xargs', 'cleanup', 'troubleshooting', 'cron-ready'],
+    difficulty: 'intermediate',
+    datePublished: '2026-09-28',
+    dateModified: '2026-09-28',
+  },
 ];
 
 function mergeWithFrontmatter(snippet: SnippetRegistryEntry): SnippetMeta {

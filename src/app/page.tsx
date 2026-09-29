@@ -153,6 +153,12 @@ const homeGuides = [
       'Crashed, stopped on purpose, or running but not answering — three kinds of "down", and the systemd Restart=, reset-failed, and probe-based watchdog that handles each without a restart loop.',
   },
   {
+    slug: 'systemd-timers-vs-cron',
+    title: 'systemd Timers vs Cron',
+    description:
+      'The run cron skipped because the laptop was off, the tick a slow job queues instead of overlapping, and the OnFailure= alert — measured side by side on one machine.',
+  },
+  {
     slug: 'shell-scripts-that-talk-to-apis',
     title: 'Shell Scripts That Talk to APIs',
     description:

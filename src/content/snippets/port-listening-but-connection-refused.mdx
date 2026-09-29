@@ -1,0 +1,229 @@
+---
+title: "Port Is Listening but Connection Refused: Check the Bind Address — Bash Script"
+metaTitle: "Port Listening but Connection Refused? Check the Bind Address"
+description: "ss shows the port listening, yet other machines get Connection refused. The service is bound to 127.0.0.1. Check the bind address per port and fix it."
+slug: "port-listening-but-connection-refused"
+tags: ["ports", "ss", "networking", "troubleshooting", "security"]
+quickAnswer: "When a port is listening but other machines get Connection refused, the service is almost always bound to 127.0.0.1 (or ::1) instead of 0.0.0.0. A loopback-bound socket accepts connections from the same machine only; a connection to any other address, including the host's own LAN IP, reaches no listener and the kernel answers with a TCP reset, which clients print as Connection refused. Check the Local Address column with ss -ltn 'sport = :PORT'. 127.0.0.1:PORT or [::1]:PORT means loopback only. 0.0.0.0:PORT, [::]:PORT or *:PORT means every interface. A specific address means that interface only. The fix is in the service's own config: its bind, listen or host setting, followed by a restart. A firewall rarely looks like this: a DROP rule makes the client hang until it times out, and only a REJECT rule refuses instantly, so check the bind address first because it takes one command."
+faq:
+  - question: "Why does curl to localhost work but curl to the server's IP get connection refused?"
+    answer: "The service is bound to 127.0.0.1. A loopback-bound socket only accepts connections addressed to the loopback address, so curl http://localhost:PORT reaches it and curl http://SERVER_IP:PORT does not, even when you run both on the same machine. ss -ltn 'sport = :PORT' shows 127.0.0.1:PORT in the Local Address column. Change the service's bind or listen setting to 0.0.0.0 or to the LAN address and restart it."
+  - question: "Is connection refused a firewall problem?"
+    answer: "Usually not. A firewall rule that drops packets makes the client hang until it times out; it does not produce an instant refusal. An instant Connection refused means the packet reached the host and nothing was listening on that address and port, which is the loopback-bind case or a service that is not running. The exception is a REJECT rule with tcp-reset, so if the bind address is 0.0.0.0 and the refusal persists, check iptables or nftables for REJECT rules next."
+  - question: "What is the difference between 0.0.0.0 and 127.0.0.1 in ss output?"
+    answer: "0.0.0.0:PORT is the IPv4 wildcard: the socket accepts connections arriving on every interface the host has, including the LAN and any VPN. 127.0.0.1:PORT accepts connections only from processes on the same machine. [::]:PORT and [::1]:PORT are the IPv6 equivalents, and *:PORT is a socket that listens on both families at once."
+  - question: "Is binding to 0.0.0.0 safe?"
+    answer: "It exposes the service to every network the host is on, so it is only as safe as the service's own authentication and your firewall. Databases, caches and admin panels are loopback-bound by default for that reason. Prefer binding to the one LAN address that needs it, or keep loopback and reach the service through an SSH tunnel: ssh -L 5432:127.0.0.1:5432 user@server."
+  - question: "Why do I get connection refused for a Docker container port?"
+    answer: "Either the port was never published with -p, so nothing on the host listens for it, or the application inside the container listens on 127.0.0.1, which is the container's own loopback and unreachable from docker-proxy. Run ss -ltn 'sport = :PORT' on the host to see whether a publish exists, then make the app inside the container listen on 0.0.0.0."
+howToSteps:
+  - name: "Save the script and make it executable"
+    text: "Save as check-bind-address.sh and run chmod +x check-bind-address.sh. It needs ss from iproute2, which every current Linux distribution ships, and no root."
+  - name: "Run it against the port that refuses"
+    text: "Run ./check-bind-address.sh 5432 (or your port). It prints each listening address with who can reach it and exits 0 for reachable from the network, 1 for nothing listening, 2 for loopback only."
+  - name: "Fix the bind setting and re-check"
+    text: "If it reports loopback only, change the service's bind, listen or host setting to 0.0.0.0 or the LAN address, restart the service, and run the script again until it exits 0."
+author: "Travis"
+datePublished: "2026-09-28"
+dateModified: "2026-09-28"
+---
+
+<Callout type="info" title="Part of the open-ports cluster">
+
+This page answers one question: why a port that is plainly listening still refuses. The wider map (which process owns a port, how to see it without root, what `docker-proxy` hides, how to test from outside) is in the full guide: [List Open Ports on Linux](/guides/open-ports-linux).
+
+</Callout>
+
+`ss` says the port is listening. `curl` on the server gets a 200. From your laptop, the same port answers `Connection refused` instantly, every time. The service is fine and the firewall is not involved. The service is bound to `127.0.0.1`, and a loopback socket does not accept a connection addressed to any other IP, not even the server's own LAN address. The answer is in one column of `ss` output that most people read straight past.
+
+## What Does a Loopback-Only Listener Look Like?
+
+Run here on 2026-09-28 (Kali, bash 5.3.9, iproute2 7.1.0, curl 8.21.0, Python 3.14.7). A test web server bound to loopback, the way most databases, caches and dev servers ship by default:
+
+```bash
+python3 -m http.server 8097 --bind 127.0.0.1
+```
+
+From the same machine, to `127.0.0.1`:
+
+```text
+$ curl -sS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8097/
+200
+```
+
+From the same machine, to `127.0.0.2`. Linux routes the whole `127.0.0.0/8` block to the loopback interface, so this is a different destination address on the same box, which is exactly what a connection to the server's LAN IP is from the socket's point of view:
+
+```text
+$ curl -sS -o /dev/null -w "%{http_code}\n" http://127.0.0.2:8097/
+curl: (7) Failed to connect to 127.0.0.2:8097 after 0 ms: Could not connect to server
+000
+```
+
+`after 0 ms`. Not a timeout: the kernel answered immediately that nothing listens there. Newer curl prints "Could not connect to server"; `curl -v` and bash's own `/dev/tcp` show the underlying error by its usual name:
+
+```text
+$ curl -v http://127.0.0.2:8097/ 2>&1 | grep -iE "connect|refused"
+* connect to 127.0.0.2 port 8097 from 127.0.0.1 port 44870 failed: Connection refused
+$ echo > /dev/tcp/127.0.0.2/8097
+bash: connect: Connection refused
+```
+
+And the one line that explains it:
+
+```text
+$ ss -ltn "sport = :8097"
+State  Recv-Q Send-Q Local Address:Port Peer Address:Port
+LISTEN 0      5          127.0.0.1:8097      0.0.0.0:*
+```
+
+`127.0.0.1:8097`. Listening, and only for connections addressed to `127.0.0.1`.
+
+## The Script
+
+Save as `check-bind-address.sh`. It reads the same `ss` output, classifies every listener on the port, and exits with a code a script can branch on.
+
+```bash
+#!/bin/bash
+# Script: check-bind-address.sh
+# Purpose: A service that listens only on 127.0.0.1 answers curl on the box and refuses every other machine with "Connection refused" — this shows which address each listener on a port is bound to and who can reach it.
+# Usage: ./check-bind-address.sh PORT   (exit 0 = reachable from the network, 1 = nothing listening, 2 = loopback only)
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+PORT="${1:?usage: $0 PORT}"
+[[ "$PORT" =~ ^[0-9]+$ ]] || { echo "$CROSS port must be a number" >&2; exit 2; }
+
+# -H drops the header; the filter matches the local port exactly, so :80 never matches :8080.
+mapfile -t LISTENERS < <(ss -Hltn "sport = :$PORT" | awk '{print $4}')
+
+if [[ ${#LISTENERS[@]} -eq 0 ]]; then
+  echo "$CROSS nothing is listening on TCP port $PORT — connection refused from everywhere"
+  exit 1
+fi
+
+NETWORK=0
+for addr in "${LISTENERS[@]}"; do
+  host="${addr%:*}"
+  case "$host" in
+    127.*|'[::1]'|*%lo)       echo "  $addr  loopback only: this machine can connect, no other machine can" ;;
+    0.0.0.0|'[::]'|'*')       echo "  $addr  every interface: reachable from any network this host is on"; NETWORK=1 ;;
+    *)                        echo "  $addr  one address only: reachable through that interface"; NETWORK=1 ;;
+  esac
+done
+
+if (( NETWORK )); then
+  echo "$CHECK port $PORT accepts connections from the network (a firewall can still block them)"
+  exit 0
+fi
+echo "$CROSS port $PORT is loopback only — from another host this is \"Connection refused\". Bind the service to 0.0.0.0 or the LAN address to expose it."
+exit 2
+```
+
+## What Does the Script Print?
+
+Against the loopback-bound server above:
+
+```text
+$ ./check-bind-address.sh 8097
+  127.0.0.1:8097  loopback only: this machine can connect, no other machine can
+✗ port 8097 is loopback only — from another host this is "Connection refused". Bind the service to 0.0.0.0 or the LAN address to expose it.
+exit=2
+```
+
+The same server restarted with `--bind 0.0.0.0`, and the connection that was refused a minute ago:
+
+```text
+$ ./check-bind-address.sh 8097
+  0.0.0.0:8097  every interface: reachable from any network this host is on
+✓ port 8097 accepts connections from the network (a firewall can still block them)
+exit=0
+$ curl -sS -o /dev/null -w "%{http_code}\n" http://127.0.0.2:8097/
+200
+```
+
+With the server stopped, the other cause of an instant refusal:
+
+```text
+$ ./check-bind-address.sh 8097
+✗ nothing is listening on TCP port 8097 — connection refused from everywhere
+exit=1
+```
+
+And a port on this box that listens on both address families at once, which is a Docker-published container port (the IPv4 and IPv6 wildcards are two separate sockets):
+
+```text
+$ ./check-bind-address.sh 3000
+  0.0.0.0:3000  every interface: reachable from any network this host is on
+  [::]:3000  every interface: reachable from any network this host is on
+✓ port 3000 accepts connections from the network (a firewall can still block them)
+exit=0
+```
+
+## How Do I Read the Local Address Column?
+
+| Local Address | Who can connect |
+|---|---|
+| `127.0.0.1:PORT`, `127.0.0.53%lo:PORT`, `[::1]:PORT` | this machine only |
+| `0.0.0.0:PORT` | any IPv4 address the host has, including LAN and VPN |
+| `[::]:PORT` | any IPv6 address (and IPv4 too, when the socket shows `v6only:0` in `ss -e`) |
+| `*:PORT` | both families on one socket |
+| `192.168.x.y:PORT` or any single address | only connections to that address |
+
+"Could connect" is a statement about the socket, not about your network. A `0.0.0.0` listener behind a firewall, a NAT router or a cloud security group can still be unreachable from the outside, and nothing in `ss` can tell you that. Test from another machine with `nc -zv HOST PORT`. The guide's section on [testing one port from outside](/guides/open-ports-linux#one-port-from-here-and-from-outside) covers it.
+
+## Where Is the Bind Setting for Common Services?
+
+The fix is always in the service, never in `ss`. The setting names differ:
+
+| Service | Setting | File |
+|---|---|---|
+| PostgreSQL | `listen_addresses = '*'` (plus a `pg_hba.conf` rule) | `postgresql.conf` |
+| MySQL / MariaDB | `bind-address = 0.0.0.0` | `my.cnf` / `50-server.cnf` |
+| Redis | `bind 0.0.0.0` (and set `requirepass`) | `redis.conf` |
+| Node / Express | `app.listen(PORT, '0.0.0.0')` | app code |
+| Python `http.server` | `--bind 0.0.0.0` | command line |
+| Vite dev server | `--host` | command line |
+| Docker publish | `-p 3000:8080` binds `0.0.0.0`; `-p 127.0.0.1:3000:8080` binds loopback | `docker run` / compose |
+
+Restart the service after the change and re-run the script. If it still reports loopback only, the config file you edited is not the one the service loads: `systemctl status SERVICE` shows the command line, and `ss -ltnp` as root shows which process owns the socket.
+
+## How Do I Tell a Refusal From a Firewall Drop?
+
+Time it. The loopback-bound refusal above failed `after 0 ms`. A firewall that drops packets leaves the client waiting for its connect timeout, which is seconds to minutes. An instant refusal means the packet arrived and nothing was listening on that address; a hang means something in the path discarded it. A `REJECT --reject-with tcp-reset` rule is the one firewall setup that also refuses instantly, so if the script reports every interface and remote clients still get an instant refusal, look at `nft list ruleset` or `iptables -S` for REJECT rules.
+
+For the other half of the port question, which process is holding a port you did not expect, see [Kill the Process Using a Port](/snippets/kill-process-on-port). To catch a listener that should not be there before someone else does, run [ports-audit](/snippets/ports-audit) from cron. A check that runs unattended wants a lock and an alert when it exits non-zero. [The Production Bash Toolkit](/starter-kit) packages those as `bashlib.sh`.
+
+## Frequently Asked Questions
+
+### Why does curl to localhost work but curl to the server's IP get connection refused?
+
+The service is bound to `127.0.0.1`. A loopback-bound socket only accepts connections addressed to the loopback address, so `curl http://localhost:PORT` reaches it and `curl http://SERVER_IP:PORT` does not, even when you run both on the same machine. `ss -ltn 'sport = :PORT'` shows `127.0.0.1:PORT` in the Local Address column. Change the service's bind or listen setting to `0.0.0.0` or to the LAN address and restart it.
+
+### Is connection refused a firewall problem?
+
+Usually not. A firewall rule that drops packets makes the client hang until it times out; it does not produce an instant refusal. An instant `Connection refused` means the packet reached the host and nothing was listening on that address and port, which is the loopback-bind case or a service that is not running. The exception is a REJECT rule with `tcp-reset`, so if the bind address is `0.0.0.0` and the refusal persists, check iptables or nftables for REJECT rules next.
+
+### What is the difference between 0.0.0.0 and 127.0.0.1 in ss output?
+
+`0.0.0.0:PORT` is the IPv4 wildcard: the socket accepts connections arriving on every interface the host has, including the LAN and any VPN. `127.0.0.1:PORT` accepts connections only from processes on the same machine. `[::]:PORT` and `[::1]:PORT` are the IPv6 equivalents, and `*:PORT` is a socket that listens on both families at once.
+
+### Is binding to 0.0.0.0 safe?
+
+It exposes the service to every network the host is on, so it is only as safe as the service's own authentication and your firewall. Databases, caches and admin panels are loopback-bound by default for that reason. Prefer binding to the one LAN address that needs it, or keep loopback and reach the service through an SSH tunnel: `ssh -L 5432:127.0.0.1:5432 user@server`.
+
+### Why do I get connection refused for a Docker container port?
+
+Either the port was never published with `-p`, so nothing on the host listens for it, or the application inside the container listens on `127.0.0.1`, which is the container's own loopback and unreachable from `docker-proxy`. Run `ss -ltn 'sport = :PORT'` on the host to see whether a publish exists, then make the app inside the container listen on `0.0.0.0`.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [List Open Ports on Linux](/snippets/list-open-ports-linux) — every listening port with the process that holds it
+- [Kill the Process Using a Port](/snippets/kill-process-on-port) — for "address already in use", the opposite problem
+- [Audit Listening Ports](/snippets/ports-audit) — alert once when a new listener appears
+- [Find Your IP Address on Linux](/snippets/find-ip-address-linux) — which LAN address a specific-address bind should use

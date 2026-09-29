@@ -1,0 +1,199 @@
+---
+title: "No Space Left on Device but df Shows Free Space: Out of Inodes — Bash Script"
+metaTitle: "No Space Left on Device With Free Space? Check Inodes (df -i)"
+description: "Writes fail with No space left on device while df -h shows free space: the filesystem is out of inodes. Check df -i and find the directory with the files."
+slug: "no-space-left-on-device-inodes"
+tags: ["disk", "inodes", "df", "troubleshooting", "cron-ready"]
+quickAnswer: "When Linux reports No space left on device but df -h still shows free space, check df -i. Every file, directory and symlink uses one inode, and ext4 fixes the number of inodes when the filesystem is created. A directory that collects millions of small files (PHP session files, mail queues, cache entries, per-request temp files) can use every inode while the data blocks stay mostly empty, and from that moment every create fails with ENOSPC, the same error as a full disk. df -i shows IUse% at 100%. To find the culprit, count entries per directory on that filesystem: find / -xdev -printf '%h\\n' | sort | uniq -c | sort -rn | head. Delete the files or fix the job that makes them; inodes come back the instant the files are gone. The script on this page checks inode use against a threshold and names the fullest directories, so a cron run warns you before writes start failing."
+faq:
+  - question: "Why does df -h show free space when I get No space left on device?"
+    answer: "df -h reports data blocks, and your filesystem still has them. What it has run out of is inodes: one per file, directory or symlink, with the total fixed when an ext4 filesystem is created. Run df -i. If IUse% is 100%, no new file can be created anywhere on that filesystem, however much block space is free."
+  - question: "How do I find which directory is using all the inodes?"
+    answer: "Count entries per parent directory, staying on the one filesystem: find /mount -xdev -printf '%h\\n' | sort | uniq -c | sort -rn | head. The top line is almost always one directory holding hundreds of thousands of small files: a session store, a mail or print queue, a cache, or a job that writes a temp file per run and never deletes it."
+  - question: "Can I add more inodes to an ext4 filesystem?"
+    answer: "Not in place. ext4 sets the inode count at mkfs time from the bytes-per-inode ratio (-i) or an explicit count (-N). Growing the filesystem with resize2fs adds inodes in proportion to the added space, but the only way to change the ratio is to back up, recreate the filesystem with mkfs.ext4 -i 4096 or -N, and restore. XFS and btrfs allocate inodes dynamically and rarely hit this."
+  - question: "Deleting files didn't free inodes. Why?"
+    answer: "An inode is released only when its last link is removed and no process holds the file open. If a running process still has deleted files open, the inodes stay in use until it closes them or exits. lsof +L1 lists open files with zero links; restart the process that holds them."
+  - question: "Does this happen on XFS or btrfs?"
+    answer: "Rarely. XFS allocates inodes dynamically up to a percentage of the filesystem (imaxpct), and btrfs has no fixed inode table, so df -i on btrfs reports 0 or a dash. The script on this page detects the dynamic case and exits 0. Inode exhaustion is overwhelmingly an ext2/3/4 problem."
+howToSteps:
+  - name: "Confirm it is inodes, not blocks"
+    text: "Run df -h and df -i on the mount that is failing. If df -h shows free space and df -i shows IUse% at or near 100%, the filesystem is out of inodes."
+  - name: "Run the script to find the directory"
+    text: "Save inode-usage-check.sh, chmod +x it, and run ./inode-usage-check.sh /var 90 10. It prints block and inode use and, when inode use is over the threshold, the ten directories holding the most entries on that filesystem."
+  - name: "Delete the files and fix the producer"
+    text: "Remove the files in the top directory with find DIR -type f -delete (not rm DIR/*, which hits Argument list too long at this scale), then fix or schedule cleanup for whatever creates them, and add the script to cron as an early warning."
+author: "Travis"
+datePublished: "2026-09-28"
+dateModified: "2026-09-28"
+---
+
+<Callout type="info" title="One of three ways a disk is full while df says it isn't">
+
+The other two: a deleted file that a running process still holds open, so its blocks are never freed (`lsof +L1` lists those), and the systemd journal growing to its own cap (see [journalctl Disk Usage](/snippets/journalctl-disk-usage-vacuum)). When the disk really is full of data, start with [Find Large Files on Linux](/snippets/find-large-files-linux). This page is the inode case.
+
+</Callout>
+
+Every write on the box fails with `No space left on device`. You run `df -h` and the filesystem is at 0%, or 40%, or anything but full. Nothing is wrong with `df -h`: it counts data blocks, and you have plenty. What ran out is inodes, the per-file records that ext4 allocates once, at `mkfs` time, and never adds to. A directory that quietly collected a few million tiny files can use all of them while using almost no space, and the kernel reports that with the same error as a full disk.
+
+## What Does Inode Exhaustion Look Like?
+
+Reproduced here on 2026-09-28 without root: a 50 MB tmpfs with its inode count capped at 1,000, mounted inside a user namespace (`unshare -rm`, then `mount -t tmpfs -o size=50M,nr_inodes=1000 tmpfs /mnt`). An app writes 40 log files, then a session directory fills with empty files until the kernel refuses:
+
+```text
+bash: line 5: /mnt/app/sessions/sess_956: No space left on device
+sessions created before failure: 956
+```
+
+Every other write on that filesystem now fails the same way, including one to a different directory:
+
+```text
+$ echo test > /mnt/app/logs/new.log
+bash: line 6: /mnt/app/logs/new.log: No space left on device
+exit=1
+```
+
+The two `df` views of the same filesystem at the same moment (from the first run of this test):
+
+```text
+$ df -h /mnt
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs            50M     0   50M   0% /mnt
+$ df -i /mnt
+Filesystem     Inodes IUsed IFree IUse% Mounted on
+tmpfs            1000  1000     0  100% /mnt
+```
+
+0% of blocks used, 100% of inodes used. The files are empty, so they cost no data blocks at all, and each one still costs an inode. On a real server the numbers are bigger (this box's root filesystem has 57,843,712 inodes) and the mechanism is identical.
+
+## The Script
+
+Save as `inode-usage-check.sh`. It prints block and inode use side by side, and when inode use crosses the threshold it names the directories holding the most entries on that filesystem.
+
+```bash
+#!/bin/bash
+# Script: inode-usage-check.sh
+# Purpose: A filesystem out of inodes fails every file create with "No space left on device" while df -h still shows free space — this checks inode use per mount and names the directories holding the most entries.
+# Usage: ./inode-usage-check.sh [MOUNT] [THRESHOLD_%] [TOP_N]   (defaults: / 90 10)
+set -euo pipefail
+export LC_ALL=C                      # stable sort order and plain % output from df
+
+CHECK="✓"
+CROSS="✗"
+
+MOUNT="${1:-/}"                      # any path on the filesystem you want checked
+THRESHOLD="${2:-90}"                 # inode use % that counts as a problem
+TOP_N="${3:-10}"                     # how many of the fullest directories to list
+
+# --output keeps the columns fixed whatever the device name length is.
+read -r ITOTAL IUSED IFREE IPCT < <(df --output=itotal,iused,iavail,ipcent "$MOUNT" | awk 'NR==2 {print $1, $2, $3, $4}')
+BPCT=$(df --output=pcent "$MOUNT" | awk 'NR==2 {print $1}')
+
+# btrfs, ZFS and some FUSE mounts allocate inodes dynamically and report 0 or "-".
+if [[ "$ITOTAL" == "0" || "$IPCT" == "-" ]]; then
+  echo "$CHECK $MOUNT reports no fixed inode count (dynamic allocation) — inodes cannot run out here"
+  exit 0
+fi
+
+IPCT="${IPCT%\%}"
+echo "blocks used: $BPCT   inodes used: ${IPCT}% ($IUSED of $ITOTAL, $IFREE free)"
+
+if (( IPCT < THRESHOLD )); then
+  echo "$CHECK inode use ${IPCT}% is under ${THRESHOLD}% on $MOUNT"
+  exit 0
+fi
+
+echo "$CROSS inode use ${IPCT}% is at or over ${THRESHOLD}% on $MOUNT — directories holding the most entries:"
+# -xdev stays on this filesystem: another mount's files do not use this one's inodes.
+# %h prints each entry's parent directory, so uniq -c counts entries per directory.
+find "$MOUNT" -xdev -mindepth 1 -printf '%h\n' 2>/dev/null | sort | uniq -c | sort -rn | head -n "$TOP_N"
+exit 1
+```
+
+## What Does the Script Print?
+
+On the full test filesystem:
+
+```text
+$ ./inode-usage-check.sh /mnt 90 5
+blocks used: 0%   inodes used: 100% (1000 of 1000, 0 free)
+✗ inode use 100% is at or over 90% on /mnt — directories holding the most entries:
+    956 /mnt/app/sessions
+     40 /mnt/app/logs
+      2 /mnt/app
+      1 /mnt
+exit=1
+```
+
+The culprit is on the first line: 956 entries in `sessions`. Clear it with `find`, not `rm sessions/*`, because at real-world scale the glob expands past the kernel's argument limit (see [Argument List Too Long](/snippets/argument-list-too-long)):
+
+```text
+$ find /mnt/app/sessions -type f -delete
+$ ./inode-usage-check.sh /mnt 90 5
+blocks used: 0%   inodes used: 5% (44 of 1000, 956 free)
+✓ inode use 5% is under 90% on /mnt
+exit=0
+$ echo test > /mnt/app/logs/new.log
+exit=0
+```
+
+The inodes come back the moment the files are unlinked; no remount or restart. On this box's real root filesystem, where the disk is nearly full by blocks and nowhere near full by inodes:
+
+```text
+$ ./inode-usage-check.sh /
+blocks used: 91%   inodes used: 6% (3381007 of 57843712, 54462705 free)
+✓ inode use 6% is under 90% on /
+exit=0
+```
+
+That is the healthy shape: block use and inode use moving independently. A filesystem where inode use is far ahead of block use is one where something is creating small files faster than anything removes them.
+
+## What Usually Eats the Inodes?
+
+- **Session stores.** PHP's default `session.save_path` writes one file per visitor session; if the garbage collector never runs (it is disabled on Debian and Ubuntu in favour of a cron job or systemd timer), they accumulate for years.
+- **Mail and print queues.** A dead relay leaves every outgoing message in `/var/spool/postfix/deferred` as a file.
+- **Caches.** Package-manager caches, thumbnail caches, and application caches that write one file per key.
+- **Per-run temp files.** A cron job that runs every minute and leaves one `mktemp` file behind uses 525,600 inodes a year. That is what the [trap cleanup](/snippets/bash-trap-cleanup) pattern is for.
+
+## How Do I Schedule It?
+
+Hourly, with cron mailing or logging any run that exits 1:
+
+```text
+0 * * * * /usr/local/sbin/inode-usage-check.sh /var 85 10 >> /var/log/inode-check.log 2>&1
+```
+
+One line per filesystem you care about; `/var` and `/tmp` are the usual suspects when they are separate mounts. The [disk space warning](/snippets/disk-space-warning) script covers the block side of the same alert. Both are the kind of unattended check that wants a lock, a log line and one alert per incident rather than one per hour, which is what [The Production Bash Toolkit](/starter-kit) packages as `bashlib.sh`.
+
+## Frequently Asked Questions
+
+### Why does df -h show free space when I get No space left on device?
+
+`df -h` reports data blocks, and your filesystem still has them. What it has run out of is inodes: one per file, directory or symlink, with the total fixed when an ext4 filesystem is created. Run `df -i`. If `IUse%` is 100%, no new file can be created anywhere on that filesystem, however much block space is free.
+
+### How do I find which directory is using all the inodes?
+
+Count entries per parent directory, staying on the one filesystem: `find /mount -xdev -printf '%h\n' | sort | uniq -c | sort -rn | head`. The top line is almost always one directory holding hundreds of thousands of small files: a session store, a mail or print queue, a cache, or a job that writes a temp file per run and never deletes it.
+
+### Can I add more inodes to an ext4 filesystem?
+
+Not in place. ext4 sets the inode count at `mkfs` time from the bytes-per-inode ratio (`-i`) or an explicit count (`-N`). Growing the filesystem with `resize2fs` adds inodes in proportion to the added space, but the only way to change the ratio is to back up, recreate the filesystem with `mkfs.ext4 -i 4096` or `-N`, and restore. XFS and btrfs allocate inodes dynamically and rarely hit this.
+
+### Deleting files didn't free inodes. Why?
+
+An inode is released only when its last link is removed and no process holds the file open. If a running process still has deleted files open, the inodes stay in use until it closes them or exits. `lsof +L1` lists open files with zero links; restart the process that holds them.
+
+### Does this happen on XFS or btrfs?
+
+Rarely. XFS allocates inodes dynamically up to a percentage of the filesystem (`imaxpct`), and btrfs has no fixed inode table, so `df -i` on btrfs reports 0 or a dash. The script on this page detects the dynamic case and exits 0. Inode exhaustion is overwhelmingly an ext2/3/4 problem.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Disk Space Warning](/snippets/disk-space-warning) — the block-usage alert this one complements
+- [Find Large Files on Linux](/snippets/find-large-files-linux) — when blocks, not inodes, are the problem
+- [journalctl Disk Usage and Vacuum](/snippets/journalctl-disk-usage-vacuum) — the systemd journal's share of a full disk
+- [Argument List Too Long](/snippets/argument-list-too-long) — deleting the files once you have found them

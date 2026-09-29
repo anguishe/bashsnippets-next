@@ -71,6 +71,14 @@ const guides = [
       'The three ways cron jobs die quietly — overlap, hang, transient failure — and the guard that stops each.',
   },
   {
+    slug: 'systemd-timers-vs-cron',
+    title: 'systemd Timers vs Cron: Missed Runs, Overlaps and Failure Alerts',
+    description:
+      'Cron skips runs the machine was off for and drops output with no mail server. systemd timers catch up with Persistent=, log to the journal and alert on failure.',
+    blurb:
+      'A weekly cron job on this laptop ran on one Sunday in four; the systemd timer next to it ran on all four, three times within a minute of boot. You leave knowing what Persistent=true really does, why a slow oneshot job is queued rather than skipped, how to get an alert from OnFailure=, the day-of-month plus day-of-week rule that makes some crontab lines impossible to convert literally, and when cron is still the right choice.',
+  },
+  {
     slug: 'shell-scripts-that-talk-to-apis',
     title: 'Shell Scripts That Talk to APIs',
     description:

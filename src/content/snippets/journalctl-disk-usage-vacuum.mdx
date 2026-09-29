@@ -1,0 +1,219 @@
+---
+title: "journalctl Disk Usage: Check and Limit the systemd Journal Size — Bash Script"
+metaTitle: "journalctl Disk Usage: Check and Limit the systemd Journal"
+description: "The systemd journal keeps logs until its own cap, up to 4G by default. Check it with journalctl --disk-usage, vacuum it as root, and set SystemMaxUse."
+slug: "journalctl-disk-usage-vacuum"
+tags: ["systemd", "journald", "disk", "logs", "cron-ready"]
+quickAnswer: "journalctl --disk-usage shows how much space the systemd journal takes in /var/log/journal. Unless SystemMaxUse is set, journald caps itself at 10% of the filesystem, and that default is itself capped at 4G, so on any disk over 40G an unconfigured journal is allowed to grow to 4G. To shrink it once, run sudo journalctl --vacuum-size=500M or --vacuum-time=2weeks; vacuuming only deletes archived journal files, so run journalctl --rotate first to archive the active one. The command needs root: run as a normal user it exits 0 and prints freed 0B, which looks like success. To keep the journal small permanently, create /etc/systemd/journald.conf.d/size.conf with SystemMaxUse=500M under a [Journal] header and restart systemd-journald. The script on this page reports the current size and the cap in force, and vacuums to your limit when run with sudo and --apply."
+faq:
+  - question: "How do I check how much disk space journalctl logs use?"
+    answer: "Run journalctl --disk-usage. It prints one line, for example 'Archived and active journals take up 3.4G in the file system.' That total covers /var/log/journal (persistent) and /run/log/journal (volatile). It works without root for users in the adm or systemd-journal group; otherwise use sudo."
+  - question: "Why did journalctl --vacuum-size free 0B?"
+    answer: "Either you ran it without root, or everything left is the active journal file. Journal files are owned by root and the systemd-journal group, so a normal user cannot delete them, and journalctl still exits 0 and reports 'freed 0B'. Vacuuming also never touches the files journald is currently writing: run sudo journalctl --rotate first so they become archived, then vacuum."
+  - question: "What is the default maximum size of the systemd journal?"
+    answer: "SystemMaxUse defaults to 10% of the size of the filesystem holding /var/log/journal, capped at 4G. SystemKeepFree defaults to 15%, also capped at 4G, and journald respects whichever limit is smaller. On a 40G or larger disk, an unconfigured journal is allowed to reach 4G."
+  - question: "Is it safe to delete files in /var/log/journal with rm?"
+    answer: "It works but it is the wrong tool. rm on a file journald has open does not free the space until journald closes it, and deleting the wrong file can leave a gap in the middle of the history. journalctl --vacuum-size, --vacuum-time and --vacuum-files remove whole archived files, oldest first, and leave the active file alone."
+  - question: "Does SystemMaxUse delete existing logs immediately?"
+    answer: "Not until journald applies it. After editing the drop-in, run sudo systemctl restart systemd-journald; journald enforces the new limit when it starts and at each rotation, deleting the oldest archived files until usage is under it. Run sudo journalctl --vacuum-size with the same value to apply it right away."
+howToSteps:
+  - name: "Check the size and the cap in force"
+    text: "Save journal-disk-usage.sh, chmod +x it, and run ./journal-disk-usage.sh 1G. It prints the journal size, the effective SystemMaxUse, and exits 1 if the journal is over 1G."
+  - name: "Vacuum once, as root"
+    text: "Run sudo ./journal-disk-usage.sh 1G --apply. It rotates the active journal so it becomes archived, then runs journalctl --vacuum-size=1G and prints the new total."
+  - name: "Make the limit permanent"
+    text: "Create /etc/systemd/journald.conf.d/size.conf containing [Journal] and SystemMaxUse=1G on the next line, then run sudo systemctl restart systemd-journald. journald now enforces the limit on its own at every rotation."
+author: "Travis"
+datePublished: "2026-09-28"
+dateModified: "2026-09-28"
+---
+
+<Callout type="info" title="One of three ways a disk fills without an obvious culprit">
+
+The other two are inode exhaustion ([No Space Left on Device With Free Space](/snippets/no-space-left-on-device-inodes)) and one big file you did not know about ([Find Large Files on Linux](/snippets/find-large-files-linux)). This page covers the journal, which is invisible to `du -sh /var/log/*` scans that skip the binary files.
+
+</Callout>
+
+Nobody sets a size for the systemd journal, because nobody knows it needs one. It doesn't need one until a driver, a crash loop or a chatty daemon logs a few hundred thousand lines a day, and then the journal grows to whatever cap journald picked for itself. On most disks that cap is 4G. On this box the journal is at 3.4G, with no `SystemMaxUse` set anywhere.
+
+## How Big Is the Journal Here?
+
+Run on 2026-09-28 (Kali, systemd 261, as a user in the `adm` group, which can read the journal without root):
+
+```text
+$ journalctl --disk-usage
+Archived and active journals take up 3.4G in the file system.
+$ systemd-analyze cat-config systemd/journald.conf | grep -E "^#?System(MaxUse|KeepFree|MaxFileSize)="
+#SystemMaxUse=
+#SystemKeepFree=
+#SystemMaxFileSize=
+```
+
+All three settings are commented out, so every limit is a default. `man journald.conf` on this box states the default: `SystemMaxUse=` is 10% of the filesystem and `SystemKeepFree=` is 15%, "but each of the calculated default values is capped to 4G". 10% of this 868G root filesystem would be 86G, so the cap that applies is 4G.
+
+Where the 3.4G came from was a single source. The directory holds 98 archived system journal files of 40 MB each, and from 2026-09-02 to 2026-09-11 they were written at about nine a day. Counting the journal's own entries for one of those days by source:
+
+```text
+$ journalctl --since 2026-09-05 --until 2026-09-06 -o json --output-fields=SYSLOG_IDENTIFIER \
+    | grep -o '"SYSLOG_IDENTIFIER":"[^"]*"' | cut -d'"' -f4 | sort | uniq -c | sort -rn | head -5
+ 747780 kernel
+   2869 kded6
+   2681 plasmashell
+   1816 cursor
+   1521 CRON
+```
+
+747,780 kernel lines in one day, and 711,687 of them (95%) were the out-of-tree Realtek Wi-Fi driver's scan loop, whose messages start with `PHL:`. After 2026-09-12 new journal files slowed to a few a week. The 3.4G stayed, because nothing in journald's defaults gives space back before the 4G cap.
+
+## The Script
+
+Save as `journal-disk-usage.sh`. Without `--apply` it only reports; with `--apply` and root it rotates and vacuums.
+
+```bash
+#!/bin/bash
+# Script: journal-disk-usage.sh
+# Purpose: systemd-journald keeps logs until it hits its own cap (10% of the filesystem, up to 4G by default), so an unconfigured journal quietly holds gigabytes — this reports the size, the cap in force, and vacuums down to a limit you choose.
+# Usage: ./journal-disk-usage.sh [MAX_SIZE] [--apply]   (default MAX_SIZE 1G; --apply needs root)
+set -euo pipefail
+export LC_ALL=C
+
+CHECK="✓"
+CROSS="✗"
+
+MAX_SIZE="${1:-1G}"                  # the size you want the journal held to (K, M, G suffixes)
+APPLY=0
+[[ "${2:-}" == "--apply" ]] && APPLY=1
+
+# "Archived and active journals take up 3.4G in the file system." -> 3.4G
+USED_HUMAN=$(journalctl --disk-usage 2>/dev/null | grep -oE '[0-9.]+[KMGT]?B?' | head -1)
+USED_HUMAN="${USED_HUMAN%B}"
+USED_BYTES=$(numfmt --from=iec "$USED_HUMAN")
+MAX_BYTES=$(numfmt --from=iec "$MAX_SIZE")
+
+# The effective setting is the last uncommented SystemMaxUse= across journald.conf and every drop-in.
+CAP=$(systemd-analyze cat-config systemd/journald.conf 2>/dev/null | grep -E '^SystemMaxUse=' | tail -1 | cut -d= -f2 || true)
+
+echo "journal on disk: $USED_HUMAN"
+echo "SystemMaxUse:    ${CAP:-not set (default: 10% of the filesystem, capped at 4G)}"
+
+if (( USED_BYTES <= MAX_BYTES )); then
+  echo "$CHECK journal is within $MAX_SIZE"
+  exit 0
+fi
+
+echo "$CROSS journal is over $MAX_SIZE"
+if (( ! APPLY )); then
+  echo "  one-off:   sudo journalctl --vacuum-size=$MAX_SIZE"
+  echo "  permanent: set SystemMaxUse=$MAX_SIZE in /etc/systemd/journald.conf.d/size.conf, then sudo systemctl restart systemd-journald"
+  exit 1
+fi
+
+if (( EUID != 0 )); then
+  echo "$CROSS --apply needs root: re-run with sudo" >&2
+  exit 2
+fi
+
+# Vacuum only removes archived files; rotate first so the active file becomes archived too.
+journalctl --rotate
+journalctl --vacuum-size="$MAX_SIZE"
+echo "$CHECK now: $(journalctl --disk-usage)"
+```
+
+## What Does the Script Print?
+
+Report mode, holding the journal to 1G:
+
+```text
+$ ./journal-disk-usage.sh 1G
+journal on disk: 3.4G
+SystemMaxUse:    not set (default: 10% of the filesystem, capped at 4G)
+✗ journal is over 1G
+  one-off:   sudo journalctl --vacuum-size=1G
+  permanent: set SystemMaxUse=1G in /etc/systemd/journald.conf.d/size.conf, then sudo systemctl restart systemd-journald
+exit=1
+```
+
+With a 4G limit it passes and exits 0 (`✓ journal is within 4G`), which is the point of the exit code: cron only hears about it when the journal is over your number, not journald's.
+
+`--apply` without root refuses instead of pretending:
+
+```text
+$ ./journal-disk-usage.sh 1G --apply
+…
+✗ --apply needs root: re-run with sudo
+exit=2
+```
+
+That refusal exists because of what `journalctl` itself does in the same situation.
+
+## Why Did journalctl --vacuum-size Free 0B?
+
+Run as a normal user, `journalctl` does not fail. It reports success and frees nothing:
+
+```text
+$ journalctl --vacuum-size=1G
+Vacuuming done, freed 0B of archived journals from /var/log/journal/<machine-id>.
+Vacuuming done, freed 0B of archived journals from /var/log/journal.
+Vacuuming done, freed 0B of archived journals from /run/log/journal.
+exit=0
+```
+
+(The machine ID is redacted.) Exit 0, three "Vacuuming done" lines, and `journalctl --disk-usage` afterwards still said 3.4G. The journal files belong to root and the `systemd-journal` group; a user who can *read* them (the `adm` group) cannot delete them. A cleanup cron job running as the wrong user would log "Vacuuming done" every night forever. Run it with `sudo`, and check `--disk-usage` after, not the vacuum output.
+
+The second cause of `freed 0B` is the active file. Vacuuming removes archived journal files only, never the ones journald is writing. `journalctl --rotate` closes and archives them first, which is why the script runs it before vacuuming.
+
+## How Do I Limit the Journal Size Permanently?
+
+A drop-in, so a package upgrade never overwrites it:
+
+```bash
+sudo mkdir -p /etc/systemd/journald.conf.d
+printf '[Journal]\nSystemMaxUse=1G\n' | sudo tee /etc/systemd/journald.conf.d/size.conf
+sudo systemctl restart systemd-journald
+systemd-analyze cat-config systemd/journald.conf | grep -E '^SystemMaxUse='
+```
+
+The last line should print `SystemMaxUse=1G`. If it prints nothing, the file is in the wrong directory or the `[Journal]` header is missing. `SystemMaxFileSize=` (the size at which a journal file is rotated) and `MaxRetentionSec=` (an age limit, for example `MaxRetentionSec=1month`) are set in the same file.
+
+## How Do I Schedule the Check?
+
+Weekly, as root, with cron keeping the output:
+
+```text
+30 4 * * 0 /usr/local/sbin/journal-disk-usage.sh 1G --apply >> /var/log/journal-vacuum.log 2>&1
+```
+
+Once `SystemMaxUse` is set, journald enforces it by itself and the cron line is only a check. Run it without `--apply` as a monitor instead, and pair it with the [disk space warning](/snippets/disk-space-warning) and [inode](/snippets/no-space-left-on-device-inodes) checks. They are three views of the same disk. Checks like these are only useful when they alert once per problem and leave a log line proving they ran. [The Production Bash Toolkit](/starter-kit) packages that part as `bashlib.sh`.
+
+## Frequently Asked Questions
+
+### How do I check how much disk space journalctl logs use?
+
+Run `journalctl --disk-usage`. It prints one line, for example `Archived and active journals take up 3.4G in the file system.` That total covers `/var/log/journal` (persistent) and `/run/log/journal` (volatile). It works without root for users in the `adm` or `systemd-journal` group; otherwise use `sudo`.
+
+### Why did journalctl --vacuum-size free 0B?
+
+Either you ran it without root, or everything left is the active journal file. Journal files are owned by root and the `systemd-journal` group, so a normal user cannot delete them, and `journalctl` still exits 0 and reports `freed 0B`. Vacuuming also never touches the files journald is currently writing: run `sudo journalctl --rotate` first so they become archived, then vacuum.
+
+### What is the default maximum size of the systemd journal?
+
+`SystemMaxUse` defaults to 10% of the size of the filesystem holding `/var/log/journal`, capped at 4G. `SystemKeepFree` defaults to 15%, also capped at 4G, and journald respects whichever limit is smaller. On a 40G or larger disk, an unconfigured journal is allowed to reach 4G.
+
+### Is it safe to delete files in /var/log/journal with rm?
+
+It works but it is the wrong tool. `rm` on a file journald has open does not free the space until journald closes it, and deleting the wrong file can leave a gap in the middle of the history. `journalctl --vacuum-size`, `--vacuum-time` and `--vacuum-files` remove whole archived files, oldest first, and leave the active file alone.
+
+### Does SystemMaxUse delete existing logs immediately?
+
+Not until journald applies it. After editing the drop-in, run `sudo systemctl restart systemd-journald`; journald enforces the new limit when it starts and at each rotation, deleting the oldest archived files until usage is under it. Run `sudo journalctl --vacuum-size` with the same value to apply it right away.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Disk Space Warning](/snippets/disk-space-warning) — alert before the filesystem fills
+- [No Space Left on Device With Free Space](/snippets/no-space-left-on-device-inodes) — the inode case
+- [Log Retention Cleanup](/snippets/log-retention-cleanup) — retention for the log directories journald doesn't own
+- [Delete Old Log Files](/snippets/delete-old-log-files) — the `find -mtime` one-liner for plain-text logs

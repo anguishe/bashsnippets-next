@@ -1,0 +1,230 @@
+---
+title: "/bin/bash^M: bad interpreter — Fix CRLF Line Endings in Bash Scripts"
+metaTitle: "Fix /bin/bash^M: bad interpreter (CRLF Line Endings)"
+description: "/bin/bash^M: bad interpreter means the script has Windows CRLF line endings. Find them with file or cat -A, strip them with sed, stop git adding them back."
+slug: "fix-bad-interpreter-crlf"
+tags: ["crlf", "shellcheck", "git", "troubleshooting", "sed"]
+quickAnswer: "The error /bin/bash^M: bad interpreter: No such file or directory means the script was saved with Windows line endings (CRLF). Every line ends in a carriage return (\\r, shown as ^M) before the newline, so the kernel reads the shebang as a request for a program literally named /bin/bash followed by a carriage return, which does not exist. Confirm with file script.sh, which reports with CRLF line terminators, or cat -A script.sh, which shows ^M$ at each line end. Fix it with sed -i 's/\\r$//' script.sh or dos2unix script.sh. Scripts started with #!/usr/bin/env bash fail with env: 'bash\\r': No such file or directory instead, and scripts run as bash script.sh fail line by line, which is worse: a carriage return on set -e makes it an invalid option, so strict mode never turns on. To stop git reintroducing CRLF, add *.sh text eol=lf to .gitattributes and run git add --renormalize ."
+faq:
+  - question: "What does /bin/bash^M: bad interpreter mean?"
+    answer: "The script has Windows CRLF line endings. The first line is #!/bin/bash followed by a carriage return (^M) and a newline, so the kernel looks for an interpreter called /bin/bash plus a carriage return. No such file exists, so exec fails with exit code 126 and the shell prints bad interpreter: No such file or directory."
+  - question: "How do I remove ^M characters from a bash script?"
+    answer: "Run sed -i 's/\\r$//' script.sh, which deletes a carriage return at the end of every line and edits the file in place. dos2unix script.sh does the same if it is installed. tr -d '\\r' < in.sh > out.sh also works but removes carriage returns anywhere in the line, not only at the end, and needs a second file."
+  - question: "Why does my script say $'\\r': command not found?"
+    answer: "Same cause, different entry point. When you run bash script.sh instead of ./script.sh, the shebang is skipped and bash reads each line with its trailing carriage return. An empty line becomes a command named $'\\r', cd /tmp becomes cd to a directory named /tmp plus a carriage return, and set -e becomes set with an invalid option, so strict mode silently never turns on."
+  - question: "How do I stop git from converting my scripts to CRLF?"
+    answer: "Add a .gitattributes file at the repository root with the line *.sh text eol=lf, commit it, and run git add --renormalize . to fix files already committed with CRLF. The attribute overrides each developer's core.autocrlf setting, so a checkout on Windows still gets LF in shell scripts."
+  - question: "Does ShellCheck detect CRLF line endings?"
+    answer: "Yes. ShellCheck reports SC1017 (error): Literal carriage return. Run script through tr -d '\\r' on each affected line. A ShellCheck step in CI or a pre-commit hook catches CRLF before the script reaches a server."
+howToSteps:
+  - name: "Confirm the line endings"
+    text: "Run file script.sh. If it says with CRLF line terminators, or cat -A script.sh shows ^M$ at the end of lines, the file has Windows line endings."
+  - name: "Find and fix every affected file"
+    text: "Save crlf-check.sh, chmod +x it, and run ./crlf-check.sh DIR to list every text file with CRLF under DIR, then ./crlf-check.sh --apply DIR to strip the carriage returns with sed."
+  - name: "Stop git reintroducing them"
+    text: "Add *.sh text eol=lf to .gitattributes at the repository root, run git add --renormalize . and commit. git ls-files --eol should then show i/lf for every script."
+author: "Travis"
+datePublished: "2026-09-28"
+dateModified: "2026-09-28"
+---
+
+<Callout type="info" title="ShellCheck calls this SC1017">
+
+The [ShellCheck Error Decoder](/tools/shellcheck-error-decoder) explains every code on this site, and the [SC2086 deep dive](/shellcheck/sc2086) is the one most scripts trip first. CRLF is worth catching before either, because a script with carriage returns fails before any of its own logic runs.
+
+</Callout>
+
+The script ran fine on your machine. You copied it to a server through a Windows editor, a web form, a Slack paste or a git checkout with `core.autocrlf=true`, and now it will not start at all. `/bin/bash^M: bad interpreter`. Nothing in the script changed except an invisible byte at the end of every line. That byte is also why the less obvious failure is the dangerous one: run the same file as `bash script.sh` and it does start, with strict mode off.
+
+## What Do CRLF Line Endings Break?
+
+Reproduced here on 2026-09-28 (Kali, bash 5.3.9, file 5.47, ShellCheck 0.11.0). Three scripts written with `printf '…\r\n'` so every line ends in CRLF, the way a Windows editor saves them.
+
+A normal shebang, run directly:
+
+```text
+$ ./deploy/deploy.sh prod
+bash: ./deploy/deploy.sh: /bin/bash^M: bad interpreter: No such file or directory
+exit=126
+```
+
+An `env` shebang fails with a different message for the same reason:
+
+```text
+$ ./deploy/env.sh
+env: ‘bash\r’: No such file or directory
+env: use -[v]S to pass options in shebang lines
+exit=127
+```
+
+And the one that looks like it worked. `sourced.sh` is three lines, `set -e`, `cd /tmp`, `echo done`, run through bash directly so the shebang is never read:
+
+```text
+$ bash deploy/sourced.sh
+deploy/sourced.sh: line 1: set: -: invalid option
+set: usage: set [-abefhkmnptuvxBCEHPT] [-o option-name] [--] [-] [arg ...]
+deploy/sourced.sh: line 2: cd: $'/tmp\r': No such file or directory
+done
+exit=0
+```
+
+`set -e` became `set -e` plus a carriage return, an invalid option, so errexit never turned on. `cd` then failed on a directory named `/tmp` plus a carriage return, and because errexit was off the script carried on, printed `done`, and exited 0. In a real deploy script the next line runs in whatever directory you started in.
+
+## How Do I See the Carriage Returns?
+
+`file` names the problem outright:
+
+```text
+$ file deploy/deploy.sh
+deploy/deploy.sh: Bourne-Again shell script, ASCII text executable, with CRLF line terminators
+```
+
+`cat -A` shows each carriage return as `^M` before the `$` that marks the line end:
+
+```text
+$ cat -A deploy/deploy.sh
+#!/bin/bash^M$
+echo "deploying $1"^M$
+```
+
+`od -c` shows the actual bytes, `\r \n` at the end of the shebang:
+
+```text
+$ head -1 deploy/deploy.sh | od -c
+0000000   #   !   /   b   i   n   /   b   a   s   h  \r  \n
+0000015
+```
+
+And ShellCheck flags every line:
+
+```text
+$ shellcheck deploy/deploy.sh
+
+In deploy/deploy.sh line 1:
+#!/bin/bash
+           ^-- SC1017 (error): Literal carriage return. Run script through tr -d '\r' .
+```
+
+## The Script
+
+Save as `crlf-check.sh`. It finds every text file with CRLF line endings under the paths you give it, reports each with `file`'s description, and strips them with `--apply`.
+
+```bash
+#!/bin/bash
+# Script: crlf-check.sh
+# Purpose: A script saved with Windows CRLF line endings dies with "/bin/bash^M: bad interpreter" or "$'\r': command not found" — this finds every text file with carriage returns under the given paths and strips them.
+# Usage: ./crlf-check.sh [--apply] PATH...   (dry run by default)
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+APPLY=0
+if [[ "${1:-}" == "--apply" ]]; then APPLY=1; shift; fi
+[[ $# -gt 0 ]] || { echo "usage: $0 [--apply] PATH..." >&2; exit 2; }
+
+# -I skips binary files: a CR byte inside an image or a tarball is data, not a line ending.
+mapfile -t FILES < <(grep -rlI $'\r$' -- "$@" 2>/dev/null || true)
+
+if [[ ${#FILES[@]} -eq 0 ]]; then
+  echo "$CHECK no CRLF line endings under: $*"
+  exit 0
+fi
+
+for f in "${FILES[@]}"; do
+  echo "$CROSS $f — $(grep -c $'\r$' "$f") CRLF lines ($(file -b "$f"))"
+done
+
+if (( ! APPLY )); then
+  echo "dry run: re-run with --apply to convert ${#FILES[@]} file(s) to LF"
+  exit 1
+fi
+
+for f in "${FILES[@]}"; do
+  # Only a CR at end of line is stripped; a CR in the middle of a line is left for a human.
+  sed -i 's/\r$//' "$f"
+done
+echo "$CHECK converted ${#FILES[@]} file(s) to LF"
+```
+
+## What Does the Script Print?
+
+On the same `deploy/` directory, which also holds one clean LF script (`ok.sh`) that it correctly leaves out:
+
+```text
+$ ./crlf-check.sh deploy
+✗ deploy/sourced.sh — 3 CRLF lines (ASCII text, with CRLF line terminators)
+✗ deploy/env.sh — 2 CRLF lines (Bourne-Again shell script, ASCII text executable, with CRLF line terminators)
+✗ deploy/deploy.sh — 2 CRLF lines (Bourne-Again shell script, ASCII text executable, with CRLF line terminators)
+dry run: re-run with --apply to convert 3 file(s) to LF
+exit=1
+$ ./crlf-check.sh --apply deploy
+…
+✓ converted 3 file(s) to LF
+exit=0
+$ ./deploy/deploy.sh prod
+deploying prod
+exit=0
+$ ./crlf-check.sh deploy
+✓ no CRLF line endings under: deploy
+exit=0
+```
+
+The dry run exits 1 when it finds anything, so it works as a CI gate or a pre-commit check as it stands. `sourced.sh` is caught even though `file` does not call it a shell script, because it has no shebang. That is the file that would have run with strict mode off.
+
+## How Do I Stop Git Bringing CRLF Back?
+
+Fixing the files once does not help if the next checkout on a Windows machine with `core.autocrlf=true` converts them again. A `.gitattributes` rule overrides every developer's local setting. Run here in a scratch repository (git 2.53.0) with a CRLF script already committed:
+
+```text
+$ git ls-files --eol run.sh
+i/crlf  w/crlf  attr/                 	run.sh
+$ printf '*.sh text eol=lf\n' > .gitattributes
+$ git add .gitattributes && git add --renormalize . && git ls-files --eol run.sh
+i/lf    w/crlf  attr/text eol=lf      	run.sh
+```
+
+`i/` is the index, `w/` the working tree. After `--renormalize` the committed copy is LF while the file on disk is still CRLF. After a commit and a fresh checkout both sides are LF:
+
+```text
+$ git ls-files --eol run.sh
+i/lf    w/lf    attr/text eol=lf      	run.sh
+$ file run.sh
+run.sh: Bourne-Again shell script, ASCII text executable
+```
+
+Commit the `.gitattributes` file with the renormalized scripts in the same commit, so nobody can check out one without the other.
+
+Line endings are one of the failure modes a standard script template catches before it matters. The [safe bash script template](/guides/safe-bash-script-template) covers the others, and [The Production Bash Toolkit](/starter-kit) ships the template with ShellCheck-clean helpers so every new script starts from a known-good file.
+
+## Frequently Asked Questions
+
+### What does /bin/bash^M: bad interpreter mean?
+
+The script has Windows CRLF line endings. The first line is `#!/bin/bash` followed by a carriage return (`^M`) and a newline, so the kernel looks for an interpreter called `/bin/bash` plus a carriage return. No such file exists, so exec fails with exit code 126 and the shell prints `bad interpreter: No such file or directory`.
+
+### How do I remove ^M characters from a bash script?
+
+Run `sed -i 's/\r$//' script.sh`, which deletes a carriage return at the end of every line and edits the file in place. `dos2unix script.sh` does the same if it is installed. `tr -d '\r' < in.sh > out.sh` also works but removes carriage returns anywhere in the line, not only at the end, and needs a second file.
+
+### Why does my script say $'\r': command not found?
+
+Same cause, different entry point. When you run `bash script.sh` instead of `./script.sh`, the shebang is skipped and bash reads each line with its trailing carriage return. An empty line becomes a command named `$'\r'`, `cd /tmp` becomes `cd` to a directory named `/tmp` plus a carriage return, and `set -e` becomes `set` with an invalid option, so strict mode silently never turns on.
+
+### How do I stop git from converting my scripts to CRLF?
+
+Add a `.gitattributes` file at the repository root with the line `*.sh text eol=lf`, commit it, and run `git add --renormalize .` to fix files already committed with CRLF. The attribute overrides each developer's `core.autocrlf` setting, so a checkout on Windows still gets LF in shell scripts.
+
+### Does ShellCheck detect CRLF line endings?
+
+Yes. ShellCheck reports `SC1017 (error): Literal carriage return. Run script through tr -d '\r'` on each affected line. A ShellCheck step in CI or a pre-commit hook catches CRLF before the script reaches a server.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Bash Error Handling](/snippets/bash-error-handling) — what `set -euo pipefail` is supposed to catch, when it is actually on
+- [Find and Replace With sed](/snippets/bash-sed-find-replace) — the `sed -i` patterns behind the fix
+- [Search Files for Text With grep](/snippets/search-files-for-text-grep) — the `grep -rlI` search the script is built on

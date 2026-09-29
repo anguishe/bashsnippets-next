@@ -1,0 +1,319 @@
+---
+title: "systemd Timers vs Cron: Missed Runs, Overlaps and Failure Alerts"
+description: "Cron skips runs the machine was off for and drops output with no mail server. systemd timers catch up with Persistent=, log to the journal and alert on failure."
+slug: systemd-timers-vs-cron
+author: "Travis"
+datePublished: 2026-09-28
+dateModified: 2026-09-28
+---
+
+## systemd Timers vs Cron
+
+In September, the weekly cleanup job on this laptop was scheduled for 03:00 every Sunday in `crontab`. It ran once. On the other three Sundays the machine was off at three in the morning, and cron does not run jobs it missed. It never said so. There is no error for a run that did not happen.
+
+On the same machine, on the same four Sundays, a systemd timer scheduled for 03:10 ran every single week. Three times it ran within a minute of the laptop being switched on, up to three hours late and exactly once each time, because it is marked `Persistent=true`. Nobody configured that for me. It is the stock `e2scrub_all.timer` that ships with the e2fsprogs package.
+
+This guide is the difference between those two jobs, measured on this box: what cron does with a missed run, an overlapping run and a failed run, what a systemd timer does with each, how to convert a crontab line, and the cases where cron is still the right tool. Every output below is from Kali Linux with systemd 261 and the Debian cron daemon, run as an unprivileged user except where it says otherwise.
+
+## What happens to a cron job when the machine is off?
+
+Nothing. Cron checks the clock once a minute and runs whatever matches that minute. If the machine is off, asleep, or booting at 03:00, the 03:00 minute never gets checked, and the job waits for the next matching minute, which for a weekly job is a week later.
+
+The evidence is in the journal, where cron logs every command it starts. The crontab line:
+
+```text
+0 3 * * 0 ~/cleanlog.sh
+```
+
+Every execution in September:
+
+```text
+$ journalctl -t CRON -o short-iso --since 2026-09-01 -g cleanlog | grep CMD
+2026-09-06T03:00:01-05:00 CRON[…]: (travis) CMD (~/cleanlog.sh )
+```
+
+One line. And the boots that explain the gaps (`journalctl --list-boots`, trimmed to the relevant Sundays):
+
+```text
+2026-09-13 06:12:12 CDT -> 2026-09-14 11:54:45 CDT
+2026-09-20 04:24:26 CDT -> 2026-09-20 17:11:02 CDT
+2026-09-27 03:23:59 CDT -> 2026-09-27 16:04:54 CDT
+```
+
+On the 13th the machine came up at 06:12, on the 20th at 04:24, and on the 27th at 03:23, twenty-four minutes too late. Three missed weeks, zero messages.
+
+Now the systemd timer scheduled ten minutes later on the same Sundays:
+
+```text
+$ systemctl cat e2scrub_all.timer
+[Timer]
+# Run on Sunday at 3:10am, to avoid running afoul of DST changes
+OnCalendar=Sun *-*-* 03:10:00
+RandomizedDelaySec=60
+Persistent=true
+```
+
+```text
+$ journalctl -u e2scrub_all.service -o short-iso --since 2026-09-01 | grep Starting
+2026-09-06T03:10:19-05:00 systemd[1]: Starting e2scrub_all.service - Online ext4 Metadata Check for All Filesystems...
+2026-09-13T06:13:09-05:00 systemd[1]: Starting e2scrub_all.service - Online ext4 Metadata Check for All Filesystems...
+2026-09-20T04:24:37-05:00 systemd[1]: Starting e2scrub_all.service - Online ext4 Metadata Check for All Filesystems...
+```
+
+and `systemctl show e2scrub_all.timer -p LastTriggerUSec` for the fourth: `Sun 2026-09-27 03:24:06 CDT`. Four Sundays, four runs. On the 6th it ran on schedule. On the 13th it ran 57 seconds after boot, on the 20th 11 seconds after, and on the 27th 7 seconds after. Cron missed three of those four Sundays.
+
+## What else was cron doing without telling me?
+
+Two more lines from the same crontab, both mine, both wrong for months:
+
+```text
+* 5 * * 1 /home/travis/diskcheck.sh
+```
+
+The intent was "05:00 on Mondays". `*` in the minute field means *every* minute, so this runs sixty times between 05:00 and 05:59. The journal agrees: 180 runs in September, 60 on each of the three Mondays the machine was awake at 05:00. On the 21st the journal is empty from 04:10 to 09:09, which is what a suspended laptop looks like, and that week got zero. And each of those 180 runs ended the same way:
+
+```text
+2026-09-28T05:00:01-05:00 CRON[1066989]: (travis) CMD (/home/travis/diskcheck.sh )
+2026-09-28T05:00:01-05:00 CRON[1066985]: (CRON) info (No MTA installed, discarding output)
+```
+
+The line has no redirect, so cron tries to email the output, finds no mail server, and throws it away. The script prints a warning above 80% disk. Run by hand today it says:
+
+```text
+$ ~/diskcheck.sh
+WARNING: Disk at 91%
+exit=0
+```
+
+A disk warning, printed sixty times a Monday, delivered to nobody. The [cron guide](/guides/bash-scripts-that-survive-cron) opens with this failure for a reason. A systemd timer cannot have it, because a service's stdout and stderr go to the journal by default, with the unit name attached.
+
+## What is a systemd timer?
+
+Two unit files. A `.service` that says what to run, and a `.timer` with the same name that says when. The timer starts the service; the service does the work. The pair used for every test below, installed as **user units** in `~/.config/systemd/user/`, so no root is needed:
+
+```ini
+# ~/.config/systemd/user/bs-demo.service
+[Unit]
+Description=bashsnippets timer demo (75s job on a 60s schedule)
+OnFailure=bs-alert.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'echo "job start $(date +%%T)"; sleep 75; echo "job end $(date +%%T)"'
+TimeoutStartSec=120
+```
+
+```ini
+# ~/.config/systemd/user/bs-demo.timer
+[Unit]
+Description=bashsnippets timer demo, every minute
+
+[Timer]
+OnCalendar=*:*:00
+AccuracySec=1s
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+Three details that trip people. `%` is a specifier in unit files, so a literal `%` in `ExecStart` is written `%%` (cron has the mirror-image problem: an unescaped `%` there is a newline). `Type=oneshot` means "the service is running until the command exits", which is what gives the overlap behaviour below. `AccuracySec=1s` is only here so the demo fires on the second; the default of one minute lets systemd batch wake-ups, and a real job should keep it.
+
+Load and start it, then check what systemd thinks happens next:
+
+```text
+$ systemd-analyze --user verify ~/.config/systemd/user/bs-demo.service ~/.config/systemd/user/bs-demo.timer
+verify exit=0
+$ systemctl --user start bs-demo.timer
+$ systemctl --user list-timers bs-demo.timer
+NEXT                        LEFT LAST PASSED UNIT          ACTIVATES
+Mon 2026-09-28 21:05:00 CDT  35s -         - bs-demo.timer bs-demo.service
+```
+
+For a timer that survives a reboot, `systemctl --user enable --now bs-demo.timer` instead of `start`. For a user timer to run while you are logged out, the user needs lingering: `loginctl enable-linger USER` (this box already has `Linger=yes`). System-wide jobs go in `/etc/systemd/system/` and use `sudo systemctl` without `--user`.
+
+## How do I convert a crontab line to OnCalendar?
+
+`OnCalendar=` reads `DayOfWeek Year-Month-Day Hour:Minute:Second`, and any part can be `*`, a list, or a range. The common translations:
+
+| crontab | OnCalendar | Meaning |
+|---|---|---|
+| `*/5 * * * *` | `*:0/5` | every 5 minutes |
+| `0 * * * *` | `hourly` or `*:00` | top of every hour |
+| `30 2 * * *` | `*-*-* 02:30:00` | 02:30 daily |
+| `0 3 * * 0` | `Sun *-*-* 03:00:00` | 03:00 Sundays |
+| `0 5 * * 1-5` | `Mon..Fri *-*-* 05:00:00` | weekdays at 05:00 |
+| `0 0 1 * *` | `monthly` or `*-*-01 00:00:00` | midnight on the 1st |
+| `@reboot` | no OnCalendar; `OnBootSec=2min` in the timer | once, after boot |
+
+Never install one without checking it. `systemd-analyze calendar` normalizes the expression and prints the next elapses, which is what would have caught my `* 5 * * 1` before it ran 180 times:
+
+```text
+$ systemd-analyze calendar --iterations=4 'Mon *-*-* 05:*:00'
+Normalized form: Mon *-*-* 05:*:00
+    Next elapse: Mon 2026-10-05 05:00:00 CDT
+   Iteration #2: Mon 2026-10-05 05:01:00 CDT
+   Iteration #3: Mon 2026-10-05 05:02:00 CDT
+   Iteration #4: Mon 2026-10-05 05:03:00 CDT
+```
+
+05:00, 05:01, 05:02. The mistake is visible before install. For the cron side, the [cron job builder](/tools/cron-job-builder) shows the next runs of a crontab expression the same way.
+
+### Where cron and systemd disagree
+
+One translation is not mechanical. When a crontab line restricts both day-of-month and day-of-week, cron runs when **either** matches. From `man 5 crontab` on this box:
+
+```text
+If both fields are restricted (i.e., aren't *), the command will be run when either field matches the current time.
+For example, "30 4 1,15 * 5" would cause a command to be run at 4:30 am on the 1st and 15th of each month, plus every Friday.
+```
+
+`OnCalendar=` requires **both**. "The first Monday of the month" is impossible to express in one crontab line and trivial in systemd:
+
+```text
+$ systemd-analyze calendar 'Mon *-*-1..7 03:00' --iterations=3
+  Original form: Mon *-*-1..7 03:00
+Normalized form: Mon *-*-01..07 03:00:00
+    Next elapse: Mon 2026-10-05 03:00:00 CDT
+   Iteration #2: Mon 2026-11-02 03:00:00 CST
+   Iteration #3: Mon 2026-12-07 03:00:00 CST
+```
+
+The cron line `0 3 1-7 * 1` looks like the same thing and runs on the 1st through 7th *and* on every Monday: eleven or twelve runs a month instead of one. When you convert, read the cron line with the OR rule, not with the meaning you intended when you wrote it.
+
+## What does Persistent=true actually do?
+
+It stores the time of the last run on disk and, when the timer starts (at boot, or when you start it), compares it with the schedule. If an elapse was missed while the timer was not running, the service runs **once**, immediately. That is the catch-up behind the `e2scrub_all` runs 7 to 57 seconds after boot.
+
+It is easy to test without rebooting, because stopping the timer is the same as the machine being off as far as the timer is concerned. The demo timer above, stopped across two scheduled minutes:
+
+```text
+== stop timer 21:08:34
+== start timer again 21:10:14 (a :00 elapse was missed while stopped)
+NEXT LEFT LAST                        PASSED UNIT          ACTIVATES
+-       - Mon 2026-09-28 21:10:14 CDT 5s ago bs-demo.timer bs-demo.service
+2026-09-28T21:10:14-05:00 laptop bash[2596450]: job start 21:10:14
+```
+
+Started at 21:10:14, ran at 21:10:14. Two elapses (21:09 and 21:10) were missed and it ran **once**, not twice. The control is the same kind of timer without `Persistent=`, stopped the same way:
+
+```text
+== stop 21:11:57
+== start again 21:13:02 (a :00 elapse was missed while stopped)
+NEXT                        LEFT LAST PASSED UNIT         ACTIVATES
+Mon 2026-09-28 21:14:00 CDT  52s -         - bs-ctl.timer bs-ctl.service
+```
+
+It waited for 21:14:00. The 21:12 run was gone, as it would be under cron. `Persistent=` only works with `OnCalendar=` (not with `OnBootSec=` or `OnUnitActiveSec=`), and the stamp lives in `/var/lib/systemd/timers/` for system timers and `~/.local/share/systemd/timers/` for user timers.
+
+## What happens when the job is still running at the next tick?
+
+Under cron, a second copy starts. That is how two backups end up writing the same file, and why the cron guide spends a whole section on [locking with flock](/guides/bash-scripts-that-survive-cron#overlap-lock-it-to-one-instance). Under a timer, a service that is still active is not started again. The demo service runs for 75 seconds on a 60-second schedule (host and PID columns trimmed):
+
+```text
+2026-09-28T21:05:00-05:00 … Starting bs-demo.service - bashsnippets timer demo (75s job on a 60s schedule)...
+2026-09-28T21:05:00-05:00 … job start 21:05:00
+2026-09-28T21:06:15-05:00 … job end 21:06:15
+2026-09-28T21:06:15-05:00 … Finished bs-demo.service - bashsnippets timer demo (75s job on a 60s schedule).
+2026-09-28T21:06:15-05:00 … Starting bs-demo.service - bashsnippets timer demo (75s job on a 60s schedule)...
+2026-09-28T21:06:15-05:00 … job start 21:06:15
+2026-09-28T21:07:30-05:00 … job end 21:07:30
+2026-09-28T21:07:30-05:00 … Starting bs-demo.service - bashsnippets timer demo (75s job on a 60s schedule)...
+```
+
+Read the timestamps carefully, because this is not what most write-ups say. No two runs overlap: each starts only after the previous one ends. But the 21:06:00 tick was not skipped either. It was **queued**, and the next run started the instant the first finished, at 21:06:15, then again at 21:07:30. A job that is always slower than its schedule runs back to back forever, one at a time.
+
+That is the right behaviour for most jobs (no corruption, nothing lost), and the wrong one for a job whose work should be dropped when it is late. For skip-if-busy semantics, keep the lock inside the service: `ExecStart=/usr/bin/flock -n /run/lock/myjob.lock /usr/local/bin/myjob.sh` exits immediately when the previous run still holds it. The [flock snippet](/snippets/bash-flock-single-instance) explains `-n` versus waiting.
+
+For a job that hangs instead of running slowly, `TimeoutStartSec=` in a oneshot service is the equivalent of wrapping the command in [timeout](/snippets/bash-timeout-command): systemd kills it and marks the run failed, which is what triggers the next section.
+
+## How do I get alerted when a scheduled job fails?
+
+`OnFailure=` names a unit to start when this one fails. The failing job used for this test exits 3 the way a backup does when its target is not mounted:
+
+```ini
+# bs-fail.service
+[Unit]
+Description=nightly backup (demo that fails)
+OnFailure=bs-alert.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c 'echo "backup: target not mounted" >&2; exit 3'
+```
+
+`bs-alert.service` is a oneshot whose `ExecStart` prints one line. In real use it runs your mail, Slack or webhook script. Starting the failing job:
+
+```text
+$ systemctl --user start bs-fail.service
+Job for bs-fail.service failed because the control process exited with error code.
+start exit=1
+$ journalctl --user -u bs-fail.service -u bs-alert.service -o short-iso
+2026-09-28T21:10:45-05:00 systemd[1040]: Starting bs-fail.service - nightly backup (demo that fails)...
+2026-09-28T21:10:45-05:00 bash[2597318]: backup: target not mounted
+2026-09-28T21:10:45-05:00 systemd[1040]: bs-fail.service: Main process exited, code=exited, status=3/NOTIMPLEMENTED
+2026-09-28T21:10:45-05:00 systemd[1040]: bs-fail.service: Failed with result 'exit-code'.
+2026-09-28T21:10:45-05:00 systemd[1040]: Failed to start bs-fail.service - nightly backup (demo that fails).
+2026-09-28T21:10:45-05:00 systemd[1040]: bs-fail.service: Triggering OnFailure= dependencies.
+2026-09-28T21:10:45-05:00 systemd[1040]: Starting bs-alert.service - alert on a failed scheduled job (demo)...
+2026-09-28T21:10:45-05:00 bash[2597321]: ALERT: a scheduled job failed at 21:10:45
+2026-09-28T21:10:45-05:00 systemd[1040]: Finished bs-alert.service - alert on a failed scheduled job (demo).
+```
+
+Everything is in one place: the job's own stderr (`backup: target not mounted`), the exit status, the failure, and the alert, with timestamps and no redirect anywhere. `status=3/NOTIMPLEMENTED` is systemd naming exit code 3 after its LSB meaning; your script's 3 means whatever you defined it to mean. The [exit code lookup](/tools/bash-exit-code-lookup) covers the shell's own codes.
+
+To share one alert unit across many jobs, make it a template, `alert@.service`, and set `OnFailure=alert@%n.service`: `%n` passes the failing unit's name, so the alert can say which job broke. The [service watchdog](/snippets/service-watchdog) script is a good body for it when the thing that fails is a long-running service rather than a scheduled job.
+
+## Where do I see when it last ran and what it printed?
+
+Three commands replace grepping a log file you hope the job wrote:
+
+```bash
+systemctl list-timers --all          # every timer: next run, last run, how long ago
+systemctl status myjob.service       # last run's result, exit code, last few log lines
+journalctl -u myjob.service -S today # everything the job printed today
+```
+
+`list-timers` on this box, which is how I found out that `e2scrub_all` had been quietly catching up all month (trimmed):
+
+```text
+NEXT                            LEFT LAST                              PASSED UNIT                         ACTIVATES
+Tue 2026-09-29 00:17:00 CDT 3h 14min Mon 2026-09-28 00:46:47 CDT      20h ago logrotate.timer              logrotate.service
+Tue 2026-09-29 05:12:29 CDT       8h Mon 2026-09-28 08:49:08 CDT      12h ago apt-daily.timer              apt-daily.service
+Sun 2026-10-04 03:10:21 CDT   5 days Sun 2026-09-27 03:24:06 CDT            - e2scrub_all.timer            e2scrub_all.service
+Mon 2026-10-05 00:06:50 CDT   6 days Mon 2026-09-28 00:21:46 CDT      20h ago fstrim.timer                 fstrim.service
+```
+
+`logrotate.timer` ran at 00:46:47 for a `daily` (00:00) schedule and `fstrim.timer` at 00:21:46 for `weekly`. Neither is late: both units set `RandomizedDelaySec=` (1h and 100min), so a thousand machines built from the same image do not all rotate logs or trim SSDs in the same second. Cron has no equivalent of that setting, and no equivalent of the LAST column. For a user timer add `--user` to all three commands.
+
+## When is cron still the better choice?
+
+- **No systemd.** Most containers run a single process with no init, Alpine and BusyBox images use `crond`, and macOS uses launchd. Cron (or the platform's own scheduler) is the only option, and the [cron guide](/guides/bash-scripts-that-survive-cron) is the one to follow.
+- **One line is the whole job.** A single crontab line is easier to read, diff and copy between servers than two unit files. For a job where a missed run genuinely does not matter, that simplicity wins.
+- **Users without systemd access.** On shared hosts where you cannot run `systemctl --user` or enable lingering, `crontab -e` still works.
+- **You already wrap every job.** A cron line through a wrapper with a lock, a timeout, a log and an alert (the [cron wrapper generator](/tools/cron-wrapper-generator) builds one) closes the overlap, hang and silent-failure gaps. It does not close the missed-run gap. If the machine sleeps, cron still skips.
+
+Everything else on a systemd machine (laptops, desktops, and servers that reboot for patches) is better served by a timer, for one reason cron cannot match: a run the machine was off for is not lost.
+
+## Which should I use for which job?
+
+| Job | Use | Why |
+|---|---|---|
+| Nightly backup on a laptop or anything that sleeps | timer, `Persistent=true` | runs at next boot instead of next week |
+| Weekly cleanup, report or scrub | timer, `Persistent=true` | same; a missed week is the normal case on a desktop |
+| Every-minute health check on an always-on server | either | a missed minute is irrelevant; a timer still gives you the journal |
+| Job that must never run twice at once | timer (`Type=oneshot`) or cron + `flock -n` | timer queues, never overlaps; `flock -n` skips |
+| Job that must alert on failure | timer + `OnFailure=` | exit status and stderr are captured for you |
+| Job in a container or on macOS | cron / launchd | no systemd |
+| First Monday of the month | timer | cron's day-of-month + day-of-week rule is OR |
+
+Scheduling is half of an unattended job. The other half is what the script does when it runs: strict mode, a lock, a log line, one alert per failure. [The Production Bash Toolkit](/starter-kit) packages that part: `bashlib.sh`, a script template, and `backup.sh`, `cleanup.sh` and `cron-wrapper.sh` that drop into either a crontab line or an `ExecStart=`.
+
+## Related
+
+- [Bash Scripts That Survive Cron: Locking, Timeouts, and Retries](/guides/bash-scripts-that-survive-cron): the cron side, in depth
+- [Auto-Restart a Stopped Service on Linux](/guides/auto-restart-linux-service): `Restart=` for services that should never stop, as opposed to jobs that run and exit
+- [Run a Bash Script as a Single Instance with flock](/snippets/bash-flock-single-instance)
+- [Kill a Command That Runs Too Long with timeout](/snippets/bash-timeout-command)
+- [Service Watchdog](/snippets/service-watchdog)
+- [Cron Job Builder](/tools/cron-job-builder) and [Cron Wrapper Generator](/tools/cron-wrapper-generator)
