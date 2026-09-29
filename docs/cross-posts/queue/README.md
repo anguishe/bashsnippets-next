@@ -122,7 +122,35 @@ each is scheduled on dev.to, Medium and CoderLegion. They go live on their own o
 
 Row 11's title shows `&#124;` only because a raw `|` would break the table: the real title is `grep "error|failed" Found Nothing in a Log That Said 'backup failed'`. Copy titles from each file's front matter when in doubt.
 
-## Wave 2: 15–28 (drafted 2026-09-28) — NOT SCHEDULED on any platform
+## Wave 2: 15–28 — SCHEDULED 2026-09-29 (dev.to 12/12, CoderLegion 12/12, Medium in progress); #20 + #24 wait on Travis's sudo runs
+
+**2026-09-29 status (Claude, anguisheh1 Chrome):** all times 08:00 America/Chicago = 14:00Z (after DST).
+
+| # | date | dev.to id | CoderLegion | Medium id |
+|---|---|---|---|---|
+| 15 | Thu 11-05 | `4772283` | [29095](https://coderlegion.com/29095) | `ccad29ebf8b6` ✅ |
+| 16 | Tue 11-10 | `4772285` | [29097](https://coderlegion.com/29097) | `19ee7e053e82` ✅ |
+| 17 | Thu 11-12 | `4772287` | [29098](https://coderlegion.com/29098) | `8c3b43fa023c` ✅ |
+| 18 | Tue 11-17 | `4772290` | [29099](https://coderlegion.com/29099) | `2f811a86b626` draft: body + canonical done, topics/schedule pending |
+| 19 | Thu 11-19 | `4772292` | [29100](https://coderlegion.com/29100) | pending |
+| 20 | Tue 12-01 | — HOLD (strace run) | — | — |
+| 21 | Thu 12-03 | `4772293` | [29101](https://coderlegion.com/29101) | pending |
+| 22 | Tue 12-08 | `4772295` | [29102](https://coderlegion.com/29102) | pending |
+| 23 | Thu 12-10 | `4772299` | [29103](https://coderlegion.com/29103) | pending |
+| 24 | Tue 12-15 | — HOLD (journal vacuum run) | — | — |
+| 25 | Thu 12-17 | `4772303` | [29104](https://coderlegion.com/29104) | pending |
+| 26 | Tue 01-05 | `4772307` | [29105](https://coderlegion.com/29105) | pending |
+| 27 | Thu 01-07 | `4772310` | [29106](https://coderlegion.com/29106) | pending |
+| 28 | Tue 01-12 | `4772313` | [29107](https://coderlegion.com/29107) | pending |
+
+dev.to: created by `scripts/devto-drafts.mjs` (now unescapes `\"` in titles, strips `<!-- -->` queue notes,
+skips `OUTPUT PLACEHOLDER` bodies) and scheduled by `scripts/devto-schedule.mjs`; all 12 return 404 anonymously.
+CoderLegion: every post page reads "scheduled to be posted on … 14:00 UTC", 1 code block, 4 tags.
+Medium: same recipe as 02–14 plus: a `--` in an `<h3>` becomes an em dash on paste (#18's `--delete` heading,
+fixed in the DOM and verified after reload). Also fixed 9/29: dev.to #11's live title had literal backslashes
+(`grep \"error|failed\"`); PUT the clean title.
+
+### Original wave-2 notes (2026-09-28)
 
 Travis approved wave 2 on 2026-09-28. All four files exist for every row (`-devto.md`, `-medium.md`,
 `-medium.html`, `-coderlegion.md`), written from real runs on this box or the page's own captured runs.

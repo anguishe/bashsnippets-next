@@ -27,9 +27,11 @@ function parse(text) {
   for (const line of m[1].split('\n')) {
     const k = line.indexOf(':');
     if (k < 0) continue;
-    fm[line.slice(0, k).trim()] = line.slice(k + 1).trim().replace(/^"|"$/g, '');
+    // \" inside a quoted title is YAML escaping; left in, it shipped #11 with literal backslashes.
+    fm[line.slice(0, k).trim()] = line.slice(k + 1).trim().replace(/^"|"$/g, '').replace(/\\"/g, '"');
   }
-  return { fm, body: m[2].trim() };
+  // Queue notes (<!-- NOT SCHEDULED … -->) are for us, not readers.
+  return { fm, body: m[2].replace(/<!--[\s\S]*?-->/g, '').trim() };
 }
 
 const files = readdirSync(DIR).filter(f => /^\d\d-.*-devto\.md$/.test(f)).sort();
@@ -39,9 +41,11 @@ const taken = new Set(mine.map(a => a.canonical_url).filter(Boolean));
 
 let made = 0, skipped = 0;
 for (const f of files) {
-  const { fm, body } = parse(readFileSync(`${DIR}/${f}`, 'utf8'));
+  const raw = readFileSync(`${DIR}/${f}`, 'utf8');
+  const { fm, body } = parse(raw);
   if (taken.has(fm.canonical_url)) { console.log(`skip   ${f} — canonical already on dev.to`); skipped++; continue; }
-  if (body.includes('<!-- REVIEW')) { console.log(`SKIP   ${f} — REVIEW line present, not shipping`); skipped++; continue; }
+  if (/^OUTPUT PLACEHOLDER/m.test(body)) { console.log(`SKIP   ${f} — OUTPUT PLACEHOLDER, needs Travis's run`); skipped++; continue; }
+  if (raw.includes('<!-- REVIEW')) { console.log(`SKIP   ${f} — REVIEW line present, not shipping`); skipped++; continue; }
 
   const article = {
     title: fm.title,
