@@ -1,0 +1,16 @@
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess
+LISTEN 0      4096      127.0.0.54:53         0.0.0.0:*    uid:969 ino:15498 sk:6010 cgroup:/system.slice/systemd-resolved.service <->
+LISTEN 0      511        127.0.0.1:18791      0.0.0.0:*    users:(("node",pid=1096,fd=34)) uid:1000 ino:40755 sk:6011 cgroup:/user.slice/user-1000.slice/user@1000.service/app.slice/dev-agent.service <->
+LISTEN 0      511        127.0.0.1:18789      0.0.0.0:*    users:(("node",pid=1096,fd=22)) uid:1000 ino:23929 sk:6012 cgroup:/user.slice/user-1000.slice/user@1000.service/app.slice/dev-agent.service <->
+LISTEN 0      4096         0.0.0.0:5355       0.0.0.0:*    uid:969 ino:15483 sk:6013 cgroup:/system.slice/systemd-resolved.service <->
+LISTEN 0      4096         0.0.0.0:3000       0.0.0.0:*    ino:21691 sk:2004 cgroup:/system.slice/docker.service <->
+LISTEN 0      4096       127.0.0.1:38077      0.0.0.0:*    ino:6591 sk:6014 cgroup:/system.slice/containerd.service <->
+LISTEN 0      4096         0.0.0.0:5432       0.0.0.0:*    ino:24786 sk:6016 cgroup:/system.slice/docker.service <->
+LISTEN 0      511        127.0.0.1:43347      0.0.0.0:*    users:(("node",pid=1096,fd=24)) uid:1000 ino:23931 sk:601a cgroup:/user.slice/user-1000.slice/user@1000.service/app.slice/dev-agent.service <->
+LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*    uid:969 ino:15496 sk:601b cgroup:/system.slice/systemd-resolved.service <->
+LISTEN 0      4096       127.0.0.1:9050       0.0.0.0:*    ino:7895 sk:601c cgroup:/system.slice/system-tor.slice/tor@default.service <->
+LISTEN 0      511            [::1]:18789         [::]:*    users:(("node",pid=1096,fd=23)) uid:1000 ino:23930 sk:601d cgroup:/user.slice/user-1000.slice/user@1000.service/app.slice/dev-agent.service v6only:1 <->
+LISTEN 0      4096            [::]:5355          [::]:*    uid:969 ino:15491 sk:601e cgroup:/system.slice/systemd-resolved.service v6only:1 <->
+LISTEN 0      511                *:3111             *:*    users:(("next-server (v1",pid=154558,fd=21)) uid:1000 ino:584839 sk:601f cgroup:/user.slice/user-1000.slice/user@1000.service/app.slice/app-org.kde.konsole-5928.scope/tab(6544).scope v6only:0 <->
+LISTEN 0      4096            [::]:3000          [::]:*    ino:21692 sk:2005 cgroup:/system.slice/docker.service v6only:1 <->
+LISTEN 0      4096            [::]:5432          [::]:*    ino:24787 sk:6021 cgroup:/system.slice/docker.service v6only:1 <->

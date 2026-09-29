@@ -1,0 +1,16 @@
+COMMAND       PID   USER  FD   TYPE  DEVICE SIZE/OFF NODE NAME
+node         1096 travis  22u  IPv4   23929      0t0  TCP 127.0.0.1:18789 (LISTEN)
+node         1096 travis  23u  IPv6   23930      0t0  TCP [::1]:18789 (LISTEN)
+node         1096 travis  24u  IPv4   23931      0t0  TCP 127.0.0.1:43347 (LISTEN)
+node         1096 travis  25u  IPv4   20373      0t0  UDP *:5353
+node         1096 travis  27u  IPv4   20374      0t0  UDP *:5353
+node         1096 travis  29u  IPv4   20375      0t0  UDP *:5353
+node         1096 travis  31u  IPv4  409971      0t0  UDP *:5353
+node         1096 travis  33u  IPv4   40736      0t0  UDP *:5353
+node         1096 travis  34u  IPv4   40755      0t0  TCP 127.0.0.1:18791 (LISTEN)
+chrome       7889 travis  74u  IPv4  115090      0t0  UDP 224.0.0.251:5353
+chrome       7889 travis  75u  IPv4  115092      0t0  UDP 224.0.0.251:5353
+chrome       7889 travis  76u  IPv4  115094      0t0  UDP 224.0.0.251:5353
+chrome       7889 travis  77u  IPv4  115096      0t0  UDP 224.0.0.251:5353
+node         1096 travis  32u  IPv6   28830      0t0  TCP [2001:db8::1]:52962->[2001:db8::2]:443 (ESTABLISHED)
+node         1096 travis  35u  IPv6 7467797      0t0  TCP [2001:db8::1]:37840->[2001:db8::3]:443 (ESTABLISHED)

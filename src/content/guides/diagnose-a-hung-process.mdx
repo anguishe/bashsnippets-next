@@ -135,6 +135,8 @@ The queue columns are the diagnosis:
 - **`SYN-SENT`** — the connection was never established at all. DNS resolved to something that is not answering, or a firewall is dropping rather than rejecting. This is the state that hangs forever with no timeout set, because a dropped packet produces no error, only silence.
 - **No row at all** — it is not the network. Go back to `wchan`.
 
+If the hung process is a server, check its listening socket too: `Recv-Q` at or above `Send-Q` on a `LISTEN` row means the accept queue is full. The [Open Ports Explainer](/tools/open-ports-explainer) flags that row when you paste `ss -ltnp` output.
+
 That last case is the whole argument for `--connect-timeout` and `--max-time` on every `curl` in a script; a request that hangs in `SYN-SENT` will otherwise outlive the cron interval that started it. The wrapper that does this properly is in [curl API requests that fail correctly](/snippets/bash-curl-api-requests).
 
 ## `strace`, and why it may refuse

@@ -1,0 +1,2 @@
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+LISTEN 3      2          127.0.0.1:8096      0.0.0.0:*    users:(("python3",pid=2619658,fd=3))

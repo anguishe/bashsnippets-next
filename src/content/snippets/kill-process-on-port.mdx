@@ -6,7 +6,7 @@ tags: ["ports", "lsof", "ss", "kill", "networking", "troubleshooting"]
 quickAnswer: "The EADDRINUSE error means another process already bound the port your application needs. Your dev server, API, or database proxy refuses to start until that port is freed. This script takes a port number as an argument, uses lsof -ti :PORT to find the PID holding it, shows you what the process is before killing it, and sends SIGTERM for a graceful shutdown. If the process ignores SIGTERM after a configurable timeout, it escalates to SIGKILL. The discovery step uses ss -ltnp as a fallback when lsof is unavailable — ss ships with every modern Linux distribution as part of iproute2. Never jump straight to kill -9: SIGTERM lets databases flush buffers, web servers finish active requests, and applications clean up temp files. SIGKILL skips all of that and can leave corrupted state. Works on Ubuntu 22.04 LTS, Debian 12, Fedora 39, CentOS 9, and macOS Ventura."
 faq:
   - question: "How do I find which process is using a specific port in Linux?"
-    answer: "Run lsof -ti :8080 to get the PID of whatever process is listening on port 8080. For more detail including the process name, use lsof -i :8080 without the -t flag. On systems without lsof, use ss -ltnp | grep :8080 — the -p flag shows the process name and PID."
+    answer: "Run lsof -ti :8080 to get the PID of whatever process is listening on port 8080. For more detail including the process name, use lsof -i :8080 without the -t flag. On systems without lsof, use ss -ltnp | grep :8080 — the -p flag shows the process name and PID. To read a whole ss -tulpn listing at once, paste it into the Open Ports Explainer."
   - question: "What is the difference between kill and kill -9?"
     answer: "Plain kill sends SIGTERM (signal 15), which asks the process to shut down gracefully — it can flush writes, close connections, and clean up. kill -9 sends SIGKILL, which the kernel enforces immediately with no cleanup. Use SIGTERM first and only escalate to -9 after the process fails to stop within a reasonable timeout."
   - question: "Why do I get EADDRINUSE even after stopping my application?"
@@ -212,7 +212,7 @@ This ensures a clean port before your application attempts to bind.
 
 ### How do I find which process is using a specific port in Linux?
 
-Run `lsof -ti :8080` to get the PID of whatever process is listening on port 8080. For more detail including the process name, use `lsof -i :8080` without the `-t` flag. On systems without lsof, use `ss -ltnp | grep :8080` — the `-p` flag shows the process name and PID.
+Run `lsof -ti :8080` to get the PID of whatever process is listening on port 8080. For more detail including the process name, use `lsof -i :8080` without the `-t` flag. On systems without lsof, use `ss -ltnp | grep :8080` — the `-p` flag shows the process name and PID. To read a whole `ss -tulpn` listing at once, paste it into the [Open Ports Explainer](/tools/open-ports-explainer).
 
 ### What is the difference between kill and kill -9?
 

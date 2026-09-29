@@ -35,6 +35,8 @@ The reasoning behind it — why `ss -e` beats `sudo` for identification, how `do
 
 A port list you read once and close is a photograph. The listener that matters is the one that was not in the photograph: the `http.server` a developer left on 8099, the container that published a port after a compose change, the shell an intruder bound last night. None of them announce themselves. This script takes the photograph every hour and tells you when the picture changed.
 
+Read a one-off listing first with the [Open Ports Explainer](/tools/open-ports-explainer); this script is for the listing you want diffed every hour.
+
 ## The Script
 
 Save as `ports-audit.sh`. It needs `ss` (iproute2) and `getent` (glibc), both present on any Linux box from the last decade. No root required — see the FAQ for what root adds.

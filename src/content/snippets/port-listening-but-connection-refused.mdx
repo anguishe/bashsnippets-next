@@ -171,6 +171,8 @@ exit=0
 | `*:PORT` | both families on one socket |
 | `192.168.x.y:PORT` or any single address | only connections to that address |
 
+The [Open Ports Explainer](/tools/open-ports-explainer) applies this table to every row of a pasted `ss`, `netstat` or `lsof` listing.
+
 "Could connect" is a statement about the socket, not about your network. A `0.0.0.0` listener behind a firewall, a NAT router or a cloud security group can still be unreachable from the outside, and nothing in `ss` can tell you that. Test from another machine with `nc -zv HOST PORT`. The guide's section on [testing one port from outside](/guides/open-ports-linux#one-port-from-here-and-from-outside) covers it.
 
 ## Where Is the Bind Setting for Common Services?

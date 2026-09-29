@@ -101,6 +101,12 @@ echo "$CHECK Audit complete. Investigate any port you cannot explain."
 
 </Callout>
 
+<Callout type="info" title="Read a listing row by row">
+
+Paste the output of `ss -tulpn` into the [Open Ports Explainer](/tools/open-ports-explainer): every listener gets who could reach it, what it probably is, a flag for the known foot-guns (a database on `0.0.0.0`, a published container port, a full accept queue) and the next command to run. It parses in your browser.
+
+</Callout>
+
 ## How Do I Read the ss Output?
 
 The column that determines your exposure is **Local Address:Port**:

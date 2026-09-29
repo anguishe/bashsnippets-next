@@ -32,6 +32,7 @@ const toolComponents: Record<string, ComponentType> = {
   'find-command-builder': withSkeleton(() => import('@/components/tools/FindCommandBuilder')),
   'cron-wrapper-generator': withSkeleton(() => import('@/components/tools/CronWrapperGenerator')),
   'jq-filter-builder': withSkeleton(() => import('@/components/tools/JqFilterBuilder')),
+  'open-ports-explainer': withSkeleton(() => import('@/components/tools/OpenPortsExplainer')),
 };
 
 interface ToolRendererProps {

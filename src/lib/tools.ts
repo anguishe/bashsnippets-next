@@ -526,6 +526,52 @@ export const tools: ToolMeta[] = [
     ],
     relatedSnippets: ['bash-parse-json-jq', 'bash-curl-api-requests', 'bash-slack-webhook-alerts'],
   },
+  {
+    slug: 'open-ports-explainer',
+    component: 'OpenPortsExplainer',
+    title: 'Open Ports Explainer: Paste ss -tulpn, See What Is Exposed',
+    description:
+      'Paste ss -tulpn, netstat or lsof output: every listener explained, with who could reach it, what it is, known foot-guns and the next command. In your browser.',
+    quickAnswer:
+      'The Open Ports Explainer reads the output of ss -tulpn, ss -ltnpe, netstat -tulpn or lsof -i -P -n and explains every listening socket in plain English. For each one it shows the reachability scope from the Local Address column: 127.0.0.1 and ::1 are loopback only, 0.0.0.0 is every IPv4 interface, [::] or * is every interface, and a specific address is that interface only. It names the owner from the Process column, or from the systemd cgroup when you ran ss -e without root, adds a note for the port (systemd-resolved on 127.0.0.53:53, LLMNR on 5355, mDNS on 5353, Postgres on 5432), and flags the known problems: a database or the Docker API on a wildcard address, a published container port, an empty Process column, and a full accept queue. Each row gets the next command to run. Nothing is sent anywhere, and addresses are redacted in share links by default.',
+    category: 'debug',
+    datePublished: '2026-09-28',
+    dateModified: '2026-09-28',
+    howToUse: [
+      'Run `ss -tulpn` (or `sudo ss -tulpn` to see every process) and paste the whole output, header included.',
+      'Read the summary: listeners, how many are reachable from the network, and how many are flagged.',
+      'Open each flagged card and run its next command to confirm what owns the socket.',
+      'Copy the baseline CSV and schedule the ports-audit script so a new listener alerts you next time.',
+    ],
+    faqs: [
+      {
+        question: 'What is the difference between 0.0.0.0 and 127.0.0.1 in ss output?',
+        answer:
+          '127.0.0.1 is loopback: only programs on the same machine can connect, and every other machine gets "Connection refused". 0.0.0.0 means every IPv4 address the host has, including LAN, VPN and Docker bridge addresses. [::] is the IPv6 equivalent, and * is one socket for both families. Whether a 0.0.0.0 listener is reachable from outside still depends on your firewall and NAT, which ss cannot see.',
+      },
+      {
+        question: 'Why is the Process column empty in ss -tulpn?',
+        answer:
+          'ss can only read the owning process of sockets that belong to your own user unless it runs as root, so rows owned by system services come back with no users:(( )) field. Run sudo ss -tulpn to see every process. Without root, ss -ltnpe adds uid and the cgroup, which names the systemd unit that owns the socket, such as systemd-resolved.service or docker.service.',
+      },
+      {
+        question: 'What is listening on port 5355 and 127.0.0.53:53 on Linux?',
+        answer:
+          'Both are systemd-resolved. 127.0.0.53:53 and 127.0.0.54:53 are its local DNS stub resolvers, reachable only from the machine itself. Port 5355 on 0.0.0.0 and [::] is its LLMNR responder, which answers name lookups from the local network. If you do not need LLMNR, set LLMNR=no in a drop-in under /etc/systemd/resolved.conf.d/ and restart systemd-resolved.',
+      },
+      {
+        question: 'What do Recv-Q and Send-Q mean on a LISTEN row?',
+        answer:
+          'On a listening TCP socket, Send-Q is the backlog limit the program asked for and Recv-Q is how many finished connections are waiting for the program to accept them. Recv-Q near zero is normal. Recv-Q at or above Send-Q means the queue is full: the service is running but not accepting, usually because it is hung or overloaded, and new clients wait or time out.',
+      },
+      {
+        question: 'Does this tool scan my ports or send my output anywhere?',
+        answer:
+          'No. It never connects to any address; it only reads the text you paste, and the parsing runs in your browser. A share link carries the normalised rows in the URL fragment after the # sign, which browsers do not send to the server, and addresses other than loopback, wildcard and multicast are redacted in it by default.',
+      },
+    ],
+    relatedSnippets: ['list-open-ports-linux', 'ports-audit', 'port-listening-but-connection-refused', 'kill-process-on-port'],
+  },
 ];
 
 export function getToolBySlug(slug: string): ToolMeta | undefined {
@@ -551,6 +597,7 @@ const TAG_TO_TOOL_SLUG: Record<string, string> = {
   'exit-code': 'bash-exit-code-lookup',
   jq: 'jq-filter-builder',
   json: 'jq-filter-builder',
+  ports: 'open-ports-explainer',
 };
 
 export function getMatchingTool(tags: string[]): ToolMeta | undefined {

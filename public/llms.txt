@@ -8,9 +8,9 @@ Travis — self-taught Linux developer based in Florida, publishing here and on 
 
 ## What This Site Contains
 
-# keep in sync with the sitemap: 50 indexable snippets, 12 tools, 10 guides, 7 ShellCheck deep dives (sitemap = 85 with the 6 static pages)
+# keep in sync with the sitemap: 50 indexable snippets, 13 tools, 10 guides, 7 ShellCheck deep dives (sitemap = 86 with the 6 static pages)
 - 50 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
-- 12 interactive tools at /tools/ including script builders, command generators, and debuggers
+- 13 interactive tools at /tools/ including script builders, command generators, and debuggers
 - 10 pillar guides at /guides/ covering cron survival, systemd timers vs cron, CI/CD, text processing, APIs, bash strict mode, hung-process diagnosis, service auto-restart and watchdogs, listing open ports, and the sysadmin script set
 - 7 ShellCheck deep dives at /shellcheck/ — one page per rule (SC2086, SC2046, SC2063, SC2115, SC2154, SC2034, SC2016), each with the breakage run for real, ShellCheck 0.11.0's exact output, the fix, the variants, and when to disable the rule
 - The same scripts as a clonable MIT repo at https://github.com/anguishe/bashsnippets — ShellCheck-clean, each linked back to its line-by-line explanation on the site
@@ -92,6 +92,7 @@ Travis — self-taught Linux developer based in Florida, publishing here and on 
 - [Find Command Builder](https://bashsnippets.xyz/tools/find-command-builder) — A find action placed before its filters runs on everything find walks — find -delete before -name empties the whole tree. Build find commands with tests ordered before actions, patterns quoted, and every flag explained.
 - [Hardened Cron Wrapper Generator](https://bashsnippets.xyz/tools/cron-wrapper-generator) — A bash script that runs long enough to overlap its next run, or hangs on a dead socket, takes down a cron slot silently. Compose flock, timeout, and exponential-backoff retry into a hardened wrapper script with timestamped logging.
 - [jq Filter Builder](https://bashsnippets.xyz/tools/jq-filter-builder) — Build jq filters by clicking through a real JSON response. Generates the filter and the full curl … | jq command, with a live preview evaluated against your JSON in the browser.
+- [Open Ports Explainer](https://bashsnippets.xyz/tools/open-ports-explainer) — Paste ss -tulpn, ss -ltnpe, netstat -tulpn or lsof -i output; every listener gets a reachability scope (loopback, all IPv4, all interfaces, one address), its owner from the process or systemd cgroup, a Linux-aware port note, severity flags (database or Docker API on a wildcard, a published container port, empty process column, full accept queue) and the next command. Client-side only; share links carry redacted rows in the URL hash.
 
 ## Pillar Guides
 

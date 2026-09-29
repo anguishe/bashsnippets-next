@@ -75,6 +75,8 @@ The **address column matters more than the port.** Reading the rows above:
 | `127.0.0.1:9050` | loopback only. Reachable from this machine, from nowhere else, whatever the firewall says |
 | `127.0.0.53%lo:53` | loopback with an interface scope (`%lo`) — systemd-resolved's stub resolver, pinned to `lo` |
 
+Paste your own output into the [Open Ports Explainer](/tools/open-ports-explainer) to get this verdict per row, with the owner and a flag on the rows that usually matter.
+
 Two `Recv-Q`/`Send-Q` numbers on a `LISTEN` row mean something different from the same columns on a connection. On a listener, `Send-Q` is the **accept backlog** the program asked for (capped by `net.core.somaxconn`) and `Recv-Q` is how many connections are currently queued waiting for `accept()`. `511` is what Node and Chromium ask for; `4096` is the systemd and docker-proxy default. A `Recv-Q` that sits near `Send-Q` is a server that is not accepting fast enough — which is the socket-level signature of the hung-but-`active` service in [Auto-Restart a Stopped Service](/guides/auto-restart-linux-service).
 
 **Filters** are the part of `ss` almost nobody uses and the reason to stop piping it through `grep`:
@@ -262,7 +264,7 @@ cat /proc/sys/net/ipv4/ip_local_port_range
 32768	60999
 ```
 
-That is the answer to "why is there something on port 54321" in nine cases out of ten: it is the local end of a connection somebody made *out*, or a service that asked for "any port". The exceptions on this box — `54321` through `54324` — are Docker's published ports for a local Supabase stack, and `ss -e` says so.
+That is the answer to "why is there something on port 54321" in nine cases out of ten: it is the local end of a connection somebody made *out*, or a service that asked for "any port". The exceptions on this box are container ports Docker published, and `ss -e` says so.
 
 Port-to-name lookups come from `/etc/services`, and its coverage is thinner than people expect:
 
