@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>SC2115 Is the Warning Between rm -rf "$DIR/" and rm -rf / — Medium paste</title>
+<style>body{max-width:720px;margin:2rem auto;font:18px/1.6 Georgia,serif;padding:0 1rem}pre{background:#f2f2f2;padding:1rem;overflow:auto}code{font-family:monospace}</style>
+</head><body>
+<p>My cleanup script printed <code>cleaned</code>, exited 0, and deleted every release in the staging tree instead of the one I meant. It ran under <code>set -euo pipefail</code>. The line was <code>rm -rf "$STAGE/$RELEASE/"*</code>, <code>RELEASE</code> came from <code>${1:-}</code>, and I had called the script without an argument. The path became <code>stage//*</code>, the glob matched <code>v1.4</code> and <code>v1.5</code>, and both were gone. That run is on the SC2115 page, captured on this machine, and it is the mild version of the bug.</p>
+<p>The severe version has an absolute prefix, or no prefix at all. I rebuilt it today in a scratch directory, ShellCheck 0.11.0 and bash 5.3.9, with a two-line script, and never let <code>rm</code> near it. The <code>echo</code> in front shows the command line <code>rm</code> would have received.</p>
+<p>The script was <code>rm -rf "$TARGET/"*</code> under a <code>#!/bin/bash</code> line. <code>shellcheck t.sh</code> flagged it at once: <code>SC2115 (warning): Use "${var:?}" to ensure this never expands to /* .</code> Then, from inside the scratch tree, <code>( cd tree &amp;&amp; TARGET= bash -c 'echo rm -rf "$TARGET/"*' )</code> printed:</p>
+<p><code>rm -rf /backup /bin /boot /dev /etc /home /initrd.img /initrd.img.old /lib /lib32 /lib64 /lost+found /media /mnt /opt /proc /root /run /sbin /srv /sys /tmp /usr /var /vmlinuz /vmlinuz.old</code></p>
+<p>That is every top-level directory on the machine, handed to <code>rm -rf</code> by a script whose author meant "clear out the scratch tree". The quotes are correct. The glob is outside the quotes, where it has to be. Nothing about the line looks wrong unless you ask what happens when <code>TARGET</code> is empty.</p>
+<h3>Why set -u does not save you</h3>
+<p>This is the part that surprises people who trust strict mode. <code>set -u</code> catches a variable that was never assigned; an empty string is assigned. A <code>RELEASE=</code> line in a config file, a <code>${1:-}</code> default, a <code>$(git describe)</code> that printed nothing: every one of those sets the variable to empty, and <code>set -u</code> passes all of them. The same subshell test shows it in one line: <code>( set -u; TARGET=""; echo "/srv/stage/$TARGET/" )</code> printed <code>/srv/stage//</code> with no complaint.</p>
+<p><code>set -e</code> does not help either, because <code>rm</code> succeeded. It did exactly what it was asked. Strict mode reports commands that fail, and a catastrophic delete is a command that worked.</p>
+<h3>What SC2115 looks for</h3>
+<p>The rule fires on an <code>rm -rf</code> whose path is a variable followed by <code>/</code> or <code>/*</code>: <code>"$DIR/"*</code>, <code>"$DIR"/*</code>, <code>"/$DIR/"</code>, and nested forms like <code>"$STAGE/$RELEASE/"*</code>. It stays quiet on a bare <code>rm -rf "$DIR"</code>, and that is not an oversight. With an empty <code>$DIR</code>, <code>rm -rf ""</code> gets no usable path and fails; there is no slash to turn into the root. That is still a bug, but not the one that empties a server. The slash is what makes the empty variable dangerous, which is why the warning attaches to it.</p>
+<h3>The guard that stops the script first</h3>
+<p>The fix is in the warning's own text: <code>${var:?}</code>. It expands normally when the variable has a value and aborts the script, before the command runs, when it is unset or empty. Same scratch directory, the guarded script, run with <code>TARGET</code> empty and then with a real path:</p>
+<pre><code>$ printf '#!/bin/bash\nrm -rf "${TARGET:?}/"*\n' &gt; t2.sh
+$ shellcheck t2.sh; echo "sc rc=$?"
+sc rc=0
+$ cd tree
+$ TARGET= bash ../t2.sh; echo "exit=$?"
+../t2.sh: line 2: TARGET: parameter null or not set
+exit=1
+$ find . | sort
+.
+./keep
+./keep/a
+./keep/b
+$ TARGET="$PWD/keep" bash ../t2.sh; echo "exit=$?"
+exit=0
+$ find . | sort
+.
+./keep
+</code></pre>
+<p>Empty, it stopped on line 2 and touched nothing. With a real path, it emptied exactly <code>keep</code> and nothing above it. The colon matters: <code>${TARGET?}</code> without it rejects only unset, which puts you back where <code>set -u</code> left you. Text after the <code>:?</code> becomes the error message, so <code>"${RELEASE:?release tag required}"</code> tells whoever is on call at 3 a.m. what they forgot instead of the generic <code>parameter null or not set</code>.</p>
+<p><code>:?</code> guards against empty. It does not guard against a wrong non-empty value, such as a stray space or a literal <code>/</code>. When the path comes from an argument or a config file, also check it sits inside the tree you expect, for example <code>[[ "$STAGE" == /srv/stage/* ]] || exit 1</code>, before any <code>rm -rf</code> sees it.</p>
+<p>If the variable was validated a few lines earlier and you want the warning gone, <code># shellcheck disable=SC2115</code> with the reason works. Adding <code>:?</code> on the <code>rm</code> line costs nothing, though, and it keeps the guard where the danger is. <code>shellcheck --include=SC2115</code> lints for this rule alone, a reasonable CI gate on any repo with <code>rm -rf</code> in it.</p>
+<p>The staging tree on the page was a test tree, and losing it cost nothing. The <code>echo</code> line above is the same mistake with nothing in front of the slash, and that is the one SC2115 exists for.</p>
+<hr>
+<p>Full deep dive, with the staging-tree run, the table of which <code>rm -rf</code> forms trigger SC2115 and which stay clean, and how to disable it honestly: <a href="https://bashsnippets.xyz/shellcheck/sc2115">https://bashsnippets.xyz/shellcheck/sc2115</a></p>
+<p>The unquoted form in that table also trips <a href="https://bashsnippets.xyz/shellcheck/sc2086">SC2086</a>, and <a href="https://bashsnippets.xyz/snippets/bash-error-handling">Bash Error Handling</a> covers the <code>cd</code> without <code>|| exit</code> that sends a later <code>rm</code> into the wrong directory. The rest of the library is at <a href="https://bashsnippets.xyz">https://bashsnippets.xyz</a></p>
+<p>Originally published at <a href="https://bashsnippets.xyz/shellcheck/sc2115">https://bashsnippets.xyz/shellcheck/sc2115</a></p>
+</body></html>

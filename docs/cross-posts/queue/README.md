@@ -122,6 +122,40 @@ each is scheduled on dev.to, Medium and CoderLegion. They go live on their own o
 
 Row 11's title shows `&#124;` only because a raw `|` would break the table: the real title is `grep "error|failed" Found Nothing in a Log That Said 'backup failed'`. Copy titles from each file's front matter when in doubt.
 
+## Wave 2: 15–28 (drafted 2026-09-28) — NOT SCHEDULED on any platform
+
+Travis approved wave 2 on 2026-09-28. All four files exist for every row (`-devto.md`, `-medium.md`,
+`-medium.html`, `-coderlegion.md`), written from real runs on this box or the page's own captured runs.
+**Nothing is posted or scheduled.** Travis schedules them; the recipes above apply unchanged (dev.to via
+`scripts/devto-schedule.mjs` once its input list includes 15–28, Medium new story + manual canonical,
+CoderLegion native schedule). Every post is after the 11/1 DST change: `published_at "YYYY-MM-DD 08:00 -0600"`
+= **14:00Z**. Skipped weeks: Thanksgiving (11/24, 11/26) and 12/22–12/31. Buffer 1/14–1/28 for slips or
+29+ (`argument-list-too-long`, `port-listening-but-connection-refused`, the Open Ports Explainer article).
+F = freeze-mode row (existing page, no new run needed) if the 11/04 read says freeze.
+
+Two rows need Travis before they can be scheduled: **#20** and **#24** carry an OUTPUT PLACEHOLDER (sudo
+runs, listed in the Status column). The notes at the end of each dev.to file and the top of each
+CoderLegion file record what was run and when.
+
+| # | Post on | dev.to title (exact) | dev.to file | canonical_url | tags | Status | F | Done / URL |
+|---|---|---|---|---|---|---|---|---|
+| 15 | Thu 11/5 | I Killed the Parent Process. Its Child Kept the Port. | `15-kill-process-on-port-devto.md` | `https://bashsnippets.xyz/snippets/kill-process-on-port` | bash, linux, devops, sysadmin | ready | F | [ ] |
+| 16 | Tue 11/10 | I Deleted a 44.6 GB File and df Gave Me Back 5 GB. Something Still Had It Open. | `16-find-large-files-linux-devto.md` | `https://bashsnippets.xyz/snippets/find-large-files-linux` | bash, linux, devops, sysadmin | ready | F | [ ] |
+| 17 | Thu 11/12 | Restart=always Did Nothing. The Service Never Exited. | `17-auto-restart-linux-service-devto.md` | `https://bashsnippets.xyz/guides/auto-restart-linux-service` | bash, linux, sysadmin, devops | ready | F | [ ] |
+| 18 | Tue 11/17 | rsync projects and rsync projects/ Make Two Different Backups | `18-rsync-remote-backup-devto.md` | `https://bashsnippets.xyz/snippets/rsync-remote-backup` | bash, linux, devops, sysadmin | ready | F | [ ] |
+| 19 | Thu 11/19 | SC2115 Is the Warning Between rm -rf "$DIR/" and rm -rf / | `19-shellcheck-sc2115-devto.md` | `https://bashsnippets.xyz/shellcheck/sc2115` | bash, linux, shellcheck, devops | ready | F | [ ] |
+| 20 | Tue 12/1 | My Hung Process Had No File Open. It Was Stuck Inside open(). | `20-diagnose-a-hung-process-devto.md` | `https://bashsnippets.xyz/guides/diagnose-a-hung-process` | bash, linux, sysadmin, devops | **OUTPUT PLACEHOLDER**: strace section (strace not installed; `sudo apt install strace`, then the mkfifo repro + `timeout 5 strace -p $P`) | F | [ ] |
+| 21 | Thu 12/3 | Before You Run docker system prune, Read the RECLAIMABLE Column. | `21-docker-prune-cleanup-devto.md` | `https://bashsnippets.xyz/snippets/docker-prune-cleanup` | bash, docker, devops, linux | ready (numbers from `docker system df` 9/28; re-run the week of posting) | F | [ ] |
+| 22 | Tue 12/8 | "No Space Left on Device" on a Disk at 1%: I Ran Out of Inodes | `22-no-space-left-on-device-inodes-devto.md` | `https://bashsnippets.xyz/snippets/no-space-left-on-device-inodes` | bash, linux, sysadmin, devops | ready (page live 9/28) |  | [ ] |
+| 23 | Thu 12/10 | curl Exited 0 on a 404. My Script Believed It. | `23-bash-curl-api-requests-devto.md` | `https://bashsnippets.xyz/snippets/bash-curl-api-requests` | bash, linux, devops, sysadmin | ready, article on a real run. ⚠ the **live page** still opens on the invented reserve-16 story; rewrite its opener before 12/10 |  | [ ] |
+| 24 | Tue 12/15 | The Journal Was Holding 3.4G of My Disk and I Never Set a Limit | `24-journalctl-disk-usage-vacuum-devto.md` | `https://bashsnippets.xyz/snippets/journalctl-disk-usage-vacuum` | bash, linux, sysadmin, devops | **OUTPUT PLACEHOLDER**: `sudo ./journal-disk-usage.sh 1G --apply; journalctl --disk-usage` (deletes logs; Travis picks the size), then re-render the .html |  | [ ] |
+| 25 | Thu 12/17 | SC2034: ShellCheck Flagged a Variable in My Own Repo. It Was Right. | `25-shellcheck-sc2034-devto.md` | `https://bashsnippets.xyz/shellcheck/sc2034` | bash, linux, shellcheck, devops | ready (commit `093febd` checked in anguishe/bashsnippets) | F | [ ] |
+| 26 | Tue 1/5 | /bin/bash^M: bad interpreter. The Script Was Fine. Its Line Endings Weren't. | `26-fix-bad-interpreter-crlf-devto.md` | `https://bashsnippets.xyz/snippets/fix-bad-interpreter-crlf` | bash, linux, shellcheck, devops | ready (page live 9/28) |  | [ ] |
+| 27 | Thu 1/7 | I Opened a Port on Purpose to See If My Audit Would Notice. It Exited 3. | `27-ports-audit-devto.md` | `https://bashsnippets.xyz/snippets/ports-audit` | bash, linux, security, sysadmin | ready (only the 127.0.0.1:8099 NEW/GONE lines are published) |  | [ ] |
+| 28 | Tue 1/12 | My Cron Job Missed a Night. The systemd Timer Would Have Caught Up. | `28-systemd-timers-vs-cron-devto.md` | `https://bashsnippets.xyz/guides/systemd-timers-vs-cron` | bash, linux, sysadmin, devops | ready. Canonical changed from the planned snippet to the **guide** |  | [ ] |
+
+Medium tags are in the comment at the end of each `-medium.md`.
+
 ## CoderLegion — ALL SCHEDULED alongside dev.to (2026-09-21) — nothing to post by hand
 
 Travis, 2026-09-21: CoderLegion goes out **with** each dev.to post, not one a week. All thirteen

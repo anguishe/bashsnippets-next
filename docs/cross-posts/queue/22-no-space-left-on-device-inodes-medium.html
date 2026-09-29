@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>"No Space Left on Device" on a Disk at 1%: I Ran Out of Inodes — Medium paste</title>
+<style>body{max-width:720px;margin:2rem auto;font:18px/1.6 Georgia,serif;padding:0 1rem}pre{background:#f2f2f2;padding:1rem;overflow:auto}code{font-family:monospace}</style>
+</head><body>
+<p>The shell said <code>No space left on device</code>. <code>df -h</code> said the filesystem was at 1%, with 50M available. Both were telling the truth, and I had set it up that way on purpose, because this is the failure that makes people distrust <code>df</code> and start deleting things at random.</p>
+<p>I wanted to watch it happen on my own machine without touching a real disk and without root. <code>unshare -rm</code> gives an unprivileged user a private mount namespace, and inside it I mounted a 50 MB tmpfs with its inode count capped at 1,000: <code>mount -t tmpfs -o size=50M,nr_inodes=1000 tmpfs /mnt</code>. Then I played the part of an application: 40 log files with one line each, and a session directory that gets one empty file per visitor, written in a loop until something refused.</p>
+<pre><code>repro.sh: line 4: /mnt/app/sessions/sess_957: No space left on device
+sessions created before failure: 956
+repro.sh: line 6: /mnt/app/logs/new.log: No space left on device
+exit=1
+$ df -h /mnt
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs            50M  160K   50M   1% /mnt
+$ df -i /mnt
+Filesystem     Inodes IUsed IFree IUse% Mounted on
+tmpfs            1000  1000     0  100% /mnt
+</code></pre>
+<p>Session 957 failed, and so did a write to a completely different directory. Once the filesystem is out, nothing on it can create a file, however many blocks are free. On a production box that is the moment the app stops taking logins, the logger stops logging, and whoever is on call opens <code>df -h</code>, sees plenty of room, and loses twenty minutes to the wrong theory.</p>
+<h3>Blocks and inodes are two separate budgets</h3>
+<p><code>df -h</code> counts data blocks. A file also needs an inode: the record that holds its owner, mode, timestamps and where its blocks live. Every file, directory and symlink costs exactly one, whether it holds a gigabyte or nothing. ext4 decides how many inodes a filesystem gets once, at <code>mkfs</code> time, from a bytes-per-inode ratio, and never adds more in place. When the last one is used, the kernel returns <code>ENOSPC</code>, the same error number a full disk returns, so the message cannot tell you which budget ran out.</p>
+<p>My 956 session files were empty. They used zero blocks and 956 inodes. That is the whole shape of the problem: something creating small files faster than anything removes them. PHP session stores where the garbage collector never runs, a mail queue behind a dead relay, a cache that writes one file per key, or a cron job that leaves one <code>mktemp</code> file behind every minute, which is 525,600 inodes a year.</p>
+<p>The first question is always <code>df -i</code>. If <code>IUse%</code> is at or near 100% while <code>df -h</code> is not, you have your answer and you can stop suspecting large files.</p>
+<h3>Finding the directory, then getting them back</h3>
+<p><code>du</code> is the wrong tool here, because it measures size, and these files have none. What you want is a count of entries per directory, staying on the one filesystem: <code>find /mnt -xdev -mindepth 1 -printf '%h\n' | sort | uniq -c | sort -rn | head -5</code>.</p>
+<p><code>%h</code> prints each entry's parent directory, so <code>uniq -c</code> turns the stream into a per-directory count, and <code>-xdev</code> keeps <code>find</code> from wandering into other mounts whose files do not spend this filesystem's inodes. On my run the answer was on the first line: <code>956 /mnt/app/sessions</code>, then <code>40 /mnt/app/logs</code>, then the two directories themselves.</p>
+<p>I cleared it with <code>find /mnt/app/sessions -type f -delete</code>, not <code>rm sessions/*</code>. At real-world scale, hundreds of thousands of files, that glob expands past the kernel's argument limit and <code>rm</code> never starts. After the delete, <code>df -i</code> showed 44 used and 956 free, and the write to <code>logs/new.log</code> that had failed a minute earlier exited 0. No remount, no restart: an inode comes back the moment its last link is removed, provided no process still holds the file open. If one does, <code>lsof +L1</code> names it.</p>
+<p>For contrast, the root filesystem on this same laptop, checked right after: 57,843,712 inodes, 6% used. The disk there is nearly full by blocks and nowhere near full by inodes, which is the healthy shape. Block use and inode use move independently. When inode use runs far ahead of block use, something is making small files and nothing is cleaning up.</p>
+<p>The embarrassing part of this failure is how long you can stare at the correct <code>df -h</code> output. The fix is a second flag on a command you already ran, and a cron job that checks it before the writes start failing.</p>
+<hr>
+<p>Full script, which prints block and inode use side by side, exits 1 over a threshold and names the fullest directories, with the cron line and the XFS/btrfs notes: <a href="https://bashsnippets.xyz/snippets/no-space-left-on-device-inodes">https://bashsnippets.xyz/snippets/no-space-left-on-device-inodes</a></p>
+<p>When the disk really is full of data, <a href="https://bashsnippets.xyz/snippets/find-large-files-linux">Find Large Files on Linux</a> is the other half of this diagnosis, and <a href="https://bashsnippets.xyz/snippets/argument-list-too-long">Argument List Too Long</a> covers deleting the files once you have found them. The rest of the library is at <a href="https://bashsnippets.xyz">https://bashsnippets.xyz</a></p>
+<p>Originally published at <a href="https://bashsnippets.xyz/snippets/no-space-left-on-device-inodes">https://bashsnippets.xyz/snippets/no-space-left-on-device-inodes</a></p>
+</body></html>

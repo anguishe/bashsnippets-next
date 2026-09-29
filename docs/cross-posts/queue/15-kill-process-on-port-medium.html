@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>I Killed the Parent Process. Its Child Kept the Port. — Medium paste</title>
+<style>body{max-width:720px;margin:2rem auto;font:18px/1.6 Georgia,serif;padding:0 1rem}pre{background:#f2f2f2;padding:1rem;overflow:auto}code{font-family:monospace}</style>
+</head><body>
+<p><code>EADDRINUSE</code> after you are sure you stopped the server has a common cause, and I wanted to watch it happen rather than describe it. On my own machine I started a wrapper the way tools like <code>npm run dev</code> do — a shell that launches the real server as a child and waits on it: <code>bash -c 'python3 -m http.server 8098 &amp; wait'</code>.</p>
+<p>Two processes appeared: the parent <code>bash</code> and the child <code>python3</code>. <code>lsof -ti :8098</code> returned one PID, and it was the child's. I killed the parent, the process I had started and the one most people would find first in <code>ps</code>.</p>
+<p>The port stayed taken. <code>lsof -ti :8098</code> still returned the same PID, now an orphan that had been reparented and was listening as if nothing had happened. Killing the thing you launched does not free a port when the thing you launched is not the thing holding it.</p>
+<h3>Ask the socket table, not the process table</h3>
+<p>The mistake is asking the process table a question that belongs to the socket table. Process names are ambiguous: on a developer machine, <code>ps aux | grep node</code> returns a crowd of editor helpers, language servers and the <code>grep</code> itself, none of them labelled with a port. The socket table has exactly one answer per listening port, because a bound port belongs to one process until it lets go.</p>
+<p><code>lsof -ti :PORT</code> asks that directly. <code>-i</code> filters by internet address and <code>-t</code> prints only the PID, because it exists to be piped into something. The first thing to pipe it into is not <code>kill</code>:</p>
+<pre><code>PID=$(lsof -ti :8098 | head -n 1)
+ps -p "$PID" -o comm=                        # look at what it is before you kill it
+kill "$PID"                                  # SIGTERM — a request, not an execution
+sleep 5
+kill -0 "$PID" 2&gt;/dev/null &amp;&amp; kill -9 "$PID" # still alive? force it
+</code></pre>
+<p>On my run, <code>ps -p</code> named the orphan <code>python3</code>, and the plain <code>kill</code> was enough: one second later <code>kill -0</code> found nothing, the port was free, and SIGKILL was never needed.</p>
+<p>The <code>ps -p</code> line is there because discovery answers "which PID", not "safe to kill". On a laptop it is usually your own crashed dev server. On a shared box, the process on 5432 might be a database someone is migrating. Two seconds of reading the name is cheap.</p>
+<h3>Why SIGTERM comes first</h3>
+<p>Plain <code>kill</code> sends SIGTERM, which the process may catch: flush its buffers, finish in-flight requests, remove its pidfile, close the socket properly. <code>kill -9</code> sends SIGKILL, which the process never sees; the kernel removes it mid-write if that is where it happened to be. SIGTERM, a pause, and SIGKILL only if something is still alive is the order that loses nothing in the common case and still works in the stubborn one.</p>
+<p>When <code>lsof</code> is not installed — minimal containers and small VPS images often lack it — <code>ss -ltnp</code> gives the same answer from iproute2, which modern distributions ship everywhere. Without root it names only your own processes; its <code>-e</code> flag still shows the owning systemd unit for anyone's socket, which is how I once found a forgotten <code>docker-proxy</code> squatting on port 3000 of my own laptop.</p>
+<h3>When the port is still busy after the kill</h3>
+<p>Sometimes you kill the right process, <code>lsof</code> comes back empty, and the bind still fails. Nothing is holding the port; the kernel is. A closed TCP connection lingers in TIME_WAIT for up to a minute to absorb packets still in flight for the old conversation — on my machine at that moment, <code>ss -Htan state time-wait | wc -l</code> counted two. There is no PID to kill. Servers that set <code>SO_REUSEADDR</code> on their listening socket can rebind straight away; for those that do not, the fix is to wait a minute, not to reach for a bigger hammer.</p>
+<p>The whole failure comes down to asking the right table. The parent is what you remember starting; the socket knows who is actually there.</p>
+<hr>
+<p>Full script with the port validation, the <code>ss</code> fallback, and the SIGTERM→SIGKILL escalation loop: <a href="https://bashsnippets.xyz/snippets/kill-process-on-port">https://bashsnippets.xyz/snippets/kill-process-on-port</a></p>
+<p>When the thing that needs to die has a name instead of a port number, <a href="https://bashsnippets.xyz/snippets/kill-a-process">Kill a Process</a> covers the pgrep/pkill side, and once the port is free, <a href="https://bashsnippets.xyz/snippets/check-if-website-is-up">Check If Website Is Up</a> confirms whatever replaced it is actually answering. The rest of the library is at <a href="https://bashsnippets.xyz">https://bashsnippets.xyz</a></p>
+<p>Originally published at <a href="https://bashsnippets.xyz/snippets/kill-process-on-port">https://bashsnippets.xyz/snippets/kill-process-on-port</a></p>
+</body></html>

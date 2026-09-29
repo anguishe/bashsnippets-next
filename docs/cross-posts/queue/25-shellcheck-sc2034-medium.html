@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>SC2034: ShellCheck Flagged a Variable in My Own Repo. It Was Right. — Medium paste</title>
+<style>body{max-width:720px;margin:2rem auto;font:18px/1.6 Georgia,serif;padding:0 1rem}pre{background:#f2f2f2;padding:1rem;overflow:auto}code{font-family:monospace}</style>
+</head><body>
+<p>On 2026-07-19 the README of the script repository behind my site said every script in it was ShellCheck-clean. It was not. <code>shellcheck -S style</code> across the 31 scripts that day found six with findings, and three of those failed on the same code: SC2034, "appears unused".</p>
+<p>Two of them, <code>bash-functions-arguments.sh</code> and <code>find-large-files-linux.sh</code>, defined <code>CROSS="✗"</code> beside <code>CHECK="✓"</code> and never printed it. The third was worse. <code>ssh-key-setup-script.sh</code> carried <code>KEY_BITS="4096"  # Only used for RSA keys</code>, and nothing used it, because the script generates ed25519 keys. Commit <code>093febd</code> deleted the three lines. The first two were clutter. The SSH one lied: anyone reading that script would reasonably believe the RSA key size was configurable. I had published a claim about my own code that a linter disproved in under a second.</p>
+<h3>The unused variable is rarely the bug</h3>
+<p>SC2034 is a warning that a variable is assigned in the file and never read in it. The message says "verify use", and that wording matters, because the dead assignment is usually one half of a typo whose other half is live. To show that, I re-ran the page's example on this box today (ShellCheck 0.11.0, bash 5.3.9): a log-pruning script with a one-letter mismatch.</p>
+<pre><code>#!/bin/bash
+set -eo pipefail
+log_dir="$PWD/logs"
+retention_days=30
+find "$log_dir" -name '*.log' -mtime +"$retention_day" -delete
+echo "pruned old logs"
+</code></pre>
+<p>ShellCheck reports the pair. On line 4: <code>SC2034 (warning): retention_days appears unused. Verify use (or export if used externally).</code> On line 5: <code>SC2154 (warning): retention_day is referenced but not assigned (did you mean 'retention_days'?).</code></p>
+<p>That combination is the tell. An SC2034 on one line and an SC2154 on the next, with a <code>did you mean</code> pointing back at it, is a typo, and the fix is to spell the name the same way twice.</p>
+<p>Running the broken version shows why it deserves the attention. <code>$retention_day</code> expands to nothing, so <code>find</code> receives <code>-mtime +</code> and refuses with <code>invalid argument</code> for the <code>+</code> it was handed, exit 1, and both my test files, <code>new.log</code> and a 60-day-old <code>old.log</code>, still there. That is the lucky outcome. The prune never runs and the disk fills slowly. Written with the common defensive habit <code>-mtime +${retention_day:-0}</code>, <code>find</code> would have received <code>-mtime +0</code> and deleted every log older than today. With <code>set -u</code> the script stops instead, and on my run <code>bash -u before.sh</code> did exactly that: <code>retention_day: unbound variable</code>, exit 1, before <code>find</code> ran at all.</p>
+<p>After fixing the spelling, <code>shellcheck after.sh</code> exited 0, and running it printed <code>pruned old logs</code> and left only <code>new.log</code>.</p>
+<h3>When SC2034 is wrong, and how to say so honestly</h3>
+<p>ShellCheck sees one file at a time. A <code>lib.sh</code> that defines <code>CHECK</code> and <code>CROSS</code> for the scripts that source it gets flagged on every variable it does not read itself. Two fixes are honest. <code>export</code> silences it, and is correct only if a child process reads the variable; exporting to hush the warning leaks it into every command the script runs, which is how a <code>KEY_BITS</code> ends up in a subprocess that never asked for it. The other is a file-level <code># shellcheck disable=SC2034</code> after the shebang, with the reason in the comment ("sourced by the deploy scripts") so the next reader knows the variables live elsewhere. <code>shellcheck -x</code> on the caller follows the <code>source</code> line and sees both sides.</p>
+<p>Loop counters you never read are the other common case. <code>for i in 1 2 3; do echo ping; done</code> earned <code>i appears unused</code> on my run; the same loop with <code>_</code> as the variable passed. The convention carries over to <code>read -r _ second</code>, which keeps the second field and discards the first without a warning.</p>
+<p>To lint for this one rule alone, <code>shellcheck --include=SC2034 script.sh</code> does it; a project-wide exception goes in <code>.shellcheckrc</code> as <code>disable=SC2034</code>, which is rarely the right call.</p>
+<p>Before reaching for any disable, search the file for the name once. Most of the time the variable really is dead, and the right fix is deleting the line. That is what I should have done before the README said "clean".</p>
+<hr>
+<p>The full SC2034 page, with the single-quote case that pairs it with SC2016, the config-file directive, and the flags to include or exclude the rule: <a href="https://bashsnippets.xyz/shellcheck/sc2034">https://bashsnippets.xyz/shellcheck/sc2034</a></p>
+<p>The use side of the same typo is the <a href="https://bashsnippets.xyz/shellcheck/sc2154">SC2154 deep dive</a>, and any other code can be pasted into the <a href="https://bashsnippets.xyz/tools/shellcheck-error-decoder">ShellCheck Error Decoder</a>. The rest of the library is at <a href="https://bashsnippets.xyz">https://bashsnippets.xyz</a></p>
+<p>Originally published at <a href="https://bashsnippets.xyz/shellcheck/sc2034">https://bashsnippets.xyz/shellcheck/sc2034</a></p>
+</body></html>

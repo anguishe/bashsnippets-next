@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>I Opened a Port on Purpose to See If My Audit Would Notice. It Exited 3. — Medium paste</title>
+<style>body{max-width:720px;margin:2rem auto;font:18px/1.6 Georgia,serif;padding:0 1rem}pre{background:#f2f2f2;padding:1rem;overflow:auto}code{font-family:monospace}</style>
+</head><body>
+<p>At 22:21 on a Monday night I started a web server I had no intention of keeping: <code>python3 -m http.server 8099 --bind 127.0.0.1</code>. It is the kind of listener that gets left behind on real machines, a quick file share or a debug endpoint someone meant to stop. Then I asked the audit script whether anything had changed since the baseline it took a minute earlier.</p>
+<pre><code>$ export STATE_DIR=$PWD/state
+$ ./ports-audit.sh &gt;/dev/null 2&gt;&amp;1          # first run: the baseline
+$ python3 -m http.server 8099 --bind 127.0.0.1 &amp;
+$ ./ports-audit.sh --diff &gt;/dev/null        # report goes to stderr (trimmed below)
+NEW:
+tcp,127.0.0.1,8099,unknown,python3
+GONE:
+(none)
+exit=3
+$ kill $!; ./ports-audit.sh --diff &gt;/dev/null
+NEW:
+(none)
+GONE:
+tcp,127.0.0.1,8099,unknown,python3
+exit=3
+</code></pre>
+<p>One line appeared, one line disappeared, and each time the script exited 3. A run in between with nothing changed printed <code>no listener changes since the previous run</code> and exited 0.</p>
+<p>I am showing you only those lines, not my baseline. A full list of what a machine listens on is a map of it, and I would not paste mine into a public post any more than I would paste it into a public issue. The useful part of the output is the difference anyway, and it is usually small enough to read in a notification.</p>
+<h3>A listing is a photograph</h3>
+<p>Most of us check open ports the same way: run <code>ss -tulpn</code>, scroll, decide it looks fine, close the terminal. That answers "what is listening right now", once. The listener that matters is the one that was not in the picture: the dev server left running on 8099, the container that published a port after a compose change, the shell someone bound last night. None of them announce themselves, and nobody rereads a long socket list every hour looking for the new one.</p>
+<p>So the script does not ask you to read the list. It writes every listening TCP and UDP socket as one CSV line, <code>proto,address,port,service,owner</code>, and compares it with the previous run: each run moves <code>current.csv</code> to <code>previous.csv</code>, writes a fresh snapshot, and computes <code>added=$(grep -Fxv -f "$PREVIOUS" "$CURRENT" || true)</code> and <code>removed=$(grep -Fxv -f "$CURRENT" "$PREVIOUS" || true)</code>.</p>
+<p><code>grep -Fxv -f</code> is a whole-line set difference: fixed strings, whole lines only, keep what is not in the other file. Run it both ways and you get NEW and GONE. The <code>|| true</code> is there because grep exits 1 when it selects nothing, and under <code>set -euo pipefail</code> "nothing changed" would otherwise kill the script.</p>
+<h3>Why the diff does not cry wolf</h3>
+<p>A textual diff is only trustworthy if the only thing that can change a line is a real change to a socket. The script exports <code>LC_ALL=C</code> and sorts on explicit keys, because cron runs with a minimal environment that drifts, and a list sorted under one locale on Tuesday and another on Wednesday would move every line and alert every hour. Exact duplicate lines collapse, so one socket never counts twice.</p>
+<p>The owner column works without root. <code>ss -p</code> only names processes you own unless you are root, so the script also asks for <code>-e</code>, which adds the owning systemd cgroup and uid for every socket. My throwaway server shows as <code>python3</code> because it was mine; a root-owned service shows as <code>cgroup:</code> plus its unit name.</p>
+<p>GONE is an alert on purpose. A database that stopped listening is an outage, and a "new ports only" audit would never mention it.</p>
+<h3>Scheduling it</h3>
+<p>The exit code is the contract: 0 for no change, 3 for a change, anything else means <code>ss</code> or <code>mkdir</code> failed under <code>set -e</code>. <code>ALERT_CMD</code> receives the NEW/GONE report on stdin, only when something changed, so a quiet host sends nothing. The crontab line on the page is <code>0 * * * * ALERT_CMD='mail -s "listener change on myhost" you@example.com' /usr/local/sbin/ports-audit.sh --diff &gt;/dev/null</code>, where <code>&gt;/dev/null</code> drops the CSV and stderr still reaches cron's mail.</p>
+<p>Before you trust the diff, account for every line in the first baseline. For a one-off listing, the new <a href="https://bashsnippets.xyz/tools/open-ports-explainer">Open Ports Explainer</a> reads it row by row: paste <code>ss -tulpn</code> output and each listener gets its reachability (127.0.0.1 is loopback only, 0.0.0.0 is every IPv4 interface), its owner, a note on the port, flags for things like a database or the Docker API on a wildcard address, and the next command to run. It runs in your browser, sends nothing, and redacts addresses in share links by default.</p>
+<p>My 8099 server lived for a couple of seconds and the audit caught it both ways. The same run hourly turns "someone left something listening" from an incident into a line in your mail.</p>
+<hr>
+<p>Full script with the CSV snapshot, the NEW/GONE diff, the exit-code contract, and the cron setup: <a href="https://bashsnippets.xyz/snippets/ports-audit">https://bashsnippets.xyz/snippets/ports-audit</a></p>
+<p>When the audit names a port you cannot explain, <a href="https://bashsnippets.xyz/snippets/kill-process-on-port">Kill Process on Port</a> takes it from PID to SIGTERM, and <a href="https://bashsnippets.xyz/snippets/list-open-ports-linux">List All Open Ports on Linux</a> is the read-it-by-eye version. The rest of the library is at <a href="https://bashsnippets.xyz">https://bashsnippets.xyz</a></p>
+<p>Originally published at <a href="https://bashsnippets.xyz/snippets/ports-audit">https://bashsnippets.xyz/snippets/ports-audit</a></p>
+</body></html>

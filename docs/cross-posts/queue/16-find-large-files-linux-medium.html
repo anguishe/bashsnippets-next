@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>I Deleted a 44.6 GB File and df Gave Me Back 5 GB. Something Still Had It Open. — Medium paste</title>
+<style>body{max-width:720px;margin:2rem auto;font:18px/1.6 Georgia,serif;padding:0 1rem}pre{background:#f2f2f2;padding:1rem;overflow:auto}code{font-family:monospace}</style>
+</head><body>
+<p>On August 28 my laptop's disk sat at 88 %, and I went looking for something big to delete. I found it quickly: a 44.6 GB video intermediate, a rotate-to-vertical export I could rebuild from its source at any time. I deleted it. <code>du</code> on that folder dropped by 44 GB. <code>df</code> on the filesystem moved by 5.</p>
+<p>For a few minutes I doubted the filesystem. The real answer was a process. XFCE's thumbnailer daemon, <code>tumblerd</code>, had opened the file to generate a preview and never closed it. <code>pkill -x tumblerd</code> gave the space back instantly, and the daemon respawns on its own the next time something needs a thumbnail, so killing it cost nothing.</p>
+<p>That gap between <code>du</code> and <code>df</code> is the whole lesson, and it is the one people hit on servers with log files.</p>
+<h3>Why deleting a file can free nothing</h3>
+<p><code>rm</code> does not delete data. It removes a directory entry that points at an inode. The blocks go back to the filesystem only when the inode's link count reaches zero <em>and</em> no process still has the file open. While one descriptor is open, the file is invisible to <code>ls</code> and <code>du</code> and still fully allocated as far as <code>df</code> is concerned. <code>du</code> counts names that are gone; <code>df</code> counts blocks that are actually free. When they disagree, the difference is deleted-but-open files.</p>
+<p><code>lsof +L1</code> lists them: open files with a link count below one. Without root it shows only your own processes; on my machine today it shows nothing more alarming than a few of PipeWire's memory-backed buffers. On a server, run it as root and the culprit usually has a name, a PID and a size.</p>
+<p>There is a second reason <code>df</code> can refuse to move: hard links. Removing one name of a file that has another name frees nothing, because the link count is still above zero. <code>stat -c %h file</code> prints the count before you rely on the delete.</p>
+<p>And on a server, when the file is a log that a live service is still writing, <code>rm</code> is the wrong verb entirely. Truncate it in place with <code>: &gt; access.log</code>: the inode and every open descriptor survive, the length drops to zero, and the space comes back without restarting anything.</p>
+<h3>Finding what ate the disk</h3>
+<p><code>df</code> tells you which filesystem is full. It cannot tell you why, because it reads totals from the filesystem's own bookkeeping. The question "what filled it" is two commands:</p>
+<pre><code># The 20 largest files and directories, biggest first
+du -ah / --exclude=/proc --exclude=/sys --exclude=/dev 2&gt;/dev/null \
+  | sort -rh | head -n 20
+
+# Individual files over 500 MB, wherever they hide
+find / -xdev -type f -size +500M -exec ls -lh {} \; 2&gt;/dev/null
+</code></pre>
+<p>Run against my home directory without root, the first one answered in under two minutes: 645 G in total, 430 G of it in one projects folder, and the top of the list was two video projects' raw-footage folders. No mystery left, only decisions about what to keep.</p>
+<h3>The one character that reorders the list</h3>
+<p><code>sort -rh</code> is doing more work than it looks. I fed the same four <code>du</code>-style lines to both variants. <code>sort -rn</code> returned <code>850K</code>, <code>500M</code>, <code>13G</code>, <code>10G</code>: it reads the leading digits and stops, so 850 beats 500 beats 13, and the smallest item is ranked first. <code>sort -rh</code> returned <code>13G</code>, <code>10G</code>, <code>500M</code>, <code>850K</code>, because <code>-h</code> understands the size suffixes <code>du</code> prints. One letter separates a ranking from a shuffle, and the wrong one fails quietly on exactly the list you are reading under pressure.</p>
+<h3>Why the excludes are not optional</h3>
+<p><code>ls -l /proc/kcore</code> on my laptop reports a file of 140,737,471,590,400 bytes, which is 128 TiB on a machine with an 868 GB disk. It is not a file; it is the kernel's address space presented as one, and <code>/proc</code> and <code>/sys</code> are full of synthesized entries like it. Any size scan that walks them either wastes minutes or reports nonsense, and the <code>find</code> above adds <code>-xdev</code> so it stays on one filesystem and never crosses into them or into network mounts.</p>
+<p>The order that works under pressure is <code>df -h</code> to find the full filesystem, the ranked <code>du</code> to find what grew, <code>find -size</code> for the single monster file, and <code>lsof +L1</code> the moment <code>df</code> and <code>du</code> disagree. My 44.6 GB would have taken ten seconds with that last step instead of ten minutes of doubting the filesystem.</p>
+<hr>
+<p>Full script with the exclude patterns, thresholds, and the recent-growth variation: <a href="https://bashsnippets.xyz/snippets/find-large-files-linux">https://bashsnippets.xyz/snippets/find-large-files-linux</a></p>
+<p>Getting the space back is the recovery half. Never seeing 100 % again is the <a href="https://bashsnippets.xyz/snippets/disk-space-warning">Disk Space Warning</a> snippet's job — it alerts at a threshold you pick instead of letting the disk do the alerting — and <a href="https://bashsnippets.xyz/snippets/delete-old-log-files">Delete Old Log Files</a> keeps the logs from regrowing behind you. The rest of the library is at <a href="https://bashsnippets.xyz">https://bashsnippets.xyz</a></p>
+<p>Originally published at <a href="https://bashsnippets.xyz/snippets/find-large-files-linux">https://bashsnippets.xyz/snippets/find-large-files-linux</a></p>
+</body></html>
