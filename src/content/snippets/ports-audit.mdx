@@ -121,7 +121,7 @@ Run here as an unprivileged user on 2026-09-10. Notes go to stderr, the CSV goes
 
 ```text
 ✗ not root: process names appear only for your own sockets; everything else shows its systemd cgroup or uid
-✓ 35 listening sockets on angsec at 2026-09-10 22:40:43
+✓ 35 listening sockets on laptop at 2026-09-10 22:40:43
 ```
 
 The first twelve of those 35 rows, `proto,address,port,service,owner`:
@@ -148,16 +148,16 @@ Three kinds of owner appear in one run, and that is the point of the `-e` flag. 
 Each run moves the last `current.csv` to `previous.csv` before writing a new one, so `--diff` is a whole-line set difference between two files. The second run, a second later, found nothing:
 
 ```text
-✓ 35 listening sockets on angsec at 2026-09-10 22:40:43
+✓ 35 listening sockets on laptop at 2026-09-10 22:40:43
 ✓ no listener changes since the previous run
 ```
 
 Then a throwaway `python3 -m http.server 8099 --bind 127.0.0.1 &` and a third run with `ALERT_CMD` pointed at a file. Exit code 3, one report on stderr, and the identical report appended to the file:
 
 ```text
-✓ 36 listening sockets on angsec at 2026-09-10 22:40:45
+✓ 36 listening sockets on laptop at 2026-09-10 22:40:45
 ✗ listener set changed since the previous run
-Listener changes on angsec at Thu Sep 10 22:40:45 CDT 2026
+Listener changes on laptop at Thu Sep 10 22:40:45 CDT 2026
 
 NEW:
 tcp,127.0.0.1,8099,unknown,python3

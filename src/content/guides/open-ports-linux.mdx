@@ -147,7 +147,7 @@ systemd-r    864 systemd-resolve 21u  IPv4    3059      0t0  TCP 127.0.0.53:53 (
 ollama      1037          ollama  3u  IPv6   17455      0t0  TCP *:11434 (LISTEN)
 container   1051            root 12u  IPv4    9912      0t0  TCP 127.0.0.1:41919 (LISTEN)
 tor         1064      debian-tor  6u  IPv4   14180      0t0  TCP 127.0.0.1:9050 (LISTEN)
-openclaw-   1132          angsec 22u  IPv4   23202      0t0  TCP 127.0.0.1:18789 (LISTEN)
+openclaw-   1132          travis 22u  IPv4   23202      0t0  TCP 127.0.0.1:18789 (LISTEN)
 ```
 
 `-n` and `-P` stop the hostname and port-name lookups (same reason as `ss -n`), `-iTCP` restricts to TCP sockets, `-sTCP:LISTEN` to listeners. `lsof` gives you the **user name** resolved, which `ss` does not, and the `DEVICE` column is the socket inode — the same `ino:` number `ss -e` prints, which is how you cross-reference the two when they disagree. For "which PID has port 3000, as a bare number I can feed to `kill`":
@@ -385,7 +385,7 @@ Exercised here as an unprivileged user before it was pasted. First run: 32 socke
 
 ```text
 ✗ not root: process names appear only for your own sockets; everything else shows its systemd cgroup or uid
-✓ 32 listening sockets on angsec at 2026-09-01 20:35:08
+✓ 32 listening sockets on laptop at 2026-09-01 20:35:08
 ```
 
 ```text
@@ -409,7 +409,7 @@ tcp,127.0.0.1,41919,unknown,cgroup:containerd.service
 Second run with `--diff`: `no listener changes since the previous run`, exit 0. Then a Python `http.server` opened on 8099 and the third run, with `ALERT_CMD` pointed at a file, exited 3 with one report:
 
 ```text
-Listener changes on angsec at Tue Sep  1 20:35:10 CDT 2026
+Listener changes on laptop at Tue Sep  1 20:35:10 CDT 2026
 
 NEW:
 tcp,127.0.0.1,8099,unknown,python3
