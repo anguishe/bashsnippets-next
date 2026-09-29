@@ -22,14 +22,14 @@ Nothing. Cron checks the clock once a minute and runs whatever matches that minu
 The evidence is in the journal, where cron logs every command it starts. The crontab line:
 
 ```text
-0 3 * * 0 ~/cleanlog.sh
+0 3 * * 0 ~/tidy-up-before-mom-visits.sh
 ```
 
 Every execution in September:
 
 ```text
-$ journalctl -t CRON -o short-iso --since 2026-09-01 -g cleanlog | grep CMD
-2026-09-06T03:00:01-05:00 CRON[…]: (travis) CMD (~/cleanlog.sh )
+$ journalctl -t CRON -o short-iso --since 2026-09-01 -g tidy-up | grep CMD
+2026-09-06T03:00:01-05:00 CRON[…]: (travis) CMD (~/tidy-up-before-mom-visits.sh )
 ```
 
 One line. And the boots that explain the gaps (`journalctl --list-boots`, trimmed to the relevant Sundays):
@@ -67,25 +67,31 @@ and `systemctl show e2scrub_all.timer -p LastTriggerUSec` for the fourth: `Sun 2
 Two more lines from the same crontab, both mine, both wrong for months:
 
 ```text
-* 5 * * 1 /home/travis/diskcheck.sh
+* 5 * * 1 /home/travis/is-the-disk-full-yet.sh
 ```
 
 The intent was "05:00 on Mondays". `*` in the minute field means *every* minute, so this runs sixty times between 05:00 and 05:59. The journal agrees: 180 runs in September, 60 on each of the three Mondays the machine was awake at 05:00. On the 21st the journal is empty from 04:10 to 09:09, which is what a suspended laptop looks like, and that week got zero. And each of those 180 runs ended the same way:
 
 ```text
-2026-09-28T05:00:01-05:00 CRON[1066989]: (travis) CMD (/home/travis/diskcheck.sh )
+2026-09-28T05:00:01-05:00 CRON[1066989]: (travis) CMD (/home/travis/is-the-disk-full-yet.sh )
 2026-09-28T05:00:01-05:00 CRON[1066985]: (CRON) info (No MTA installed, discarding output)
 ```
 
 The line has no redirect, so cron tries to email the output, finds no mail server, and throws it away. The script prints a warning above 80% disk. Run by hand today it says:
 
 ```text
-$ ~/diskcheck.sh
+$ ~/is-the-disk-full-yet.sh
 WARNING: Disk at 91%
 exit=0
 ```
 
-A disk warning, printed sixty times a Monday, delivered to nobody. The [cron guide](/guides/bash-scripts-that-survive-cron) opens with this failure for a reason. A systemd timer cannot have it, because a service's stdout and stderr go to the journal by default, with the unit name attached.
+A disk warning, printed sixty times a Monday, delivered to nobody. The line in my crontab now pins the minute and keeps the output:
+
+```text
+0 5 * * 1 /home/travis/is-the-disk-full-yet.sh >> /home/travis/is-the-disk-full-yet.log 2>&1
+```
+
+The [cron guide](/guides/bash-scripts-that-survive-cron) opens with this failure for a reason. A systemd timer cannot have it, because a service's stdout and stderr go to the journal by default, with the unit name attached.
 
 ## What is a systemd timer?
 

@@ -1,6 +1,6 @@
 # My Cron Job Missed a Night. The systemd Timer Would Have Caught Up.
 
-My weekly log cleanup is one crontab line, 03:00 every Sunday. In September it ran once. The line is `0 3 * * 0 ~/cleanlog.sh`, and cron logs every command it starts, so I asked the journal: `journalctl -t CRON -o short-iso --since 2026-09-01 -g cleanlog | grep CMD` returned exactly one line, `2026-09-06T03:00:01-05:00 CRON[…]: (travis) CMD (~/cleanlog.sh )`. One line for four Sundays. `journalctl --list-boots` explained the other three: on the 13th the laptop came up at 06:12, on the 20th at 04:24, and on the 27th at 03:23, twenty-four minutes too late. Cron checks the clock once a minute and runs whatever matches that minute. If the machine is off at 03:00, the 03:00 minute never gets checked, and a weekly job waits a week. There is no error for a run that did not happen, so there was nothing to tell me.
+My weekly log cleanup is one crontab line, 03:00 every Sunday. In September it ran once. The line is `0 3 * * 0 ~/tidy-up-before-mom-visits.sh`, and cron logs every command it starts, so I asked the journal: `journalctl -t CRON -o short-iso --since 2026-09-01 -g tidy-up | grep CMD` returned exactly one line, `2026-09-06T03:00:01-05:00 CRON[…]: (travis) CMD (~/tidy-up-before-mom-visits.sh )`. One line for four Sundays. `journalctl --list-boots` explained the other three: on the 13th the laptop came up at 06:12, on the 20th at 04:24, and on the 27th at 03:23, twenty-four minutes too late. Cron checks the clock once a minute and runs whatever matches that minute. If the machine is off at 03:00, the 03:00 minute never gets checked, and a weekly job waits a week. There is no error for a run that did not happen, so there was nothing to tell me.
 
 The part that stung was the job sitting ten minutes later on the same schedule. I had never configured it.
 
@@ -21,7 +21,7 @@ That is `Persistent=true`. The timer stores the time of its last run on disk, an
 
 ## What else my crontab was hiding
 
-Another line from the same crontab, mine, wrong for months: `* 5 * * 1 /home/travis/diskcheck.sh`. I meant "05:00 on Mondays". A `*` in the minute field means every minute, so it ran sixty times between 05:00 and 05:59: 180 runs in September, 60 on each Monday the laptop was awake at five. Every one of them ended with `(CRON) info (No MTA installed, discarding output)`. The script prints a warning above 80% disk. Run by hand, it says `WARNING: Disk at 91%`. Sixty warnings a Monday, delivered to nobody.
+Another line from the same crontab, mine, wrong for months: `* 5 * * 1 /home/travis/is-the-disk-full-yet.sh`. I meant "05:00 on Mondays". A `*` in the minute field means every minute, so it ran sixty times between 05:00 and 05:59: 180 runs in September, 60 on each Monday the laptop was awake at five. Every one of them ended with `(CRON) info (No MTA installed, discarding output)`. The script prints a warning above 80% disk. Run by hand, it says `WARNING: Disk at 91%`. Sixty warnings a Monday, delivered to nobody.
 
 A timer cannot lose output that way, because a service's stdout and stderr go to the journal with the unit name attached. And the schedule can be checked before it is installed: `systemd-analyze calendar --iterations=4 'Mon *-*-* 05:*:00'` lists the next elapses as 05:00, 05:01, 05:02 on Monday 2026-10-05. The bug is on screen before it runs once.
 

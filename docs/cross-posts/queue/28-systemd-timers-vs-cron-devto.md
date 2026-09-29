@@ -10,10 +10,10 @@ cover_image: https://bashsnippets.xyz/ogimage.png
 My weekly log cleanup is one crontab line, 03:00 every Sunday. In September it ran once. The journal, where cron logs every command it starts, shows it:
 
 ```text
-0 3 * * 0 ~/cleanlog.sh
+0 3 * * 0 ~/tidy-up-before-mom-visits.sh
 
-$ journalctl -t CRON -o short-iso --since 2026-09-01 -g cleanlog | grep CMD
-2026-09-06T03:00:01-05:00 CRON[…]: (travis) CMD (~/cleanlog.sh )
+$ journalctl -t CRON -o short-iso --since 2026-09-01 -g tidy-up | grep CMD
+2026-09-06T03:00:01-05:00 CRON[…]: (travis) CMD (~/tidy-up-before-mom-visits.sh )
 ```
 
 One line for four Sundays. `journalctl --list-boots` explained the other three: on the 13th the laptop came up at 06:12, on the 20th at 04:24, and on the 27th at 03:23, twenty-four minutes too late. Cron checks the clock once a minute and runs whatever matches that minute. If the machine is off at 03:00, the 03:00 minute never gets checked, and a weekly job waits a week. There is no error for a run that did not happen, so there was nothing to tell me.
@@ -43,7 +43,7 @@ That is `Persistent=true`. The timer stores the time of its last run on disk, an
 
 ## What else my crontab was hiding
 
-Another line from the same crontab, mine, wrong for months: `* 5 * * 1 /home/travis/diskcheck.sh`. I meant "05:00 on Mondays". A `*` in the minute field means every minute, so it ran sixty times between 05:00 and 05:59: 180 runs in September, 60 on each Monday the laptop was awake at five. Every one of them ended with `(CRON) info (No MTA installed, discarding output)`. The script prints a warning above 80% disk. Run by hand, it says `WARNING: Disk at 91%`. Sixty warnings a Monday, delivered to nobody.
+Another line from the same crontab, mine, wrong for months: `* 5 * * 1 /home/travis/is-the-disk-full-yet.sh`. I meant "05:00 on Mondays". A `*` in the minute field means every minute, so it ran sixty times between 05:00 and 05:59: 180 runs in September, 60 on each Monday the laptop was awake at five. Every one of them ended with `(CRON) info (No MTA installed, discarding output)`. The script prints a warning above 80% disk. Run by hand, it says `WARNING: Disk at 91%`. Sixty warnings a Monday, delivered to nobody.
 
 A timer cannot lose output that way, because a service's stdout and stderr go to the journal with the unit name attached. And the schedule can be checked before it is installed:
 
