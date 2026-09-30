@@ -28,7 +28,25 @@ There is a second way to get `freed 0B`, even as root: vacuuming only removes ar
 
 The script on the page does exactly that, and refuses rather than pretends: run with `--apply` and without root, it exits 2 with `--apply needs root: re-run with sudo`. The root run on this box, before and after:
 
-OUTPUT PLACEHOLDER — Travis runs: sudo ./journal-disk-usage.sh 1G --apply; journalctl --disk-usage
+```text
+$ sudo ./journal-disk-usage.sh 1G --apply; echo "exit=$?"
+journal on disk: 3.4G
+SystemMaxUse:    not set (default: 10% of the filesystem, capped at 4G)
+✗ journal is over 1G
+Vacuuming done, freed 0B of archived journals from /var/log/journal.
+Vacuuming done, freed 0B of archived journals from /run/log/journal.
+Deleted archived journal /var/log/journal/<machine-id>/system@…-0000000007db0f33-….journal (35M).
+Deleted archived journal /var/log/journal/<machine-id>/system@…-0000000007dc5c2c-….journal (35M).
+  … one line per archived file, each 35M …
+Deleted archived journal /var/log/journal/<machine-id>/system@…-0000000008354f77-….journal (35.1M).
+Vacuuming done, freed 2.4G of archived journals from /var/log/journal/<machine-id>.
+✓ now: Archived and active journals take up 989.6M in the file system.
+exit=0
+$ journalctl --disk-usage
+Archived and active journals take up 989.6M in the file system.
+```
+
+Same command, same "Vacuuming done" wording, and this time the files actually went: 2.4G freed, the oldest archives first, 3.4G down to 989.6M, just under the 1G I asked for. The two `freed 0B` lines are the directories with nothing archived in them; the machine-id directory is where the journal lives.
 
 ## Making the limit stick
 

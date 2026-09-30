@@ -18,7 +18,23 @@ exit=0
 <p>(Machine ID redacted.) Exit 0, three lines that start with "Vacuuming done", and <code>journalctl --disk-usage</code> afterwards still said 3.4G. The journal files belong to root and the <code>systemd-journal</code> group. Being allowed to read them is not being allowed to delete them, and <code>journalctl</code> treats "I could not delete anything" as "there was nothing to delete". A cleanup cron job running as the wrong user would log success every night, forever, while the disk stays full. I would have trusted that log line. That is the uncomfortable part.</p>
 <p>There is a second way to get <code>freed 0B</code>, even as root: vacuuming only removes archived journal files, never the ones journald is writing right now. <code>journalctl --rotate</code> closes and archives the active files first, so the order is rotate, then vacuum, then check <code>--disk-usage</code> rather than the vacuum's own report.</p>
 <p>The script on the page does exactly that, and refuses rather than pretends: run with <code>--apply</code> and without root, it exits 2 with <code>--apply needs root: re-run with sudo</code>. The root run on this box, before and after:</p>
-<p>OUTPUT PLACEHOLDER — Travis runs: sudo ./journal-disk-usage.sh 1G --apply; journalctl --disk-usage</p>
+<pre><code>$ sudo ./journal-disk-usage.sh 1G --apply; echo "exit=$?"
+journal on disk: 3.4G
+SystemMaxUse:    not set (default: 10% of the filesystem, capped at 4G)
+✗ journal is over 1G
+Vacuuming done, freed 0B of archived journals from /var/log/journal.
+Vacuuming done, freed 0B of archived journals from /run/log/journal.
+Deleted archived journal /var/log/journal/&lt;machine-id&gt;/system@…-0000000007db0f33-….journal (35M).
+Deleted archived journal /var/log/journal/&lt;machine-id&gt;/system@…-0000000007dc5c2c-….journal (35M).
+  … one line per archived file, each 35M …
+Deleted archived journal /var/log/journal/&lt;machine-id&gt;/system@…-0000000008354f77-….journal (35.1M).
+Vacuuming done, freed 2.4G of archived journals from /var/log/journal/&lt;machine-id&gt;.
+✓ now: Archived and active journals take up 989.6M in the file system.
+exit=0
+$ journalctl --disk-usage
+Archived and active journals take up 989.6M in the file system.
+</code></pre>
+<p>Same command, same "Vacuuming done" wording, and this time the files actually went: 2.4G freed, the oldest archives first, 3.4G down to 989.6M, just under the 1G I asked for. The two <code>freed 0B</code> lines are the directories with nothing archived in them; the machine-id directory is where the journal lives.</p>
 <h3>Making the limit stick</h3>
 <p>A one-off vacuum only buys time; the same driver would fill it again. The permanent fix is a drop-in, so a package upgrade never overwrites it: create <code>/etc/systemd/journald.conf.d/size.conf</code> containing a <code>[Journal]</code> header and <code>SystemMaxUse=1G</code>, restart <code>systemd-journald</code>, and confirm with the same <code>systemd-analyze cat-config</code> line from the top of this post. It should now print <code>SystemMaxUse=1G</code> without the <code>#</code>. If it prints nothing, the file is in the wrong directory or the header is missing. From then on journald enforces the limit itself at every rotation, and a weekly check only has to confirm it is holding.</p>
 <p>The journal did exactly what its defaults allowed. I had never told it what I wanted instead.</p>

@@ -44,9 +44,25 @@ There is a second way to get `freed 0B`, even as root: vacuuming only removes ar
 
 The script on the page does exactly that, and refuses rather than pretends: run with `--apply` and without root, it exits 2 with `--apply needs root: re-run with sudo`. The root run on this box, before and after:
 
+```text
+$ sudo ./journal-disk-usage.sh 1G --apply; echo "exit=$?"
+journal on disk: 3.4G
+SystemMaxUse:    not set (default: 10% of the filesystem, capped at 4G)
+✗ journal is over 1G
+Vacuuming done, freed 0B of archived journals from /var/log/journal.
+Vacuuming done, freed 0B of archived journals from /run/log/journal.
+Deleted archived journal /var/log/journal/<machine-id>/system@…-0000000007db0f33-….journal (35M).
+Deleted archived journal /var/log/journal/<machine-id>/system@…-0000000007dc5c2c-….journal (35M).
+  … one line per archived file, each 35M …
+Deleted archived journal /var/log/journal/<machine-id>/system@…-0000000008354f77-….journal (35.1M).
+Vacuuming done, freed 2.4G of archived journals from /var/log/journal/<machine-id>.
+✓ now: Archived and active journals take up 989.6M in the file system.
+exit=0
+$ journalctl --disk-usage
+Archived and active journals take up 989.6M in the file system.
 ```
-OUTPUT PLACEHOLDER — Travis runs: sudo ./journal-disk-usage.sh 1G --apply; journalctl --disk-usage
-```
+
+Same command, same "Vacuuming done" wording, and this time the files actually went: 2.4G freed, the oldest archives first, 3.4G down to 989.6M, just under the 1G I asked for. The two `freed 0B` lines are the directories with nothing archived in them; the machine-id directory is where the journal lives.
 
 ## Making the limit stick
 
@@ -60,4 +76,4 @@ Full script, which reports the journal size and the cap actually in force, exits
 
 The journal is one of three ways a disk fills without an obvious culprit: [No Space Left on Device With Free Space](https://bashsnippets.xyz/snippets/no-space-left-on-device-inodes) covers running out of inodes instead of blocks, and [Find Large Files on Linux](https://bashsnippets.xyz/snippets/find-large-files-linux) covers the one big file you did not know about. The rest of the library is at https://bashsnippets.xyz
 
-<!-- NOT SCHEDULED. Wave 2 #24 - planned Tue 2026-12-15 08:00 CST (14:00Z). journalctl --disk-usage (3.4G) and the cat-config grep re-run on this box 2026-09-28 without sudo (systemd 261). Per-day source counts and the non-root vacuum output are quoted from the live page (captured on this box 2026-09-28; machine-id redacted). OUTPUT PLACEHOLDER left for Travis's root run: sudo ./journal-disk-usage.sh 1G --apply; journalctl --disk-usage (needs sudo, deletes logs). Fill it in the dev.to, Medium .md and regenerated .html before scheduling. -->
+<!-- NOT SCHEDULED. Wave 2 #24 - planned Tue 2026-12-15 08:00 CST (14:00Z). journalctl --disk-usage (3.4G) and the cat-config grep re-run on this box 2026-09-28 without sudo (systemd 261). Per-day source counts and the non-root vacuum output are quoted from the live page (captured on this box 2026-09-28; machine-id redacted). Root run by Travis 2026-09-29 (3.4G -> 989.6M, 2.4G freed; machine-id and file hashes redacted). Fill it in the dev.to, Medium .md and regenerated .html before scheduling. -->
