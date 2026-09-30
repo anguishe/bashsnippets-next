@@ -28,9 +28,19 @@ $ ls -l /proc/$P/fd
 <p>That distinction is the whole value of looking. On a real job the first shape points at a producer that never started; the second at a producer that started and stalled. Different bugs, often in different programs, and from the outside both are a job that does not finish.</p>
 <h3>What kill -9 leaves you</h3>
 <p>I ran the same hang once more and sent <code>kill -9</code>. Bash printed <code>Killed</code>, <code>wait</code> returned 137, and <code>ls /proc/$P</code> said <code>No such file or directory</code>. That is the entire record: a number that means SIGKILL and nothing about why. No wchan, no syscall, no fd table. On a job holding a lock or halfway through an output file, SIGKILL also skips every trap, so the temp files and the lock stay behind for the next run to trip on. Plain <code>kill</code>, which sends SIGTERM, at least lets a cleanup trap run.</p>
-<h3>strace, which was not there</h3>
-<p>The guide's next step is <code>strace -p</code>, which on a hang usually prints one line and stops, and that line is the stuck call. On this box it never started: <code>timeout 5 strace -p $P</code> answered <code>timeout: failed to run command 'strace': No such file or directory</code>. strace is not installed here. Permissions would not have been the problem, since <code>/proc/sys/kernel/yama/ptrace_scope</code> reads <code>0</code>, which allows attaching to my own processes. At <code>1</code>, the Ubuntu default, the same command fails with <code>Operation not permitted</code> on anything that is not your direct child.</p>
-<p>OUTPUT PLACEHOLDER — Travis runs: <code>sudo apt install strace</code>, then the mkfifo repro above and <code>timeout 5 strace -p $P</code></p>
+<h3>What strace adds</h3>
+<p>The guide's next step is <code>strace -p</code>, which on a hang usually prints one line and stops, and that line is the stuck call. The first time I reached for it, strace was not installed. After <code>sudo apt install strace</code> (strace 7.0), I rebuilt the same hang and attached for five seconds, before and after opening the writer end:</p>
+<pre><code>$ timeout 5 strace -p $P
+strace: Process 3204016 attached
+openat(AT_FDCWD, "job.fifo", O_RDONLYstrace: Process 3204016 detached
+ &lt;detached ...&gt;
+$ ( exec 7&gt;job.fifo; sleep 8 ) &amp;
+$ timeout 5 strace -p $P
+strace: Process 3204016 attached
+read(3strace: Process 3204016 detached
+ &lt;detached ...&gt;
+</code></pre>
+<p>One unfinished line each time, cut off where the call is still waiting: <code>openat</code> on <code>job.fifo</code> with no return value, then <code>read(3</code> on the fd the open finally produced. It is the same answer <code>/proc</code> gave, in words instead of numbers. <code>timeout</code> exited 124 both times, which is its own way of saying strace was still waiting when time ran out. No root needed: <code>/proc/sys/kernel/yama/ptrace_scope</code> reads <code>0</code> here, which allows attaching to my own processes. At <code>1</code>, the Ubuntu default, the same command fails with <code>Operation not permitted</code> on anything that is not your direct child.</p>
 <p>The <code>/proc</code> files had already given the answer, which is the order I would keep: strace confirms, it does not go first. Reading four files cost less than a second. The kill would have turned "blocked in openat on a FIFO nobody opened" into "exit 137", and I would have rerun the job and waited for it to hang again.</p>
 <hr>
 <p>Full guide with the process-state table, the <code>D</code>-state trap, the socket-queue diagnosis for network hangs and a <code>hung-report.sh</code> that captures all of it before the kill: <a href="https://bashsnippets.xyz/guides/diagnose-a-hung-process">https://bashsnippets.xyz/guides/diagnose-a-hung-process</a></p>

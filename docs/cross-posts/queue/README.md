@@ -122,7 +122,7 @@ each is scheduled on dev.to, Medium and CoderLegion. They go live on their own o
 
 Row 11's title shows `&#124;` only because a raw `|` would break the table: the real title is `grep "error|failed" Found Nothing in a Log That Said 'backup failed'`. Copy titles from each file's front matter when in doubt.
 
-## Wave 2: 15–28 — SCHEDULED 2026-09-29 on all three (dev.to 12/12, CoderLegion 12/12, Medium 12/12); #20 + #24 wait on Travis's sudo runs
+## Wave 2: 15–28 — SCHEDULED 2026-09-29 on all three (dev.to 12/12, CoderLegion 12/12, Medium 12/12); only #24 waits on Travis's sudo run (`sudo ~/journal-disk-usage.sh 1G --apply`)
 
 **2026-09-29 status (Claude, anguisheh1 Chrome):** all times 08:00 America/Chicago = 14:00Z (after DST).
 
@@ -133,7 +133,7 @@ Row 11's title shows `&#124;` only because a raw `|` would break the table: the 
 | 17 | Thu 11-12 | `4772287` | [29098](https://coderlegion.com/29098) | `8c3b43fa023c` ✅ |
 | 18 | Tue 11-17 | `4772290` | [29099](https://coderlegion.com/29099) | `2f811a86b626` ✅ |
 | 19 | Thu 11-19 | `4772292` | [29100](https://coderlegion.com/29100) | `1d1b7f42cf63` ✅ |
-| 20 | Tue 12-01 | — HOLD (strace run) | — | — |
+| 20 | Tue 12-01 | `4774584` | [29165](https://coderlegion.com/29165) | `3c5fcb4871ac` ✅ (strace section re-run 9/29) |
 | 21 | Thu 12-03 | `4772293` | [29101](https://coderlegion.com/29101) | `ec116b3e8104` ✅ |
 | 22 | Tue 12-08 | `4772295` | [29102](https://coderlegion.com/29102) | `e75c8c29e80b` ✅ |
 | 23 | Thu 12-10 | `4772299` | [29103](https://coderlegion.com/29103) | `5aff0c64fbb9` ✅ |

@@ -57,13 +57,23 @@ That distinction is the whole value of looking. On a real job the first shape po
 
 I ran the same hang once more and sent `kill -9`. Bash printed `Killed`, `wait` returned 137, and `ls /proc/$P` said `No such file or directory`. That is the entire record: a number that means SIGKILL and nothing about why. No wchan, no syscall, no fd table. On a job holding a lock or halfway through an output file, SIGKILL also skips every trap, so the temp files and the lock stay behind for the next run to trip on. Plain `kill`, which sends SIGTERM, at least lets a cleanup trap run.
 
-## strace, which was not there
+## What strace adds
 
-The guide's next step is `strace -p`, which on a hang usually prints one line and stops, and that line is the stuck call. On this box it never started: `timeout 5 strace -p $P` answered `timeout: failed to run command 'strace': No such file or directory`. strace is not installed here. Permissions would not have been the problem, since `/proc/sys/kernel/yama/ptrace_scope` reads `0`, which allows attaching to my own processes. At `1`, the Ubuntu default, the same command fails with `Operation not permitted` on anything that is not your direct child.
+The guide's next step is `strace -p`, which on a hang usually prints one line and stops, and that line is the stuck call. The first time I reached for it, strace was not installed. After `sudo apt install strace` (strace 7.0), I rebuilt the same hang and attached for five seconds, before and after opening the writer end:
 
 ```text
-OUTPUT PLACEHOLDER — Travis runs: sudo apt install strace, then the mkfifo repro above and: timeout 5 strace -p $P
+$ timeout 5 strace -p $P
+strace: Process 3204016 attached
+openat(AT_FDCWD, "job.fifo", O_RDONLYstrace: Process 3204016 detached
+ <detached ...>
+$ ( exec 7>job.fifo; sleep 8 ) &
+$ timeout 5 strace -p $P
+strace: Process 3204016 attached
+read(3strace: Process 3204016 detached
+ <detached ...>
 ```
+
+One unfinished line each time, cut off where the call is still waiting: `openat` on `job.fifo` with no return value, then `read(3` on the fd the open finally produced. It is the same answer `/proc` gave, in words instead of numbers. `timeout` exited 124 both times, which is its own way of saying strace was still waiting when time ran out. No root needed: `/proc/sys/kernel/yama/ptrace_scope` reads `0` here, which allows attaching to my own processes. At `1`, the Ubuntu default, the same command fails with `Operation not permitted` on anything that is not your direct child.
 
 The `/proc` files had already given the answer, which is the order I would keep: strace confirms, it does not go first. Reading four files cost less than a second. The kill would have turned "blocked in openat on a FIFO nobody opened" into "exit 137", and I would have rerun the job and waited for it to hang again.
 
@@ -73,4 +83,4 @@ Full guide with the process-state table, the `D`-state trap, the socket-queue di
 
 Once you know why it hung, [the timeout command](https://bashsnippets.xyz/snippets/bash-timeout-command) bounds the next run so it dies on a deadline instead of waiting for you, and [flock single-instance locking](https://bashsnippets.xyz/snippets/bash-flock-single-instance) stops a stuck run from being joined by the next scheduled one. The rest of the library is at https://bashsnippets.xyz
 
-<!-- NOT SCHEDULED. Wave 2 #20 - planned Tue 2026-12-01 08:00 CST (14:00Z). Opener is a real run on this box 2026-09-28 (mkfifo + cat, bash 5.3.9, kernel 7.1, unprivileged; ptrace_scope=0). strace is not installed, so the strace -p output is an OUTPUT PLACEHOLDER: Travis installs strace and runs it before scheduling. -->
+<!-- NOT SCHEDULED. Wave 2 #20 - planned Tue 2026-12-01 08:00 CST (14:00Z). Opener is a real run on this box 2026-09-28 (mkfifo + cat, bash 5.3.9, kernel 7.1, unprivileged; ptrace_scope=0). strace section re-run 2026-09-29 with strace 7.0 (same mkfifo repro, unprivileged). -->
