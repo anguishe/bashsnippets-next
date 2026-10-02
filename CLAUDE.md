@@ -22,7 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev        # local dev server
-npm run build      # production build; sitemap written to public/sitemap.xml by scripts/generate-sitemap.mjs
+npm run build      # next build → scripts/check-meta.mjs (fails on title > 65 / description > 160 / duplicate title) → sitemap to public/sitemap.xml
 npm run start      # serve production build locally
 npm run lint       # eslint via next lint
 ```

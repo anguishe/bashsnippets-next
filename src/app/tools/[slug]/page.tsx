@@ -3,6 +3,7 @@ import EmailCapture from '@/components/EmailCapture';
 import ToolkitCTA from '@/components/ToolkitCTA';
 import ToolRenderer from '@/components/tools/ToolRenderer';
 import { getSnippetBySlug } from '@/lib/snippets';
+import { fitTitle } from '@/lib/meta-title';
 import { getAllToolSlugs, getToolBySlug, type ToolMeta } from '@/lib/tools';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -106,14 +107,16 @@ export async function generateMetadata({
     return {};
   }
 
+  const displayTitle = tool.metaTitle ?? tool.title;
+
   return {
-    title: tool.title,
+    title: fitTitle(displayTitle),
     description: tool.description,
     alternates: {
       canonical: `${SITE_URL}/tools/${tool.slug}`,
     },
     openGraph: {
-      title: tool.title,
+      title: displayTitle,
       description: tool.description,
       url: `${SITE_URL}/tools/${tool.slug}`,
       type: 'website',
@@ -121,7 +124,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: 'summary_large_image' as const,
-      title: tool.title,
+      title: displayTitle,
       description: tool.description,
       images: ['https://bashsnippets.xyz/ogimage.png'],
     },
