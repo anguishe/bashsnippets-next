@@ -456,7 +456,7 @@ export default function GrepPatternBuilder() {
               className="w-14 rounded-md border border-border bg-bg3 px-2 py-1 text-center font-mono text-[13px] text-text outline-none focus:border-green disabled:opacity-40"
             />
             <span title="Show N lines before and after each match. Generates -B N -A N flags." className="shrink-0 cursor-help text-blue">ⓘ</span>
-            <span className={`ml-auto shrink-0 rounded border border-green/25 bg-green-dim px-1.5 py-px font-mono text-[11px] font-semibold ${contextOn ? 'text-green' : 'text-muted'}`}>
+            <span className={`ml-auto shrink-0 rounded border px-1.5 py-px font-mono text-[11px] font-semibold ${contextOn ? 'border-green/25 bg-green-dim text-green' : 'border-border bg-transparent text-muted'}`}>
               -B/-A
             </span>
           </div>
