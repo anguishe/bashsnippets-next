@@ -7,6 +7,8 @@ export interface ToolMeta {
   slug: string;
   component: string;
   title: string;
+  /** Shorter <title> when `title` + " | BashSnippets.xyz" would pass 65 chars; the H1 keeps `title`. */
+  metaTitle?: string;
   description: string;
   quickAnswer: string;
   category: string;
@@ -530,6 +532,7 @@ export const tools: ToolMeta[] = [
     slug: 'open-ports-explainer',
     component: 'OpenPortsExplainer',
     title: 'Open Ports Explainer: Paste ss -tulpn, See What Is Exposed',
+    metaTitle: 'Open Ports Explainer for ss -tulpn Output',
     description:
       'Paste ss -tulpn, netstat or lsof output: every listener explained, with who could reach it, what it is, known foot-guns and the next command. In your browser.',
     quickAnswer:
