@@ -34,8 +34,8 @@ function persistConsent(value: ConsentValue): void {
 }
 
 function updateGtagConsent(value: ConsentValue): void {
-  if (value !== 'all') return;
-
+  // Outside the EEA/UK/CH analytics defaults to granted, so a "Necessary
+  // only" or "Reject all" choice has to be sent as an explicit denial.
   const gtag = (
     window as Window & { gtag?: (...args: unknown[]) => void }
   ).gtag;
@@ -47,7 +47,7 @@ function updateGtagConsent(value: ConsentValue): void {
     ad_storage: 'denied',
     ad_user_data: 'denied',
     ad_personalization: 'denied',
-    analytics_storage: 'granted',
+    analytics_storage: value === 'all' ? 'granted' : 'denied',
   });
 }
 

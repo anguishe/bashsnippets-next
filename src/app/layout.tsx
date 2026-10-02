@@ -186,12 +186,23 @@ export default function RootLayout({
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
+            // Opt-in (denied until "Accept all") only where the law requires it:
+            // EEA + UK + CH. Everywhere else analytics is on by default and the
+            // banner is an opt-out. A global denied default hid ~all traffic
+            // from GA4 reports from 2026-06-06 (docs/PLAN.md row 1.10).
             gtag('consent', 'default', {
               ad_storage: 'denied',
               ad_user_data: 'denied',
               ad_personalization: 'denied',
               analytics_storage: 'denied',
-              wait_for_update: 500
+              wait_for_update: 500,
+              region: ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE','IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE','IS','LI','NO','GB','CH']
+            });
+            gtag('consent', 'default', {
+              ad_storage: 'denied',
+              ad_user_data: 'denied',
+              ad_personalization: 'denied',
+              analytics_storage: 'granted'
             });
           `}
         </Script>
@@ -219,12 +230,12 @@ export default function RootLayout({
           {`
             (function() {
               var match = document.cookie.match(/(?:^|; )bs_consent=([^;]*)/);
-              if (match && match[1] === 'all') {
+              if (match && (match[1] === 'all' || match[1] === 'necessary' || match[1] === 'reject')) {
                 gtag('consent', 'update', {
                   ad_storage: 'denied',
                   ad_user_data: 'denied',
                   ad_personalization: 'denied',
-                  analytics_storage: 'granted'
+                  analytics_storage: match[1] === 'all' ? 'granted' : 'denied'
                 });
               }
               gtag('js', new Date());
