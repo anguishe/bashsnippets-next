@@ -4,6 +4,7 @@ import FaqTerminal from '@/components/FaqTerminal';
 import ScrollReveal from '@/components/ScrollReveal';
 import { snippets } from '@/lib/snippets';
 import { tools } from '@/lib/tools';
+import { shellcheckPages } from '@/lib/shellcheck-pages';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -413,6 +414,24 @@ export default function Home() {
           >
             See all {tools.length} tools →
           </Link>
+
+          {/* Direct links: the homepage is the only page Google has indexed, so it is
+              the only internal link source Google counts (docs/PLAN.md row 1.11). */}
+          <p className="mt-4 text-sm text-muted">
+            ShellCheck deep dives:{' '}
+            {shellcheckPages.map((page, index) => (
+              <span key={page.slug}>
+                {index > 0 && ' · '}
+                <Link
+                  href={`/shellcheck/${page.slug}`}
+                  title={page.title}
+                  className="font-mono text-blue transition-colors hover:text-text"
+                >
+                  {page.code}
+                </Link>
+              </span>
+            ))}
+          </p>
         </ScrollReveal>
       </section>
 
