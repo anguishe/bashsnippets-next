@@ -140,7 +140,7 @@ For a timer that survives a reboot, `systemctl --user enable --now bs-demo.timer
 
 ## How do I convert a crontab line to OnCalendar?
 
-`OnCalendar=` reads `DayOfWeek Year-Month-Day Hour:Minute:Second`, and any part can be `*`, a list, or a range. The common translations:
+`OnCalendar=` reads `DayOfWeek Year-Month-Day Hour:Minute:Second`, and any part can be `*`, a list, or a range. To skip the hand translation, build the line in the [Cron Job Builder](/tools/cron-job-builder) and open its "Export as a systemd timer" panel, which writes both units and is checked against `systemd-analyze calendar`. The common translations:
 
 | crontab | OnCalendar | Meaning |
 |---|---|---|

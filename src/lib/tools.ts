@@ -99,6 +99,11 @@ export const tools: ToolMeta[] = [
         answer:
           'Yes. Set the day of week field to `1-5` to run Monday through Friday. The builder supports range syntax, so you can also set it to `1,3,5` for Monday, Wednesday, and Friday only.',
       },
+      {
+        question: 'How do I convert a crontab line to a systemd timer?',
+        answer:
+          'Open "Export as a systemd timer" under the crontab entry. It writes the .service and .timer pair: OnCalendar= lines that fire on exactly the minutes cron would (each translation is checked against systemd-analyze calendar), Persistent=true so a run missed while the machine was off happens at the next boot, Type=oneshot so a slow run is queued instead of overlapping, and SyslogIdentifier= so journalctl -t finds all of the job\'s output. When both day fields are set, cron runs on either day, so the export writes two OnCalendar= lines, because a timer fires when any of its lines matches.',
+      },
     ],
     relatedSnippets: ['disk-space-warning', 'automated-file-backup', 'restart-service-if-stopped'],
   },

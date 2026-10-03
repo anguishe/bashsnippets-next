@@ -4,11 +4,12 @@ import { highlightCrontab } from './shared/bashHighlight';
 import { useClipboard } from './shared/useClipboard';
 import ShareLinkButton from './shared/ShareLinkButton';
 import { oneOf } from './shared/useShareLink';
+import { DOW_NAMES, MONTH_NAMES, normalizeNames, parseDow, parseField, parseMonth } from './shared/cronParse';
+import SystemdTimerExport from './shared/SystemdTimerExport';
+import { execStart } from './shared/systemdTimer';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const DOW_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const FIELD_OPTIONS = {
   minute: [
     ['*', '* (every minute)'], ['0', ':00 (top of hour)'], ['15', ':15'], ['30', ':30'], ['45', ':45'],
@@ -53,60 +54,6 @@ const SNIPPET_PILLS = [
 
 function pad2(n: number): string {
   return (n < 10 ? '0' : '') + n;
-}
-
-function parseField(field: string, min: number, max: number): Set<number> | null {
-  if (field === '*') return null;
-  const values = new Set<number>();
-  const parts = field.split(',');
-  for (const part of parts) {
-    let step = 1;
-    let range = part;
-    const stepMatch = part.match(/^(.+)\/(\d+)$/);
-    if (stepMatch) {
-      range = stepMatch[1];
-      step = parseInt(stepMatch[2], 10);
-      if (!step || step < 1) throw new Error('bad step');
-    }
-    let start: number;
-    let end: number;
-    if (range === '*') {
-      start = min;
-      end = max;
-    } else if (range.indexOf('-') >= 0) {
-      const bits = range.split('-');
-      start = parseInt(bits[0], 10);
-      end = parseInt(bits[1], 10);
-    } else {
-      start = end = parseInt(range, 10);
-    }
-    if (Number.isNaN(start) || Number.isNaN(end) || start < min || end > max || start > end) {
-      throw new Error('bad range');
-    }
-    for (let v = start; v <= end; v += step) values.add(v);
-  }
-  return values;
-}
-
-// cron accepts 7 for Sunday and three-letter names in the month and weekday fields.
-function normalizeNames(field: string, names: string[], base: number): string {
-  return field.replace(/[a-z]{3}/gi, (m) => {
-    const i = names.findIndex((n) => n.toLowerCase() === m.toLowerCase());
-    return i < 0 ? m : String(i + base);
-  });
-}
-
-function parseDow(field: string): Set<number> | null {
-  const set = parseField(normalizeNames(field, DOW_NAMES, 0), 0, 7);
-  if (set?.has(7)) {
-    set.delete(7);
-    set.add(0);
-  }
-  return set;
-}
-
-function parseMonth(field: string): Set<number> | null {
-  return parseField(normalizeNames(field, MONTH_NAMES, 1), 1, 12);
 }
 
 // man 5 crontab: when both day fields are restricted, a day matches if EITHER matches.
@@ -624,6 +571,12 @@ export default function CronJobBuilder() {
               }}
             />
           </div>
+          <SystemdTimerExport
+            fields={[minute, hour, dom, month, dow]}
+            execStart={execStart(command.trim() || '/path/to/job.sh', shell ? '/bin/bash' : '/bin/sh')}
+            label={command.trim() || 'cron-job'}
+            onFailure={mailto}
+          />
 
           {domDowOrWarning(dom, dow) && (
             <div className="mt-3 rounded-md border-l-[3px] border-amber bg-bg2 px-3.5 py-3 text-xs leading-relaxed text-amber">
