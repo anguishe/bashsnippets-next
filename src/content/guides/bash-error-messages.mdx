@@ -1,0 +1,195 @@
+---
+title: "Bash Error Messages, Decoded"
+description: "Nine bash error messages decoded from real runs: what the shell was doing, the 60-second check that names the cause, the fix, and the order to read any error."
+slug: bash-error-messages
+author: "Travis"
+datePublished: 2026-10-03
+dateModified: 2026-10-03
+---
+
+## Bash Error Messages, Decoded
+
+A bash error message tells you which check failed, not why. `command not found` covers six different causes. `Permission denied` covers five. `unary operator expected` names an operator when the bug is the variable next to it. Each section below takes one message as it actually appears, says what the shell was doing when it printed it, gives the one check that tells the causes apart, and links to the page with the full diagnosis and a script.
+
+Every output on this page was reproduced on this machine (Kali Linux, bash 5.3, ShellCheck 0.11.0) in a scratch directory, either for this guide on 2026-10-03 or for the linked page, whose date it carries. Commands run from a script show the script's name where an interactive shell would print `bash:`.
+
+## What does "command not found" mean?
+
+```text
+$ gti status
+bash: line 1: gti: command not found
+exit=127
+```
+
+bash searched every directory in `$PATH` for an executable called `gti` and found none. The message is identical for a typo, a program that is not installed, one installed in a directory that is not on `PATH` (`~/.local/bin`, `/usr/sbin`), a script in the current directory run without `./`, and an alias that only exists in interactive shells. Exit code 127 is the constant.
+
+The check that splits them:
+
+```bash
+type -a NAME; echo "$PATH" | tr : '\n'
+```
+
+`type -a` lists every alias, function and file bash can see by that name; no output means nothing on `PATH`. Then compare with cron's `PATH`, which is only `/usr/bin:/bin`. A related message, `No such file or directory` for a command that worked a minute ago, is a stale hash table, cleared with `hash -r`. Full diagnosis and a script that names the cause: [Fix "bash: command not found"](/snippets/bash-command-not-found).
+
+## What does "Permission denied" mean when running a script?
+
+```text
+$ ./backup.sh
+pd.sh: line 1: ./backup.sh: Permission denied
+exit=126
+```
+
+bash found the file and the kernel refused to execute it. Exit 126 means "found, could not run", the counterpart of 127's "not found". A missing execute bit is the usual cause, and `chmod +x` fixes it. When it does not, the cause is one of the cases chmod cannot reach: a parent directory without its `x` (search) bit, a filesystem mounted `noexec` (which blocks root too), or a file owned by someone else.
+
+```bash
+ls -l script.sh; findmnt -no OPTIONS --target script.sh; namei -l "$PWD/script.sh"
+```
+
+Read the mode, look for `noexec` in the mount options, and scan `namei`'s output for a directory without `x`. `Permission denied` from `cat` or `>` with exit 1 is a read or write check instead, and creating or deleting a file depends on the *directory's* write bit. Full diagnosis: [Fix "Permission denied" in Bash](/snippets/bash-permission-denied).
+
+## What does "bad interpreter" mean?
+
+```text
+$ ./deploy/deploy.sh prod
+bash: ./deploy/deploy.sh: /bin/bash^M: bad interpreter: No such file or directory
+exit=126
+```
+
+The kernel read the shebang and looked for an interpreter called `/bin/bash` followed by a carriage return (`^M`). The file was saved with Windows CRLF line endings, so every line ends in `\r\n`. The same cause shows up as `env: 'bash\r': No such file or directory` (exit 127) with an `env` shebang, and as `$'\r': command not found` when the script is run as `bash script.sh`. That last form is the dangerous one: `set -e` plus a carriage return is an invalid option, so strict mode silently never turns on.
+
+```bash
+file script.sh; cat -A script.sh | head -3
+```
+
+`with CRLF line terminators` or `^M$` at line ends confirms it. Strip them with `sed -i 's/\r$//' script.sh` and stop git reintroducing them with `*.sh text eol=lf` in `.gitattributes`. Full page: [Fix /bin/bash^M: bad interpreter](/snippets/fix-bad-interpreter-crlf).
+
+## What does "unary operator expected" mean?
+
+```text
+$ [ $count -eq 1 ] && echo one
+u.sh: line 1: [: -eq: unary operator expected
+exit=2
+```
+
+`count` was empty and unquoted. Word splitting removed it entirely, so `[` received `-eq 1` instead of `$count -eq 1`, tried to read `-eq` as a one-argument test like `-f`, and failed. The message names the operator; the bug is the variable before it. The same variable with a space in its value produces `too many arguments` instead.
+
+```bash
+shellcheck script.sh   # SC2086 on the unquoted variable, SC2070 on [ -n $var ]
+```
+
+Fix it by quoting (`[ "$count" -eq 1 ]`, which turns the error into an honest `integer expected`), by using `[[ $count -eq 1 ]]`, or by giving the variable a default with `"${count:-0}"`. Watch for the two silent versions: `[[ $count -eq 0 ]]` and `[ -n $count ]` are both *true* when `count` is empty. Full table of every variant: [Fix "unary operator expected"](/snippets/unary-operator-expected).
+
+## What does "unbound variable" mean?
+
+```text
+$ bash typo.sh
+typo.sh: line 4: bakup_dir: unbound variable
+exit=1
+```
+
+The script runs with `set -u`, and line 4 referenced a variable that was never assigned. Without `set -u`, bash would have expanded `$bakup_dir` to nothing and carried on, writing to the wrong path. This error is `set -u` doing its job: the message names the variable, and here the cause is a typo for `backup_dir`. ShellCheck finds it before the script runs:
+
+```text
+$ shellcheck typo.sh
+
+In typo.sh line 3:
+backup_dir="/srv/backup"
+^--------^ SC2034 (warning): backup_dir appears unused. Verify use (or export if used externally).
+
+
+In typo.sh line 4:
+echo "writing to $bakup_dir"
+                 ^--------^ SC2154 (warning): bakup_dir is referenced but not assigned (did you mean 'backup_dir'?).
+```
+
+When the variable comes from the environment and may legitimately be absent, read it as `${VAR:-default}`, or require it with `: "${VAR:?VAR must be set}"` at the top. More: [SC2154](/shellcheck/sc2154) and [Bash Environment Variables](/snippets/bash-environment-variables).
+
+## What does "syntax error near unexpected token" mean?
+
+```text
+$ bash missing-then.sh
+missing-then.sh: line 4: syntax error near unexpected token `fi'
+missing-then.sh: line 4: `fi'
+exit=2
+```
+
+bash parses a compound command (`if`, `for`, `while`, `case`) as a whole before running it, and the first token that cannot fit is the one it reports. The real mistake is two lines up: line 2 is `if [ -f /etc/hostname ] then`, missing the `;` before `then`, so bash read `then` as an argument to `[` and only noticed something was wrong when it reached `fi` with no `then` open. The line number is where bash gave up, not where you went wrong. Its relatives:
+
+```text
+$ bash missing-done.sh
+missing-done.sh: line 4: syntax error: unexpected end of file from `for' command on line 2
+exit=2
+$ bash -n brace.sh
+brace.sh: line 3: unexpected EOF while looking for matching `"'
+exit=2
+```
+
+A missing `done`, and an unterminated quote. `bash -n script.sh` parses without running anything, so it is safe on any script; run it, then read upwards from the reported line. ShellCheck usually points at the real line.
+
+## What does "Argument list too long" mean?
+
+```text
+$ rm spool/*.log
+bash: line 6: /usr/bin/rm: Argument list too long
+exit=126
+```
+
+From the [argument-list-too-long page](/snippets/argument-list-too-long)'s run on 2026-09-28, against 200,000 files. bash expanded the glob into 200,000 file names (4.2 MB of arguments) and asked the kernel to start `rm` with them. The kernel limits arguments plus environment to `ARG_MAX` (`getconf ARG_MAX`, 2,097,152 bytes here) and refused with `E2BIG`. `rm` never ran, so nothing was deleted, and `ls spool/*.log` fails the same way.
+
+```bash
+find spool -name '*.log' -delete                      # no argument list at all
+find spool -name '*.log' -exec mv -t /archive {} +   # batches under the limit
+```
+
+`find` builds no giant argument list, and `-exec … +` packs as many names per command as fit. Builtins like `printf` are exempt, which is why `printf '%s\0' spool/*.log | xargs -0 rm --` also works. Full page: [Argument List Too Long](/snippets/argument-list-too-long).
+
+## What does "No space left on device" mean when df shows free space?
+
+```text
+$ echo test > /mnt/app/logs/new.log
+bash: line 6: /mnt/app/logs/new.log: No space left on device
+exit=1
+$ df -h /mnt
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs            50M     0   50M   0% /mnt
+$ df -i /mnt
+Filesystem     Inodes IUsed IFree IUse% Mounted on
+tmpfs            1000  1000     0  100% /mnt
+```
+
+From the [inodes page](/snippets/no-space-left-on-device-inodes)'s 2026-09-28 run. The kernel returns the same `ENOSPC` error when it runs out of data blocks *or* out of inodes, the per-file records. Thousands of tiny files (sessions, cache entries, mail queue) can use every inode while the blocks sit empty, so `df -h` shows 0% used and writes still fail.
+
+```bash
+df -h PATH; df -i PATH
+```
+
+If `df -i` shows `IUse%` at 100, find the directory with the most entries and clean it up. If `df -h` is full but `du` cannot account for it, a deleted file is still held open: `sudo lsof +L1` lists it, and [lsof Command Examples](/snippets/lsof-command-examples) shows how to get the space back without a reboot.
+
+## What does "Connection refused" mean when the service is listening?
+
+```text
+$ echo > /dev/tcp/127.0.0.2/8097
+bash: connect: Connection refused
+$ ss -ltn "sport = :8097"
+State  Recv-Q Send-Q Local Address:Port Peer Address:Port
+LISTEN 0      5          127.0.0.1:8097      0.0.0.0:*
+```
+
+From the [connection-refused page](/snippets/port-listening-but-connection-refused)'s run on 2026-09-28. The kernel received the connection attempt and answered at once that nothing listens on that address and port. It did not time out, so nothing silently dropped the packets (a firewall `REJECT` rule can also refuse, but here `ss` shows the real cause). The service is listening, but on `127.0.0.1` only, so a connection to any other address on the same machine, the LAN IP included, is refused.
+
+```bash
+ss -ltnp "sport = :PORT"
+```
+
+The Local Address column is the answer: `127.0.0.1` means local only, `0.0.0.0` or `*` means every interface. Rebind the service, or reach it through an SSH tunnel. Reading every column: [ss Command Examples](/snippets/ss-command-examples).
+
+## In what order should I read any bash error?
+
+Four steps, in this order, find the cause of nearly every failure on this page:
+
+1. **The message**, word for word. It names the check that failed (`command not found`, `Permission denied`, `unexpected token`). Search for it with the variable parts removed.
+2. **The exit code.** `echo $?` straight after, or the number in a cron or CI log. 127 is "not found", 126 is "found, could not execute", 2 is usually a syntax or usage error, 1 is the command's own failure, and 128+N is "killed by signal N". The [Bash Exit Code Lookup](/tools/bash-exit-code-lookup) decodes any of them.
+3. **`set -x`**, or `bash -x script.sh`. It prints every command after expansion, so you see the `[ -eq 1 ]` that bash actually ran instead of the `[ $count -eq 1 ]` you wrote.
+4. **ShellCheck.** Most of the errors above are flagged before the script ever runs. The [ShellCheck Error Decoder](/tools/shellcheck-error-decoder) explains any code it prints.
+
+Then make the next failure louder. `set -euo pipefail` stops a script at the first failing command, the first unset variable and the first failure inside a pipeline, instead of three lines later with a confusing message. A trap on `ERR` can print the line number. [Bash Error Handling](/snippets/bash-error-handling) covers the trap, and the [Safe Bash Script Template](/guides/safe-bash-script-template) puts it all on line 4 of every new script. [The Production Bash Toolkit](/starter-kit) ships that template ShellCheck-clean.

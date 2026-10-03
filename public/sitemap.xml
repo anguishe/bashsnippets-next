@@ -97,6 +97,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://bashsnippets.xyz/guides/bash-error-messages</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://bashsnippets.xyz/snippets/disk-space-warning</loc>
     <lastmod>2026-06-03</lastmod>
     <changefreq>weekly</changefreq>
