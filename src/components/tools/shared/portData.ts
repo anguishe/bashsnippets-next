@@ -530,7 +530,13 @@ export function parseListing(text: string): ParseResult {
   // Owner visibility: which of the three situations produced this listing
   const withOwner = raw.filter((s) => s.hasOwnerField).length;
   if (format !== 'netstat' && format !== 'lsof') {
-    if (raw.length > 0 && withOwner === 0) res.noProcessColumn = true;
+    // ss prints a Process header only with -p. With -p, non-root, and every listener
+    // owned by root, no row has an owner, but the cause is "not root", not "no -p".
+    const processHeader = lines.some((l) => /Peer Address:Port\s*Process/.test(l));
+    if (raw.length > 0 && withOwner === 0) {
+      if (processHeader) res.nonRoot = true;
+      else res.noProcessColumn = true;
+    }
     else if (withOwner < raw.length) res.nonRoot = true;
   } else if (format === 'netstat') {
     if (!lines.some((l) => /PID\/Program name/.test(l))) res.noProcessColumn = true;

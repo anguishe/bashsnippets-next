@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>My Container Cleanup Removed Two Containers. The Next Run Had Nothing to Remove and Exited 1. — Medium paste</title>
+<style>body{max-width:720px;margin:2rem auto;font:18px/1.6 Georgia,serif;padding:0 1rem}pre{background:#f2f2f2;padding:1rem;overflow:auto}code{font-family:monospace}</style>
+</head><body>
+<p>The script is three lines of real work, written the way most answers online write it, with strict mode on, the way a cleanup script should run. This machine runs real containers, so every demo container here carries a <code>bsdemo=1</code> label and every command filters on it. Four containers: two running, two exited, one of the exited ones with an anonymous volume at <code>/scratch</code>. Then the script, twice:</p>
+<pre><code>$ docker ps -a --filter label=bsdemo=1 --format 'table {{.Names}}\t{{.Status}}'
+NAMES          STATUS
+demo-migrate   Exited (0) Less than a second ago
+demo-job       Exited (0) Less than a second ago
+demo-db        Up Less than a second
+demo-web       Up 1 second
+$ cat clean-containers.sh
+#!/bin/bash
+# nightly: remove finished job containers
+set -euo pipefail
+docker rm $(docker ps -aq --filter label=bsdemo=1 --filter status=exited)
+echo "removed finished containers"
+$ ./clean-containers.sh
+83e39033b709
+6d7ce95e7af5
+removed finished containers
+exit=0
+$ ./clean-containers.sh
+docker: 'docker rm' requires at least 1 argument
+
+Usage:  docker rm [OPTIONS] CONTAINER [CONTAINER...]
+
+See 'docker rm --help' for more information
+exit=1
+</code></pre>
+<p>The first run did its job. The second run had nothing to do, and that is the run that failed. From cron, the alert fires on the quiet night, the one where everything is fine, and after a few of those nobody reads the alert.</p>
+<h3>An empty list is not an empty command</h3>
+<p><code>$(docker ps -aq ...)</code> printed nothing, so the substitution expanded to nothing, and the line bash ran was <code>docker rm</code> with no arguments at all. That is a usage error, exit 1, and <code>set -e</code> did what it is for and stopped the script. Strict mode did not cause the failure; it reported it. Without <code>set -e</code>, the script would have printed "removed finished containers" after an error, which is worse.</p>
+<p>The fix is to stop treating "no containers" as an argument list. GNU <code>xargs -r</code> runs nothing when its input is empty: on the same empty list, <code>docker ps -aq --filter label=bsdemo=1 --filter status=exited | xargs -r docker rm</code> printed nothing and exited 0.</p>
+<p>The <code>--filter</code> in that line is doing more work than it looks. Without it, <code>docker ps -aq</code> lists every container on the host, running or stopped, and the same pipe with <code>rm -f</code> takes the database of the project you were not thinking about.</p>
+<h3>Why stop took ten seconds, and what rm kept</h3>
+<p>Then I cleared the rest by hand, and two more things went differently than the one-liner suggests. A fifth container, <code>demo-init</code>, from the same image but started with <code>--init</code>, was there for comparison. Under <code>time</code>, <code>docker stop demo-web</code> came back after <code>real 0m10.304s</code>, and <code>docker inspect demo-web --format '{{.State.ExitCode}}'</code> printed 137. <code>docker stop demo-init</code> came back after <code>real 0m0.240s</code>, exit code 143. Then <code>docker rm -f $(docker ps -aq --filter label=bsdemo=1)</code> printed three container IDs, and <code>docker volume ls --filter name=bsdemo-data</code> still listed <code>local bsdemo-data</code>.</p>
+<p><code>docker stop demo-web</code> took 10.3 seconds and the container exited 137. <code>docker stop</code> sends <code>SIGTERM</code>, waits 10 seconds, then sends <code>SIGKILL</code>, and 137 is 128 + 9, killed. The main process was <code>sleep</code>, running as PID 1 in its container, and the kernel does not apply a signal's default action to a namespace's PID 1 when the signal comes from outside it. <code>sleep</code> has no handler for <code>SIGTERM</code>, so the signal did nothing and Docker waited out the timeout. With <code>--init</code>, a small init process sits at PID 1 and forwards the signal, <code>sleep</code> is an ordinary child again, and it died of <code>SIGTERM</code> in 0.24 seconds: 143, 128 + 15. <code>docker rm -f</code> skips the wait by killing at once, which is fine for a throwaway container and wrong for a database you want flushed.</p>
+<p>The last two commands show what <code>docker rm</code> keeps. All three remaining containers are gone, and <code>demo-db</code>'s named volume, <code>bsdemo-data</code>, is still there, even after <code>-f</code>. The script's earlier run left something too: <code>docker volume ls</code>, filtered on the ID of the anonymous volume <code>demo-job</code> had mounted at <code>/scratch</code>, still listed it, because <code>docker rm</code> without <code>-v</code> keeps anonymous volumes. Both are by design, and neither is mentioned in <code>docker rm</code>'s output. Leftover volumes are a separate job for <code>docker volume ls --filter dangling=true</code> and <code>docker volume prune</code>, done on purpose.</p>
+<h3>A cleanup that shows its work</h3>
+<p>The page's script, <code>docker-remove-containers.sh</code>, takes stopped containers only unless you pass <code>--running</code>, passes <code>--filter</code> straight to <code>docker ps</code>, and dry-runs until <code>--yes</code>. On two fresh exited containers and one running one, all labelled, the dry run listed <code>demo-migrate</code> and <code>demo-job</code> with their status and image and exited 1. With <code>--yes</code> it printed <code>✓ removed 2 container(s)</code> and a line counting the volumes no container uses. Run again with nothing left, it printed <code>✓ no containers match — nothing to remove</code> and exited 0. <code>demo-web</code>, running, was untouched.</p>
+<p>That last run is the one my three-line version failed. Nothing to do should be the quietest night a cleanup script has.</p>
+<hr>
+<p>The script, the filters, and what to check before deleting anything: <a href="https://bashsnippets.xyz/snippets/docker-remove-all-containers">https://bashsnippets.xyz/snippets/docker-remove-all-containers</a></p>
+<p>If the goal is disk space rather than containers, <a href="https://bashsnippets.xyz/snippets/docker-prune-cleanup">Docker Prune Cleanup</a> covers images, build cache and volumes, and the <a href="https://bashsnippets.xyz/tools/bash-exit-code-lookup">Bash Exit Code Lookup</a> decodes 137 and 143. The rest of the library is at <a href="https://bashsnippets.xyz">https://bashsnippets.xyz</a></p>
+<p>Originally published at <a href="https://bashsnippets.xyz/snippets/docker-remove-all-containers">https://bashsnippets.xyz/snippets/docker-remove-all-containers</a></p>
+</body></html>

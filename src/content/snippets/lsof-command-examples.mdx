@@ -63,7 +63,7 @@ sleep   497112 root 4w   REG   0,78 157286400     0    2 ~/demo/data/app.log (de
 exit=1
 ```
 
-`NLINK 0`, `(deleted)`, 157,286,400 bytes, held open for writing (`4w`) by PID 497112 on file descriptor 4. Note `exit=1`: lsof printed exactly what was asked for and still returned failure. Scripts must check its output, never its exit status.
+`NLINK 0`, `(deleted)`, 157,286,400 bytes, held open for writing (`4w`) by PID 497112 on file descriptor 4. Note `exit=1`: lsof printed exactly what was asked for and still returned failure. Re-run on 2026-10-03, the same mount given as an absolute path (`lsof -w +L1 "$PWD/data"`) printed the same row and exited 0, so the status depends on how the path is written. Scripts must check its output, never its exit status.
 
 ## How Do I Free the Space Without a Reboot?
 
