@@ -6,7 +6,7 @@ import { AUTHOR } from '@/lib/author';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: { absolute: '25 Bash Scripts Every Linux Sysadmin Needs | BashSnippets.xyz' },
+  title: { absolute: '25 Bash Scripts Every Linux Admin Needs | BashSnippets.xyz' },
   description:
     '25 bash scripts that prevent the most common server failures: disk full, SSL expiry, failed services, bad permissions. Copy-paste ready and cron-schedulable.',
   alternates: {

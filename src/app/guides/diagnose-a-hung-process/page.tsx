@@ -16,7 +16,7 @@ const DESCRIPTION =
 const BREADCRUMB = 'Diagnosing a Hung Process';
 
 export const metadata: Metadata = {
-  title: fitTitle(TITLE),
+  title: fitTitle('Diagnose a Hung Process: Commands to Run Before You Kill It'),
   description: DESCRIPTION,
   alternates: {
     canonical: `${SITE_URL}/guides/diagnose-a-hung-process`,

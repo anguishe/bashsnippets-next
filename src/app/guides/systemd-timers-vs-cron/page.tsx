@@ -16,7 +16,7 @@ const DESCRIPTION =
 const BREADCRUMB = 'systemd Timers vs Cron';
 
 export const metadata: Metadata = {
-  title: fitTitle(TITLE),
+  title: fitTitle('systemd Timers vs Cron: Missed Runs, Overlaps, Alerts'),
   description: DESCRIPTION,
   alternates: {
     canonical: `${SITE_URL}/guides/systemd-timers-vs-cron`,

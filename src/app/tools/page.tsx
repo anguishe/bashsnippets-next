@@ -7,7 +7,7 @@ import Link from 'next/link';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 export const metadata: Metadata = {
-  title: 'Free Bash Tools — Cron Builder, Chmod & More',
+  title: 'Free Bash Tools: Cron, Chmod, jq & More',
   description:
     'Free bash tools in the browser: cron job builder, chmod calculator, exit code lookup, PATH debugger, boilerplate generator, rsync builder, ShellCheck decoder.',
   alternates: {

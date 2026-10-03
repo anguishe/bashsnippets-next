@@ -394,6 +394,7 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'bash-functions',
     title: 'Bash Functions: Return Values, Local Scope, and Reusable Logic',
+    metaTitle: 'Bash Functions: Return Values, Local Scope, Reusable Logic',
     quickAnswer:
       'A bash function is a named block you call like a command: define greet() { echo hi; } and then run greet. Arguments arrive inside as $1 and $2, never by name, and return only sets an exit code from 0 to 255; it cannot hand back a string. To return data, echo it and capture it with result=$(myfunc), or write into a variable the caller declared. Every variable is global unless you mark it local, so a helper that reuses a name like target silently overwrites the value the caller was holding, which is the bug behind more than one rm -rf on the wrong directory. This page covers declaring functions, local scope, returning values three ways, default arguments, and the local x=$(cmd) form that hides a failed command from set -e. Functions are bash builtins, so there is nothing to install on any Linux distribution or on macOS. Copy the script below as a starting library.',
     description:
@@ -406,6 +407,7 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'bash-arrays',
     title: 'Bash Arrays: Indexed, Associative, Append, and Safe Iteration',
+    metaTitle: 'Bash Arrays: Indexed, Associative, Append, Safe Iteration',
     quickAnswer:
       'A bash array holds a list where every element stays one unit, whatever characters it contains. Declare one with arr=(web-01 web-02 db-prod), append with arr+=(new-host), read the count with ${#arr[@]}, and iterate over a double-quoted ${arr[@]} expansion, which is what keeps an element containing a space intact. A space-separated string iterated with for h in $SERVERS splits on every space and glob character, so one hostname with a space becomes two nonexistent hosts and the script reports success for both. Associative arrays, declared with declare -A, map keys to values for lookups such as port[nginx]=80. This page covers indexed and associative arrays, safe iteration, slicing, reading a file into an array with mapfile, and passing arrays into functions. Arrays need bash 4 or later, the default on every current Linux distribution; macOS ships bash 3.2, so install a newer bash from Homebrew there.',
     description:
@@ -418,6 +420,7 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'bash-argument-parsing',
     title: 'Bash Argument Parsing: Positional Args, getopts, and Long Flags',
+    metaTitle: 'Bash Argument Parsing: Positional Args, getopts, Long Flags',
     quickAnswer:
       'Bash scripts receive arguments as $1, $2 and so on, with $# holding the count and $@ holding the full list. Positional arguments work for one or two required values; anything optional needs getopts, which parses short flags like -e prod -v in any order and stops with an error on a flag it does not recognise. Without parsing, ./deploy.sh --env prod stores the literal string --env in ENV and deploys to whatever default that falls through to, silently. This page covers the three forms: positional with ${1:?usage} validation, getopts for short flags, and a while/case loop for long flags like --env=prod, plus shift, the -- separator, and printing usage before exiting 2 on bad input. Everything is a bash builtin, so it runs on any Linux distribution and on macOS with nothing to install. The script below is a template to copy into any new command-line tool.',
     description:
@@ -582,7 +585,7 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'log-retention-cleanup',
     title: 'Log Retention Cleanup: Keep the Newest N, Delete Older Than D Days — Bash Script',
-    metaTitle: 'Log Retention Script: Keep Newest N, Delete Older Than D Days',
+    metaTitle: 'Log Retention Script: Keep N Newest, Delete After D Days',
     description:
       'A logrotate alternative for directories it does not own: keep the newest N dated folders, delete the rest past D days, dry-run by default, exit 1 on no match.',
     tags: ['cleanup', 'find', 'cron-ready', 'retention', 'backup'],
@@ -593,6 +596,7 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'bashlib-starter',
     title: 'bashlib Starter: 10 Bash Functions to Source Into Every Script',
+    metaTitle: 'bashlib Starter: 10 Bash Functions for Every Script',
     description:
       'Every script re-invents strict mode, ERR traps, temp cleanup and a lock, or forgets one. Source ten tested bash functions instead: one MIT file, 31-check test.',
     tags: ['library', 'error-handling', 'trap', 'cron-ready', 'strict-mode'],
@@ -603,7 +607,7 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'port-listening-but-connection-refused',
     title: 'Port Is Listening but Connection Refused: Check the Bind Address — Bash Script',
-    metaTitle: 'Port Listening but Connection Refused? Check the Bind Address',
+    metaTitle: 'Port Listening but Connection Refused? Check Bind Address',
     description:
       'ss shows the port listening, yet other machines get Connection refused. The service is bound to 127.0.0.1. Check the bind address per port and fix it.',
     tags: ['ports', 'ss', 'networking', 'troubleshooting', 'security'],
@@ -614,7 +618,7 @@ export const snippets: SnippetRegistryEntry[] = [
   {
     slug: 'no-space-left-on-device-inodes',
     title: 'No Space Left on Device but df Shows Free Space: Out of Inodes — Bash Script',
-    metaTitle: 'No Space Left on Device With Free Space? Check Inodes (df -i)',
+    metaTitle: 'No Space Left on Device With Free Space? Check df -i',
     description:
       'Writes fail with No space left on device while df -h shows free space: the filesystem is out of inodes. Check df -i and find the directory with the files.',
     tags: ['disk', 'inodes', 'df', 'troubleshooting', 'cron-ready'],
