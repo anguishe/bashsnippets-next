@@ -10,17 +10,16 @@
 // with select() filters and projection, a // default, and -r raw output. It is not
 // a full jq implementation; advanced expressions belong in the jq manual.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ShareLinkButton from './shared/ShareLinkButton';
 import { oneOf } from './shared/useShareLink';
+import { buildFilter, evaluate, parseFilter, pathToJq, walk, type JqState, type Op, type Seg } from './shared/jqSubset';
 
 // Share-link check for the clicked path: only well-formed key/index segments are restored.
 const isSegs = (v: unknown) =>
   Array.isArray(v) &&
   v.every((g) => (g?.kind === 'key' && typeof g.key === 'string') || (g?.kind === 'index' && Number.isInteger(g.index) && g.index >= 0));
 
-type Seg = { kind: 'key'; key: string } | { kind: 'index'; index: number };
-type Op = '==' | '!=' | '>' | '<';
 
 const SAMPLES: { label: string; url: string; json: string }[] = [
   {
@@ -74,69 +73,10 @@ const SAMPLES: { label: string; url: string; json: string }[] = [
   },
 ];
 
-function isBareKey(k: string): boolean {
-  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(k);
-}
-
-function segToJq(seg: Seg): string {
-  if (seg.kind === 'index') return `[${seg.index}]`;
-  return isBareKey(seg.key) ? `.${seg.key}` : `[${JSON.stringify(seg.key)}]`;
-}
-
-function pathToJq(path: Seg[]): string {
-  if (path.length === 0) return '.';
-  return path.map(segToJq).join('');
-}
-
-function walk(root: unknown, path: Seg[]): unknown {
-  let cur: unknown = root;
-  for (const seg of path) {
-    if (cur == null) return undefined;
-    if (seg.kind === 'key') {
-      if (typeof cur !== 'object' || Array.isArray(cur)) return undefined;
-      cur = (cur as Record<string, unknown>)[seg.key];
-    } else {
-      if (!Array.isArray(cur)) return undefined;
-      cur = cur[seg.index];
-    }
-  }
-  return cur;
-}
-
 function typeLabel(v: unknown): string {
   if (v === null) return 'null';
   if (Array.isArray(v)) return `array[${v.length}]`;
   return typeof v;
-}
-
-// Parse a select() value the way jq would read the literal the user typed.
-function parseLiteral(raw: string): { display: string; value: unknown } {
-  const t = raw.trim();
-  if (t === 'true') return { display: 'true', value: true };
-  if (t === 'false') return { display: 'false', value: false };
-  if (t !== '' && !Number.isNaN(Number(t))) return { display: t, value: Number(t) };
-  return { display: JSON.stringify(t), value: t };
-}
-
-function compare(a: unknown, op: Op, b: unknown): boolean {
-  switch (op) {
-    case '==':
-      return a === b;
-    case '!=':
-      return a !== b;
-    case '>':
-      return typeof a === 'number' && typeof b === 'number' && a > b;
-    case '<':
-      return typeof a === 'number' && typeof b === 'number' && a < b;
-  }
-}
-
-function formatOut(v: unknown, raw: boolean): string {
-  if (v === undefined) return '';
-  if (raw && typeof v === 'string') return v;
-  if (v === null) return 'null';
-  if (typeof v === 'object') return JSON.stringify(v);
-  return JSON.stringify(v);
 }
 
 // Flatten a parsed value into indented, selectable rows for the tree view.
@@ -232,52 +172,56 @@ export default function JqFilterBuilder() {
   const iterating = nodeIsArray && iterate;
 
   // ── Build the jq filter string ────────────────────────────────────────────
-  const filter = useMemo(() => {
-    const base = pathToJq(path);
-    if (iterating) {
-      let f = `${base}[]`;
-      if (useSelect && selectKey) {
-        const lit = parseLiteral(selectVal).display;
-        f += ` | select(.${selectKey} ${selectOp} ${lit})`;
-      }
-      if (useProject && projectKey) f += ` | .${projectKey}`;
-      return f;
+  const state = useMemo<JqState>(
+    () => ({
+      path,
+      iterate: iterating,
+      select: iterating && useSelect && selectKey ? { key: selectKey, op: selectOp, value: selectVal } : null,
+      project: iterating && useProject && projectKey ? projectKey : null,
+      defaultVal: !iterating && useDefault ? defaultVal : null,
+    }),
+    [path, iterating, useSelect, selectKey, selectOp, selectVal, useProject, projectKey, useDefault, defaultVal],
+  );
+  const builtFilter = useMemo(() => buildFilter(state), [state]);
+
+  // A filter typed by hand. When it parses, it drives the builder (see applyTyped); when the
+  // builder is clicked into a different filter, the typed text gives way to it.
+  const [typed, setTyped] = useState<string | null>(null);
+  const typedState = typed === null ? null : parseFilter(typed);
+  useEffect(() => {
+    // Typing an unparseable filter never changes builtFilter, so reaching here means the builder was used.
+    if (typed !== null && (typedState === null || buildFilter(typedState) !== builtFilter)) setTyped(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the built filter changes
+  }, [builtFilter]);
+  const filter = typed ?? builtFilter;
+  const outsideSubset = typed !== null && typedState === null;
+
+  const applyTyped = (text: string) => {
+    setTyped(text);
+    const st = parseFilter(text);
+    if (!st) return;
+    setPath(st.path);
+    setIterate(st.iterate);
+    setUseSelect(st.select !== null);
+    if (st.select) {
+      setSelectKey(st.select.key);
+      setSelectOp(st.select.op);
+      setSelectVal(st.select.value);
     }
-    let f = base;
-    if (useDefault) f += ` // ${parseLiteral(defaultVal).display === '"empty"' ? 'empty' : parseLiteral(defaultVal).display}`;
-    return f;
-  }, [path, iterating, useSelect, selectKey, selectOp, selectVal, useProject, projectKey, useDefault, defaultVal]);
+    setUseProject(st.project !== null);
+    if (st.project) setProjectKey(st.project);
+    setUseDefault(st.defaultVal !== null);
+    if (st.defaultVal !== null) setDefaultVal(st.defaultVal);
+  };
 
   const command = `curl -s "${url}" | jq ${raw ? '-r ' : ''}'${filter}'`;
 
   // ── Live preview: evaluate the supported subset against the actual JSON ────
   const preview = useMemo<{ lines: string[]; note?: string }>(() => {
     if (!parsed.ok) return { lines: [], note: 'Fix the JSON above to see a preview.' };
-    if (iterating) {
-      const arr = nodeAtPath as unknown[];
-      const lines: string[] = [];
-      for (const el of arr) {
-        if (useSelect && selectKey) {
-          const left = el && typeof el === 'object' ? (el as Record<string, unknown>)[selectKey] : undefined;
-          if (!compare(left, selectOp, parseLiteral(selectVal).value)) continue;
-        }
-        let out: unknown = el;
-        if (useProject && projectKey) {
-          out = el && typeof el === 'object' ? (el as Record<string, unknown>)[projectKey] : undefined;
-        }
-        lines.push(formatOut(out, raw));
-      }
-      return lines.length ? { lines } : { lines: [], note: 'No elements matched (jq would output nothing).' };
-    }
-    let v = walk(parsed.value, path);
-    if ((v === undefined || v === null) && useDefault) {
-      const d = parseLiteral(defaultVal);
-      if (d.display === '"empty"') return { lines: [], note: '// empty → no output for the missing value' };
-      v = d.value;
-    }
-    if (v === undefined) return { lines: [], note: 'Path not found (jq would output nothing / an error).' };
-    return { lines: [formatOut(v, raw)] };
-  }, [parsed, iterating, nodeAtPath, useSelect, selectKey, selectOp, selectVal, useProject, projectKey, path, useDefault, defaultVal, raw]);
+    if (outsideSubset) return { lines: [], note: 'This filter is outside what the builder can evaluate in the browser. Run the command below with jq itself to see its output.' };
+    return evaluate(parsed.value, state, raw);
+  }, [parsed, outsideSubset, state, raw]);
 
   // ── Plain-English breakdown of the built filter ───────────────────────────
   const explain = useMemo<string[]>(() => {
@@ -495,9 +439,18 @@ export default function JqFilterBuilder() {
             <span className="text-sm font-semibold text-[var(--text)]">jq filter</span>
             <CopyButton text={filter} />
           </div>
-          <pre className={`overflow-auto rounded-[8px] border border-[var(--border)] bg-[var(--bg)] p-3 text-sm text-[var(--green)] ${mono}`}>
-            {filter}
-          </pre>
+          <input
+            value={filter}
+            onChange={(e) => applyTyped(e.target.value)}
+            aria-label="jq filter (editable)"
+            spellCheck={false}
+            className={`w-full rounded-[8px] border border-[var(--border)] bg-[var(--bg)] p-3 text-sm text-[var(--green)] outline-none transition-colors focus:border-[var(--green)] ${mono}`}
+          />
+          <p className="text-xs text-[var(--muted)]">
+            {outsideSubset
+              ? 'Outside the builder: it previews paths, [], select(.key == value), | .key and // default. The command below still uses your filter.'
+              : 'Type a filter or click through the JSON; both stay in sync.'}
+          </p>
         </div>
 
         <div className="flex flex-col gap-2">

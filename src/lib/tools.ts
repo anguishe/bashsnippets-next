@@ -530,6 +530,11 @@ export const tools: ToolMeta[] = [
         answer:
           'No — it builds the common extraction patterns that cover most API scripting: field and nested access, array indexing, iteration with select() and projection, // defaults, and -r. Advanced jq (reduce, string interpolation, arithmetic, if/then/else, custom functions) is out of scope; the jq manual is the reference for those.',
       },
+      {
+        question: 'Can I type a jq filter instead of clicking?',
+        answer:
+          'Yes. The filter box is editable. A filter inside the supported subset (a path, [] iteration, select(.key == value) with ==, !=, > or <, a | .key projection, or a // default) updates the clicked selection and the live preview as you type; the preview is checked against the real jq 1.8.1 binary. Anything else, such as length, map() or object construction, still goes into the generated curl | jq command, and the preview says it cannot evaluate it, so run that command with jq itself.',
+      },
     ],
     relatedSnippets: ['bash-parse-json-jq', 'bash-curl-api-requests', 'bash-slack-webhook-alerts'],
   },
