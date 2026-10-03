@@ -1,0 +1,263 @@
+---
+title: "Bash Heredoc: <<EOF, Quoted 'EOF', <<- Indentation and Here-Strings"
+metaTitle: "Bash Heredoc: <<EOF Explained"
+description: "Bash heredoc explained with real runs: quoted vs unquoted EOF and what expands, <<- and the tabs-only rule, heredocs into ssh and files, and <<< here-strings."
+slug: "bash-heredoc"
+tags: ["heredoc", "bash", "quoting", "config", "ssh"]
+quickAnswer: "A bash heredoc feeds a block of text to a command's standard input: command <<EOF, the lines, then EOF alone on its own line. Whether anything inside expands depends on the delimiter. With an unquoted delimiter (<<EOF), variables, $(command substitution) and backslash escapes are expanded first, so the text carries the current values. With a quoted delimiter (<<'EOF' or <<\"EOF\"), the body is passed exactly as written, which is what you want for scripts, configs and anything containing $. <<-EOF strips leading tab characters, so the body and the closing EOF can be indented inside an if or a function, but only tabs: spaces before the closing EOF leave the heredoc unterminated. Write a file with cat > file <<'EOF'. Run a block on a remote host with ssh host bash -s <<'EOF', quoting the delimiter so expansion happens on the remote side. A here-string, <<< \"text\", passes one string as stdin without a pipe or subshell."
+faq:
+  - question: "What is the difference between <<EOF and <<'EOF' in bash?"
+    answer: "With <<EOF, bash expands the heredoc body before passing it on: $variables are replaced, $(commands) run, and backslashes escape. With <<'EOF' (any quoting of the delimiter, including \\EOF or \"EOF\"), the body is literal text and nothing is expanded. Use the quoted form when the text is code or config that contains $, such as a script you send over ssh or a systemd unit, and the unquoted form when you want to fill in values."
+  - question: "How do I indent a heredoc in bash?"
+    answer: "Use <<- instead of <<. It strips leading tab characters from every body line and from the line holding the delimiter, so the heredoc can follow the indentation of an if block or function. It only strips tabs. If your editor converts tabs to spaces, the closing delimiter is no longer recognised and bash reads to the end of the file, then reports here-document delimited by end-of-file. Indentation after the leading tabs is kept."
+  - question: "How do I write a file with a heredoc?"
+    answer: "Redirect the command's output: cat > /path/file <<'EOF' writes the body to the file, and cat >> file <<'EOF' appends. For a file only root can write, use sudo tee: sudo tee /etc/app.conf > /dev/null <<'EOF'. A plain sudo cat > /etc/app.conf fails because the redirection is done by your unprivileged shell, not by sudo. For configs, write to a temporary file and mv it into place, so a reader never sees half a file."
+  - question: "How do I use a heredoc with ssh?"
+    answer: "Pipe the heredoc to a shell on the remote side: ssh host bash -s <<'EOF', the commands, EOF. Quote the delimiter so $variables and $(commands) are expanded by the remote shell, on the remote machine. Leave it unquoted only for values you deliberately fill in locally, and escape the rest as \\$. Because ssh reads the script from stdin, do not also use ssh -n here, and do not run commands in the block that read stdin themselves."
+  - question: "What is a here-string (<<<) in bash?"
+    answer: "A here-string passes one word or string as standard input: grep -c a <<< \"$text\" or read -r first rest <<< \"$line\". It is shorter than echo \"$text\" | cmd and, unlike the pipe, runs the command in the current shell, so read can set variables that survive. bash appends a newline to the string. Here-strings are a bash and zsh feature, not POSIX sh."
+howToSteps:
+  - name: "Pick the delimiter quoting"
+    text: "Use <<'EOF' when the body must reach the command exactly as written (code, configs, anything with $). Use <<EOF when you want variables and $(commands) filled in, and escape any literal $ as \\$."
+  - name: "Close it correctly"
+    text: "Put EOF alone at the start of a line, with nothing after it. With <<-EOF the body and the closing EOF may be indented with tabs only, never spaces."
+  - name: "Render configs safely"
+    text: "Save render-nginx-site.sh and run DOMAIN=example.com PORT=3000 ./render-nginx-site.sh site.conf. It refuses unset variables, writes to a temp file, checks for stray $names, and only then moves the file into place."
+author: "Travis"
+datePublished: "2026-10-03"
+dateModified: "2026-10-03"
+---
+
+<Callout type="info" title="Heredocs and ssh">
+
+[Run Commands on a Remote Server over SSH](/snippets/ssh-run-remote-commands) sends heredoc scripts to one host or twenty and checks each exit code. This page explains the heredoc itself: what expands, where, and how it ends.
+
+</Callout>
+
+A heredoc is the easy way to put a block of text in a script, and the place where most "it worked locally" bugs in deploy scripts live. The difference between `<<EOF` and `<<'EOF'` decides whether `$HOME` means your home directory or the server's. `<<-` lets you indent the block, until an editor turns a tab into spaces and the script stops parsing. Every behaviour below is demonstrated, not described.
+
+## Does My Heredoc Expand Variables?
+
+Reproduced here on 2026-10-03 (Kali, bash 5.3.15). Same body, two delimiters:
+
+```text
+$ cat h1.sh
+#!/bin/bash
+name="web1"
+cat <<EOF
+unquoted: host=$name, today=$(date +%Y), literal \$name
+EOF
+cat <<'EOF'
+quoted:   host=$name, today=$(date +%Y)
+EOF
+$ bash h1.sh
+unquoted: host=web1, today=2026, literal $name
+quoted:   host=$name, today=$(date +%Y)
+```
+
+Unquoted, the body behaves like a double-quoted string: `$name` and `$(date)` are filled in, and `\$` produces a literal dollar sign. Quoted, nothing is touched. Any quoting of the delimiter counts: `<<'EOF'`, `<<"EOF"` and `<<\EOF` all switch expansion off.
+
+## Where Does the Expansion Happen With ssh?
+
+`bash -s` reads a script from stdin, the same thing `ssh host bash -s` does on the other machine. It stands in for the remote shell here, and the PIDs show which shell did the expanding:
+
+```text
+$ cat h4.sh
+#!/bin/bash
+# bash -s stands in for "ssh host bash -s": the heredoc body is a script run by ANOTHER shell.
+local_dir="/srv/app"
+echo "this shell's PID: $$"
+bash -s <<EOF
+echo "unquoted: dir=$local_dir  pid=$$   (both filled in before the other shell started)"
+echo "escaped:  pid=\$\$  (the other shell's own PID)"
+EOF
+bash -s <<'EOF'
+echo "quoted:   dir=${local_dir:-<unset in the other shell>}  pid=$$"
+EOF
+$ bash h4.sh
+this shell's PID: 548098
+unquoted: dir=/srv/app  pid=548098   (both filled in before the other shell started)
+escaped:  pid=548099  (the other shell's own PID)
+quoted:   dir=<unset in the other shell>  pid=548100
+```
+
+With `<<EOF`, `$local_dir` and `$$` were replaced by the *sending* shell before the other shell ever ran, so the "remote" output contains the local PID. `\$\$` survived to be expanded on the other side. With `<<'EOF'`, everything is the other shell's: `local_dir` does not exist there. Over real ssh, that is the difference between `$HOME` being `/home/you` and `/home/deploy`. Quote the delimiter for remote scripts, and pass the few local values you need as arguments or with `printf %q`.
+
+## How Do I Indent a Heredoc?
+
+`<<-` strips leading **tabs**. `cat -A` shows them as `^I`:
+
+```text
+$ cat -A h2.sh | sed -n 3,6p
+^Icat <<-EOF$
+^I^Itab-indented line$
+^I    spaces after a tab$
+^I^IEOF$
+$ bash h2.sh
+tab-indented line
+    spaces after a tab
+```
+
+Leading tabs went; the four spaces after the tab stayed. Now the same block indented with spaces, which is what most editors insert:
+
+```text
+$ cat h3.sh
+#!/bin/bash
+if true; then
+    cat <<-EOF
+    space-indented
+    EOF
+fi
+echo "after"
+$ bash h3.sh
+h3.sh: line 7: warning: here-document at line 3 delimited by end-of-file (wanted `EOF')
+h3.sh: line 8: syntax error: unexpected end of file from `if' command on line 2
+exit=2
+```
+
+`    EOF` with spaces is not the delimiter, so bash kept reading: `fi` and `echo` became heredoc text, and the `if` never closed. If your editor expands tabs, keep heredoc bodies and their `EOF` at column 0, or assign the text to a variable instead.
+
+## How Do I Write a File or Use a Here-String?
+
+```text
+$ cat h5.sh
+#!/bin/bash
+conf=$(mktemp)
+cat > "$conf" <<'EOF'
+[Service]
+ExecStart=/usr/bin/env PORT=$PORT /srv/app/run
+EOF
+cat "$conf"; rm -f "$conf"
+read -r first rest <<< "alpha beta gamma"
+echo "first=$first rest=$rest"
+grep -c a <<< "$(printf 'apple\nbanana\ncherry\n')"
+$ bash h5.sh
+[Service]
+ExecStart=/usr/bin/env PORT=$PORT /srv/app/run
+first=alpha rest=beta gamma
+2
+```
+
+`cat > file <<'EOF'` writes the body literally, so `$PORT` lands in the unit file for systemd to read later. `<<<` is a here-string: one string as stdin. Because there is no pipe, `read` runs in the current shell and `first` and `rest` survive, which `echo "…" | read first rest` would lose to a subshell (the same trap as [piping into a while loop](/snippets/bash-while-loop-examples)). For a root-owned file, `sudo tee /etc/app.conf > /dev/null <<'EOF'`: a plain `sudo cat > /etc/app.conf` fails, because your own shell performs the redirect before sudo starts.
+
+## The Script
+
+Rendering a config from variables is the job heredocs do most often, and the one that fails worst: an unset variable silently becomes an empty string in the file. Save as `render-nginx-site.sh`:
+
+```bash
+#!/bin/bash
+# Script: render-nginx-site.sh
+# Purpose: A config written with an unquoted heredoc and an unset variable ships "server_name ;" and a reload that fails at 2 a.m. — this renders the file with set -u, writes it atomically and checks it before it replaces anything.
+# Usage: DOMAIN=example.com PORT=3000 ./render-nginx-site.sh OUTPUT_FILE
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+[[ $# -eq 1 ]] || { echo "usage: DOMAIN=... PORT=... $0 OUTPUT_FILE" >&2; exit 2; }
+OUT="$1"
+# :? stops here with a named error instead of rendering an empty value into the file.
+: "${DOMAIN:?set DOMAIN, e.g. DOMAIN=example.com}"
+: "${PORT:?set PORT, e.g. PORT=3000}"
+[[ "$PORT" =~ ^[0-9]+$ ]] || { echo "$CROSS PORT must be a number, got: $PORT" >&2; exit 2; }
+
+# Same directory as the target, so the final mv is an atomic rename, never a half-written file.
+TMP=$(mktemp "${OUT}.XXXXXX")
+trap 'rm -f "$TMP"' EXIT
+
+# Unquoted EOF: ${DOMAIN} and ${PORT} expand now. nginx's own variables are escaped (\$host) so they reach the file as written.
+cat > "$TMP" <<EOF
+# generated by render-nginx-site.sh: edit the script, not this file
+server {
+    listen 80;
+    server_name ${DOMAIN} www.${DOMAIN};
+
+    location / {
+        proxy_pass http://127.0.0.1:${PORT};
+        proxy_set_header Host \$host;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+}
+EOF
+
+# Any other $name left in the output is a variable that should have been set or escaped.
+# shellcheck disable=SC2016  # the $ in these patterns is a literal dollar sign, on purpose
+if grep -noE '\$\{?[A-Za-z_]+' "$TMP" | grep -vE ':\$(host|proxy_add_x_forwarded_for)$'; then
+  echo "$CROSS unexpected \$variable left in the output (lines above)" >&2
+  exit 1
+fi
+
+mv -- "$TMP" "$OUT"
+trap - EXIT
+echo "$CHECK wrote $OUT for $DOMAIN -> 127.0.0.1:$PORT"
+```
+
+## Prerequisites
+
+bash 4 or later and coreutils (`mktemp`, `mv`). nginx is not needed to render the file; run `sudo nginx -t` after copying it into place to have nginx check it too.
+
+## How Does the Script Work?
+
+- **`: "${VAR:?message}"`** aborts with the variable's name when it is unset or empty, before anything is written. `set -u` alone would also stop on an unset variable, but `:?` catches empty ones and says what to set.
+- **The unquoted `<<EOF`** is deliberate: this heredoc exists to fill in values. Every `$` meant for nginx is escaped as `\$`, so `$host` reaches the file as nginx syntax.
+- **The leftover check** greps the rendered file for any `$name` other than the two nginx variables. A forgotten escape or a typo shows up here, with its line number, instead of in nginx's error log.
+- **`mktemp` in the target's directory, then `mv`** makes the replacement atomic: nginx, or anyone reading the file, sees the old version or the new one, never half of one. The `EXIT` trap removes the temp file on any failure.
+
+## What Does the Script Print?
+
+```text
+$ DOMAIN=example.com PORT=3000 ./render-nginx-site.sh sites/example.conf
+✓ wrote sites/example.conf for example.com -> 127.0.0.1:3000
+$ cat sites/example.conf
+# generated by render-nginx-site.sh: edit the script, not this file
+server {
+    listen 80;
+    server_name example.com www.example.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+$ DOMAIN=example.com ./render-nginx-site.sh sites/broken.conf
+./render-nginx-site.sh: line 14: PORT: set PORT, e.g. PORT=3000
+exit=1
+$ ls sites
+example.conf
+```
+
+With `PORT` missing, the script stopped before touching anything, so no `broken.conf` exists. Render, check, then rename is the habit worth copying into any script that writes config; [The Production Bash Toolkit](/starter-kit) ships a ShellCheck-clean script template to start from. The `:?` checks are explained on [Bash Environment Variables](/snippets/bash-environment-variables), and the `EXIT` trap on [Bash Trap Cleanup](/snippets/bash-trap-cleanup).
+
+## Frequently Asked Questions
+
+### What is the difference between `<<EOF` and `<<'EOF'` in bash?
+
+With `<<EOF`, bash expands the heredoc body before passing it on: `$variables` are replaced, `$(commands)` run, and backslashes escape. With `<<'EOF'` (any quoting of the delimiter, including `\EOF` or `"EOF"`), the body is literal text and nothing is expanded. Use the quoted form when the text is code or config that contains `$`, such as a script you send over ssh or a systemd unit, and the unquoted form when you want to fill in values.
+
+### How do I indent a heredoc in bash?
+
+Use `<<-` instead of `<<`. It strips leading tab characters from every body line and from the line holding the delimiter, so the heredoc can follow the indentation of an if block or function. It only strips tabs. If your editor converts tabs to spaces, the closing delimiter is no longer recognised and bash reads to the end of the file, then reports `here-document delimited by end-of-file`. Indentation after the leading tabs is kept.
+
+### How do I write a file with a heredoc?
+
+Redirect the command's output: `cat > /path/file <<'EOF'` writes the body to the file, and `cat >> file <<'EOF'` appends. For a file only root can write, use sudo tee: `sudo tee /etc/app.conf > /dev/null <<'EOF'`. A plain `sudo cat > /etc/app.conf` fails because the redirection is done by your unprivileged shell, not by sudo. For configs, write to a temporary file and `mv` it into place, so a reader never sees half a file.
+
+### How do I use a heredoc with ssh?
+
+Pipe the heredoc to a shell on the remote side: `ssh host bash -s <<'EOF'`, the commands, `EOF`. Quote the delimiter so `$variables` and `$(commands)` are expanded by the remote shell, on the remote machine. Leave it unquoted only for values you deliberately fill in locally, and escape the rest as `\$`. Because ssh reads the script from stdin, do not also use `ssh -n` here, and do not run commands in the block that read stdin themselves.
+
+### What is a here-string (`<<<`) in bash?
+
+A here-string passes one word or string as standard input: `grep -c a <<< "$text"` or `read -r first rest <<< "$line"`. It is shorter than `echo "$text" | cmd` and, unlike the pipe, runs the command in the current shell, so `read` can set variables that survive. bash appends a newline to the string. Here-strings are a bash and zsh feature, not POSIX sh.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Run Commands on a Remote Server over SSH](/snippets/ssh-run-remote-commands) — heredoc scripts to many hosts, with per-host exit codes
+- [Bash String Manipulation](/snippets/bash-string-manipulation) — building the text before it goes into a heredoc
+- [Bash Trap Cleanup](/snippets/bash-trap-cleanup) — the EXIT trap that removes the temp file when rendering fails
+- [Bash Environment Variables](/snippets/bash-environment-variables) — `${VAR:?}` and why the remote shell has different variables

@@ -75,7 +75,7 @@ done
 echo "failures: $fails"   # prints 0, always
 ```
 
-The pipe runs the `while` in a subshell. `fails` increments inside that subshell and dies with it, so the parent shell still sees `0`. Redirect the file (`done < hosts.txt`) and the loop runs in the current shell, so the count survives.
+The pipe runs the `while` in a subshell. `fails` increments inside that subshell and dies with it, so the parent shell still sees `0`. Redirect the file (`done < hosts.txt`) and the loop runs in the current shell, so the count survives. The other while-loop traps (commands that eat the loop's stdin, `set -e` with `(( i++ ))`, polling without a deadline) are on [Bash While Loop Examples](/snippets/bash-while-loop-examples).
 
 ## Reading fields from each line
 

@@ -1,0 +1,261 @@
+---
+title: "scp Command Examples for Scripts: Push, Pull, Spaces, -O and Exit Codes"
+metaTitle: "scp Command Examples for Scripts"
+description: "scp command examples run for real: push, pull, -r, -p, remote paths with spaces, OpenSSH 9+ SFTP mode vs -O, exit codes in scripts, and when to use rsync."
+slug: "scp-command-examples"
+tags: ["scp", "ssh", "file-transfer", "exit-codes", "automation"]
+quickAnswer: "scp copies files over SSH: scp file host:/path/ uploads, scp host:/path/file . downloads, -r copies a directory, -p keeps modification times, -P sets the port (capital P, unlike ssh's -p), and -i picks the key. Put host, port, user and key in ~/.ssh/config and use the alias, so the same command works from scp, ssh and rsync. Since OpenSSH 9.0, scp uses the SFTP protocol by default, which changed one long-standing rule: a remote path with spaces needs only the normal local quotes, \"host:/srv/my file.txt\". With -O (the legacy SCP protocol, still needed for some old servers) the remote shell reads the path, so it needs a second layer of quotes or it fails with ambiguous target. In scripts, check the exit status: scp returns 0 on success, 1 for errors such as a missing file, and 255 when the connection itself fails. scp does not verify content or resume; rsync does both and skips unchanged files."
+faq:
+  - question: "How do I scp a file with spaces in the name?"
+    answer: "With OpenSSH 9.0 or later in its default SFTP mode, quote the whole argument once for your local shell: scp \"my file.txt\" \"host:/srv/drop/my file.txt\". With scp -O, the legacy protocol, the remote path is also parsed by the remote shell, so it needs a second set of quotes inside: \"host:'/srv/drop/my file.txt'\". Without them, -O fails with scp: ambiguous target."
+  - question: "What port option does scp use?"
+    answer: "Capital -P: scp -P 2222 file host:/path/. ssh uses lowercase -p for the port, and scp's lowercase -p means preserve times and modes, so mixing them up silently changes what the command does. Putting Port 2222 under a Host entry in ~/.ssh/config avoids the difference entirely, because scp, ssh, sftp and rsync all read it."
+  - question: "What does scp -O do?"
+    answer: "-O forces the legacy SCP protocol instead of SFTP, which OpenSSH scp uses by default since version 9.0. You need it only for servers without an SFTP subsystem, such as some embedded devices and old appliances. Its main side effect is that remote paths are interpreted by the remote shell again, so spaces and wildcards need remote-side quoting, and file names are expanded by that shell."
+  - question: "How do I check if scp succeeded in a bash script?"
+    answer: "Test its exit status: if scp -q file host:/path/; then … else … fi, or capture rc=$? straight after. scp exits 0 on success, 1 on errors like a missing source or a permission problem on the remote side, and 255 when ssh cannot connect or authenticate. Exit 0 means the transfer completed, not that the remote copy is identical; for that, compare checksums on both ends as the script on this page does."
+  - question: "Should I use scp or rsync?"
+    answer: "Use scp for a one-off copy of a few files. Use rsync for anything repeated or large: it sends only files and blocks that changed, can resume an interrupted transfer with --partial, verifies each file with a checksum as part of the transfer, and can delete files that disappeared from the source with --delete. Both run over ssh and read the same ~/.ssh/config, so switching is usually a one-word change."
+howToSteps:
+  - name: "Set up an ssh config alias"
+    text: "Add a Host entry to ~/.ssh/config with HostName, User, Port and IdentityFile, then use the alias: scp file myserver:/srv/drop/. The same alias works for ssh and rsync."
+  - name: "Copy and check the exit status"
+    text: "scp -p -q file myserver:/srv/drop/ uploads with times preserved and no progress bar. In scripts, branch on the exit status: 1 is a file or permission error, 255 is a connection or authentication failure."
+  - name: "Verify what arrived"
+    text: "Save scp-verified.sh and run ./scp-verified.sh myserver /srv/drop FILE.... It uploads to a temporary name, compares SHA-256 on both ends and renames into place only when they match."
+author: "Travis"
+datePublished: "2026-10-03"
+dateModified: "2026-10-03"
+---
+
+<Callout type="info" title="Copying the same files repeatedly?">
+
+Use rsync instead: [Rsync Remote Backup](/snippets/rsync-remote-backup) has the script, and the [Rsync Command Builder](/tools/rsync-command-builder) builds the command. Setting up the key scp uses is [SSH Key Setup](/snippets/ssh-key-setup-script).
+
+</Callout>
+
+scp is the copy command everyone already knows, which is why its sharp edges survive in scripts for years. Since OpenSSH 9.0 it speaks SFTP by default, which quietly changed how remote paths are quoted, and `-O` brings the old rules back. `-P` is the port and `-p` is something else. And exit 0 means the transfer finished, not that the file on the other end is complete and correct, which matters for the backup that a cron job copies off the box every night.
+
+## What Are the scp Commands Worth Knowing?
+
+Reproduced here on 2026-10-03 (Kali, OpenSSH 10.5p1) against a throwaway `sshd` listening on 127.0.0.1 port 2222, so nothing real was touched. `demo` is a `~/.ssh/config` alias for it (below), and the remote directory, a scratch directory, is shown as `/srv/drop`.
+
+```text
+$ scp report.csv demo:/srv/drop/
+exit=0
+$ scp demo:/srv/drop/report.csv ./copy.csv && cat copy.csv
+id,total
+1,9.50
+exit=0
+$ scp -r logs demo:/srv/drop/ && ssh demo ls /srv/drop/logs
+a.log
+b.log
+exit=0
+```
+
+Upload, download, and a directory with `-r`. A trailing `/` on the remote side means "into this directory". `-q` (not used here) hides the progress bar, which you want in cron logs.
+
+`-p` keeps the modification time, which backups and `make`-style "is it newer?" checks depend on:
+
+```text
+$ scp notes.txt demo:/srv/drop/plain.txt; scp -p notes.txt demo:/srv/drop/kept.txt; ssh demo ls -l --time-style=+%F /srv/drop/plain.txt /srv/drop/kept.txt | cut -d" " -f6-
+2026-09-01 /srv/drop/kept.txt
+2026-10-03 /srv/drop/plain.txt
+exit=0
+```
+
+Without `-p` the copy is stamped with the time of the copy. Lowercase `-p` is "preserve"; the port is capital `-P`. ssh uses lowercase `-p` for the port, so the two commands disagree, which is the best argument for the config alias.
+
+The demo's alias, with its scratch paths shortened:
+
+```text
+# ~/.ssh/config
+Host demo
+  HostName 127.0.0.1
+  Port 2222
+  IdentityFile ~/.ssh/demo_ed25519
+  IdentitiesOnly yes
+```
+
+With that in place, `scp`, `ssh`, `sftp` and `rsync` all reach the server with the same short name and no flags to get wrong.
+
+## How Do I Copy Remote Paths With Spaces?
+
+In the default SFTP mode, quote once for your own shell:
+
+```text
+$ scp "my file.txt" "demo:/srv/drop/my file.txt" && ssh demo ls /srv/drop
+kept.txt
+logs
+my file.txt
+plain.txt
+report.csv
+exit=0
+```
+
+With `-O`, the legacy SCP protocol, the remote shell parses the path too, and splits it at the space:
+
+```text
+$ scp -O "my file.txt" "demo:/srv/drop/legacy copy.txt"
+scp: ambiguous target
+exit=1
+$ scp -O "my file.txt" "demo:'/srv/drop/legacy copy.txt'" && ssh demo ls /srv/drop
+kept.txt
+legacy copy.txt
+logs
+my file.txt
+plain.txt
+report.csv
+exit=0
+```
+
+Double quoting (local quotes around remote quotes) is the old rule, and most scp tutorials written before 2022 teach it. It is now only for `-O`, which you need just for servers without an SFTP subsystem. Remote wildcards work in SFTP mode too; quote them so your local shell does not expand them first:
+
+```text
+$ mkdir -p pulled && scp 'demo:/srv/drop/*.csv' pulled/ && ls pulled
+report.csv
+exit=0
+```
+
+## What Exit Codes Does scp Return?
+
+```text
+$ scp demo:/srv/drop/missing.csv .
+scp: /srv/drop/missing.csv: No such file or directory
+exit=1
+$ scp -o ConnectTimeout=3 -P 2299 report.csv 127.0.0.1:/tmp/
+ssh: connect to host 127.0.0.1 port 2299: Connection refused
+scp: Connection closed
+exit=255
+```
+
+1 is a file or permission problem; 255 is ssh failing to connect or authenticate. In a script that runs unattended, add `-o BatchMode=yes` so a missing key fails with 255 instead of waiting forever at a password prompt, and `-o ConnectTimeout=10` so a dead host fails fast. Both codes, and what 255 means for `ssh` in general, are in the [Bash Exit Code Lookup](/tools/bash-exit-code-lookup).
+
+## The Script
+
+Exit 0 says the bytes were sent. It does not say the remote file matches, and a transfer killed halfway leaves a partial file under its real name for the next job to pick up. Save as `scp-verified.sh`: it uploads to a hidden `.name.part`, compares SHA-256 on both ends, and only then renames it into place.
+
+```bash
+#!/bin/bash
+# Script: scp-verified.sh
+# Purpose: scp exits 0 without checking what arrived, and a copy cut off midway leaves a half file under the real name — this uploads to a temporary name, compares SHA-256 on both ends, then renames into place.
+# Usage: ./scp-verified.sh HOST REMOTE_DIR FILE...   (HOST can be an ~/.ssh/config alias)
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+[[ $# -ge 3 ]] || { echo "usage: $0 HOST REMOTE_DIR FILE..." >&2; exit 2; }
+HOST="$1"
+REMOTE_DIR="$2"
+shift 2
+# Options valid for both ssh and scp (-F, -i, -o …), e.g. SSH_OPTS="-F ./ssh_config"; put ports in ~/.ssh/config, since scp spells it -P and ssh -p. Word splitting is intended.
+read -r -a SSH_OPTS <<< "${SSH_OPTS:-}"
+FAILED=0
+
+for f in "$@"; do
+  if [[ ! -f "$f" ]]; then
+    echo "$CROSS $f: not a regular file"
+    FAILED=$((FAILED + 1))
+    continue
+  fi
+  name=$(basename -- "$f")
+  part="$REMOTE_DIR/.$name.part"
+  local_sum=$(sha256sum -- "$f" | cut -d' ' -f1)
+
+  # -p keeps the modification time; -q hides the progress bar so cron logs stay readable.
+  rc=0
+  scp "${SSH_OPTS[@]}" -p -q -- "$f" "$HOST:$part" || rc=$?
+  if (( rc )); then
+    echo "$CROSS $f: scp failed (exit $rc)"
+    FAILED=$((FAILED + 1))
+    continue
+  fi
+
+  # printf %q quotes the paths for the remote shell, so spaces and quotes in names survive.
+  remote_sum=$(ssh "${SSH_OPTS[@]}" -n "$HOST" "sha256sum -- $(printf '%q' "$part")" | cut -d' ' -f1)
+  if [[ "$remote_sum" != "$local_sum" ]]; then
+    echo "$CROSS $f: checksum mismatch (local ${local_sum:0:12}, remote ${remote_sum:0:12}); left as $part"
+    FAILED=$((FAILED + 1))
+    continue
+  fi
+
+  # mv within one directory is an atomic rename: readers see the old file or the whole new one.
+  ssh "${SSH_OPTS[@]}" -n "$HOST" "mv -f -- $(printf '%q' "$part") $(printf '%q' "$REMOTE_DIR/$name")"
+  echo "$CHECK $f -> $HOST:$REMOTE_DIR/$name (sha256 ${local_sum:0:12}…)"
+done
+
+if (( FAILED )); then
+  echo "$CROSS $FAILED file(s) not delivered"
+  exit 1
+fi
+```
+
+## Prerequisites
+
+OpenSSH client on your side; on the remote side, sshd plus `sha256sum` and `mv` (coreutils, present on every Linux server). Key-based login set up, ideally through a `~/.ssh/config` alias.
+
+## How Does the Script Work?
+
+- **`.name.part`** is where the bytes land first. A transfer that dies leaves only a hidden temp file, never a truncated file under the real name.
+- **`sha256sum` on both ends** checks what actually arrived. scp's exit status cannot tell you that.
+- **`printf '%q'`** quotes paths for the remote shell, because the `ssh … "command"` calls run through it. That is why `my file.txt` below works without any manual double quoting.
+- **`ssh -n`** keeps those calls from reading the script's stdin, the same trap as an [ssh call inside a while loop](/snippets/bash-while-loop-examples).
+- **`mv -f` in the same directory** is an atomic rename, so anything watching the drop directory sees a complete file appear.
+- **`FAILED`** counts problems without stopping the batch, and the exit code still reports them.
+
+## What Does the Script Print?
+
+Three files, one with a space in its name, plus one that does not exist:
+
+```text
+$ SSH_OPTS="-F ../ssh_config" ./scp-verified.sh demo /srv/drop report.csv db-dump.sql.gz "my file.txt" nope.txt
+✓ report.csv -> demo:/srv/drop/report.csv (sha256 b53aab26f2c6…)
+✓ db-dump.sql.gz -> demo:/srv/drop/db-dump.sql.gz (sha256 0590d7be2176…)
+✓ my file.txt -> demo:/srv/drop/my file.txt (sha256 98ea6e4f216f…)
+✗ nope.txt: not a regular file
+✗ 1 file(s) not delivered
+exit=1
+$ ssh demo ls -la /srv/drop | grep -E "db-dump|part|report"
+-rw-rw-r-- 1 travis travis 2097152 Oct  3 16:19 db-dump.sql.gz
+-rw-rw-r-- 1 travis travis      16 Oct  3 16:19 report.csv
+```
+
+No `.part` files left behind. (`SSH_OPTS` points at the demo's own config file; with the alias in `~/.ssh/config` you would leave it out.)
+
+## When Should I Use rsync Instead?
+
+Every scp run copies every byte again. rsync compares first and sends only what changed, resumes with `--partial`, checksums each file as part of the transfer, and mirrors deletions with `--delete`. For a nightly copy of a backup directory that is the difference between minutes and seconds, and between a broken half-copy and a resumed one. [Rsync Remote Backup](/snippets/rsync-remote-backup) is the script for that; [Run Commands on a Remote Server over SSH](/snippets/ssh-run-remote-commands) covers what to do once the file is there. [The Production Bash Toolkit](/starter-kit) ships its scripts ShellCheck-clean.
+
+## Frequently Asked Questions
+
+### How do I scp a file with spaces in the name?
+
+With OpenSSH 9.0 or later in its default SFTP mode, quote the whole argument once for your local shell: `scp "my file.txt" "host:/srv/drop/my file.txt"`. With `scp -O`, the legacy protocol, the remote path is also parsed by the remote shell, so it needs a second set of quotes inside: `"host:'/srv/drop/my file.txt'"`. Without them, `-O` fails with `scp: ambiguous target`.
+
+### What port option does scp use?
+
+Capital `-P`: `scp -P 2222 file host:/path/`. ssh uses lowercase `-p` for the port, and scp's lowercase `-p` means preserve times and modes, so mixing them up silently changes what the command does. Putting `Port 2222` under a `Host` entry in `~/.ssh/config` avoids the difference entirely, because scp, ssh, sftp and rsync all read it.
+
+### What does scp -O do?
+
+`-O` forces the legacy SCP protocol instead of SFTP, which OpenSSH scp uses by default since version 9.0. You need it only for servers without an SFTP subsystem, such as some embedded devices and old appliances. Its main side effect is that remote paths are interpreted by the remote shell again, so spaces and wildcards need remote-side quoting, and file names are expanded by that shell.
+
+### How do I check if scp succeeded in a bash script?
+
+Test its exit status: `if scp -q file host:/path/; then … else … fi`, or capture `rc=$?` straight after. scp exits 0 on success, 1 on errors like a missing source or a permission problem on the remote side, and 255 when ssh cannot connect or authenticate. Exit 0 means the transfer completed, not that the remote copy is identical; for that, compare checksums on both ends as the script on this page does.
+
+### Should I use scp or rsync?
+
+Use scp for a one-off copy of a few files. Use rsync for anything repeated or large: it sends only files and blocks that changed, can resume an interrupted transfer with `--partial`, verifies each file with a checksum as part of the transfer, and can delete files that disappeared from the source with `--delete`. Both run over ssh and read the same `~/.ssh/config`, so switching is usually a one-word change.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Rsync Remote Backup](/snippets/rsync-remote-backup) — repeated or large copies, only the changes sent
+- [SSH Key Setup](/snippets/ssh-key-setup-script) — the key scp and the script authenticate with
+- [Run Commands on a Remote Server over SSH](/snippets/ssh-run-remote-commands) — what to run once the file has arrived
+- [Bash Heredoc](/snippets/bash-heredoc) — sending a whole script to the remote side

@@ -1,0 +1,263 @@
+---
+title: "Bash Case Statement Examples: Patterns, Order, ;;& and ;& Fallthrough"
+metaTitle: "Bash Case Statement Examples"
+description: "Bash case statement examples with real output: glob patterns, | alternatives, why pattern order matters, ;;& and ;& fallthrough, extglob, and the quoting trap."
+slug: "bash-case-statement"
+tags: ["case", "bash", "patterns", "glob", "control-flow"]
+quickAnswer: "A bash case statement compares one word against a list of glob patterns and runs the body of the first pattern that matches: case \"$var\" in pattern1) commands ;; pattern2|pattern3) commands ;; *) default ;; esac. Patterns are shell globs, not regular expressions: * matches anything, ? one character, [Yy] one of a set, and | separates alternatives. case stops at the first match, so order matters: put *.tar.gz before *.gz or a tarball is treated as plain gzip. Each body ends with one of three terminators: ;; stops, ;& falls through into the next body without testing its pattern, and ;;& goes on testing the remaining patterns. A quoted variable in a pattern position is matched literally, while an unquoted one is treated as a glob. Extended patterns such as +([0-9]) need shopt -s extglob on an earlier line than the case that uses them. Use *) last as the catch-all."
+faq:
+  - question: "What does ;; mean in a bash case statement?"
+    answer: "It ends the body of a case item and leaves the case statement. bash also accepts two other terminators: ;& runs the next item's body as well, without checking its pattern, and ;;& continues testing the patterns after the current one and runs any that also match. Both were added in bash 4.0 and are not in POSIX sh, so scripts that must run under dash should use ;; only."
+  - question: "Can I use regex in a bash case statement?"
+    answer: "No. case patterns are shell glob patterns: *, ?, [...] and | between alternatives. With shopt -s extglob you get +(...), *(...), ?(...), @(...) and !(...), which cover many regex uses such as +([0-9]) for one or more digits. For a real regular expression, use [[ $var =~ regex ]] in an if statement and read the captures from BASH_REMATCH."
+  - question: "How do I match multiple values in one case branch?"
+    answer: "Separate the patterns with |: [Yy]|[Yy][Ee][Ss]) matches y, Y, yes, YES and every mixed-case spelling. Character classes help too: [0-9] matches one digit, [a-z]* matches anything starting with a lowercase letter. Note that [1-10] is not the range 1 to 10; it is the set of characters 1, 0 and the range 1-1, so it matches the single characters 0 and 1 only."
+  - question: "Why does my case statement match the wrong pattern?"
+    answer: "Because case runs the first pattern that matches, not the most specific one. If *.gz comes before *.tar.gz, report.tar.gz matches *.gz and never reaches the tarball rule. Put longer, more specific patterns first and the catch-all *) last. The other common cause is quoting: a pattern stored in a variable must be unquoted to act as a glob, because \"$pat\" matches only the literal text."
+  - question: "Should I use case or if/elif in bash?"
+    answer: "Use case when you compare one value against several patterns: command-line options, file extensions, yes/no answers, subcommands like start|stop|status. It is shorter, does not need quoting inside the patterns, and runs in a single test. Use if/elif when each branch tests something different, compares numbers, or needs && and || between conditions."
+howToSteps:
+  - name: "Write the case block"
+    text: "case \"$var\" in pattern) commands ;; esac. Quote the word being tested, end each body with ;;, and finish with *) as the catch-all."
+  - name: "Order the patterns"
+    text: "case takes the first match, so put specific patterns (*.tar.gz) above general ones (*.gz), and use | for alternatives in one branch."
+  - name: "Pick the terminator"
+    text: "Use ;; to stop, ;& to fall into the next body unconditionally, and ;;& to keep testing later patterns. Enable shopt -s extglob on a line before the case if you need +(...) patterns."
+author: "Travis"
+datePublished: "2026-10-03"
+dateModified: "2026-10-03"
+---
+
+<Callout type="info" title="Parsing command-line flags?">
+
+`case` inside a `while` loop is the standard flag parser; [Bash Argument Parsing](/snippets/bash-argument-parsing) builds the whole thing, including `getopts` and `--long` options. This page is the `case` statement on its own.
+
+</Callout>
+
+`case` looks like a switch statement and behaves like one only until it doesn't. The first matching pattern wins, not the best one, so a general rule above a specific one quietly swallows it. Patterns are globs, so `[1-10]` does not mean one to ten. A pattern in a quoted variable is not a pattern at all. And the two fallthrough terminators, `;&` and `;;&`, do different things that most examples never show side by side.
+
+## How Do Patterns and | Alternatives Work?
+
+Reproduced here on 2026-10-03 (Kali, bash 5.3.15). A yes/no prompt, the classic use:
+
+```text
+$ for a in y YES n maybe ""; do case "$a" in [Yy]|[Yy][Ee][Ss]) echo "$a -> yes";; [Nn]|[Nn][Oo]) echo "$a -> no";; "") echo "(empty) -> default no";; *) echo "$a -> unknown";; esac; done
+y -> yes
+YES -> yes
+n -> no
+maybe -> unknown
+(empty) -> default no
+```
+
+`[Yy]` matches one character from the set, `|` separates alternatives, `""` matches the empty string (a user who pressed Enter), and `*)` catches everything else. Character classes work on one character at a time:
+
+```text
+$ x=5; case "$x" in [0-9]) echo "one digit";; [0-9][0-9]) echo "two digits";; *) echo "not 0-99";; esac; x=42; case "$x" in [0-9]) echo "one digit";; [0-9][0-9]) echo "two digits";; *) echo "not 0-99";; esac
+one digit
+two digits
+$ case 10 in [1-10]) echo "matched 1-10";; *) echo "10 did not match [1-10]";; esac
+10 did not match [1-10]
+```
+
+`[1-10]` is a bracket expression for *one* character: the range `1-1` plus `0`. It can never match the two-character string `10`.
+
+## Why Does Pattern Order Matter?
+
+```text
+$ f=report.tar.gz; case "$f" in *.tar.gz|*.tgz) echo "tarball";; *.gz) echo "gzip";; *) echo "other";; esac
+tarball
+$ f=report.tar.gz; case "$f" in *.gz) echo "gzip";; *.tar.gz|*.tgz) echo "tarball";; *) echo "other";; esac
+gzip
+```
+
+Same file, same patterns, different order, different answer. `case` stops at the first match. Specific patterns go first, the catch-all goes last.
+
+## What Do ;;& and ;& Do?
+
+```text
+$ cat fall.sh
+#!/bin/bash
+for word in apple Apple banana Bob; do
+  echo "--- $word"
+  case "$word" in
+    a*)       echo "starts with a" ;;&
+    *pp*)     echo "contains pp" ;;
+    [Bb]*)    echo "starts with b or B" ;&
+    *an*)     echo "contains an (reached by fallthrough or match)" ;;
+    *)        echo "no rule matched" ;;
+  esac
+done
+$ bash fall.sh
+--- apple
+starts with a
+contains pp
+--- Apple
+contains pp
+--- banana
+starts with b or B
+contains an (reached by fallthrough or match)
+--- Bob
+starts with b or B
+contains an (reached by fallthrough or match)
+```
+
+| Terminator | After this body runs | Example above |
+|---|---|---|
+| `;;` | leave the `case` | `*pp*` stops `apple` there |
+| `;;&` | keep **testing** the following patterns, run any that match | `apple` matches `a*`, then `*pp*` too |
+| `;&` | run the **next body** without testing its pattern | `Bob` has no `an` but still prints the `*an*` line |
+
+`Apple` shows that patterns are case-sensitive: it misses `a*`. Both extra terminators arrived in bash 4.0 and do not exist in POSIX `sh`.
+
+## Why Doesn't My Pattern in a Variable Match?
+
+```text
+$ pat="*.log"; f=app.log; case "$f" in "$pat") echo "quoted: matched";; *) echo "quoted: no match";; esac; case "$f" in $pat) echo "unquoted: matched";; esac
+quoted: no match
+unquoted: matched
+```
+
+Quoting a variable in a pattern position makes it literal: `"$pat"` matches only a file actually named `*.log`. Leave it unquoted when it holds a glob. The word being tested (`"$f"`) is the opposite: quote it, always.
+
+## How Do I Use extglob Patterns?
+
+`shopt -s extglob` adds `+(…)` (one or more), `*(…)`, `?(…)`, `@(…)` (exactly one) and `!(…)` (anything except). It has to be on a line *before* the code that uses it, because bash parses a whole line before running any of it:
+
+```text
+$ shopt -s extglob; for v in 7 42 abc; do case "$v" in +([0-9])) echo "$v is a number";; *) echo "$v is not";; esac; done
+bash: -c: line 1: syntax error near unexpected token `('
+bash: -c: line 1: `shopt -s extglob; for v in 7 42 abc; do case "$v" in +([0-9])) echo "$v is a number";; *) echo "$v is not";; esac; done'
+exit=2
+```
+
+On separate lines it works:
+
+```text
+$ cat ext.sh
+#!/bin/bash
+shopt -s extglob
+for v in 7 42 abc 4x2; do
+  case "$v" in
+    +([0-9])) echo "$v is a number" ;;
+    *)        echo "$v is not" ;;
+  esac
+done
+$ bash ext.sh
+7 is a number
+42 is a number
+abc is not
+4x2 is not
+```
+
+## The Script
+
+A real job for `case`: unpack any archive with the right tool. Save as `extract.sh`. The pattern order is the whole point.
+
+```bash
+#!/bin/bash
+# Script: extract.sh
+# Purpose: Unpacking means remembering tar xzf vs xJf vs unzip vs gunzip, and a *.gz rule placed above *.tar.gz gunzips a tarball into one opaque .tar — this picks the right tool per file with one ordered case statement.
+# Usage: ./extract.sh ARCHIVE...
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+[[ $# -ge 1 ]] || { echo "usage: $0 ARCHIVE..." >&2; exit 2; }
+STATUS=0
+
+for f in "$@"; do
+  if [[ ! -f "$f" ]]; then
+    echo "$CROSS $f: not a file"
+    STATUS=1
+    continue
+  fi
+  # case takes the FIRST matching pattern, so the two-part extensions must come before .gz/.bz2/.xz.
+  # ${f,,} lowercases the name, so BACKUP.TGZ matches too.
+  case "${f,,}" in
+    *.tar.gz|*.tgz)   cmd=(tar -xzf "$f") ;;
+    *.tar.bz2|*.tbz2) cmd=(tar -xjf "$f") ;;
+    *.tar.xz|*.txz)   cmd=(tar -xJf "$f") ;;
+    *.tar.zst)        cmd=(tar --zstd -xf "$f") ;;
+    *.tar)            cmd=(tar -xf "$f") ;;
+    *.gz)             cmd=(gunzip -k "$f") ;;
+    *.bz2)            cmd=(bunzip2 -k "$f") ;;
+    *.xz)             cmd=(unxz -k "$f") ;;
+    *.zip)            cmd=(unzip -q -n "$f") ;;
+    *)
+      echo "$CROSS $f: unknown archive type"
+      STATUS=1
+      continue
+      ;;
+  esac
+  # An array keeps file names with spaces as one argument.
+  if "${cmd[@]}"; then
+    echo "$CHECK $f: ${cmd[*]}"
+  else
+    echo "$CROSS $f: ${cmd[0]} failed"
+    STATUS=1
+  fi
+done
+exit "$STATUS"
+```
+
+## Prerequisites
+
+bash 4 or later (for `${f,,}`), tar, and whichever decompressors your archives need: gzip, bzip2, xz, zstd, unzip. No root.
+
+## How Does the Script Work?
+
+- **`case "${f,,}"`** tests a lowercased copy of the name, so `.TGZ` and `.Zip` match without doubling every pattern. The real name `"$f"` is still what gets passed to the tool.
+- **Pattern order** puts every two-part extension above its single-part twin. Swap `*.tar.gz` below `*.gz` and `site.tar.gz` would be gunzipped into a `site.tar` you then have to untar by hand.
+- **`cmd=(…)` arrays** carry the command and its file argument with spaces intact, as `OLD BACKUP.TGZ` below shows.
+- **`-k` and `-n`** keep the original `.gz`/`.bz2`/`.xz` and stop `unzip` overwriting existing files, so running it twice is harmless.
+- **`STATUS`** records any failure without stopping the loop, so one bad file does not hide the rest, and the exit code still says something went wrong.
+
+## What Does the Script Print?
+
+```text
+$ ./extract.sh site.tar.gz logs.tar.xz "OLD BACKUP.TGZ" notes.txt.gz photos.zip readme.md missing.tar
+✓ site.tar.gz: tar -xzf site.tar.gz
+✓ logs.tar.xz: tar -xJf logs.tar.xz
+✓ OLD BACKUP.TGZ: tar -xzf OLD BACKUP.TGZ
+✓ notes.txt.gz: gunzip -k notes.txt.gz
+✓ photos.zip: unzip -q -n photos.zip
+✗ readme.md: unknown archive type
+✗ missing.tar: not a file
+exit=1
+```
+
+`case` also pairs naturally with string tests and prefix stripping; [Bash String Manipulation](/snippets/bash-string-manipulation) covers `${var#prefix}`, `${var,,}` and friends, and [Bash If Else Examples](/snippets/bash-if-else-examples) covers the conditions `case` cannot express. [The Production Bash Toolkit](/starter-kit) ships its scripts ShellCheck-clean, `case` blocks included.
+
+## Frequently Asked Questions
+
+### What does ;; mean in a bash case statement?
+
+It ends the body of a case item and leaves the case statement. bash also accepts two other terminators: `;&` runs the next item's body as well, without checking its pattern, and `;;&` continues testing the patterns after the current one and runs any that also match. Both were added in bash 4.0 and are not in POSIX sh, so scripts that must run under dash should use `;;` only.
+
+### Can I use regex in a bash case statement?
+
+No. case patterns are shell glob patterns: `*`, `?`, `[...]` and `|` between alternatives. With `shopt -s extglob` you get `+(...)`, `*(...)`, `?(...)`, `@(...)` and `!(...)`, which cover many regex uses such as `+([0-9])` for one or more digits. For a real regular expression, use `[[ $var =~ regex ]]` in an if statement and read the captures from `BASH_REMATCH`.
+
+### How do I match multiple values in one case branch?
+
+Separate the patterns with `|`: `[Yy]|[Yy][Ee][Ss])` matches y, Y, yes, YES and every mixed-case spelling. Character classes help too: `[0-9]` matches one digit, `[a-z]*` matches anything starting with a lowercase letter. Note that `[1-10]` is not the range 1 to 10; it is the set of characters 1, 0 and the range 1-1, so it matches the single characters 0 and 1 only.
+
+### Why does my case statement match the wrong pattern?
+
+Because case runs the first pattern that matches, not the most specific one. If `*.gz` comes before `*.tar.gz`, `report.tar.gz` matches `*.gz` and never reaches the tarball rule. Put longer, more specific patterns first and the catch-all `*)` last. The other common cause is quoting: a pattern stored in a variable must be unquoted to act as a glob, because `"$pat"` matches only the literal text.
+
+### Should I use case or if/elif in bash?
+
+Use case when you compare one value against several patterns: command-line options, file extensions, yes/no answers, subcommands like `start|stop|status`. It is shorter, does not need quoting inside the patterns, and runs in a single test. Use if/elif when each branch tests something different, compares numbers, or needs `&&` and `||` between conditions.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Bash Argument Parsing](/snippets/bash-argument-parsing) — case inside a while loop, the standard flag parser
+- [Bash If Else Examples](/snippets/bash-if-else-examples) — the tests case cannot do: numbers, files, && and ||
+- [Bash String Manipulation](/snippets/bash-string-manipulation) — lowercase, strip prefixes and suffixes before matching
+- [Bash Heredoc](/snippets/bash-heredoc) — multi-line usage text for the *) branch

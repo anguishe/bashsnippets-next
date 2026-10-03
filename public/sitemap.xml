@@ -445,6 +445,30 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://bashsnippets.xyz/snippets/bash-while-loop-examples</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://bashsnippets.xyz/snippets/bash-case-statement</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://bashsnippets.xyz/snippets/bash-heredoc</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://bashsnippets.xyz/snippets/scp-command-examples</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://bashsnippets.xyz/tools/bash-exit-code-lookup</loc>
     <lastmod>2026-09-28</lastmod>
     <changefreq>weekly</changefreq>
