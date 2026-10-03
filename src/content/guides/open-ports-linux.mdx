@@ -39,7 +39,7 @@ That is the shape of this whole page. "List open ports" is not one question. It 
 
 | You actually want to know | Ask with | Needs root? |
 |---|---|---|
-| **What** is listening, on which address | `ss -ltun` | no |
+| **What** is listening, on which address | [`ss -ltun`](/snippets/ss-command-examples) | no |
 | **Who** owns it — which process, which service | `ss -ltunp` (own sockets), `ss -ltune` (any socket, by unit), `lsof`, `fuser` | for other users' PIDs, yes; for the owning unit, no |
 | **Whether** it is reachable, from here or from outside | `nc -zv`, bash's `/dev/tcp`, `nmap` from another host | no |
 

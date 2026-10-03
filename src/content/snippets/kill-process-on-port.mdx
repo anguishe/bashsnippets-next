@@ -35,7 +35,7 @@ The open-ports guide is the full audit — `ss -tlnp` without root, docker-proxy
 
 ## What Does the Kill Process on Port Script Look Like?
 
-You run `npm start` or `python manage.py runserver` and get slapped with `EADDRINUSE: address already in use :::3000`. Something is squatting on the port — maybe a crashed dev server that didn't clean up, maybe a background process you forgot about. This script finds it and kills it without forcing you to remember `lsof` flags.
+You run `npm start` or `python manage.py runserver` and get slapped with `EADDRINUSE: address already in use :::3000`. Something is squatting on the port — maybe a crashed dev server that didn't clean up, maybe a background process you forgot about. This script finds it and kills it without forcing you to remember [`lsof` flags](/snippets/lsof-command-examples).
 
 ```bash
 #!/bin/bash

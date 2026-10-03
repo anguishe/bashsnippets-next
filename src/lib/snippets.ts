@@ -26,9 +26,9 @@ export const REPO_URL = 'https://github.com/anguishe/bashsnippets';
 // Slugs with no .sh in github.com/anguishe/bashsnippets. These are deliberate —
 // the repo README explains why they live on the site instead: a strict-mode pattern you
 // add to every script, an interactive command reference, and an error explainer whose fix
-// is quoting, not a script (unary-operator-expected, 2026-10-03). Add a slug here only after
+// is quoting, not a script, and an ss command reference (both 2026-10-03). Add a slug here only after
 // confirming its script really is absent; all 36 others were verified 200 on 2026-09-01.
-const NO_REPO_SCRIPT = new Set(['bash-error-handling', 'kill-a-process', 'unary-operator-expected']);
+const NO_REPO_SCRIPT = new Set(['bash-error-handling', 'kill-a-process', 'unary-operator-expected', 'ss-command-examples']);
 
 // The one file that lives outside scripts/ in the repo.
 const REPO_PATH: Record<string, string> = { 'bashlib-starter': 'lib/bashlib-starter.sh' };
@@ -685,6 +685,28 @@ export const snippets: SnippetRegistryEntry[] = [
       'Fix Permission denied when running a bash script: chmod +x, directory search bits, noexec mounts and ownership. Decode exit 126 and the cases chmod cannot fix.',
     tags: ['permissions', 'troubleshooting', 'exit-codes', 'chmod', 'security'],
     difficulty: 'beginner',
+    datePublished: '2026-10-03',
+    dateModified: '2026-10-03',
+  },
+  {
+    slug: 'ss-command-examples',
+    title: 'ss Command Examples: -tulpn, Port Filters and What Each Column Means',
+    metaTitle: 'ss Command Examples: -tulpn, Decoded',
+    description:
+      'Copy-paste ss command examples: -tulpn, port and state filters, -s, and the netstat equivalents, with real output and what each column means for your server.',
+    tags: ['networking', 'ss', 'ports', 'netstat', 'troubleshooting'],
+    difficulty: 'beginner',
+    datePublished: '2026-10-03',
+    dateModified: '2026-10-03',
+  },
+  {
+    slug: 'lsof-command-examples',
+    title: 'lsof Command Examples: Ports, Open Files and Deleted Files Eating Your Disk',
+    metaTitle: 'lsof Command Examples for Disk and Ports',
+    description:
+      'lsof examples for three real jobs: which process holds a port, who has a file or directory open, and deleted-but-open files silently eating disk space (+L1).',
+    tags: ['lsof', 'disk', 'ports', 'troubleshooting', 'processes'],
+    difficulty: 'intermediate',
     datePublished: '2026-10-03',
     dateModified: '2026-10-03',
   },

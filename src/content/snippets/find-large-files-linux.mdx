@@ -218,7 +218,7 @@ Run `find / -type f -size +1G -exec ls -lh {} \;` to locate every regular file o
 
 ### Is it safe to delete large files I find with du?
 
-Never delete a file without confirming no running process holds it open. Use `lsof +D /path` to check. Log files held open by a service will not free space until that service restarts or the file descriptor closes. Compress with `gzip` or truncate with `> filename` instead of `rm` for active log files.
+Never delete a file without confirming no running process holds it open. Use [`lsof +D /path`](/snippets/lsof-command-examples) to check. Log files held open by a service will not free space until that service restarts or the file descriptor closes. Compress with `gzip` or truncate with `> filename` instead of `rm` for active log files.
 
 ### Why does du show different sizes than ls?
 

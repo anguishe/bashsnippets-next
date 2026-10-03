@@ -8,7 +8,7 @@ Travis — self-taught Linux developer based in Florida, publishing here and on 
 
 ## What This Site Contains
 
-- 53 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
+- 55 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
 - 13 interactive tools at /tools/ including script builders, command generators, and debuggers
 - 10 pillar guides at /guides/ covering cron survival, systemd timers vs cron, CI/CD, text processing, APIs, bash strict mode, hung-process diagnosis, service auto-restart and watchdogs, listing open ports, and the sysadmin script set
 - 7 ShellCheck deep dives at /shellcheck/ — one page per rule (SC2086, SC2046, SC2063, SC2115, SC2154, SC2034, SC2016), each with the breakage run for real, ShellCheck 0.11.0's exact output, the fix, the variants, and when to disable the rule
@@ -79,6 +79,8 @@ Travis — self-taught Linux developer based in Florida, publishing here and on 
 - [Fix "bash: command not found"](https://bashsnippets.xyz/snippets/bash-command-not-found) — exit 127, six causes with one message: typo, not installed, installed outside PATH (~/.local/bin, /usr/sbin), script run without ./, alias invisible to non-interactive shells, stale hash table after a binary moves (prints No such file or directory; hash -r fixes it), CRLF shebang (env: 'bash\r'). cron's PATH is /usr/bin:/bin; reproduce with env -i PATH=/usr/bin:/bin. Diagnostic script names the cause, including adjacent-letter typos (gti → git).
 - [Fix "unary operator expected" in Bash](https://bashsnippets.xyz/snippets/unary-operator-expected) — an empty unquoted variable vanishes inside [ ], so [ $count -eq 1 ] becomes [ -eq 1 ] (exit 2). Table from real runs: quoting gives integer expected, [[ ]] is silent, [[ $count -eq 0 ]] and [ -n $count ] are TRUE when empty, set -u names the variable. ShellCheck SC2086 / SC2070 catch it first.
 - [Fix "Permission denied" in Bash](https://bashsnippets.xyz/snippets/bash-permission-denied) — exit 126 = found but not executable: missing x bit, parent directory without search bit, noexec mount (beats root; bash script.sh still works), another user's file. Reads/writes fail with exit 1; creating and deleting need the directory's write bit (a 444 file in a writable dir can be rm'd). Operation not permitted (EPERM) is a different check: chattr +i, signalling another user's process.
+- [ss Command Examples: -tulpn, Decoded](https://bashsnippets.xyz/snippets/ss-command-examples) — ss -tulpn, -ltn, 'sport = :PORT' and 'dport' filters, state filters, -s; column-by-column read of a LISTEN row (Recv-Q/Send-Q on listeners = accept queue / backlog; 127.0.0.1 vs 0.0.0.0 vs * with v6only:0); empty Process column = not root, not "no process"; netstat → ss mapping table. Real output from a throwaway network namespace.
+- [lsof Command Examples for Disk and Ports](https://bashsnippets.xyz/snippets/lsof-command-examples) — df full but du not: lsof +L1 finds deleted-but-open files (NLINK 0); free without reboot via restart or : > /proc/PID/fd/FD (demo: 150M back instantly). lsof exits 1 even when it prints matches. Script groups shared inodes (an upgraded Chrome binary held by 54 processes = 281M once, 509M total on this desktop). Also lsof -i :PORT -P -n, lsof +D vs fuser -vm for umount target is busy.
 
 ## Interactive Tools
 

@@ -573,7 +573,7 @@ export const tools: ToolMeta[] = [
           'No. It never connects to any address; it only reads the text you paste, and the parsing runs in your browser. A share link carries the normalised rows in the URL fragment after the # sign, which browsers do not send to the server, and addresses other than loopback, wildcard and multicast are redacted in it by default.',
       },
     ],
-    relatedSnippets: ['list-open-ports-linux', 'ports-audit', 'port-listening-but-connection-refused', 'kill-process-on-port'],
+    relatedSnippets: ['list-open-ports-linux', 'ports-audit', 'port-listening-but-connection-refused', 'kill-process-on-port', 'ss-command-examples', 'lsof-command-examples'],
   },
 ];
 
