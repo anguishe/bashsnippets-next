@@ -1,6 +1,8 @@
 'use client';
 
 import { escapeHtml } from './shared/bashHighlight';
+import ShareLinkButton from './shared/ShareLinkButton';
+import { enumKeys } from './shared/useShareLink';
 import { useClipboard } from './shared/useClipboard';
 import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
@@ -38,6 +40,17 @@ interface FindState {
   execCmd: string;
   execTerm: ExecTerm;
 }
+
+// Share links may only restore values the selects can show.
+const SHARE_ENUMS = enumKeys({
+  fileType: ['f', 'd', 'l'],
+  timeUnit: ['days', 'minutes'],
+  timeSign: ['older', 'within'],
+  sizeSign: ['larger', 'smaller', 'exact'],
+  sizeUnit: ['c', 'k', 'M', 'G'],
+  action: ['print', 'print0', 'delete', 'exec'],
+  execTerm: ['semi', 'plus'],
+});
 
 const DEFAULT_STATE: FindState = {
   path: '.',
@@ -668,6 +681,10 @@ export default function FindCommandBuilder() {
             className="m-0 overflow-x-auto whitespace-pre-wrap break-all rounded-b-lg border border-border bg-bg p-4 font-mono text-[13px] leading-relaxed text-text"
             dangerouslySetInnerHTML={{ __html: commandHtml }}
           />
+
+          <div className="mt-2.5">
+            <ShareLinkButton fields={{ find: [s, setState, SHARE_ENUMS] }} />
+          </div>
 
           {/* Destructive-action warning — preview with -print first */}
           {destructive && (

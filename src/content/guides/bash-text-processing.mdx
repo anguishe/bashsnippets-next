@@ -52,7 +52,7 @@ A few things that bite people. The `\.` escapes the dot so it is a literal, not 
 
 ## Step 4 — `awk`: when you need fields and totals, not just lines
 
-`grep` and `sed` work on lines and patterns. The moment you need a *column* — the 9th field of an access log, the sum of a byte count, a count grouped by status code — that is `awk`. It splits each line into fields (`$1`, `$2`, … `$NF` for the last) and runs a tiny program per line.
+`grep` and `sed` work on lines and patterns. The moment you need a *column* — the 9th field of an access log, the sum of a byte count, a count grouped by status code — that is `awk` (the [AWK cheat sheet](/snippets/awk-cheat-sheet) has every one-liner below and more, each with real output). It splits each line into fields (`$1`, `$2`, … `$NF` for the last) and runs a tiny program per line.
 
 ```bash
 # Sum the response-size column (field 10) of an nginx access log

@@ -2,11 +2,38 @@
 
 import { highlightCrontab } from './shared/bashHighlight';
 import { useClipboard } from './shared/useClipboard';
+import ShareLinkButton from './shared/ShareLinkButton';
+import { oneOf } from './shared/useShareLink';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const DOW_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const FIELD_OPTIONS = {
+  minute: [
+    ['*', '* (every minute)'], ['0', ':00 (top of hour)'], ['15', ':15'], ['30', ':30'], ['45', ':45'],
+    ['*/5', '*/5 (every 5 min)'], ['*/10', '*/10 (every 10 min)'], ['*/15', '*/15 (every 15 min)'], ['*/30', '*/30 (every 30 min)'],
+  ],
+  hour: [
+    ['*', '* (every hour)'], ['0', '00:00 (midnight)'], ['2', '02:00 (2am)'], ['6', '06:00'],
+    ['9', '09:00'], ['12', '12:00 (noon)'], ['18', '18:00 (6pm)'],
+    ['*/2', '*/2 (every 2 hours)'], ['*/4', '*/4 (every 4 hours)'], ['*/6', '*/6 (every 6 hours)'],
+  ],
+  dom: [
+    ['*', '* (every day)'], ['1', '1 (1st of month)'], ['15', '15 (15th)'],
+  ],
+  month: [
+    ['*', '* (every month)'], ['1', 'Jan'], ['6', 'Jun'], ['1-6', 'Jan-Jun'], ['7-12', 'Jul-Dec'],
+  ],
+  dow: [
+    ['*', '* (every day)'], ['1-5', 'Mon-Fri (weekdays)'], ['0,6', 'Sat-Sun (weekends)'],
+    ['1', 'Monday'], ['5', 'Friday'],
+  ],
+} satisfies Record<string, [string, string][]>;
+
+// Share links may only restore values the selects can show.
+const allowed = (id: keyof typeof FIELD_OPTIONS) => oneOf(FIELD_OPTIONS[id].map(([v]) => v));
+
 const LOCK_PATH = '/var/lock/cronjob.lock';
 const LOG_PATH = '/var/log/cronjob.log';
 
@@ -446,25 +473,11 @@ export default function CronJobBuilder() {
           <div className="mb-3.5 font-mono text-[11px] uppercase tracking-wide text-muted">{'// cron expression'}</div>
 
           {[
-            { id: 'minute', label: 'Minute', value: minute, setter: setMinute, options: [
-              ['*', '* (every minute)'], ['0', ':00 (top of hour)'], ['15', ':15'], ['30', ':30'], ['45', ':45'],
-              ['*/5', '*/5 (every 5 min)'], ['*/10', '*/10 (every 10 min)'], ['*/15', '*/15 (every 15 min)'], ['*/30', '*/30 (every 30 min)'],
-            ]},
-            { id: 'hour', label: 'Hour', value: hour, setter: setHour, options: [
-              ['*', '* (every hour)'], ['0', '00:00 (midnight)'], ['2', '02:00 (2am)'], ['6', '06:00'],
-              ['9', '09:00'], ['12', '12:00 (noon)'], ['18', '18:00 (6pm)'],
-              ['*/2', '*/2 (every 2 hours)'], ['*/4', '*/4 (every 4 hours)'], ['*/6', '*/6 (every 6 hours)'],
-            ]},
-            { id: 'dom', label: 'Day of Month', value: dom, setter: setDom, options: [
-              ['*', '* (every day)'], ['1', '1 (1st of month)'], ['15', '15 (15th)'],
-            ]},
-            { id: 'month', label: 'Month', value: month, setter: setMonth, options: [
-              ['*', '* (every month)'], ['1', 'Jan'], ['6', 'Jun'], ['1-6', 'Jan-Jun'], ['7-12', 'Jul-Dec'],
-            ]},
-            { id: 'dow', label: 'Day of Week', value: dow, setter: setDow, options: [
-              ['*', '* (every day)'], ['1-5', 'Mon-Fri (weekdays)'], ['0,6', 'Sat-Sun (weekends)'],
-              ['1', 'Monday'], ['5', 'Friday'],
-            ]},
+            { id: 'minute', label: 'Minute', value: minute, setter: setMinute, options: FIELD_OPTIONS.minute },
+            { id: 'hour', label: 'Hour', value: hour, setter: setHour, options: FIELD_OPTIONS.hour },
+            { id: 'dom', label: 'Day of Month', value: dom, setter: setDom, options: FIELD_OPTIONS.dom },
+            { id: 'month', label: 'Month', value: month, setter: setMonth, options: FIELD_OPTIONS.month },
+            { id: 'dow', label: 'Day of Week', value: dow, setter: setDow, options: FIELD_OPTIONS.dow },
           ].map(({ id, label, value, setter, options }) => (
             <div key={id} className="mb-3">
               <label htmlFor={`sel-${id}`} className="mb-1 block text-xs text-muted">{label}</label>
@@ -593,6 +606,24 @@ export default function CronJobBuilder() {
             className="min-h-[200px] overflow-x-auto whitespace-pre rounded-b-lg border border-border bg-bg p-4 font-mono text-[13px] leading-relaxed text-text"
             dangerouslySetInnerHTML={{ __html: outputHtml }}
           />
+          <div className="mt-3">
+            <ShareLinkButton
+              fields={{
+                minute: [minute, setMinute, allowed('minute')],
+                hour: [hour, setHour, allowed('hour')],
+                dom: [dom, setDom, allowed('dom')],
+                month: [month, setMonth, allowed('month')],
+                dow: [dow, setDow, allowed('dow')],
+                command: [command, setCommand],
+                logging: [logging, setLogging],
+                shell: [shell, setShell],
+                path: [path, setPath],
+                mailto: [mailto, setMailto],
+                lockfile: [lockfile, setLockfile],
+                decode: [reverseInput, setReverseInput],
+              }}
+            />
+          </div>
 
           {domDowOrWarning(dom, dow) && (
             <div className="mt-3 rounded-md border-l-[3px] border-amber bg-bg2 px-3.5 py-3 text-xs leading-relaxed text-amber">

@@ -1,0 +1,170 @@
+---
+title: "ss Command Examples: -tulpn, Port Filters and What Each Column Means"
+metaTitle: "ss Command Examples: -tulpn, Decoded"
+description: "Copy-paste ss command examples: -tulpn, port and state filters, -s, and the netstat equivalents, with real output and what each column means for your server."
+slug: "ss-command-examples"
+tags: ["networking", "ss", "ports", "netstat", "troubleshooting"]
+quickAnswer: "ss -tulpn is the ss command most people need: it lists every TCP (-t) and UDP (-u) socket that is listening (-l), with numeric ports (-n) and the owning process (-p). The columns are Netid, State, Recv-Q, Send-Q, Local Address:Port, Peer Address:Port and Process. Local Address tells you who can connect: 127.0.0.1 means this machine only, 0.0.0.0 or * means every interface. To check a single port, use a filter: ss -ltnp 'sport = :8080'. To see live connections instead of listeners, use ss -tan state established, or filter by the remote side with dport. ss -s prints a one-screen summary of socket counts. Without root, the Process column is filled in only for your own processes, so run sudo ss -tulpn to see who owns everything. ss replaces netstat from net-tools: ss -tulpn is the direct equivalent of netstat -tulpn, and ss reads the kernel's socket tables directly, which is faster on busy servers."
+faq:
+  - question: "What does ss -tulpn mean?"
+    answer: "Each letter is a flag: -t shows TCP sockets, -u shows UDP sockets, -l limits the list to listening sockets, -p adds the process that owns each socket, and -n prints port numbers instead of service names (8080, not http-alt) and skips DNS lookups. Together they answer what is listening on this machine and which program opened it, the same question netstat -tulpn answered."
+  - question: "Why is the Process column empty in ss output?"
+    answer: "Because ss can only read the process details of sockets owned by your user. A socket opened by root or another user still appears in the list, but its Process column is blank. Run sudo ss -tulpn to fill it in for every socket. Inside a container, processes in other namespaces are not visible at all; run ss on the host or inside the container that owns the socket."
+  - question: "What is the difference between 0.0.0.0 and 127.0.0.1 in ss?"
+    answer: "The Local Address is the address the socket is bound to. 127.0.0.1 (or [::1]) means loopback only: other machines cannot connect, whatever the firewall says. 0.0.0.0 means every IPv4 interface, and * or [::] means every interface, IPv6 and usually IPv4 too. A database or admin panel bound to 0.0.0.0 is reachable from the network unless a firewall blocks it, which makes this column the first thing to check on a new server."
+  - question: "How do I check if a specific port is open with ss?"
+    answer: "Filter on the source port: ss -ltnp 'sport = :8080' shows the listener on port 8080 and its process, or prints only the header if nothing is listening. Quote the filter so the shell does not touch it. For connections to a remote port, use dport instead: ss -tn 'dport = :443'. Combine conditions with and or or, for example ss -tan 'sport = :22 or dport = :22'."
+  - question: "Is netstat deprecated? What replaces it?"
+    answer: "netstat comes from the net-tools package, which most distributions no longer install by default. ss from iproute2 replaces it and accepts nearly the same flags: ss -tulpn for netstat -tulpn, ss -tan for netstat -tan, ss -s for netstat -s style summaries. ss reads socket information from the kernel through netlink instead of parsing /proc/net text files, so it stays fast with tens of thousands of connections."
+howToSteps:
+  - name: "List every listening socket"
+    text: "Run sudo ss -tulpn. Each row is a TCP or UDP socket waiting for connections, with its bound address, port and owning process."
+  - name: "Read the Local Address column"
+    text: "127.0.0.1 or [::1] means only this machine can connect. 0.0.0.0, * or [::] means every interface. Anything private bound to every interface needs a firewall rule or a rebind to 127.0.0.1."
+  - name: "Filter by port or state"
+    text: "Use ss -ltnp 'sport = :PORT' for one listener, ss -tan state established for live connections, and ss -s for a summary. Paste the output into the Open Ports Explainer for a per-row verdict."
+author: "Travis"
+datePublished: "2026-10-03"
+dateModified: "2026-10-03"
+---
+
+<Callout type="info" title="Paste your ss output, get a verdict per socket">
+
+The [Open Ports Explainer](/tools/open-ports-explainer) reads `ss -tulpn`, `netstat` or `lsof` output in your browser and says, row by row, what is exposed to the network and what is local only. Redaction is on by default and nothing is uploaded.
+
+</Callout>
+
+`ss -tulpn` prints one row per listening socket, and every tutorial explains the flags. The part that matters is reading the output: which of those rows can the internet reach, and which program opened it. A service bound to `0.0.0.0` that you thought was local is how a database ends up on Shodan.
+
+## What Are the ss Commands Worth Knowing?
+
+Reproduced here on 2026-10-03 (Kali, iproute2 7.1.0, lsof 4.99.4) inside a throwaway network namespace (`unshare -rn`), so the only sockets are four demo listeners: a web server on `127.0.0.1:8099`, one on `0.0.0.0:8080`, an IPv6 listener on port 5432 and a UDP socket on 5353. Inside the namespace you appear as root, which is why every process is visible.
+
+**Everything listening, with owners:**
+
+```text
+$ ss -tulpn
+Netid State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+udp   UNCONN 0      0            0.0.0.0:5353      0.0.0.0:*    users:(("python3",pid=496577,fd=3))
+tcp   LISTEN 0      5          127.0.0.1:8099      0.0.0.0:*    users:(("python3",pid=496574,fd=3))
+tcp   LISTEN 0      5            0.0.0.0:8080      0.0.0.0:*    users:(("python3",pid=496575,fd=3))
+tcp   LISTEN 0      128                *:5432            *:*    users:(("python3",pid=496576,fd=3))
+```
+
+**TCP listeners only, no process lookup** (fast, and works the same with or without root):
+
+```text
+$ ss -ltn
+State  Recv-Q Send-Q Local Address:Port Peer Address:Port
+LISTEN 0      5          127.0.0.1:8099      0.0.0.0:*
+LISTEN 0      5            0.0.0.0:8080      0.0.0.0:*
+LISTEN 0      128                *:5432            *:*
+```
+
+**One port** (quote the filter so the shell leaves it alone):
+
+```text
+$ ss -ltnp 'sport = :8099'
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+LISTEN 0      5          127.0.0.1:8099      0.0.0.0:*    users:(("python3",pid=496574,fd=3))
+```
+
+Nothing listening on the port prints the header line alone, which is the quickest "is it up?" check there is.
+
+**The listener and its live connections together** (`-a` shows all states):
+
+```text
+$ ss -tan 'dport = :8099 or sport = :8099'
+State  Recv-Q Send-Q Local Address:Port  Peer Address:Port
+LISTEN 0      5          127.0.0.1:8099       0.0.0.0:*
+ESTAB  0      0          127.0.0.1:55000    127.0.0.1:8099
+ESTAB  0      0          127.0.0.1:8099     127.0.0.1:55000
+```
+
+One connection, seen from both ends: the client on ephemeral port 55000, and the server's accepted socket on 8099. `ss -tan state established` lists every live TCP connection on the box, and `ss -s` prints a one-screen summary of socket counts by type.
+
+## How Do I Read One Row?
+
+Take `tcp LISTEN 0 5 0.0.0.0:8080 0.0.0.0:* users:(("python3",pid=496575,fd=3))`:
+
+| Column | Value | Meaning |
+|---|---|---|
+| Netid | `tcp` | protocol (`-t` / `-u` selected it) |
+| State | `LISTEN` | waiting for connections; UDP shows `UNCONN` because it has no connections |
+| Recv-Q | `0` | for a listener: connections waiting to be `accept()`ed. A number that keeps growing means the app is not keeping up |
+| Send-Q | `5` | for a listener: the backlog limit the app asked for (Python's default is 5; nginx uses 511) |
+| Local Address:Port | `0.0.0.0:8080` | **who can connect.** `127.0.0.1` / `[::1]` = this machine only; `0.0.0.0` = every IPv4 interface; `*` / `[::]` = every interface |
+| Peer Address:Port | `0.0.0.0:*` | any remote address may connect (for an established row, the remote end) |
+| Process | `python3`, `pid=496575`, `fd=3` | the program, its PID, and the file descriptor holding the socket |
+
+The `*:5432` row is an IPv6 socket listening on every address. With `v6only` off (the Linux default), it also accepts IPv4, so it is as exposed as `0.0.0.0`. The `127.0.0.1:8099` row is the only one another machine cannot reach.
+
+## Why Is the Process Column Empty?
+
+Without root, `ss -p` fills in the Process column only for sockets your user owns. Root's and other users' sockets still appear, with nothing after the address. That is not "no process"; it is "not allowed to look". `sudo ss -tulpn` shows them all. Without sudo, `ss -ltne` still prints a `cgroup:` field for every socket, which names the systemd service or container that owns it; the [open ports guide](/guides/open-ports-linux) walks through that trick. If a port is listed and no process shows even under sudo, the socket usually belongs to a container's network namespace or to the kernel itself (NFS, WireGuard).
+
+The same question answered with `lsof`, which names the user column too:
+
+```text
+$ lsof -iTCP -sTCP:LISTEN -P -n
+COMMAND    PID USER FD   TYPE  DEVICE SIZE/OFF NODE NAME
+python3 496574 root 3u  IPv4 2498808      0t0  TCP 127.0.0.1:8099 (LISTEN)
+python3 496575 root 3u  IPv4 2497683      0t0  TCP *:8080 (LISTEN)
+python3 496576 root 3u  IPv6 2492792      0t0  TCP *:5432 (LISTEN)
+```
+
+`lsof` writes `*:8080` where `ss` writes `0.0.0.0:8080`. Same binding. [lsof Command Examples](/snippets/lsof-command-examples) covers the rest of what `lsof` does that `ss` cannot.
+
+## What Are the netstat Equivalents?
+
+| netstat (net-tools) | ss (iproute2) | Shows |
+|---|---|---|
+| `netstat -tulpn` | `ss -tulpn` | listening TCP + UDP with processes |
+| `netstat -tln` | `ss -ltn` | listening TCP, numeric |
+| `netstat -tan` | `ss -tan` | every TCP socket, all states |
+| `netstat -tnp` | `ss -tnp` | established TCP with processes |
+| `netstat -s` | `ss -s` | summary counts (ss's is shorter) |
+| `netstat -tlnp \| grep :8080` | `ss -ltnp 'sport = :8080'` | one port, filtered by ss itself |
+
+Most distributions stopped installing net-tools years ago, so `netstat: command not found` on a fresh server is expected. `ss` reads socket state from the kernel over netlink rather than parsing `/proc/net/tcp`, which keeps it fast with tens of thousands of connections.
+
+## Prerequisites
+
+`ss` ships in iproute2, installed on every mainstream distro. `sudo` to see other users' processes. `lsof` is optional (`apt install lsof`).
+
+## Where Next?
+
+Listing ports is step one. [List Open Ports on Linux](/snippets/list-open-ports-linux) wraps `ss` in a script that flags exposed services, [Ports Audit](/snippets/ports-audit) compares listeners against an allowlist, and [Kill Process on Port](/snippets/kill-process-on-port) frees a port something is squatting on. If a port shows up here and connections still fail, [Port Listening but Connection Refused](/snippets/port-listening-but-connection-refused) is the bind-address half of that story, and the [open ports guide](/guides/open-ports-linux) walks through a whole-server review. [The Production Bash Toolkit](/starter-kit) bundles the audit scripts ShellCheck-clean.
+
+## Frequently Asked Questions
+
+### What does ss -tulpn mean?
+
+Each letter is a flag: `-t` shows TCP sockets, `-u` shows UDP sockets, `-l` limits the list to listening sockets, `-p` adds the process that owns each socket, and `-n` prints port numbers instead of service names (8080, not `http-alt`) and skips DNS lookups. Together they answer what is listening on this machine and which program opened it, the same question `netstat -tulpn` answered.
+
+### Why is the Process column empty in ss output?
+
+Because ss can only read the process details of sockets owned by your user. A socket opened by root or another user still appears in the list, but its Process column is blank. Run `sudo ss -tulpn` to fill it in for every socket. Inside a container, processes in other namespaces are not visible at all; run ss on the host or inside the container that owns the socket.
+
+### What is the difference between 0.0.0.0 and 127.0.0.1 in ss?
+
+The Local Address is the address the socket is bound to. `127.0.0.1` (or `[::1]`) means loopback only: other machines cannot connect, whatever the firewall says. `0.0.0.0` means every IPv4 interface, and `*` or `[::]` means every interface, IPv6 and usually IPv4 too. A database or admin panel bound to `0.0.0.0` is reachable from the network unless a firewall blocks it, which makes this column the first thing to check on a new server.
+
+### How do I check if a specific port is open with ss?
+
+Filter on the source port: `ss -ltnp 'sport = :8080'` shows the listener on port 8080 and its process, or prints only the header if nothing is listening. Quote the filter so the shell does not touch it. For connections to a remote port, use `dport` instead: `ss -tn 'dport = :443'`. Combine conditions with `and` or `or`, for example `ss -tan 'sport = :22 or dport = :22'`.
+
+### Is netstat deprecated? What replaces it?
+
+netstat comes from the net-tools package, which most distributions no longer install by default. `ss` from iproute2 replaces it and accepts nearly the same flags: `ss -tulpn` for `netstat -tulpn`, `ss -tan` for `netstat -tan`, `ss -s` for `netstat -s` style summaries. ss reads socket information from the kernel through netlink instead of parsing `/proc/net` text files, so it stays fast with tens of thousands of connections.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [List Open Ports on Linux](/snippets/list-open-ports-linux) — a script around `ss` that flags services exposed on every interface
+- [lsof Command Examples](/snippets/lsof-command-examples) — ports, open files, and deleted files still holding disk space
+- [Kill Process on Port](/snippets/kill-process-on-port) — free a port with SIGTERM, then SIGKILL only if needed
+- [Port Listening but Connection Refused](/snippets/port-listening-but-connection-refused) — the bind address `ss` shows, and why it refuses

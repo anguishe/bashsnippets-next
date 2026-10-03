@@ -4,6 +4,7 @@ import CopyButton from '@/components/CopyButton';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useClipboard } from './shared/useClipboard';
+import ShareLinkButton from './shared/ShareLinkButton';
 
 const SNIPPETS: Record<string, string> = {
   disk: 'USAGE=$(df / | awk \'NR==2{print $5}\' | tr -d \'%\'); THRESHOLD=80; [ "$USAGE" -gt "$THRESHOLD" ] && echo "$CROSS Disk usage at ${USAGE}% — above threshold" || echo "$CHECK Disk OK at ${USAGE}%"',
@@ -350,6 +351,27 @@ export default function BashBoilerplateGenerator() {
             className="min-h-[400px] overflow-x-auto whitespace-pre rounded-b-lg border border-border bg-bg p-5 font-mono text-[13px] leading-relaxed text-text"
             dangerouslySetInnerHTML={{ __html: outputHtml }}
           />
+          <div className="mt-3">
+            <ShareLinkButton
+              fields={{
+                name: [name, setName],
+                desc: [desc, setDesc],
+                author: [author, setAuthor],
+                shebang: [shebang, setShebang],
+                setE: [setE, setSetE],
+                setU: [setU, setSetU],
+                pipefail: [pipefail, setPipefail],
+                ifs: [ifs, setIfs],
+                setX: [setX, setSetX],
+                logFn: [logFn, setLogFn],
+                checks: [checks, setChecks],
+                args: [args, setArgs],
+                lock: [lock, setLock],
+                root: [root, setRoot],
+                trap: [trap, setTrap],
+              }}
+            />
+          </div>
         </div>
       </div>
 

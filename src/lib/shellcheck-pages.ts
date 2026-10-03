@@ -49,6 +49,7 @@ export const shellcheckPages: ShellcheckPage[] = [
       { href: '/snippets/bash-for-loop-examples', label: 'Bash For Loop Examples — the loop over ls that splits on spaces' },
       { href: '/snippets/bash-arrays', label: 'Bash Arrays — the fix for lists that contain spaces' },
       { href: '/snippets/bash-if-else-examples', label: 'Bash If/Else Examples — quoting inside [ ]' },
+      { href: '/snippets/unary-operator-expected', label: 'Fix "unary operator expected" — what SC2086 looks like at runtime inside [ ]' },
       { href: '/guides/safe-bash-script-template', label: 'The Safe Bash Script Template' },
     ],
   },

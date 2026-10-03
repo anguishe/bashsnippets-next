@@ -1,0 +1,391 @@
+---
+title: "AWK Cheat Sheet: Print Columns, Filter Rows, Sum and Count (Run-Verified)"
+metaTitle: "AWK Cheat Sheet: Columns, Filters, Sums"
+description: "AWK cheat sheet with run-verified one-liners: print a column, filter rows, sum a field, count by key, -F, NF and NR, and when cut or sed is the better fit."
+slug: "awk-cheat-sheet"
+tags: ["awk", "text-processing", "logs", "csv", "one-liners"]
+quickAnswer: "awk reads input line by line, splits each line into fields, and runs pattern { action } rules against it. $1, $2 … are the fields, $0 is the whole line, $NF is the last field, NF is the number of fields and NR is the line number. Fields split on runs of whitespace by default; -F sets another separator, such as -F: for /etc/passwd or -F, for simple CSV. To print a column: awk '{print $1}' file. To filter rows: awk '$9 >= 500' access.log prints whole lines where field 9 is at least 500, and awk '/api/' matches a regex. To sum a column: awk '{s += $10} END {print s}'. To count by key: awk '{c[$1]++} END {for (k in c) print c[k], k}'. To deduplicate without sorting: awk '!seen[$1]++'. Pass shell variables with -v name=value, never by splicing them into the program. awk does not understand quoted CSV fields; gawk 5.3's --csv does."
+faq:
+  - question: "How do I print a specific column with awk?"
+    answer: "Use awk '{print $N}' file, where N is the column number: awk '{print $1}' prints the first, awk '{print $1, $3}' prints the first and third separated by a space, and awk '{print $NF}' prints the last whatever the line length. Columns split on runs of spaces and tabs by default. For another separator, set it with -F: awk -F: '{print $1}' /etc/passwd prints user names."
+  - question: "How do I sum a column with awk?"
+    answer: "Accumulate in a variable and print it in an END block: awk '{sum += $3} END {print sum}' file. Variables start at zero, so no initialisation is needed. Skip a header with NR > 1, and use printf for decimals: awk 'NR > 1 {s += $3} END {printf \"%.2f\\n\", s}' file. For an average, divide by NR (or by NR - 1 when you skipped a header)."
+  - question: "What is the difference between NR and FNR in awk?"
+    answer: "NR counts lines across all input files and never resets. FNR counts lines within the current file and restarts at 1 for each new file. With one file they are equal. With several, FNR == 1 marks the first line of each file, and NR == FNR is true only while awk reads the first file, which is the standard idiom for loading one file into an array before processing a second."
+  - question: "Why does cut give the wrong column when awk gives the right one?"
+    answer: "cut -d' ' treats every single space as a separator, so two spaces in a row create an empty field and shift every column after it. awk's default separator is a run of spaces and tabs, and leading whitespace is ignored, so aligned output from ps, df or ls -l splits the way it looks. Use cut for files with exactly one delimiter character between fields, such as CSV without quotes, and awk for anything space-aligned."
+  - question: "Can awk edit a file in place?"
+    answer: "GNU awk can, with gawk -i inplace 'program' file, which rewrites the file with awk's output. mawk and BSD awk cannot: mawk rejects -i as not an option. Portably, write to a temporary file and move it over the original: awk 'program' file > file.tmp && mv file.tmp file. Never redirect awk's output to the file it is reading, which empties the file before awk reads it."
+howToSteps:
+  - name: "Pick the separator"
+    text: "Leave the default for space-aligned output (logs, ps, df). Use -F: for colon files like /etc/passwd, -F, for simple CSV, and gawk --csv for CSV with quoted commas."
+  - name: "Write the pattern and the action"
+    text: "A pattern selects lines ($9 >= 500, /error/, NR > 1); the action in braces runs on them ({print $1}). Omit the action to print the whole line; omit the pattern to act on every line."
+  - name: "Aggregate in END"
+    text: "Accumulate into variables or arrays per line, and print the result in END: {s += $10} END {print s}, or {c[$1]++} END {for (k in c) print c[k], k}."
+author: "Travis"
+datePublished: "2026-10-03"
+dateModified: "2026-10-03"
+---
+
+<Callout type="info" title="Every line below was run, not typed">
+
+Run here on 2026-10-03 with GNU Awk 5.3.2 (`/usr/bin/awk` on Kali) against three small files you can recreate from the next section. Where mawk or BSD awk behave differently, the line says so. For grep patterns, the [Grep Pattern Builder](/tools/grep-pattern-builder) builds and tests them in the browser; for whole-pipeline text work, the [bash text processing guide](/guides/bash-text-processing) puts awk next to grep, sed and sort.
+
+</Callout>
+
+awk cheat sheets are usually a PDF or a table of syntax. This one is the command, the output it actually printed, and one line on why. Copy any line, swap the file name, and it does what the output shows.
+
+## What Files Do These Examples Use?
+
+A web server log with documentation-range IP addresses, a `/etc/passwd`-format file, and a CSV with a header:
+
+```text
+$ cat access.log
+203.0.113.10 - - [03/Oct/2026:09:14:02 +0000] "GET /index.html HTTP/1.1" 200 5120
+198.51.100.7 - - [03/Oct/2026:09:14:05 +0000] "GET /api/users HTTP/1.1" 500 312
+203.0.113.10 - - [03/Oct/2026:09:14:09 +0000] "POST /api/login HTTP/1.1" 401 98
+192.0.2.44 - - [03/Oct/2026:09:15:11 +0000] "GET /index.html HTTP/1.1" 200 5120
+198.51.100.7 - - [03/Oct/2026:09:15:30 +0000] "GET /api/users HTTP/1.1" 500 312
+203.0.113.10 - - [03/Oct/2026:09:16:47 +0000] "GET /static/app.js HTTP/1.1" 200 48210
+$ cat users.txt
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+alice:x:1000:1000:Alice Admin:/home/alice:/bin/bash
+bob:x:1001:1001:Bob Builder:/home/bob:/bin/zsh
+deploy:x:998:998::/srv/deploy:/usr/sbin/nologin
+$ cat sales.csv
+region,product,units,price
+east,widget,12,2.50
+west,gadget,3,10.00
+east,gadget,7,10.00
+north,widget,20,2.50
+west,widget,5,2.50
+```
+
+In `access.log`, field 1 is the client IP, `$7` the path, `$9` the status code and `$10` (also `$NF`) the response size in bytes. Three two-line scratch files appear later: `a.txt` holds `alpha 3`, `beta 7`, `gamma 2`; `b.txt` holds `delta 9`, `epsilon 1`; `c.txt` is a copy of `a.txt`.
+
+## How Do I Print Columns?
+
+```text
+$ awk '{print $1}' access.log
+203.0.113.10
+198.51.100.7
+203.0.113.10
+192.0.2.44
+198.51.100.7
+203.0.113.10
+```
+
+Fields split on runs of whitespace; `$1` is the first.
+
+```text
+$ awk '{print $1, $9}' access.log
+203.0.113.10 200
+198.51.100.7 500
+203.0.113.10 401
+192.0.2.44 200
+198.51.100.7 500
+203.0.113.10 200
+```
+
+The comma inserts the output separator (a space). Without it, `$1 $9` would glue the fields together.
+
+```text
+$ awk '{print $NF}' access.log
+5120
+312
+98
+5120
+312
+48210
+$ awk '{print $(NF-1)}' access.log
+200
+500
+401
+200
+500
+200
+```
+
+`NF` is the field count, so `$NF` is the last field and `$(NF-1)` the one before, whatever the line length. The parentheses matter: `$NF-1` is the last field minus one.
+
+```text
+$ awk -F: '{print $1, $7}' users.txt
+root /bin/bash
+daemon /usr/sbin/nologin
+alice /bin/bash
+bob /bin/zsh
+deploy /usr/sbin/nologin
+$ awk -F, 'NR > 1 {print $2}' sales.csv
+widget
+gadget
+gadget
+widget
+widget
+```
+
+`-F` sets the input separator. `NR > 1` skips the CSV header.
+
+```text
+$ awk 'BEGIN {OFS="\t"} {print $1, $9}' access.log
+203.0.113.10	200
+198.51.100.7	500
+203.0.113.10	401
+192.0.2.44	200
+198.51.100.7	500
+203.0.113.10	200
+```
+
+`OFS` is the output separator, set in `BEGIN` before the first line is read. Tab-separated output pastes cleanly into a spreadsheet.
+
+```text
+$ awk -F, 'NR > 1 {printf "%-6s %-7s %5.2f\n", $1, $2, $3 * $4}' sales.csv
+east   widget  30.00
+west   gadget  30.00
+east   gadget  70.00
+north  widget  50.00
+west   widget  12.50
+```
+
+`printf` for aligned columns and fixed decimals. Unlike `print`, it adds no newline: the `\n` is yours to write.
+
+## How Do I Filter Rows?
+
+```text
+$ awk '$9 >= 500' access.log
+198.51.100.7 - - [03/Oct/2026:09:14:05 +0000] "GET /api/users HTTP/1.1" 500 312
+198.51.100.7 - - [03/Oct/2026:09:15:30 +0000] "GET /api/users HTTP/1.1" 500 312
+```
+
+A pattern with no action prints the whole matching line. The comparison is numeric because both sides look like numbers.
+
+```text
+$ awk '/api/' access.log
+198.51.100.7 - - [03/Oct/2026:09:14:05 +0000] "GET /api/users HTTP/1.1" 500 312
+203.0.113.10 - - [03/Oct/2026:09:14:09 +0000] "POST /api/login HTTP/1.1" 401 98
+198.51.100.7 - - [03/Oct/2026:09:15:30 +0000] "GET /api/users HTTP/1.1" 500 312
+$ awk '$7 ~ /^\/api/ && $9 != 200 {print $9, $7}' access.log
+500 /api/users
+401 /api/login
+500 /api/users
+```
+
+`/re/` matches anywhere in the line, like grep. `$7 ~ /re/` matches one field only, which is what stops `/api` in a query string or user agent from matching.
+
+```text
+$ awk -F: '$3 >= 1000 {print $1}' users.txt
+alice
+bob
+$ awk -F: '$7 !~ /nologin/ {print $1}' users.txt
+root
+alice
+bob
+```
+
+Human accounts (UID 1000 and up on most distros), and accounts that can log in. `!~` is "does not match".
+
+```text
+$ awk 'NR == 2' users.txt
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+$ awk 'NR >= 2 && NR <= 4' users.txt
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+alice:x:1000:1000:Alice Admin:/home/alice:/bin/bash
+bob:x:1001:1001:Bob Builder:/home/bob:/bin/zsh
+```
+
+Line numbers and ranges by `NR`.
+
+```text
+$ awk -v limit=1000 '$10 > limit {print $7, $10}' access.log
+/index.html 5120
+/index.html 5120
+/static/app.js 48210
+```
+
+`-v` passes a shell value in as an awk variable. Splicing `"$LIMIT"` into the program text instead breaks on spaces and quotes, and lets the value inject awk code.
+
+## How Do I Sum, Count and Find the Maximum?
+
+```text
+$ awk '{sum += $10} END {print sum}' access.log
+59172
+$ awk '{sum += $10} END {printf "%.1f KB avg\n", sum / NR / 1024}' access.log
+9.6 KB avg
+```
+
+Variables start at 0; `END` runs after the last line, when `NR` is the total line count.
+
+```text
+$ awk -F, 'NR > 1 {total += $3 * $4} END {printf "%.2f\n", total}' sales.csv
+192.50
+```
+
+Arithmetic on fields per row, summed.
+
+```text
+$ awk -F, 'NR > 1 {units[$1] += $3} END {for (r in units) print r, units[r]}' sales.csv | sort
+east 19
+north 20
+west 8
+$ awk '{count[$1]++} END {for (ip in count) print count[ip], ip}' access.log | sort -rn
+3 203.0.113.10
+2 198.51.100.7
+1 192.0.2.44
+```
+
+Arrays keyed by a field are awk's GROUP BY. `for (k in arr)` visits keys in no fixed order, hence the `sort`. The second line is the top-talkers report for any log.
+
+```text
+$ awk '!seen[$1]++ {print $1}' access.log
+203.0.113.10
+198.51.100.7
+192.0.2.44
+```
+
+Deduplicate while keeping first-seen order, which `sort -u` cannot do. `seen[$1]++` is 0 (false) the first time a key appears, so `!` makes it true exactly once.
+
+```text
+$ awk -F, 'NR > 1 && $3 > max {max = $3; row = $0} END {print row}' sales.csv
+north,widget,20,2.50
+$ awk 'END {print NR}' access.log
+6
+```
+
+The row with the largest value, and a line count (`wc -l` without the file name).
+
+## What Do NF, NR, FNR and FILENAME Tell Me?
+
+```text
+$ awk '{print NF}' users.txt | head -2
+1
+1
+$ awk -F: '{print NF}' users.txt | head -2
+7
+7
+```
+
+The same file has 1 field per line with the default separator (no spaces in `root:x:0:…`) and 7 with `-F:`. When a column comes out empty, print `NF` first: the separator is usually the problem.
+
+```text
+$ awk '{print FILENAME, FNR, $0}' a.txt b.txt
+a.txt 1 alpha 3
+a.txt 2 beta 7
+a.txt 3 gamma 2
+b.txt 1 delta 9
+b.txt 2 epsilon 1
+```
+
+`FNR` restarts per file; `NR` would have run 1 to 5.
+
+| Variable | Meaning |
+|---|---|
+| `$0` | the whole line |
+| `$1`…`$NF` | the fields |
+| `NF` | number of fields on this line |
+| `NR` | line number across all input |
+| `FNR` | line number within the current file |
+| `FILENAME` | current input file |
+| `FS` / `-F` | input field separator (default: runs of whitespace) |
+| `OFS` | output field separator (default: one space) |
+| `BEGIN {…}` | runs before the first line |
+| `END {…}` | runs after the last line |
+
+## How Do I Change Text With awk?
+
+```text
+$ awk '{print toupper($1)}' a.txt
+ALPHA
+BETA
+GAMMA
+$ awk -F: '{split($5, name, " "); if (name[1] != "") print name[1]}' users.txt
+root
+daemon
+Alice
+Bob
+$ awk '{sub(/HTTP\/1.1/, "h1"); print $6, $7, $8}' access.log | head -2
+"GET /index.html h1"
+"GET /api/users h1"
+```
+
+`toupper`, `split` into an array, and `sub` (first match; `gsub` for all). After `sub` changes `$0`, awk re-splits the fields.
+
+```text
+$ awk '{$1 = "x"; print}' a.txt
+x 3
+x 7
+x 2
+```
+
+Assigning to a field rebuilds `$0` with `OFS` between fields, which also collapses any original spacing. That surprises people when they expected the rest of the line untouched.
+
+```text
+$ gawk -i inplace '{$2 *= 10} 1' c.txt && cat c.txt
+alpha 30
+beta 70
+gamma 20
+$ mawk -i inplace '1' c.txt
+mawk: not an option: -i
+exit=2
+```
+
+`1` is a pattern that is always true, with the default action (print). In-place editing is GNU awk only; elsewhere write to a temporary file and `mv` it. Never `awk … file > file`: the shell empties the file before awk reads it.
+
+## When Is awk the Wrong Tool?
+
+```text
+$ echo 'a  b   c' | awk '{print $2}'
+b
+$ echo 'a  b   c' | cut -d' ' -f2
+
+```
+
+`cut` splits on every single space, so two spaces make an empty field 2. awk treats runs of whitespace as one separator, which is why it is right for `ps`, `df` and `ls -l` output and `cut` is not. The other direction:
+
+```text
+$ awk -F, '{print $2}' <<< 'name,"Smith, John",42'
+"Smith
+$ gawk --csv '{print $2}' <<< 'name,"Smith, John",42'
+Smith, John
+```
+
+Plain `-F,` splits inside quotes. gawk 5.3 added `--csv`, which parses quoted fields properly; on older awks, use a real CSV tool (`mlr`, Python's `csv`). And for a pure find-and-replace on lines, [sed](/snippets/bash-sed-find-replace) is shorter; for "does this line contain X", grep is faster. awk earns its place when you need fields, arithmetic or a total.
+
+## Prerequisites
+
+Any awk (gawk, mawk, BSD awk, busybox) runs everything above except `-i inplace` and `--csv`, which need GNU awk (5.3+ for `--csv`). Check with `awk --version`; mawk answers `mawk -W version`.
+
+## Frequently Asked Questions
+
+### How do I print a specific column with awk?
+
+Use `awk '{print $N}' file`, where N is the column number: `awk '{print $1}'` prints the first, `awk '{print $1, $3}'` prints the first and third separated by a space, and `awk '{print $NF}'` prints the last whatever the line length. Columns split on runs of spaces and tabs by default. For another separator, set it with `-F`: `awk -F: '{print $1}' /etc/passwd` prints user names.
+
+### How do I sum a column with awk?
+
+Accumulate in a variable and print it in an `END` block: `awk '{sum += $3} END {print sum}' file`. Variables start at zero, so no initialisation is needed. Skip a header with `NR > 1`, and use `printf` for decimals: `awk 'NR > 1 {s += $3} END {printf "%.2f\n", s}' file`. For an average, divide by `NR` (or by `NR - 1` when you skipped a header).
+
+### What is the difference between NR and FNR in awk?
+
+`NR` counts lines across all input files and never resets. `FNR` counts lines within the current file and restarts at 1 for each new file. With one file they are equal. With several, `FNR == 1` marks the first line of each file, and `NR == FNR` is true only while awk reads the first file, which is the standard idiom for loading one file into an array before processing a second.
+
+### Why does cut give the wrong column when awk gives the right one?
+
+`cut -d' '` treats every single space as a separator, so two spaces in a row create an empty field and shift every column after it. awk's default separator is a run of spaces and tabs, and leading whitespace is ignored, so aligned output from `ps`, `df` or `ls -l` splits the way it looks. Use cut for files with exactly one delimiter character between fields, such as CSV without quotes, and awk for anything space-aligned.
+
+### Can awk edit a file in place?
+
+GNU awk can, with `gawk -i inplace 'program' file`, which rewrites the file with awk's output. mawk and BSD awk cannot: mawk rejects `-i` as not an option. Portably, write to a temporary file and move it over the original: `awk 'program' file > file.tmp && mv file.tmp file`. Never redirect awk's output to the file it is reading, which empties the file before awk reads it.
+
+The one-liners above are the building blocks of most log and report scripts; [The Production Bash Toolkit](/starter-kit) ships ShellCheck-clean scripts that use them, and [Read a File Line by Line](/snippets/bash-read-file-line-by-line) covers the cases where a bash loop is clearer than awk.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Find and Replace With sed](/snippets/bash-sed-find-replace) — line edits, where sed is shorter than awk
+- [Search Files for Text With grep](/snippets/search-files-for-text-grep) — finding the lines before awk splits them
+- [Read a File Line by Line](/snippets/bash-read-file-line-by-line) — the bash loop, and when it beats awk
+- [Bash String Manipulation](/snippets/bash-string-manipulation) — splitting and trimming without spawning awk

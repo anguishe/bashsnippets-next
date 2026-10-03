@@ -1,0 +1,249 @@
+---
+title: "lsof Command Examples: Ports, Open Files and Deleted Files Eating Your Disk"
+metaTitle: "lsof Command Examples for Disk and Ports"
+description: "lsof examples for three real jobs: which process holds a port, who has a file or directory open, and deleted-but-open files silently eating disk space (+L1)."
+slug: "lsof-command-examples"
+tags: ["lsof", "disk", "ports", "troubleshooting", "processes"]
+quickAnswer: "The lsof command lists open files, and on Linux almost everything is a file, so it answers three questions. Which process holds a port: lsof -i :8080 -P -n shows the command, PID and user for every socket on port 8080, and lsof -iTCP -sTCP:LISTEN -P -n lists every TCP listener. Who has a file or directory open: lsof /path/file, or lsof +D /dir for everything under a directory, which is what stops umount with target is busy. And why df says the disk is full when du disagrees: lsof +L1 lists open files with a link count of zero, files that were deleted while a process still held them, so their space is never freed. Restart that process, or empty the file in place with : > /proc/PID/fd/FD. Add -P and -n to skip port-name and DNS lookups, and run as root to see every process. lsof often exits 1 even after printing matches, so test its output, not its exit code."
+faq:
+  - question: "Why does df show the disk full when du says there is space?"
+    answer: "Because a deleted file is still open. rm removes the name, so du stops counting it, but the kernel frees the blocks only when the last process holding the file closes it, so df keeps counting them. Run sudo lsof +L1 to list open files with zero links; the SIZE/OFF column shows how much each one holds. Restarting the process, or truncating the file through /proc/PID/fd/FD, frees the space without a reboot."
+  - question: "How do I find which process is using a port with lsof?"
+    answer: "Run sudo lsof -i :PORT -P -n. -i :PORT selects sockets on that port, -P keeps the port numeric and -n skips DNS lookups, which keeps lsof fast on a busy box. The listening row ends in (LISTEN) and the COMMAND and PID columns name the owner. For listeners only, add -sTCP:LISTEN: sudo lsof -iTCP:PORT -sTCP:LISTEN -P -n."
+  - question: "How do I fix umount: target is busy?"
+    answer: "Find what still uses the mount with lsof +D /mountpoint or fuser -vm /mountpoint. Look for open files and for processes whose current directory (FD cwd) is inside the mount, which is common: a shell you left cd'd into it is enough. Close the files or cd out, then unmount. umount -l (lazy) detaches the mount immediately but leaves those processes using it, so use it only when you understand what is still holding it."
+  - question: "Is lsof or ss better for checking ports?"
+    answer: "ss is faster and ships everywhere with iproute2, so use ss -tulpn for a quick list of listeners. lsof is slower because it walks every process's open files, but it shows the user column, combines ports with files in one tool, and its -i syntax filters by protocol, host and state. On a server with thousands of connections, prefer ss; for answering what does this one process have open, prefer lsof -p PID."
+  - question: "Why does lsof print warnings about docker or overlay file systems?"
+    answer: "lsof tries to stat every mounted filesystem, and as a normal user it cannot stat docker's overlay mounts or network namespaces under /run/docker. The warnings say the output may be incomplete for those mounts and are otherwise harmless. Add -w to suppress them, or run lsof as root, which can stat everything."
+howToSteps:
+  - name: "Find what owns a port"
+    text: "Run sudo lsof -i :8080 -P -n, or sudo lsof -iTCP -sTCP:LISTEN -P -n for every TCP listener. COMMAND and PID name the owner."
+  - name: "Find who has a file or directory open"
+    text: "Run lsof /path/file for one file, or lsof +D /dir for everything under a directory, including processes whose current directory is inside it."
+  - name: "Find deleted files still holding disk space"
+    text: "Run sudo ./deleted-open-files.sh, or sudo lsof +L1. Restart the listed process, or truncate the file in place with : > /proc/PID/fd/FD, then confirm with df."
+author: "Travis"
+datePublished: "2026-10-03"
+dateModified: "2026-10-03"
+---
+
+<Callout type="info" title="Disk full, nothing big to delete?">
+
+[Find Large Files on Linux](/snippets/find-large-files-linux) finds what *is* on the disk. This page is for when the space is used by something that is no longer there. If `df` reports `IUse%` at 100 instead, it is inodes, not bytes: [No Space Left on Device with free space](/snippets/no-space-left-on-device-inodes).
+
+</Callout>
+
+`df` says the filesystem is 95% full. `du` on every directory adds up to half that. Nothing is wrong with either tool: one counts names, the other counts blocks, and a file deleted while a process still had it open has blocks and no name. On 2026-08-28 a 44.6 GB video file deleted on this machine moved `du` by 44 GB and `df` by 5. XFCE's thumbnailer, `tumblerd`, had it open; `pkill -x tumblerd` gave the space back. `lsof +L1` finds that kind of process in one command.
+
+## Which Files Are Deleted but Still Holding Space?
+
+Reproduced here on 2026-10-03 (Kali, lsof 4.99.4, bash 5.3.15) on a 200 MB tmpfs mounted inside a user namespace (`unshare -rm`, no sudo; you appear as root inside it). A background process opens `app.log`, writes 150 MB and keeps it open, the way a daemon keeps its log:
+
+```text
+$ df -h data
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs           200M  150M   50M  75% ~/demo/data
+$ du -sh data
+150M	data
+$ rm data/app.log
+$ du -sh data
+0	data
+$ df -h data
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs           200M  150M   50M  75% ~/demo/data
+```
+
+`du` dropped to zero. `df` did not move. `lsof +L1` lists open files whose link count is below one, which is the definition of deleted-but-open:
+
+```text
+$ lsof -w +L1 data
+COMMAND    PID USER FD   TYPE DEVICE  SIZE/OFF NLINK NODE NAME
+sleep   497112 root 4w   REG   0,78 157286400     0    2 ~/demo/data/app.log (deleted)
+exit=1
+```
+
+`NLINK 0`, `(deleted)`, 157,286,400 bytes, held open for writing (`4w`) by PID 497112 on file descriptor 4. Note `exit=1`: lsof printed exactly what was asked for and still returned failure. Scripts must check its output, never its exit status.
+
+## How Do I Free the Space Without a Reboot?
+
+Restart the process, which is the clean answer for a service (`systemctl restart`). When the process cannot be restarted, empty the file through its descriptor in `/proc`:
+
+```text
+$ ls -l /proc/$(lsof -wt +L1 data | head -1)/fd | grep deleted
+l-wx------ 1 root root 64 Oct  3 13:45 4 -> ~/demo/data/app.log (deleted)
+$ : > "/proc/$PID/fd/4"
+$ df -h data
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs           200M     0  200M   0% ~/demo/data
+```
+
+The process keeps running with its descriptor open, now pointing at a zero-length file. The data in that file is gone, so do this to a runaway log, not to a database. Next time, rotate logs with `copytruncate` or send the service `SIGHUP` so it reopens the file instead of deleting it out from under the process.
+
+## The Script
+
+`lsof +L1` on a real desktop prints dozens of rows, mostly tiny memory buffers, and lists one shared file once per process that holds it. Save this as `deleted-open-files.sh`: it groups by file, skips anything under 1 MB, sorts biggest first, and totals what you would get back.
+
+```bash
+#!/bin/bash
+# Script: deleted-open-files.sh
+# Purpose: df says the disk is full and du says it isn't — a deleted file that a process still holds open keeps every byte until it is closed; this lists those files, biggest first, with the PID and fd to deal with.
+# Usage: ./deleted-open-files.sh [MOUNTPOINT]   (default: all filesystems; run as root to see every process)
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+MOUNT="${1:-}"
+# Below this, entries are memory buffers (PipeWire memfds, browser caches), not your missing disk.
+MIN_BYTES=$((1024 * 1024))
+
+command -v lsof >/dev/null || { echo "$CROSS lsof is not installed (apt install lsof / dnf install lsof)" >&2; exit 2; }
+
+# lsof exits 1 even when it prints matches, so read its output, never its exit status.
+# -w drops warnings about filesystems it can't stat (docker overlays, other namespaces);
+# -F gives one field per line, so file names with spaces parse safely.
+RAW=$(lsof -w -nP +L1 -F pcftDsin ${MOUNT:+"$MOUNT"} 2>/dev/null || true)
+
+# One row per deleted inode, not per process: ten processes sharing one deleted binary hold its space once.
+ROWS=$(awk -v min="$MIN_BYTES" '
+  /^p/ { pid = substr($0, 2) }
+  /^c/ { cmd = substr($0, 2) }
+  /^f/ { fd = substr($0, 2); type = ""; size = 0; dev = ""; ino = "" }
+  /^t/ { type = substr($0, 2) }
+  /^D/ { dev = substr($0, 2) }
+  /^s/ { size = substr($0, 2) + 0 }
+  /^i/ { ino = substr($0, 2) }
+  /^n/ {
+    name = substr($0, 2)
+    if (type != "REG" || size < min || name ~ /^\/memfd:/) next
+    key = dev ":" ino
+    if (!(key in bytes)) { bytes[key] = size; file[key] = name }
+    if (n[key]++ < 3) held[key] = held[key] (held[key] == "" ? " " : ", ") cmd "[" pid "] fd " fd
+  }
+  END { for (k in bytes) printf "%d\t%s\t%s%s\n", bytes[k], file[k], held[k], (n[k] > 3 ? " +" n[k] - 3 " more" : "") }
+' <<< "$RAW" | sort -t$'\t' -k1,1nr)
+
+if [[ -z "$ROWS" ]]; then
+  echo "$CHECK no deleted-but-open files over $(numfmt --to=iec "$MIN_BYTES") ${MOUNT:+on $MOUNT }(as $(id -un))"
+  exit 0
+fi
+
+TOTAL=0
+while IFS=$'\t' read -r size name holders; do
+  printf '%s %6s  %s\n         held by:%s\n' "$CROSS" "$(numfmt --to=iec "$size")" "$name" "$holders"
+  TOTAL=$((TOTAL + size))
+done <<< "$ROWS"
+
+echo "  held by deleted files: $(numfmt --to=iec "$TOTAL")"
+echo "  free it: restart the process, or empty one file in place with  : > /proc/PID/fd/FD  (its data is lost)"
+exit 1
+```
+
+## What Does the Script Print?
+
+On the demo tmpfs with two held files, one with a space in its name, then again after emptying both:
+
+```text
+$ ./deleted-open-files.sh data
+✗   150M  ~/demo/data/app.log (deleted)
+         held by: sleep[498142] fd 4
+✗    20M  ~/demo/data/old export.mp4 (deleted)
+         held by: sleep[498143] fd 5
+  held by deleted files: 170M
+  free it: restart the process, or empty one file in place with  : > /proc/PID/fd/FD  (its data is lost)
+exit=1
+$ ./deleted-open-files.sh data
+✓ no deleted-but-open files over 1.0M on data (as root)
+```
+
+And on this desktop, as a normal user, the same day:
+
+```text
+$ ./deleted-open-files.sh | head -6
+✗   281M  /opt/google/chrome/chrome (deleted)
+         held by: chrome[2728] fd txt, chrome[2756] fd txt, chrome[2757] fd txt +51 more
+✗    28M  /tmp/.com.google.Chrome.UWv7a2 (deleted)
+         held by: chrome[37363] fd 24
+✗    24M  /opt/google/chrome/resources.pak (deleted)
+         held by: chrome[2728] fd 19, chrome[2756] fd 10, chrome[2757] fd 10 +51 more
+$ ./deleted-open-files.sh | tail -2
+  held by deleted files: 509M
+  free it: restart the process, or empty one file in place with  : > /proc/PID/fd/FD  (its data is lost)
+```
+
+A package upgrade replaced Chrome's binary while 54 Chrome processes were still running the old one (`fd txt` is the program text itself). Raw `lsof +L1` lists that 281 MB file 54 times; the script counts it once. Restarting Chrome is the fix here, and truncating a running binary is not.
+
+It exits 1 when it finds anything, so it works as a check in a disk-alert script: run it as root from cron and mail the output when it fails.
+
+## How Do I Find Which Process Holds a Port?
+
+The same namespace trick as above, with four demo listeners and one open client connection:
+
+```text
+$ lsof -i :8099 -P -n
+COMMAND    PID USER FD   TYPE  DEVICE SIZE/OFF NODE NAME
+bash    496572 root 3u  IPv4 2496785      0t0  TCP 127.0.0.1:55000->127.0.0.1:8099 (ESTABLISHED)
+python3 496574 root 3u  IPv4 2498808      0t0  TCP 127.0.0.1:8099 (LISTEN)
+python3 496574 root 4u  IPv4 2498811      0t0  TCP 127.0.0.1:8099->127.0.0.1:55000 (ESTABLISHED)
+```
+
+`-i :8099` matches both ends, so the client (`bash`) shows up beside the server (`python3`). `(LISTEN)` marks the owner. `-P` keeps 8099 numeric and `-n` skips reverse DNS, both of which matter on a box with many connections. For listeners only, and the `ss` way of asking, see [ss Command Examples](/snippets/ss-command-examples). To stop the owner cleanly, [Kill Process on Port](/snippets/kill-process-on-port).
+
+## Who Has This Directory Open?
+
+`lsof +D` walks a directory tree and lists every process using anything inside it, including a process whose working directory is in it (`FD cwd`). That is what makes `umount` fail with `target is busy`:
+
+```text
+$ lsof -w +D data
+COMMAND    PID USER  FD   TYPE DEVICE SIZE/OFF NODE NAME
+sleep   497152 root cwd    DIR   0,78       40    3 data/sub
+exit=1
+$ fuser -vm data
+                     USER        PID ACCESS COMMAND
+~/demo/data:
+                     root     kernel mount ~/demo/data
+                     root      497112 F.... sleep
+                     root      497152 ..c.. sleep
+```
+
+`fuser -vm` asks per mount instead of per directory and catches one thing `lsof +D` missed: PID 497112, which holds an open descriptor (`F`) on the mount. Its file was deleted and emptied earlier, so it no longer has a name under `data/` for `+D` to find. `c` is a current directory. Close those, or `cd` out of the mount, then unmount.
+
+## Prerequisites
+
+`lsof` (`apt install lsof`, `dnf install lsof`) and coreutils' `numfmt`. Run as root to see every process; as a normal user you see only your own, which is still useful on a desktop but misses the services on a server.
+
+## Frequently Asked Questions
+
+### Why does df show the disk full when du says there is space?
+
+Because a deleted file is still open. `rm` removes the name, so `du` stops counting it, but the kernel frees the blocks only when the last process holding the file closes it, so `df` keeps counting them. Run `sudo lsof +L1` to list open files with zero links; the SIZE/OFF column shows how much each one holds. Restarting the process, or truncating the file through `/proc/PID/fd/FD`, frees the space without a reboot.
+
+### How do I find which process is using a port with lsof?
+
+Run `sudo lsof -i :PORT -P -n`. `-i :PORT` selects sockets on that port, `-P` keeps the port numeric and `-n` skips DNS lookups, which keeps lsof fast on a busy box. The listening row ends in `(LISTEN)` and the COMMAND and PID columns name the owner. For listeners only, add `-sTCP:LISTEN`: `sudo lsof -iTCP:PORT -sTCP:LISTEN -P -n`.
+
+### How do I fix umount: target is busy?
+
+Find what still uses the mount with `lsof +D /mountpoint` or `fuser -vm /mountpoint`. Look for open files and for processes whose current directory (FD `cwd`) is inside the mount, which is common: a shell you left `cd`'d into it is enough. Close the files or `cd` out, then unmount. `umount -l` (lazy) detaches the mount immediately but leaves those processes using it, so use it only when you understand what is still holding it.
+
+### Is lsof or ss better for checking ports?
+
+ss is faster and ships everywhere with iproute2, so use `ss -tulpn` for a quick list of listeners. lsof is slower because it walks every process's open files, but it shows the user column, combines ports with files in one tool, and its `-i` syntax filters by protocol, host and state. On a server with thousands of connections, prefer ss; for answering what does this one process have open, prefer `lsof -p PID`.
+
+### Why does lsof print warnings about docker or overlay file systems?
+
+lsof tries to stat every mounted filesystem, and as a normal user it cannot stat docker's overlay mounts or network namespaces under `/run/docker`. The warnings say the output may be incomplete for those mounts and are otherwise harmless. Add `-w` to suppress them, or run lsof as root, which can stat everything.
+
+The [disk space warning](/snippets/disk-space-warning) script tells you a filesystem is filling before `df` hits 100%, and [The Production Bash Toolkit](/starter-kit) bundles its health checks (disk, memory, load, services, HTTP) ShellCheck-clean.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Find Large Files on Linux](/snippets/find-large-files-linux) — what is actually using the disk, by directory and by file
+- [ss Command Examples](/snippets/ss-command-examples) — listeners and connections, faster than lsof on busy servers
+- [Kill Process on Port](/snippets/kill-process-on-port) — stop the owner lsof found, gracefully first
+- [No Space Left on Device With Free Space](/snippets/no-space-left-on-device-inodes) — when the disk is full of inodes, not bytes

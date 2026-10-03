@@ -2,6 +2,8 @@
 
 import { escapeHtml } from './shared/bashHighlight';
 import { useClipboard } from './shared/useClipboard';
+import ShareLinkButton from './shared/ShareLinkButton';
+import { oneOf } from './shared/useShareLink';
 import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -534,6 +536,29 @@ export default function GrepPatternBuilder() {
           >
             {copied ? '✓ Copied' : '⧉ Copy Command'}
           </button>
+
+          <div className="mt-3">
+            <ShareLinkButton
+              fields={{
+                pattern: [pattern, setPattern],
+                path: [path, setPath],
+                filetype: [filetype, setFiletype],
+                engine: [engine, setEngine, oneOf(['basic', 'extended', 'perl', 'fixed'])],
+                caseI: [caseI, setCaseI],
+                recursive: [recursive, setRecursive],
+                lineNums: [lineNums, setLineNums],
+                invert: [invert, setInvert],
+                count: [count, setCount],
+                filenames: [filenames, setFilenames],
+                word: [word, setWord],
+                quiet: [quiet, setQuiet],
+                onlyMatching: [onlyMatching, setOnlyMatching],
+                contextOn: [contextOn, setContextOn],
+                contextN: [contextN, setContextN],
+                sample: [sample, setSample],
+              }}
+            />
+          </div>
 
           {/* Related snippets — internal linking */}
           <div className="mt-3 rounded-md border border-border bg-bg2 px-3.5 py-3">

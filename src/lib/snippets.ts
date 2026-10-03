@@ -23,11 +23,12 @@ export const REPO_URL = 'https://github.com/anguishe/bashsnippets';
  * must actually push. Verify after adding one:
  *   curl -sI https://github.com/anguishe/bashsnippets/blob/main/scripts/<slug>.sh
  */
-// Slugs with no .sh in github.com/anguishe/bashsnippets. These two are deliberate —
+// Slugs with no .sh in github.com/anguishe/bashsnippets. These are deliberate —
 // the repo README explains why they live on the site instead: a strict-mode pattern you
-// add to every script, and an interactive command reference. Add a slug here only after
+// add to every script, an interactive command reference, and an error explainer whose fix
+// is quoting, not a script, plus the ss and awk references (2026-10-03). Add a slug here only after
 // confirming its script really is absent; all 36 others were verified 200 on 2026-09-01.
-const NO_REPO_SCRIPT = new Set(['bash-error-handling', 'kill-a-process']);
+const NO_REPO_SCRIPT = new Set(['bash-error-handling', 'kill-a-process', 'unary-operator-expected', 'ss-command-examples', 'awk-cheat-sheet']);
 
 // The one file that lives outside scripts/ in the repo.
 const REPO_PATH: Record<string, string> = { 'bashlib-starter': 'lib/bashlib-starter.sh' };
@@ -544,7 +545,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['environment', 'export', 'cron-ready', 'variables', 'error-handling'],
     difficulty: 'beginner',
     datePublished: '2026-09-10',
-    dateModified: '2026-09-10',
+    dateModified: '2026-10-03',
   },
   {
     slug: 'ssh-run-remote-commands',
@@ -653,6 +654,83 @@ export const snippets: SnippetRegistryEntry[] = [
     difficulty: 'intermediate',
     datePublished: '2026-09-28',
     dateModified: '2026-09-28',
+  },
+  {
+    slug: 'bash-command-not-found',
+    title: 'Fix "bash: command not found": PATH, Typos, hash -r, CRLF and Cron',
+    metaTitle: 'Fix "bash: command not found" (Exit 127)',
+    description:
+      'Fix bash: command not found: check PATH, typos, a stale hash table, CRLF line endings and sudo\'s PATH. What exit code 127 means in scripts, cron and CI logs.',
+    tags: ['path', 'troubleshooting', 'exit-codes', 'cron', 'crlf'],
+    difficulty: 'beginner',
+    datePublished: '2026-10-03',
+    dateModified: '2026-10-03',
+  },
+  {
+    slug: 'unary-operator-expected',
+    title: 'Fix "unary operator expected" in Bash: Empty Variables in [ ]',
+    metaTitle: 'Fix "unary operator expected" in Bash',
+    description:
+      'Fix bash unary operator expected errors: an empty variable inside [ ] vanishes. Quote it, switch to [[ ]] or set a default, and let ShellCheck catch it first.',
+    tags: ['shellcheck', 'troubleshooting', 'test', 'quoting', 'error-handling'],
+    difficulty: 'beginner',
+    datePublished: '2026-10-03',
+    dateModified: '2026-10-03',
+  },
+  {
+    slug: 'bash-permission-denied',
+    title: 'Fix "Permission denied" in Bash: chmod, noexec, Directories and Exit 126',
+    metaTitle: 'Fix Bash "Permission denied" (Exit 126)',
+    description:
+      'Fix Permission denied when running a bash script: chmod +x, directory search bits, noexec mounts and ownership. Decode exit 126 and the cases chmod cannot fix.',
+    tags: ['permissions', 'troubleshooting', 'exit-codes', 'chmod', 'security'],
+    difficulty: 'beginner',
+    datePublished: '2026-10-03',
+    dateModified: '2026-10-03',
+  },
+  {
+    slug: 'ss-command-examples',
+    title: 'ss Command Examples: -tulpn, Port Filters and What Each Column Means',
+    metaTitle: 'ss Command Examples: -tulpn, Decoded',
+    description:
+      'Copy-paste ss command examples: -tulpn, port and state filters, -s, and the netstat equivalents, with real output and what each column means for your server.',
+    tags: ['networking', 'ss', 'ports', 'netstat', 'troubleshooting'],
+    difficulty: 'beginner',
+    datePublished: '2026-10-03',
+    dateModified: '2026-10-03',
+  },
+  {
+    slug: 'lsof-command-examples',
+    title: 'lsof Command Examples: Ports, Open Files and Deleted Files Eating Your Disk',
+    metaTitle: 'lsof Command Examples for Disk and Ports',
+    description:
+      'lsof examples for three real jobs: which process holds a port, who has a file or directory open, and deleted-but-open files silently eating disk space (+L1).',
+    tags: ['lsof', 'disk', 'ports', 'troubleshooting', 'processes'],
+    difficulty: 'intermediate',
+    datePublished: '2026-10-03',
+    dateModified: '2026-10-03',
+  },
+  {
+    slug: 'docker-remove-all-containers',
+    title: 'Remove All Docker Containers Safely: Stopped, Running, Filtered',
+    metaTitle: 'Remove All Docker Containers Safely',
+    description:
+      'Remove all Docker containers in two commands, plus the filters, the empty-list error, what survives (volumes, images, networks) and the check to run first.',
+    tags: ['docker', 'cleanup', 'containers', 'disk', 'devops'],
+    difficulty: 'beginner',
+    datePublished: '2026-10-03',
+    dateModified: '2026-10-03',
+  },
+  {
+    slug: 'awk-cheat-sheet',
+    title: 'AWK Cheat Sheet: Print Columns, Filter Rows, Sum and Count (Run-Verified)',
+    metaTitle: 'AWK Cheat Sheet: Columns, Filters, Sums',
+    description:
+      'AWK cheat sheet with run-verified one-liners: print a column, filter rows, sum a field, count by key, -F, NF and NR, and when cut or sed is the better fit.',
+    tags: ['awk', 'text-processing', 'logs', 'csv', 'one-liners'],
+    difficulty: 'beginner',
+    datePublished: '2026-10-03',
+    dateModified: '2026-10-03',
   },
 ];
 
