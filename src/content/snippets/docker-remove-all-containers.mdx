@@ -1,0 +1,254 @@
+---
+title: "Remove All Docker Containers Safely: Stopped, Running, Filtered"
+metaTitle: "Remove All Docker Containers Safely"
+description: "Remove all Docker containers in two commands, plus the filters, the empty-list error, what survives (volumes, images, networks) and the check to run first."
+slug: "docker-remove-all-containers"
+tags: ["docker", "cleanup", "containers", "disk", "devops"]
+quickAnswer: "To remove all Docker containers, stop the running ones and remove everything: docker stop $(docker ps -q) followed by docker rm $(docker ps -aq), or in one step docker rm -f $(docker ps -aq), which kills running containers with SIGKILL instead of waiting. To remove only stopped containers, use docker container prune, which asks for confirmation and never touches running ones. Three things catch people. With no containers at all, docker rm $(docker ps -aq) fails with docker rm requires at least 1 argument, so in scripts pipe through xargs -r instead: docker ps -aq | xargs -r docker rm. Removing containers does not remove their named volumes, images or networks: docker volume prune, docker image prune and docker network prune each handle one, and docker system df shows how much each would free. And docker ps -aq means every container on the host, including other projects' databases, so narrow it with --filter label=, name= or status=exited before you run it."
+faq:
+  - question: "How do I remove all Docker containers at once?"
+    answer: "Run docker rm -f $(docker ps -aq). docker ps -aq lists the ID of every container, running or stopped, and docker rm -f removes each one, killing running containers first. If nothing exists the command errors with requires at least 1 argument, so in a script use docker ps -aq | xargs -r docker rm -f, which does nothing on an empty list. Check docker ps -a first: this includes every project on the host."
+  - question: "What is the difference between docker rm and docker container prune?"
+    answer: "docker rm removes the containers you name, running ones too with -f. docker container prune removes every stopped container and nothing else, asks for confirmation unless you pass -f, and accepts --filter label= or until= to narrow it. Use prune for routine cleanup, because it can never take down a running service; use docker rm when you mean specific containers."
+  - question: "Does removing a container delete its volume?"
+    answer: "Not a named volume. docker rm deletes the container's writable layer, and with -v also its anonymous volumes, but a volume created with -v name:/path or by Compose survives and keeps its data. List leftovers with docker volume ls --filter dangling=true and remove them with docker volume prune (anonymous only by default since Docker 23) or docker volume rm NAME. Back up anything you need first: a removed volume does not come back."
+  - question: "Why does docker stop take 10 seconds?"
+    answer: "docker stop sends SIGTERM and waits 10 seconds for the main process to exit before sending SIGKILL. A process that runs as PID 1 and has no SIGTERM handler, like a plain sleep or many shell entrypoints, ignores the signal, so every stop takes the full timeout and the container exits with code 137. docker stop -t 2 shortens the wait, docker rm -f kills immediately, and the real fix is an entrypoint that handles SIGTERM or docker run --init."
+  - question: "How do I remove Docker containers but keep some?"
+    answer: "Filter instead of listing everything. docker ps -aq --filter status=exited selects stopped containers, --filter label=env=dev selects containers you labelled, and --filter name=test- matches names. Combine several: filters with the same key are OR'ed, different keys are AND'ed. Preview with docker ps -a and the same filters, then pipe the -q version to xargs -r docker rm."
+howToSteps:
+  - name: "See what you would remove"
+    text: "Run docker ps -a to list every container and docker system df to see how much space containers, images and volumes use. Add --filter flags until the list holds only what you mean to delete."
+  - name: "Remove the containers"
+    text: "docker container prune for stopped containers, or docker ps -aq --filter ... | xargs -r docker rm -f to include running ones. The script below does the same with a dry run first."
+  - name: "Clean up what survives"
+    text: "Named volumes, images and networks stay. Remove them deliberately with docker volume prune, docker image prune and docker network prune, after checking docker system df."
+author: "Travis"
+datePublished: "2026-10-03"
+dateModified: "2026-10-03"
+---
+
+<Callout type="info" title="Containers are rarely what fills the disk">
+
+On this machine `docker system df` shows 44 MB in containers and 5.7 GB reclaimable in images. If you are cleaning up for disk space, [Docker Prune Cleanup](/snippets/docker-prune-cleanup) covers images, build cache and volumes, and [Find Large Files on Linux](/snippets/find-large-files-linux) checks whether Docker is the problem at all.
+
+</Callout>
+
+`docker rm $(docker ps -aq)` is the answer everyone copies, and it has three problems. It fails when there is nothing to remove, which breaks the script that runs it. It refuses running containers, so half the list survives and the exit code says failure. And it says nothing about the named volumes, images and networks it left behind. The fourth problem is the one that hurts: `-a` means *every* container on the host, including the database for the project you were not thinking about.
+
+## What Happens When You Run the Usual Command?
+
+Reproduced here on 2026-10-03 (Kali, Docker 28.5.2, busybox 1.37). This machine runs real containers, so every demo container carries a `bsdemo=1` label and every command filters on it. Drop the filter and the same commands act on everything. Four containers: two running, two exited, one of them with a named volume.
+
+```text
+$ docker ps -a --filter label=bsdemo=1 --format 'table {{.Names}}\t{{.Status}}'
+NAMES          STATUS
+demo-job       Exited (0) Less than a second ago
+demo-migrate   Exited (0) Less than a second ago
+demo-worker    Up Less than a second
+demo-web       Up Less than a second
+```
+
+With nothing matched, the command substitution expands to nothing and `docker rm` gets no arguments:
+
+```text
+$ docker rm $(docker ps -aq --filter label=nomatch)
+docker: 'docker rm' requires at least 1 argument
+
+Usage:  docker rm [OPTIONS] CONTAINER [CONTAINER...]
+
+See 'docker rm --help' for more information
+exit=1
+```
+
+With the four demo containers, it removes the stopped two and refuses the running two:
+
+```text
+$ docker rm $(docker ps -aq --filter label=bsdemo=1)
+ee4c735ef070
+e98319fc07e4
+Error response from daemon: cannot remove container "918d6115cf71": container is running: stop the container before removing or force remove
+Error response from daemon: cannot remove container "a920c26e0dd6": container is running: stop the container before removing or force remove
+exit=1
+$ docker volume ls --filter name=demo-data
+DRIVER    VOLUME NAME
+local     demo-data
+```
+
+`demo-job` is gone. Its named volume `demo-data`, and the data in it, is not.
+
+`xargs -r` (GNU's `--no-run-if-empty`) is the empty-list fix: it runs nothing when the input is empty.
+
+```text
+$ docker ps -aq --filter label=nomatch | xargs -r docker rm
+$
+```
+
+## Why Does docker stop Take 10 Seconds?
+
+```text
+$ time docker stop demo-web
+demo-web
+
+real	0m10.200s
+user	0m0.029s
+sys	0m0.008s
+```
+
+`docker stop` sends SIGTERM, waits 10 seconds, then sends SIGKILL. `sleep` running as PID 1 has no SIGTERM handler, so it waits out the full timeout and exits with 137 (128 + 9, killed). Plenty of real images behave the same way. `docker rm -f` skips the wait and kills at once, fine for throwaway containers and wrong for a database you want flushed. The real fix is an entrypoint that handles SIGTERM, or `docker run --init`. Exit codes like 137 are decoded in the [Bash Exit Code Lookup](/tools/bash-exit-code-lookup).
+
+## The Script
+
+Save as `docker-remove-containers.sh`. Stopped containers only by default, a dry run until you pass `--yes`, filters passed straight to `docker ps`, and a line at the end saying what it did not remove.
+
+```bash
+#!/bin/bash
+# Script: docker-remove-containers.sh
+# Purpose: `docker rm $(docker ps -aq)` errors on an empty list, refuses running containers and leaves volumes behind without saying so — this shows what will go, removes it, and reports what survived.
+# Usage: ./docker-remove-containers.sh [--running] [--filter KEY=VALUE]... [--yes]   (dry run by default)
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+INCLUDE_RUNNING=0
+YES=0
+FILTERS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --running) INCLUDE_RUNNING=1 ;;
+    --yes) YES=1 ;;
+    --filter) [[ $# -ge 2 ]] || { echo "--filter needs KEY=VALUE" >&2; exit 2; }; FILTERS+=(--filter "$2"); shift ;;
+    *) echo "usage: $0 [--running] [--filter KEY=VALUE]... [--yes]" >&2; exit 2 ;;
+  esac
+  shift
+done
+
+command -v docker >/dev/null || { echo "$CROSS docker is not installed" >&2; exit 2; }
+
+# Stopped containers only unless asked: a running container is somebody's service.
+# Repeated status filters are OR'ed by docker; different keys (label, name) are AND'ed.
+if (( ! INCLUDE_RUNNING )); then
+  FILTERS+=(--filter status=exited --filter status=created --filter status=dead)
+fi
+
+mapfile -t ROWS < <(docker ps -a "${FILTERS[@]}" --format '{{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Image}}')
+
+if [[ ${#ROWS[@]} -eq 0 ]]; then
+  # The case that breaks `docker rm $(docker ps -aq)`: an empty list is "requires at least 1 argument".
+  echo "$CHECK no containers match — nothing to remove"
+  exit 0
+fi
+
+IDS=()
+for row in "${ROWS[@]}"; do
+  IFS=$'\t' read -r id name status image <<< "$row"
+  printf '%s %-24s %-28s %s\n' "$CROSS" "$name" "$status" "$image"
+  IDS+=("$id")
+done
+
+if (( ! YES )); then
+  echo "dry run: re-run with --yes to remove ${#IDS[@]} container(s)"
+  exit 1
+fi
+
+# -v takes anonymous volumes with their container; named volumes always survive rm.
+if (( INCLUDE_RUNNING )); then
+  docker rm -f -v "${IDS[@]}" >/dev/null
+else
+  docker rm -v "${IDS[@]}" >/dev/null
+fi
+echo "$CHECK removed ${#IDS[@]} container(s)"
+
+DANGLING=$(docker volume ls -q --filter dangling=true | wc -l)
+echo "  left behind: images, networks, and $DANGLING volume(s) no container uses (docker volume prune removes those)"
+```
+
+## Prerequisites
+
+Docker (any current version) and permission to talk to the daemon: membership of the `docker` group or `sudo`. Membership of the `docker` group is root-equivalent on that host, so grant it deliberately.
+
+## How Does Each Part Work?
+
+- **The status filters** keep running containers out unless you pass `--running`. Three `status=` filters are OR'ed by Docker, and any `--filter label=…` you add is AND'ed with them.
+- **`--format '{{.ID}}\t{{.Names}}…'`** gives the script a parseable list and you a readable one: names and status, not bare IDs.
+- **The empty check** is what `docker rm $(…)` lacks. Nothing to do exits 0, so the script can run from cron.
+- **The dry run** exits 1 and prints the list. Removing containers cannot be undone, so the default is to show, not do.
+- **`docker rm -v`** also deletes each container's *anonymous* volumes. Named volumes are never removed by `rm`, by design.
+- **The last line** counts dangling volumes host-wide, so the "what did I leave behind" question has an answer every time.
+
+## What Does the Script Print?
+
+Two fresh stopped containers and the two running ones from before, all labelled:
+
+```text
+$ ./docker-remove-containers.sh --filter label=bsdemo=1
+✗ demo-job                 Exited (0) Less than a second ago busybox:1.37
+✗ demo-migrate             Exited (0) Less than a second ago busybox:1.37
+dry run: re-run with --yes to remove 2 container(s)
+exit=1
+$ ./docker-remove-containers.sh --filter label=bsdemo=1 --yes
+✗ demo-job                 Exited (0) Less than a second ago busybox:1.37
+✗ demo-migrate             Exited (0) Less than a second ago busybox:1.37
+✓ removed 2 container(s)
+  left behind: images, networks, and 4 volume(s) no container uses (docker volume prune removes those)
+$ ./docker-remove-containers.sh --filter label=bsdemo=1
+✓ no containers match — nothing to remove
+$ ./docker-remove-containers.sh --running --filter label=bsdemo=1 --yes
+✗ demo-worker              Up 19 seconds                busybox:1.37
+✗ demo-web                 Exited (137) Less than a second ago busybox:1.37
+✓ removed 2 container(s)
+  left behind: images, networks, and 4 volume(s) no container uses (docker volume prune removes those)
+```
+
+The 4 volumes are host-wide: `demo-data` plus three this machine already had. That count is the point. Nothing in `docker rm`'s own output would have told you.
+
+## What Should I Check Before Deleting?
+
+`docker system df` shows what each kind of object costs and what is reclaimable. On this machine, the same day:
+
+```text
+$ docker system df
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          16        2         10.51GB   5.757GB (54%)
+Containers      3         1         44.27MB   0B (0%)
+Local Volumes   4         1         1.703GB   585.5MB (34%)
+Build Cache     0         0         0B        0B
+```
+
+Containers are 44 MB; unused images are 5.7 GB. Removing every container here would free almost nothing and destroy state. If the goal is disk, `docker image prune -a` and [Docker Prune Cleanup](/snippets/docker-prune-cleanup) are the right tools. If containers are managed by Compose, `docker compose down` (with `-v` only if you mean to delete the project's volumes) removes them with their network, and is what the next `docker compose up` expects.
+
+Dry run by default and an exit code cron can read are the habits every cleanup script should start with; [The Production Bash Toolkit](/starter-kit) ships a ShellCheck-clean template built around them, and the loop over containers is the [bash for loop](/snippets/bash-for-loop-examples) pattern for lists you must not split.
+
+## Frequently Asked Questions
+
+### How do I remove all Docker containers at once?
+
+Run `docker rm -f $(docker ps -aq)`. `docker ps -aq` lists the ID of every container, running or stopped, and `docker rm -f` removes each one, killing running containers first. If nothing exists the command errors with `requires at least 1 argument`, so in a script use `docker ps -aq | xargs -r docker rm -f`, which does nothing on an empty list. Check `docker ps -a` first: this includes every project on the host.
+
+### What is the difference between docker rm and docker container prune?
+
+`docker rm` removes the containers you name, running ones too with `-f`. `docker container prune` removes every stopped container and nothing else, asks for confirmation unless you pass `-f`, and accepts `--filter label=` or `until=` to narrow it. Use prune for routine cleanup, because it can never take down a running service; use `docker rm` when you mean specific containers.
+
+### Does removing a container delete its volume?
+
+Not a named volume. `docker rm` deletes the container's writable layer, and with `-v` also its anonymous volumes, but a volume created with `-v name:/path` or by Compose survives and keeps its data. List leftovers with `docker volume ls --filter dangling=true` and remove them with `docker volume prune` (anonymous only by default since Docker 23) or `docker volume rm NAME`. Back up anything you need first: a removed volume does not come back.
+
+### Why does docker stop take 10 seconds?
+
+`docker stop` sends SIGTERM and waits 10 seconds for the main process to exit before sending SIGKILL. A process that runs as PID 1 and has no SIGTERM handler, like a plain `sleep` or many shell entrypoints, ignores the signal, so every stop takes the full timeout and the container exits with code 137. `docker stop -t 2` shortens the wait, `docker rm -f` kills immediately, and the real fix is an entrypoint that handles SIGTERM or `docker run --init`.
+
+### How do I remove Docker containers but keep some?
+
+Filter instead of listing everything. `docker ps -aq --filter status=exited` selects stopped containers, `--filter label=env=dev` selects containers you labelled, and `--filter name=test-` matches names. Combine several: filters with the same key are OR'ed, different keys are AND'ed. Preview with `docker ps -a` and the same filters, then pipe the `-q` version to `xargs -r docker rm`.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Docker Prune Cleanup](/snippets/docker-prune-cleanup) — images, build cache and volumes, where the disk space actually is
+- [Find Large Files on Linux](/snippets/find-large-files-linux) — check whether Docker is what filled the disk
+- [lsof Command Examples](/snippets/lsof-command-examples) — when df and du disagree after a cleanup
+- [Bash For Loop Examples](/snippets/bash-for-loop-examples) — looping over lists of IDs and names safely

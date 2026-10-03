@@ -104,7 +104,7 @@ echo "$CHECK Cleanup complete."
 - **`command -v docker`** — fails cleanly with a meaningful message if Docker isn't installed, rather than producing confusing "command not found" errors mid-script.
 - **`FORCE="${1:-}"`** — optional `--force` flag skips the confirmation prompt for cron and CI use. Always run interactively first to see what will be removed.
 - **`docker system df`** — the RECLAIMABLE column is the number to watch. Run this before committing to any prune on a server you're unfamiliar with.
-- **`docker container prune -f`** — removes containers in the `Exited` state. Running containers are not affected.
+- **`docker container prune -f`** — removes containers in the `Exited` state. Running containers are not affected. To remove running ones too, or only a labelled subset, see [Remove All Docker Containers Safely](/snippets/docker-remove-all-containers).
 - **`docker image prune -af --filter "until=720h"`** — `-a` removes all unused images, `--filter "until=720h"` limits it to images not referenced or used in the last 30 days.
 - **`docker volume prune -f`** — only removes volumes with no container attached, running or stopped. A Postgres data volume attached to a stopped container is safe.
 - **`docker builder prune -af`** — clears the BuildKit build cache. Often the largest single category of reclaimed space on CI servers.

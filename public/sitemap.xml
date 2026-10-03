@@ -427,6 +427,18 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://bashsnippets.xyz/snippets/docker-remove-all-containers</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://bashsnippets.xyz/snippets/awk-cheat-sheet</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://bashsnippets.xyz/tools/bash-exit-code-lookup</loc>
     <lastmod>2026-09-28</lastmod>
     <changefreq>weekly</changefreq>
