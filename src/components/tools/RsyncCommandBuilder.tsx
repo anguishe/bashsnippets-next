@@ -2,6 +2,7 @@
 
 import { escapeHtml } from './shared/bashHighlight';
 import { useClipboard } from './shared/useClipboard';
+import ShareLinkButton from './shared/ShareLinkButton';
 import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -361,6 +362,20 @@ export default function RsyncCommandBuilder() {
           >
             {copied ? '✓ Copied' : '⧉ Copy Command'}
           </button>
+
+          <div className="mt-3">
+            <ShareLinkButton
+              fields={{
+                source: [source, setSource],
+                dest: [dest, setDest],
+                excludes: [excludes, setExcludes],
+                bwlimit: [bwlimit, setBwlimit],
+                sshPort: [sshPort, setSshPort],
+                sshKey: [sshKey, setSshKey],
+                flags: [state, setState],
+              }}
+            />
+          </div>
 
           {/* Related snippets — internal linking */}
           <div className="mt-3 rounded-md border border-border bg-bg2 px-3.5 py-3">

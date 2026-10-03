@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import ShareLinkButton from './shared/ShareLinkButton';
+import { oneOf } from './shared/useShareLink';
 
 /**
  * Hardened Cron Wrapper Generator
@@ -560,6 +562,28 @@ export default function CronWrapperGenerator() {
             )}
           </div>
         )}
+
+        <ShareLinkButton
+          fields={{
+            command: [command, setCommand],
+            name: [name, setName],
+            lockOn: [lockOn, setLockOn],
+            lockMode: [lockMode, setLockMode, oneOf(['skip', 'wait'])],
+            waitSeconds: [waitSeconds, setWaitSeconds],
+            timeoutOn: [timeoutOn, setTimeoutOn],
+            maxRuntime: [maxRuntime, setMaxRuntime],
+            killGrace: [killGrace, setKillGrace],
+            retryOn: [retryOn, setRetryOn],
+            maxAttempts: [maxAttempts, setMaxAttempts],
+            baseDelay: [baseDelay, setBaseDelay],
+            logOn: [logOn, setLogOn],
+            logPath: [logPath, setLogPath],
+            alertOn: [alertOn, setAlertOn],
+            email: [email, setEmail],
+            schedule: [schedule, setSchedule],
+            tab: [tab, setTab, oneOf(['wrapper', 'crontab'])],
+          }}
+        />
 
         {!command.trim() && (
           <p className="text-xs text-[var(--amber)] font-[family-name:var(--font-mono)]">

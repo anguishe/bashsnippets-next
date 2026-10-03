@@ -2,6 +2,7 @@
 
 import CopyButton from '@/components/CopyButton';
 import { useClipboard } from './shared/useClipboard';
+import ShareLinkButton from './shared/ShareLinkButton';
 import { useCallback, useEffect, useState } from 'react';
 
 type Scope = 'owner' | 'group' | 'others';
@@ -301,6 +302,9 @@ export default function ChmodPermissionsBuilder() {
             >
               Clear All
             </button>
+          </div>
+          <div className="mt-4">
+            <ShareLinkButton fields={{ perms: [perms, setPerms], special: [special, setSpecial] }} />
           </div>
         </div>
       </div>

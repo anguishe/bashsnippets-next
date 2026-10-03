@@ -2,6 +2,7 @@
 
 import CopyButton from '@/components/CopyButton';
 import { useClipboard } from './shared/useClipboard';
+import ShareLinkButton from './shared/ShareLinkButton';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { PATH_CHECK_COMMAND, PATH_SOURCES_COMMAND, buildKeepExisting, shQuote } from './shared/pathCheck';
 
@@ -179,6 +180,7 @@ export default function PathDebugger() {
             >
               Analyze PATH →
             </button>
+            <ShareLinkButton fields={{ path: [pathInput, setPathInput] }} />
             <button
               type="button"
               onClick={loadExample}

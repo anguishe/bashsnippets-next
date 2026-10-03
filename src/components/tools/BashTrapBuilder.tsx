@@ -1,6 +1,8 @@
 'use client';
 
 import { escapeHtml } from './shared/bashHighlight';
+import ShareLinkButton from './shared/ShareLinkButton';
+import { oneOf } from './shared/useShareLink';
 import { useClipboard } from './shared/useClipboard';
 import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
@@ -515,6 +517,18 @@ export default function BashTrapBuilder() {
           className="m-0 overflow-x-auto whitespace-pre rounded-lg border border-border bg-bg3 p-4 font-mono text-[13px] leading-relaxed text-text"
           dangerouslySetInnerHTML={{ __html: outputHtml }}
         />
+
+        <div className="mt-3">
+          <ShareLinkButton
+            fields={{
+              signals: [state.signals, (v: TrapState['signals']) => setState((p) => ({ ...p, signals: v }))],
+              actions: [state.actions, (v: TrapState['actions']) => setState((p) => ({ ...p, actions: v }))],
+              style: [state.style, (v: Style) => setState((p) => ({ ...p, style: v })), oneOf(['combined', 'persignal'])],
+              header: [state.header, (v: boolean) => setState((p) => ({ ...p, header: v }))],
+              sigName: [state.sigName, (v: boolean) => setState((p) => ({ ...p, sigName: v }))],
+            }}
+          />
+        </div>
 
         {/* Related snippet — internal linking */}
         <div className="mt-3 rounded-md border border-border border-l-[3px] border-l-blue bg-bg3 px-3.5 py-3 text-[12px] leading-relaxed text-muted">

@@ -11,6 +11,13 @@
 // a full jq implementation; advanced expressions belong in the jq manual.
 
 import { useMemo, useState } from 'react';
+import ShareLinkButton from './shared/ShareLinkButton';
+import { oneOf } from './shared/useShareLink';
+
+// Share-link check for the clicked path: only well-formed key/index segments are restored.
+const isSegs = (v: unknown) =>
+  Array.isArray(v) &&
+  v.every((g) => (g?.kind === 'key' && typeof g.key === 'string') || (g?.kind === 'index' && Number.isInteger(g.index) && g.index >= 0));
 
 type Seg = { kind: 'key'; key: string } | { kind: 'index'; index: number };
 type Op = '==' | '!=' | '>' | '<';
@@ -466,6 +473,23 @@ export default function JqFilterBuilder() {
 
       {/* Output: filter + command + preview */}
       <div className="flex flex-col gap-4">
+        <ShareLinkButton
+          fields={{
+            json: [jsonText, setJsonText],
+            url: [url, setUrl],
+            path: [path, setPath, isSegs],
+            raw: [raw, setRaw],
+            useDefault: [useDefault, setUseDefault],
+            defaultVal: [defaultVal, setDefaultVal],
+            iterate: [iterate, setIterate],
+            useSelect: [useSelect, setUseSelect],
+            selectKey: [selectKey, setSelectKey],
+            selectOp: [selectOp, setSelectOp, oneOf(['==', '!=', '>', '<'])],
+            selectVal: [selectVal, setSelectVal],
+            useProject: [useProject, setUseProject],
+            projectKey: [projectKey, setProjectKey],
+          }}
+        />
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-[var(--text)]">jq filter</span>
