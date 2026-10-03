@@ -1,0 +1,215 @@
+---
+title: "Bash While Loop Examples: read -r, the Pipe Subshell Trap, until and Timeouts"
+metaTitle: "Bash While Loop Examples"
+description: "Bash while loop examples that survive production: read -r line loops, the pipe-subshell variable trap, until, set -e and (( i++ )), and deadline-bound polling."
+slug: "bash-while-loop-examples"
+tags: ["loops", "read", "bash", "error-handling", "cron-ready"]
+quickAnswer: "A bash while loop runs its body as long as a command succeeds: while CONDITION; do COMMANDS; done. The condition is any command, so while [ \"$n\" -lt 5 ], while (( n < 5 )) and while read -r line all work. To read a file line by line, use while IFS= read -r line; do …; done < file: IFS= keeps leading spaces, -r keeps backslashes, and adding || [[ -n $line ]] keeps a last line with no trailing newline. The most common bug is piping into the loop: cmd | while read -r line runs the loop in a subshell, so variables set inside are gone afterwards. Feed it with done < <(cmd) instead, or shopt -s lastpipe. until is while with the test inverted. Two more traps: a command in the body that reads stdin (ssh, cat) eats the rest of the loop's input, and under set -e, (( i++ )) exits the script when i is 0."
+faq:
+  - question: "Why is my variable empty after a while loop in bash?"
+    answer: "Because the loop ran in a subshell. In cmd | while read -r line; do count=$((count+1)); done, each side of the pipe runs in its own process, so the loop's count disappears when the pipe ends and the parent still has its old value. Feed the loop with process substitution instead: while read -r line; do …; done < <(cmd). In a script you can also enable shopt -s lastpipe, which runs the last part of a pipeline in the current shell."
+  - question: "Why does my while read loop stop after the first line?"
+    answer: "A command inside the loop is reading the loop's standard input. ssh, cat, ffmpeg and anything else that reads stdin will swallow the remaining lines of the file the loop is reading, so the next read hits end of file. Give that command its own input: ssh -n host cmd, cmd < /dev/null, or read the file on another descriptor with while read -r line <&3; do …; done 3< file."
+  - question: "What is the difference between while and until in bash?"
+    answer: "while repeats as long as its condition command succeeds (exit status 0); until repeats as long as it fails, stopping at the first success. until ping -c1 host; do sleep 2; done is the same as while ! ping -c1 host; do sleep 2; done. Pick whichever reads more naturally; both need a way out, such as a counter or a deadline, if the condition may never change."
+  - question: "How do I write an infinite loop in bash, and how do I stop it?"
+    answer: "while true; do …; done or while :; do …; done loops forever. Leave it with break when a condition is met, or exit to end the script. Always put a sleep in a polling loop, or it spins a CPU core at 100%. For anything that waits on another system, use a deadline: compute DEADLINE=$((SECONDS + 60)) before the loop and break or exit once SECONDS passes it, so a service that never comes up cannot hang your script."
+  - question: "Why does set -e exit my script inside a while loop?"
+    answer: "The arithmetic command (( expr )) returns exit status 1 when the expression evaluates to 0. (( i++ )) evaluates to the old value of i, so on the first pass, when i is 0, it fails and set -e stops the script. Write i=$((i + 1)) or (( i += 1 )) instead, or (( ++i )), which evaluates to the new value. The same applies to (( count-- )) reaching zero."
+howToSteps:
+  - name: "Write the loop with a condition command"
+    text: "while CONDITION; do COMMANDS; done repeats while CONDITION exits 0. For files, use while IFS= read -r line || [[ -n $line ]]; do …; done < file."
+  - name: "Feed it without a pipe"
+    text: "Use done < file or done < <(command) so the loop runs in the current shell and its variables survive. Give commands inside the body their own stdin (ssh -n, < /dev/null)."
+  - name: "Bound every wait"
+    text: "Save wait-until.sh and run ./wait-until.sh 60 2 curl -sf http://localhost:8080/health. It polls every 2 seconds and exits 124 after 60, instead of waiting forever."
+author: "Travis"
+datePublished: "2026-10-03"
+dateModified: "2026-10-03"
+---
+
+<Callout type="info" title="Reading a file? Start there">
+
+[Read a File Line by Line in Bash](/snippets/bash-read-file-line-by-line) covers the file-reading loop in depth (encodings, CSV fields, empty lines). This page is about the loop itself: what runs where, what eats your input, and how to make sure it ends. For loops over lists, see [Bash For Loop Examples](/snippets/bash-for-loop-examples).
+
+</Callout>
+
+A while loop is three lines and four classic bugs. Variables set inside it vanish because a pipe put it in a subshell. Backslashes and indentation disappear because `read` was called without `-r` and `IFS=`. A loop over a host list stops after the first host because `ssh` read the rest of the list. And a polling loop waits forever for a service that is never coming back. Every one of them is silent.
+
+## Why Is My Variable Empty After the Loop?
+
+Reproduced here on 2026-10-03 (Kali, bash 5.3.15):
+
+```text
+$ count=0; printf "a\nb\nc\n" | while read -r line; do count=$((count + 1)); done; echo "count=$count"
+count=0
+$ count=0; while read -r line; do count=$((count + 1)); done < <(printf "a\nb\nc\n"); echo "count=$count"
+count=3
+$ shopt -s lastpipe; count=0; printf "a\nb\nc\n" | while read -r line; do count=$((count + 1)); done; echo "count=$count"
+count=3
+```
+
+Each side of a pipe runs in its own process. The loop counted to 3 in a subshell that exited with the pipe, and the parent's `count` never changed. `done < <(cmd)` feeds the loop from a process substitution, so the loop runs in the current shell. `shopt -s lastpipe` runs the last command of a pipeline in the current shell; it works in scripts, and in an interactive shell only when job control is off.
+
+## What Does read -r Actually Change?
+
+```text
+$ printf '%s\n' 'C:\temp\new' '   indented' | while read line; do echo "[$line]"; done
+[C:tempnew]
+[indented]
+$ printf '%s\n' 'C:\temp\new' '   indented' | while IFS= read -r line; do echo "[$line]"; done
+[C:\temp\new]
+[   indented]
+```
+
+Without `-r`, `read` treats backslashes as escapes and deletes them. Without `IFS=`, it strips leading and trailing whitespace. Both are wrong for almost any real file, which is why ShellCheck flags a bare `read` as SC2162.
+
+A file whose last line has no trailing newline loses that line, because `read` returns failure at end of file even when it filled the variable:
+
+```text
+$ printf 'one\ntwo' | while IFS= read -r line; do echo "[$line]"; done
+[one]
+$ printf 'one\ntwo' | while IFS= read -r line || [[ -n $line ]]; do echo "[$line]"; done
+[one]
+[two]
+```
+
+## Why Does My Loop Stop After the First Line?
+
+`hosts.txt` holds `web1`, `web2` and `db1`. `cat` stands in for any command that reads stdin, such as `ssh`:
+
+```text
+$ while read -r host; do echo "checking $host"; cat > /dev/null; done < hosts.txt
+checking web1
+$ while read -r host; do echo "checking $host"; cat > /dev/null < /dev/null; done < hosts.txt
+checking web1
+checking web2
+checking db1
+```
+
+The body inherits the loop's stdin, which is the file. `cat` read `web2` and `db1` before the loop's next `read` got a chance, and the loop ended after one host with exit status 0. Give the inner command its own input: `ssh -n`, `< /dev/null`, or read the file on another descriptor (`while read -r host <&3; do …; done 3< hosts.txt`). [Run Commands on a Remote Server over SSH](/snippets/ssh-run-remote-commands) hits the same trap with real `ssh` and passes `-n` for it.
+
+## What Do until and Counter Loops Look Like?
+
+```text
+$ n=0; until [ "$n" -ge 3 ]; do echo "attempt $((n + 1))"; n=$((n + 1)); done
+attempt 1
+attempt 2
+attempt 3
+$ i=0; while (( i < 3 )); do echo "i=$i"; (( i++ )); done
+i=0
+i=1
+i=2
+```
+
+`until` runs while its condition *fails*. `(( … ))` is bash arithmetic: no `$` needed on names, and `<` means less-than instead of a redirect. Now the same counter loop under `set -e`:
+
+```text
+$ set -e; i=0; while (( i < 3 )); do echo "i=$i"; (( i++ )); done; echo "after loop"
+i=0
+exit=1
+```
+
+`(( i++ ))` evaluates to the old value of `i`, which is 0 on the first pass, and an arithmetic command that evaluates to 0 returns status 1. `set -e` sees a failed command and ends the script after one iteration. Write `i=$((i + 1))` or `(( i += 1 ))` in any script that uses strict mode.
+
+## How Do I Stop a Polling Loop From Waiting Forever?
+
+`while ! curl -sf http://localhost:8080/health; do sleep 1; done` is fine until the service never starts, and then a deploy or a cron job hangs until someone kills it. Count against a deadline instead. Save as `wait-until.sh`:
+
+```bash
+#!/bin/bash
+# Script: wait-until.sh
+# Purpose: `while ! check; do sleep 1; done` waits forever when the thing never comes up — this polls with a deadline and exits 124 on timeout, like timeout(1).
+# Usage: ./wait-until.sh TIMEOUT_SECONDS INTERVAL_SECONDS COMMAND [ARGS...]
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+[[ $# -ge 3 ]] || { echo "usage: $0 TIMEOUT_SECONDS INTERVAL_SECONDS COMMAND [ARGS...]" >&2; exit 2; }
+TIMEOUT="$1"
+INTERVAL="$2"
+shift 2
+[[ "$TIMEOUT" =~ ^[0-9]+$ && "$INTERVAL" =~ ^[0-9]+$ && "$INTERVAL" -gt 0 ]] || { echo "timeout and interval must be whole seconds, interval > 0" >&2; exit 2; }
+
+# SECONDS is bash's built-in elapsed-time counter; a deadline survives slow checks, a loop counter does not.
+DEADLINE=$(( SECONDS + TIMEOUT ))
+ATTEMPT=0
+
+while true; do
+  ATTEMPT=$(( ATTEMPT + 1 ))
+  # The check runs inside `if`, so set -e does not kill the script when it fails; </dev/null stops it eating our stdin.
+  if "$@" </dev/null >/dev/null 2>&1; then
+    echo "$CHECK ready after $ATTEMPT attempt(s), ${SECONDS}s: $*"
+    exit 0
+  fi
+  if (( SECONDS + INTERVAL > DEADLINE )); then
+    echo "$CROSS not ready after ${TIMEOUT}s ($ATTEMPT attempts): $*" >&2
+    exit 124
+  fi
+  sleep "$INTERVAL"
+done
+```
+
+## Prerequisites
+
+bash 4 or later. The command you poll can be anything that exits 0 when ready: `test -e`, `curl -sf`, `pg_isready`, `systemctl is-active --quiet`, `nc -z`.
+
+## How Does the Script Work?
+
+- **`SECONDS`** counts seconds since the shell started. Comparing it to a deadline makes the timeout real even when each check itself takes a while; `for i in {1..30}` with `sleep 1` can run far longer than 30 seconds.
+- **The check inside `if`** is why `set -e` does not end the script on the first failed attempt. A failing command in an `if` condition is not an error, which is also the fix for the `(( i++ ))` trap above.
+- **`</dev/null`** gives the check its own stdin, the same fix as the `ssh` loop.
+- **Exit 124** matches what `timeout(1)` returns, so callers can treat both the same way: `./wait-until.sh 60 2 … || exit 1`.
+- **`"$@"`** passes the command and its arguments through intact, quotes and spaces included.
+
+## What Does the Script Print?
+
+A flag file that appears after 3 seconds, a port where nothing listens, and a bad interval:
+
+```text
+$ ./wait-until.sh 10 1 test -e ready.flag
+✓ ready after 4 attempt(s), 3s: test -e ready.flag
+exit=0
+$ ./wait-until.sh 4 2 curl -sf http://127.0.0.1:9/
+✗ not ready after 4s (3 attempts): curl -sf http://127.0.0.1:9/
+exit=124
+$ ./wait-until.sh 5 0 true
+timeout and interval must be whole seconds, interval > 0
+exit=2
+```
+
+For a command that *fails* and should be retried with growing delays, rather than polled until something becomes ready, use [Retry With Exponential Backoff](/snippets/bash-retry-with-backoff). For one command that must not run longer than a limit, [the timeout command](/snippets/bash-timeout-command). [The Production Bash Toolkit](/starter-kit) ships these patterns ShellCheck-clean.
+
+## Frequently Asked Questions
+
+### Why is my variable empty after a while loop in bash?
+
+Because the loop ran in a subshell. In `cmd | while read -r line; do count=$((count+1)); done`, each side of the pipe runs in its own process, so the loop's `count` disappears when the pipe ends and the parent still has its old value. Feed the loop with process substitution instead: `while read -r line; do …; done < <(cmd)`. In a script you can also enable `shopt -s lastpipe`, which runs the last part of a pipeline in the current shell.
+
+### Why does my while read loop stop after the first line?
+
+A command inside the loop is reading the loop's standard input. `ssh`, `cat`, `ffmpeg` and anything else that reads stdin will swallow the remaining lines of the file the loop is reading, so the next `read` hits end of file. Give that command its own input: `ssh -n host cmd`, `cmd < /dev/null`, or read the file on another descriptor with `while read -r line <&3; do …; done 3< file`.
+
+### What is the difference between while and until in bash?
+
+`while` repeats as long as its condition command succeeds (exit status 0); `until` repeats as long as it fails, stopping at the first success. `until ping -c1 host; do sleep 2; done` is the same as `while ! ping -c1 host; do sleep 2; done`. Pick whichever reads more naturally; both need a way out, such as a counter or a deadline, if the condition may never change.
+
+### How do I write an infinite loop in bash, and how do I stop it?
+
+`while true; do …; done` or `while :; do …; done` loops forever. Leave it with `break` when a condition is met, or `exit` to end the script. Always put a `sleep` in a polling loop, or it spins a CPU core at 100%. For anything that waits on another system, use a deadline: compute `DEADLINE=$((SECONDS + 60))` before the loop and break or exit once `SECONDS` passes it, so a service that never comes up cannot hang your script.
+
+### Why does set -e exit my script inside a while loop?
+
+The arithmetic command `(( expr ))` returns exit status 1 when the expression evaluates to 0. `(( i++ ))` evaluates to the old value of `i`, so on the first pass, when `i` is 0, it fails and `set -e` stops the script. Write `i=$((i + 1))` or `(( i += 1 ))` instead, or `(( ++i ))`, which evaluates to the new value. The same applies to `(( count-- ))` reaching zero.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Read a File Line by Line](/snippets/bash-read-file-line-by-line) — the file-reading loop in depth
+- [Bash For Loop Examples](/snippets/bash-for-loop-examples) — loops over lists and globs
+- [Retry With Exponential Backoff](/snippets/bash-retry-with-backoff) — retrying a failing command with growing delays
+- [The timeout Command](/snippets/bash-timeout-command) — capping how long one command may run

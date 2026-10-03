@@ -119,7 +119,7 @@ fi
 input="$1"
 ```
 
-For tools that group behavior under verbs — `script.sh deploy`, `script.sh rollback`, the model `git` and `docker` use — dispatch on the first positional argument with a `case`:
+For tools that group behavior under verbs — `script.sh deploy`, `script.sh rollback`, the model `git` and `docker` use — dispatch on the first positional argument with a [`case`](/snippets/bash-case-statement):
 
 ```bash
 subcommand="${1:-}"

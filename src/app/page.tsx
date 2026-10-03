@@ -154,6 +154,12 @@ const homeGuides = [
       'Crashed, stopped on purpose, or running but not answering — three kinds of "down", and the systemd Restart=, reset-failed, and probe-based watchdog that handles each without a restart loop.',
   },
   {
+    slug: 'bash-error-messages',
+    title: 'Bash Error Messages, Decoded',
+    description:
+      'Nine errors, each reproduced: what the shell was doing, the one check that names the cause, and the fix. command not found to Connection refused.',
+  },
+  {
     slug: 'systemd-timers-vs-cron',
     title: 'systemd Timers vs Cron',
     description:

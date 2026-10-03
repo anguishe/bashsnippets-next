@@ -732,6 +732,61 @@ export const snippets: SnippetRegistryEntry[] = [
     datePublished: '2026-10-03',
     dateModified: '2026-10-03',
   },
+  {
+    slug: 'bash-while-loop-examples',
+    title: 'Bash While Loop Examples: read -r, the Pipe Subshell Trap, until and Timeouts',
+    metaTitle: 'Bash While Loop Examples',
+    description:
+      'Bash while loop examples that survive production: read -r line loops, the pipe-subshell variable trap, until, set -e and (( i++ )), and deadline-bound polling.',
+    tags: ['loops', 'read', 'bash', 'error-handling', 'cron-ready'],
+    difficulty: 'beginner',
+    datePublished: '2026-10-03',
+    dateModified: '2026-10-03',
+  },
+  {
+    slug: 'bash-case-statement',
+    title: 'Bash Case Statement Examples: Patterns, Order, ;;& and ;& Fallthrough',
+    metaTitle: 'Bash Case Statement Examples',
+    description:
+      'Bash case statement examples with real output: glob patterns, | alternatives, why pattern order matters, ;;& and ;& fallthrough, extglob, and the quoting trap.',
+    tags: ['case', 'bash', 'patterns', 'glob', 'control-flow'],
+    difficulty: 'beginner',
+    datePublished: '2026-10-03',
+    dateModified: '2026-10-03',
+  },
+  {
+    slug: 'bash-heredoc',
+    title: 'Bash Heredoc: <<EOF, Quoted \'EOF\', <<- Indentation and Here-Strings',
+    metaTitle: 'Bash Heredoc: <<EOF Explained',
+    description:
+      'Bash heredoc explained with real runs: quoted vs unquoted EOF and what expands, <<- and the tabs-only rule, heredocs into ssh and files, and <<< here-strings.',
+    tags: ['heredoc', 'bash', 'quoting', 'config', 'ssh'],
+    difficulty: 'intermediate',
+    datePublished: '2026-10-03',
+    dateModified: '2026-10-03',
+  },
+  {
+    slug: 'scp-command-examples',
+    title: 'scp Command Examples for Scripts: Push, Pull, Spaces, -O and Exit Codes',
+    metaTitle: 'scp Command Examples for Scripts',
+    description:
+      'scp command examples run for real: push, pull, -r, -p, remote paths with spaces, OpenSSH 9+ SFTP mode vs -O, exit codes in scripts, and when to use rsync.',
+    tags: ['scp', 'ssh', 'file-transfer', 'exit-codes', 'automation'],
+    difficulty: 'beginner',
+    datePublished: '2026-10-03',
+    dateModified: '2026-10-03',
+  },
+  {
+    slug: 'cron-job-not-running',
+    title: 'Cron Job Not Running? 7 Checks That Find the Cause',
+    metaTitle: 'Cron Job Not Running? 7 Checks',
+    description:
+      'Cron job not running? Seven checks in order: the daemon, the schedule, permissions, cron\'s PATH, unescaped %, output lost with no mail server, and overlaps.',
+    tags: ['cron', 'troubleshooting', 'cron-ready', 'path', 'logs'],
+    difficulty: 'beginner',
+    datePublished: '2026-10-03',
+    dateModified: '2026-10-03',
+  },
 ];
 
 function mergeWithFrontmatter(snippet: SnippetRegistryEntry): SnippetMeta {

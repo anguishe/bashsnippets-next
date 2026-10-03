@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import ShareLinkButton from './shared/ShareLinkButton';
 import { oneOf } from './shared/useShareLink';
+import SystemdTimerExport from './shared/SystemdTimerExport';
 
 /**
  * Hardened Cron Wrapper Generator
@@ -561,6 +562,14 @@ export default function CronWrapperGenerator() {
               </p>
             )}
           </div>
+        )}
+
+        {schedule.trim().split(/\s+/).length === 5 && (
+          <SystemdTimerExport
+            fields={schedule.trim().split(/\s+/) as [string, string, string, string, string]}
+            execStart={wrapperPath}
+            label={`safe-${jobName}`}
+          />
         )}
 
         <ShareLinkButton

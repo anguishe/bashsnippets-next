@@ -71,6 +71,14 @@ const guides = [
       'The three ways cron jobs die quietly — overlap, hang, transient failure — and the guard that stops each.',
   },
   {
+    slug: 'bash-error-messages',
+    title: 'Bash Error Messages, Decoded',
+    description:
+      'Nine bash error messages decoded from real runs: what the shell was doing, the 60-second check that names the cause, the fix, and the order to read any error.',
+    blurb:
+      'command not found, Permission denied, bad interpreter, unary operator expected, unbound variable, unexpected token, Argument list too long, No space left on device and Connection refused, each reproduced on this machine. You leave knowing what the shell was doing when it printed each one, the one command that tells its causes apart, and the four-step order that finds the cause of almost any failure.',
+  },
+  {
     slug: 'systemd-timers-vs-cron',
     title: 'systemd Timers vs Cron: Missed Runs, Overlaps and Failure Alerts',
     description:

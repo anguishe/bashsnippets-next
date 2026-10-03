@@ -1,0 +1,279 @@
+---
+title: "Cron Job Not Running? 7 Checks That Find the Cause"
+metaTitle: "Cron Job Not Running? 7 Checks"
+description: "Cron job not running? Seven checks in order: the daemon, the schedule, permissions, cron's PATH, unescaped %, output lost with no mail server, and overlaps."
+slug: "cron-job-not-running"
+tags: ["cron", "troubleshooting", "cron-ready", "path", "logs"]
+quickAnswer: "When a cron job is not running, work through seven checks in order. 1: is the daemon running (systemctl status cron, or crond on Fedora and RHEL)? 2: did it fire at all (journalctl -u cron or grep CRON /var/log/syslog shows a CMD line per run)? 3: does the line parse: five schedule fields then the command, and if day-of-month and day-of-week are both set, cron runs on either, not both. 4: is the script executable, does it exist at that absolute path, and is it free of CRLF line endings? 5: does it rely on PATH? cron's PATH is only /usr/bin:/bin, so tools in /usr/local/bin or ~/.local/bin fail with command not found. 6: an unescaped % in the command is turned into a newline; write \\%. 7: where does the output go? Without a mail server, cron discards it and logs No MTA installed, so redirect with >> /path/job.log 2>&1. If runs overlap or hang, add flock and timeout."
+faq:
+  - question: "How do I check if a cron job ran?"
+    answer: "Look in the cron log. On systemd distros, journalctl -u cron (Debian, Ubuntu) or journalctl -u crond (Fedora, RHEL) shows one CMD line for every command cron started, with the user and the time; on older systems grep CRON /var/log/syslog or /var/log/cron. A CMD line proves cron started the job. It says nothing about whether the job succeeded, which is why every job should also write its own log."
+  - question: "Why does my cron job work manually but not in cron?"
+    answer: "cron runs jobs with a minimal environment: PATH=/usr/bin:/bin, no ~/.bashrc, no exported variables, /bin/sh instead of bash unless SHELL= is set, and your home directory as the working directory. Commands installed in /usr/local/bin, ~/.local/bin or /snap/bin fail with command not found, and relative paths point somewhere else. Use absolute paths, set PATH= at the top of the crontab, and test with env -i PATH=/usr/bin:/bin HOME=$HOME /bin/sh -c 'your command'."
+  - question: "Why does % break my cron job?"
+    answer: "In a crontab line, an unescaped % ends the command and turns the rest into standard input, so tar czf backup-$(date +%F).tgz runs as tar czf backup-$(date + with the remainder fed to stdin. Escape every % as \\% inside the crontab, or move the command into a script file, where % is an ordinary character."
+  - question: "Where does cron output go?"
+    answer: "cron mails anything a job prints to the crontab's owner, or to MAILTO if set. If no mail transfer agent such as postfix or exim is installed, the mail cannot be sent and cron throws the output away, logging (CRON) info (No MTA installed, discarding output). Redirect every job explicitly with >> /var/log/job.log 2>&1, so errors land in a file you can read, or route them to an alert script."
+  - question: "Do I need to restart cron after editing crontab?"
+    answer: "No. crontab -e installs the new crontab and cron checks for changes every minute, so the edit takes effect within a minute. A restart is only needed if you edited files under /etc/cron.d with a tool that did not update the file's modification time. If a new job does not run, check that the minute you scheduled has actually passed and look for its CMD line in the log."
+howToSteps:
+  - name: "Confirm cron is running and fired"
+    text: "systemctl status cron (crond on Fedora/RHEL), then journalctl -u cron --since today and look for a CMD line for your job. No CMD line means a schedule or parsing problem; a CMD line means the job itself failed."
+  - name: "Run the doctor script"
+    text: "Save cron-doctor.sh and run ./cron-doctor.sh, or ./cron-doctor.sh file.crontab. It checks the daemon, mail delivery and every crontab line for parse errors, day-field OR, unescaped %, missing or non-executable scripts, CRLF, PATH reliance and unredirected output."
+  - name: "Fix and capture output"
+    text: "Use absolute paths, escape % as \\%, and end every job with >> /var/log/job.log 2>&1. Wrap long jobs in flock -n and timeout so a slow run cannot overlap the next one."
+author: "Travis"
+datePublished: "2026-10-03"
+dateModified: "2026-10-03"
+---
+
+<Callout type="info" title="Build the line instead of debugging it">
+
+The [Cron Job Builder](/tools/cron-job-builder) writes the crontab line with logging, `PATH`, `MAILTO` and `flock` already in it, warns about the day-of-month/day-of-week trap, and exports the same schedule as a systemd timer. The [Cron Wrapper Generator](/tools/cron-wrapper-generator) adds timeout, retry and alerts. Background on why cron fails quietly: [Bash Scripts That Survive Cron](/guides/bash-scripts-that-survive-cron).
+
+</Callout>
+
+A cron job that does not run produces no error message anywhere you would look. A job that runs and fails usually produces one, and cron throws it away. Either way you find out days later, when the backup you needed is not there. The causes are few and they are always the same seven, so check them in order instead of guessing.
+
+## How Do I Know Whether Cron Ran the Job at All?
+
+First, is there a cron daemon? Then, did it start the job? cron writes one `CMD` line to its log for every command it starts:
+
+```bash
+systemctl status cron            # crond on Fedora/RHEL/Arch (cronie)
+journalctl -u cron --since today | grep CMD
+grep CRON /var/log/syslog        # systems without journald
+```
+
+No `CMD` line for your job means cron never started it: the daemon is down, the line does not parse, or the schedule is not what you think. A `CMD` line means cron did its part and the job itself failed, which is checks 4 to 7.
+
+## Why Does the Schedule Not Fire When I Expect?
+
+Five fields, then the command: `minute hour day-of-month month day-of-week`. Two traps cause most surprises. A line with only four schedule fields is not an error cron reports to you; it simply never runs. And when **both** day-of-month and day-of-week are restricted, cron runs on days matching *either*: `0 1 1 * 0` means the 1st of every month **and** every Sunday, not "the 1st, if it is a Sunday" (`man 5 crontab`). The [systemd timers guide](/guides/systemd-timers-vs-cron) proves that one on this machine, and the [Cron Job Builder](/tools/cron-job-builder) warns about it as you build.
+
+## What Else Breaks a Job That Cron Did Start?
+
+- **The script itself.** It must exist at the exact absolute path, be executable (`chmod +x`), and have Unix line endings: a CRLF shebang fails with `bad interpreter`. [Fix "Permission denied"](/snippets/bash-permission-denied) and [Fix bad interpreter](/snippets/fix-bad-interpreter-crlf) cover both.
+- **PATH.** cron's `PATH` is `/usr/bin:/bin`. Anything in `/usr/local/bin`, `~/.local/bin` or `/snap/bin` is `command not found`, exit 127. Use full paths or a `PATH=` line at the top of the crontab; [Fix "bash: command not found"](/snippets/bash-command-not-found) reproduces it.
+- **`%`.** cron turns an unescaped `%` into a newline and feeds the rest of the line to stdin, so `date +%F` breaks. Write `\%`, or put the command in a script.
+- **The environment.** No `~/.bashrc`, no exported variables, `/bin/sh` unless `SHELL=` is set, working directory `$HOME`. [Bash Environment Variables](/snippets/bash-environment-variables) explains what a child process inherits and what cron does not give it.
+- **Overlap.** A job slower than its schedule starts a second copy on top of the first. `flock -n` skips the overlapping run; `timeout` stops a hung one. [flock](/snippets/bash-flock-single-instance) and [timeout](/snippets/bash-timeout-command) have the patterns.
+
+## Where Did the Error Message Go?
+
+cron mails a job's output to its owner. With no mail transfer agent installed, which is the default on most desktops and many cloud images, it cannot, so it discards the output and logs one line. This machine has no MTA, and between 2026-09-09 (the oldest journal entry) and 2026-10-03 cron logged this 117 times, every one a job's output, possibly an error, thrown away:
+
+```text
+2026-09-14T05:00:01-05:00 laptop CRON[pid]: (CRON) info (No MTA installed, discarding output)
+2026-09-14T05:01:01-05:00 laptop CRON[pid]: (CRON) info (No MTA installed, discarding output)
+```
+
+(Hostname and PID replaced.) The fix costs nothing: end every job with `>> /var/log/jobname.log 2>&1`, so stdout and stderr land in a file. For alerts on failure, [Send Slack Alerts From Bash](/snippets/bash-slack-webhook-alerts) or [Send an Email Alert](/snippets/bash-send-email-alert).
+
+## The Script
+
+Save as `cron-doctor.sh`. It checks the daemon and mail delivery on this machine, then every job line of a crontab (yours by default, or a file you pass) for the problems above.
+
+```bash
+#!/bin/bash
+# Script: cron-doctor.sh
+# Purpose: A cron job that never runs, or runs and fails, leaves no error anywhere you would look — this checks the daemon and every line of a crontab for the seven causes that account for most of them.
+# Usage: ./cron-doctor.sh [CRONTAB_FILE]   (default: your own crontab, via crontab -l)
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+WARN="!"
+
+# cron's PATH when the crontab does not set one (Debian/Ubuntu cron and cronie both default to this).
+CRON_DEFAULT_PATH="/usr/bin:/bin"
+PROBLEMS=0
+problem() { echo "  $CROSS $*"; PROBLEMS=$((PROBLEMS + 1)); }
+
+# 1. Is a cron daemon running at all?
+DAEMON=""
+for unit in cron crond cronie; do
+  if systemctl is-active --quiet "$unit" 2>/dev/null; then DAEMON="$unit"; break; fi
+done
+if [[ -n "$DAEMON" ]]; then
+  echo "$CHECK cron daemon active ($DAEMON.service)"
+else
+  echo "$CROSS no active cron daemon (cron, crond or cronie): nothing in any crontab will run"
+  PROBLEMS=$((PROBLEMS + 1))
+fi
+
+# 2. Can cron mail the output anywhere? Without an MTA, output that is not redirected is thrown away.
+HAS_MTA=0
+if command -v sendmail >/dev/null; then
+  HAS_MTA=1
+  echo "$CHECK an MTA is installed (sendmail found): unredirected output is mailed"
+else
+  echo "$WARN no MTA (no sendmail): output a job does not redirect is discarded"
+  if [[ -n "$DAEMON" ]] && LOST=$(journalctl -u "$DAEMON" --since "-7 days" -o cat 2>/dev/null | grep -c "No MTA installed"); then
+    echo "  cron logged \"No MTA installed, discarding output\" $LOST time(s) in the last 7 days"
+  fi
+fi
+
+# 3. Read the crontab.
+if [[ $# -ge 1 ]]; then
+  CRONTAB=$(cat -- "$1")
+  SOURCE="$1"
+else
+  CRONTAB=$(crontab -l 2>/dev/null) || { echo "$CROSS you have no crontab (crontab -l failed)"; exit 1; }
+  SOURCE="crontab -l"
+fi
+echo "checking $SOURCE"
+if grep -q $'\r' <<< "$CRONTAB"; then
+  problem "the crontab has CRLF line endings: cron reads the carriage return as part of each command"
+fi
+
+CRONTAB_PATH=""
+n=0
+while IFS= read -r line || [[ -n "$line" ]]; do
+  n=$((n + 1))
+  line="${line%$'\r'}"
+  [[ "$line" =~ ^[[:space:]]*(#|$) ]] && continue
+  # Environment lines (PATH=, MAILTO=, SHELL=) apply to the jobs below them.
+  if [[ "$line" =~ ^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*= ]]; then
+    [[ "${BASH_REMATCH[1]}" == "PATH" ]] && CRONTAB_PATH="${line#*=}"
+    continue
+  fi
+
+  read -r -a f <<< "$line"
+  if [[ "$line" =~ ^[[:space:]]*@[a-z]+[[:space:]]+(.*)$ ]]; then
+    dom="*"; dow="*"
+    cmd="${BASH_REMATCH[1]}"
+  elif [[ "$line" =~ ^[[:space:]]*([^[:space:]]+[[:space:]]+){5}(.*)$ ]]; then
+    dom="${f[2]}"; dow="${f[4]}"
+    cmd="${BASH_REMATCH[2]}"
+  else
+    echo "line $n: $line"
+    problem "fewer than 6 fields: cron cannot parse this line"
+    continue
+  fi
+  echo "line $n: $cmd"
+
+  # Both day fields restricted: cron runs when EITHER matches (man 5 crontab).
+  if [[ "$dom" != "*" && "$dow" != "*" ]]; then
+    problem "day-of-month ($dom) and day-of-week ($dow) are both set: cron runs on either, not only when both match"
+  fi
+
+  # An unescaped % ends the command; everything after it becomes stdin.
+  if grep -qE '(^|[^\\])%' <<< "$cmd"; then
+    problem "unescaped % in the command: cron cuts the command there; write \\% (e.g. date +\\%F)"
+  fi
+
+  first="${cmd%% *}"
+  if [[ "$first" == /* ]]; then
+    if [[ ! -e "$first" ]]; then
+      problem "$first does not exist"
+    elif [[ ! -x "$first" ]]; then
+      problem "$first is not executable: chmod +x $first"
+    elif head -n 1 -- "$first" | grep -q $'\r'; then
+      problem "$first has a CRLF shebang: it fails with bad interpreter"
+    fi
+  elif ! type -t "$first" >/dev/null 2>&1 || [[ "$(type -t "$first")" == "file" ]]; then
+    # Found by your shell's PATH is not the same as found by cron's.
+    if ! PATH="${CRONTAB_PATH:-$CRON_DEFAULT_PATH}" command -v "$first" >/dev/null; then
+      problem "'$first' is not on cron's PATH (${CRONTAB_PATH:-$CRON_DEFAULT_PATH}): use its full path ($(command -v "$first" || echo 'not found here either'))"
+    fi
+  fi
+
+  if (( ! HAS_MTA )) && ! grep -qE '>' <<< "$cmd"; then
+    problem "output is not redirected and there is no MTA: errors vanish; append >> /path/job.log 2>&1"
+  fi
+done <<< "$CRONTAB"
+
+if (( PROBLEMS )); then
+  echo "$CROSS $PROBLEMS problem(s) found"
+  exit 1
+fi
+echo "$CHECK no problems found"
+```
+
+## Prerequisites
+
+bash 4 or later and systemd for the daemon check (on systems without it, that check reports no daemon; read the rest). `journalctl` access to the cron unit needs membership of `adm` or `systemd-journal`, or sudo. No root otherwise.
+
+## What Does the Script Print?
+
+Against a demonstration crontab with one healthy job and one example of each problem. The scripts live in a scratch directory, shown as `/opt/jobs`:
+
+```text
+$ cat demo.crontab
+# m h dom mon dow command
+MAILTO=""
+0 2 * * * /opt/jobs/backup.sh >> /var/log/backup.log 2>&1
+30 6 * * 1-5 /opt/jobs/report.sh >> /tmp/report.log 2>&1
+*/15 * * * * /opt/jobs/sync.sh >> /tmp/sync.log 2>&1
+0 3 * * * /opt/jobs/cleanup.sh >> /tmp/cleanup.log 2>&1
+0 4 * * * yt-dlp -U >> /tmp/ytdlp.log 2>&1
+0 5 * * * tar czf /backup/home-$(date +%F).tgz /home >> /tmp/tar.log 2>&1
+0 1 1 * 0 /opt/jobs/backup.sh --monthly >> /var/log/backup.log 2>&1
+0 7 * * /opt/jobs/backup.sh
+0 8 * * * /opt/jobs/backup.sh --quick
+$ ./cron-doctor.sh demo.crontab
+✓ cron daemon active (cron.service)
+! no MTA (no sendmail): output a job does not redirect is discarded
+  cron logged "No MTA installed, discarding output" 58 time(s) in the last 7 days
+checking demo.crontab
+line 3: /opt/jobs/backup.sh >> /var/log/backup.log 2>&1
+line 4: /opt/jobs/report.sh >> /tmp/report.log 2>&1
+  ✗ /opt/jobs/report.sh is not executable: chmod +x /opt/jobs/report.sh
+line 5: /opt/jobs/sync.sh >> /tmp/sync.log 2>&1
+  ✗ /opt/jobs/sync.sh has a CRLF shebang: it fails with bad interpreter
+line 6: /opt/jobs/cleanup.sh >> /tmp/cleanup.log 2>&1
+  ✗ /opt/jobs/cleanup.sh does not exist
+line 7: yt-dlp -U >> /tmp/ytdlp.log 2>&1
+  ✗ 'yt-dlp' is not on cron's PATH (/usr/bin:/bin): use its full path (~/.local/bin/yt-dlp)
+line 8: tar czf /backup/home-$(date +%F).tgz /home >> /tmp/tar.log 2>&1
+  ✗ unescaped % in the command: cron cuts the command there; write \% (e.g. date +\%F)
+line 9: /opt/jobs/backup.sh --monthly >> /var/log/backup.log 2>&1
+  ✗ day-of-month (1) and day-of-week (0) are both set: cron runs on either, not only when both match
+line 10: 0 7 * * /opt/jobs/backup.sh
+  ✗ fewer than 6 fields: cron cannot parse this line
+line 11: /opt/jobs/backup.sh --quick
+  ✗ output is not redirected and there is no MTA: errors vanish; append >> /path/job.log 2>&1
+✗ 8 problem(s) found
+exit=1
+```
+
+The first two lines are this machine's real state: cron is running, there is no MTA, and 58 job outputs were discarded in the past week. Line 3 is the healthy job. Running it with no argument checks your own crontab the same way. It exits 1 when it finds anything, so it can run from cron itself and write its report to a log.
+
+## How Do I Stop It Happening Again?
+
+Absolute paths, `PATH=` at the top of the crontab, `\%` for every percent sign, `>> log 2>&1` on every line, and `flock -n` plus `timeout` around anything that can run long. Or move the job to a systemd timer, which logs to the journal, catches up runs missed while the machine was off, and never overlaps itself; the [Cron Job Builder](/tools/cron-job-builder) exports any crontab line as a timer. The [Production Bash Toolkit](/starter-kit) ships a cron wrapper that does the flock, timeout and logging for you.
+
+## Frequently Asked Questions
+
+### How do I check if a cron job ran?
+
+Look in the cron log. On systemd distros, `journalctl -u cron` (Debian, Ubuntu) or `journalctl -u crond` (Fedora, RHEL) shows one `CMD` line for every command cron started, with the user and the time; on older systems `grep CRON /var/log/syslog` or `/var/log/cron`. A `CMD` line proves cron started the job. It says nothing about whether the job succeeded, which is why every job should also write its own log.
+
+### Why does my cron job work manually but not in cron?
+
+cron runs jobs with a minimal environment: `PATH=/usr/bin:/bin`, no `~/.bashrc`, no exported variables, `/bin/sh` instead of bash unless `SHELL=` is set, and your home directory as the working directory. Commands installed in `/usr/local/bin`, `~/.local/bin` or `/snap/bin` fail with `command not found`, and relative paths point somewhere else. Use absolute paths, set `PATH=` at the top of the crontab, and test with `env -i PATH=/usr/bin:/bin HOME=$HOME /bin/sh -c 'your command'`.
+
+### Why does % break my cron job?
+
+In a crontab line, an unescaped `%` ends the command and turns the rest into standard input, so `tar czf backup-$(date +%F).tgz` runs as `tar czf backup-$(date +` with the remainder fed to stdin. Escape every `%` as `\%` inside the crontab, or move the command into a script file, where `%` is an ordinary character.
+
+### Where does cron output go?
+
+cron mails anything a job prints to the crontab's owner, or to `MAILTO` if set. If no mail transfer agent such as postfix or exim is installed, the mail cannot be sent and cron throws the output away, logging `(CRON) info (No MTA installed, discarding output)`. Redirect every job explicitly with `>> /var/log/job.log 2>&1`, so errors land in a file you can read, or route them to an alert script.
+
+### Do I need to restart cron after editing crontab?
+
+No. `crontab -e` installs the new crontab and cron checks for changes every minute, so the edit takes effect within a minute. A restart is only needed if you edited files under `/etc/cron.d` with a tool that did not update the file's modification time. If a new job does not run, check that the minute you scheduled has actually passed and look for its `CMD` line in the log.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Prevent Overlapping Cron Runs With flock](/snippets/bash-flock-single-instance) — the overlap fix
+- [The timeout Command](/snippets/bash-timeout-command) — the hang fix
+- [Fix "bash: command not found"](/snippets/bash-command-not-found) — the PATH cause, reproduced
+- [Bash Environment Variables](/snippets/bash-environment-variables) — what cron's environment lacks

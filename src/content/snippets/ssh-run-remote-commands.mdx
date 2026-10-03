@@ -232,7 +232,7 @@ Append the command: `ssh user@host 'df -h /'`. ssh connects, runs it through the
 
 ### How do I run multiple commands over ssh?
 
-Join two or three with `&&` inside one quoted string — `ssh host 'cd /srv/app && git pull && systemctl restart app'` — and the chain stops at the first failure. For longer blocks, send a heredoc to a remote shell: `ssh host bash -s <<'EOF'`, the commands, then `EOF`; the quoted `EOF` keeps your local shell from expanding `$variables`. For anything reusable, `ssh host bash -s < deploy.sh`. All three return the exit code of the last command that ran.
+Join two or three with `&&` inside one quoted string — `ssh host 'cd /srv/app && git pull && systemctl restart app'` — and the chain stops at the first failure. For longer blocks, send a heredoc to a remote shell: `ssh host bash -s <<'EOF'`, the commands, then `EOF`; the quoted `EOF` keeps your local shell from expanding `$variables` ([Bash Heredoc](/snippets/bash-heredoc) shows the difference with PIDs). For anything reusable, `ssh host bash -s < deploy.sh`. All three return the exit code of the last command that ran.
 
 ### Why does my ssh loop only run for the first host?
 

@@ -17,6 +17,8 @@ There's a fourth problem underneath all of them, and it's the reason these failu
 
 ## Cron eats your output — fix that first
 
+If a job is not running at all, start with the ordered checklist in [Cron Job Not Running? 7 Checks](/snippets/cron-job-not-running); this guide is about the jobs that do run and fail quietly.
+
 When cron runs a job, anything it prints to stdout or stderr goes nowhere unless you've configured otherwise. No log, no record, no trace. So a job can fail every night for a month and the only signal is the absence of whatever it was supposed to produce — and you only notice that when you go looking, usually because something downstream broke.
 
 Two things turn cron from silent to legible. The first is `MAILTO` at the top of the crontab, which mails you any output a job produces (a job that succeeds silently mails nothing; a job that errors mails the error). The second, more reliable on a real server, is to redirect every job's output to a log file you control:
