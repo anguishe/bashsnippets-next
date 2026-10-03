@@ -103,13 +103,13 @@ export default function AboutPage() {
           <p className="mt-3 text-sm leading-relaxed text-muted">
             The site started because I kept re-writing the same scripts. Disk
             monitoring. Log cleanup. Service watchdogs. The third time I wrote a
-            disk space checker for a different employer, I decided to document it
-            properly instead of burying it in <code className="font-mono text-xs text-green">~/scripts</code>.
+            disk space checker, I decided to document it properly instead of
+            burying it in <code className="font-mono text-xs text-green">~/scripts</code>.
             That folder became this site.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-muted">
-            Everything here comes from real operational use — scripts I&apos;ve run on
-            production servers, broken at least once, and fixed. The explanations
+            Everything here comes from real use on my own servers and test
+            boxes — scripts I&apos;ve run, broken at least once, and fixed. The explanations
             exist because I spent time figuring out why the standard one-liners
             fail on edge cases: the wrong partition, macOS <code className="font-mono text-xs text-green">df</code> output
             formatting, cron&apos;s minimal PATH. Rather than explain that again, I
@@ -162,8 +162,7 @@ export default function AboutPage() {
           <p className="mt-3 text-sm leading-relaxed text-muted">
             I test the failure cases, not just the happy path. The &quot;Common
             Mistakes&quot; sections on each page come from things that actually
-            broke during testing — and from watching the same mistakes show up in
-            production support tickets repeatedly. Scripts that don&apos;t behave
+            broke during testing. Scripts that don&apos;t behave
             correctly under failure conditions don&apos;t make it onto the site.
           </p>
         </section>
