@@ -1,0 +1,301 @@
+---
+title: "Fix \"Permission denied\" in Bash: chmod, noexec, Directories and Exit 126"
+metaTitle: "Fix Bash \"Permission denied\" (Exit 126)"
+description: "Fix Permission denied when running a bash script: chmod +x, directory search bits, noexec mounts and ownership. Decode exit 126 and the cases chmod cannot fix."
+slug: "bash-permission-denied"
+tags: ["permissions", "troubleshooting", "exit-codes", "chmod", "security"]
+quickAnswer: "bash: ./script.sh: Permission denied with exit code 126 means bash found the file but the kernel refused to execute it. The usual cause is a missing execute bit: check with ls -l script.sh and fix with chmod +x script.sh, or run it as bash script.sh, which needs only read permission. When chmod does not help, look at three other causes. A parent directory without the x (search) bit blocks everything inside it, whatever the file's own mode says. A filesystem mounted noexec, common for /tmp and /dev/shm on hardened servers, refuses execution even for root; findmnt -no OPTIONS --target script.sh shows it. And a file owned by another user cannot be chmodded by you. Permission denied on a read or write, exit code 1, is a different check: the file's read or write bit, or for creating and deleting files, the directory's write bit. Operation not permitted is different again: it is not about mode bits at all."
+faq:
+  - question: "What does exit code 126 mean in bash?"
+    answer: "126 means the command was found but could not be executed. The usual causes are a missing execute bit, a filesystem mounted noexec, a parent directory without search permission, or a shebang interpreter that exists but is not executable. Compare 127, which means the command was not found at all. Both show up in cron and CI logs, and the number alone tells you which half of the problem to look at."
+  - question: "Why do I get Permission denied after chmod +x?"
+    answer: "Either the filesystem is mounted noexec, or a directory above the file is missing its x bit. noexec beats every mode bit, including root's: check with findmnt -no OPTIONS --target ./script.sh and run the script as bash script.sh, or move it somewhere without noexec. A directory without x for you makes everything inside unreachable; namei -l /path/to/script.sh shows the permissions of every component on the way down."
+  - question: "Should I use sudo to fix Permission denied?"
+    answer: "Only when the file is meant to be root's, such as /etc/shadow or a system config. For your own scripts, sudo hides the real problem and creates new ones: files the script writes become owned by root, and the next run without sudo fails on those. Fix the mode or the ownership instead, chmod +x script.sh or sudo chown you: file once, and run the script as yourself. sudo also does not get past noexec."
+  - question: "Why can I delete a file I cannot write to?"
+    answer: "Because deleting a file changes the directory, not the file. rm needs write and search permission on the directory that holds the name. A file with mode 444 in a directory you own can be removed with rm -f, and a file with mode 666 in a read-only directory cannot. To protect a file from deletion, restrict the directory (or set the sticky bit, which /tmp uses so users can only delete their own files)."
+  - question: "What is the difference between Permission denied and Operation not permitted?"
+    answer: "Permission denied (EACCES) means a permission check failed: mode bits, an ACL, a directory's search bit or a noexec mount. Operation not permitted (EPERM) means the operation itself is restricted to a privileged process or blocked by a flag, whatever the mode bits say: sending a signal to another user's process, changing a file's owner, or writing to a file with the immutable attribute (chattr +i), which stops even root until the flag is removed."
+howToSteps:
+  - name: "Read the exit code and the operation"
+    text: "Exit 126 with ./script.sh means execution was refused. Exit 1 from cat, echo > or touch means a read, write or create was refused. The fix depends on which one failed."
+  - name: "Run the diagnostic script"
+    text: "Save why-permission-denied.sh, chmod +x it, and run ./why-permission-denied.sh FILE exec (or read, or write). It checks every parent directory's search bit, the file's mode for your user and group, noexec on the mount, the shebang interpreter, ACLs and the immutable flag."
+  - name: "Apply the fix for that cause"
+    text: "chmod +x for a missing execute bit, chmod u+x on the directory for a missing search bit, bash script.sh or a different location for noexec, and the file's owner or root for files you do not own."
+author: "Travis"
+datePublished: "2026-10-03"
+dateModified: "2026-10-03"
+---
+
+<Callout type="info" title="Build the chmod line instead of guessing it">
+
+The [chmod Permissions Builder](/tools/chmod-permissions-builder) converts between `755` and `rwxr-xr-x` both ways and explains what each bit allows on a file versus a directory. The [Bash Exit Code Lookup](/tools/bash-exit-code-lookup) puts 126 next to 127.
+
+</Callout>
+
+`chmod +x` fixes the most common `Permission denied` and nothing else. When it does not work, people reach for `sudo`, which either fails the same way or succeeds and leaves root-owned files behind for the next run to trip on. The message is the same for five different checks, and the fix for each is different.
+
+## Which Operation Was Denied?
+
+Reproduced here on 2026-10-03 (Kali, bash 5.3.15) in a scratch directory. The commands ran from a script, so bash prefixes its own errors with `pd.sh: line 1:`. First, the one `chmod` fixes:
+
+```text
+$ ./backup.sh
+pd.sh: line 1: ./backup.sh: Permission denied
+exit=126
+$ ls -l backup.sh | cut -c1-10
+-rw-rw-r--
+$ chmod +x backup.sh
+$ ./backup.sh
+backup ran
+```
+
+Exit **126** is execution. Reads, writes and creates fail with exit **1** from the command that tried:
+
+```text
+$ cat /etc/shadow
+cat: /etc/shadow: Permission denied
+exit=1
+$ echo x > /etc/demo.conf
+pd.sh: line 1: /etc/demo.conf: Permission denied
+exit=1
+$ touch ro.txt; chmod 444 ro.txt; echo x >> ro.txt
+pd.sh: line 1: ro.txt: Permission denied
+exit=1
+```
+
+`/etc/demo.conf` did not exist. Creating a file is a write to the *directory*, and `/etc` is `drwxr-xr-x root:root`. The same rule explains the surprise that follows:
+
+```text
+$ rm -f ro.txt; ls ro.txt
+ls: cannot access 'ro.txt': No such file or directory
+exit=2
+$ mkdir -p nodir; chmod 555 nodir; touch nodir/new.txt
+touch: cannot touch 'nodir/new.txt': Permission denied
+exit=1
+```
+
+A read-only file in a writable directory can be deleted. A writable directory can't be told apart from a read-only one by looking at the file.
+
+## Why Does chmod +x Not Fix It?
+
+**A parent directory without search permission.** The `x` bit on a directory means "may traverse". Without it nothing inside is reachable, whatever the file's own mode is:
+
+```text
+$ ls -ld locked | cut -c1-10
+drw-------
+$ ./locked/backup.sh
+pd.sh: line 1: ./locked/backup.sh: Permission denied
+exit=126
+```
+
+`locked/backup.sh` is `-rwxrwxr-x`. `chmod u+x locked` fixes it. `namei -l locked/backup.sh` prints the mode of every path component, which finds the blocking directory in a long path.
+
+**A filesystem mounted `noexec`.** The mount option overrides every execute bit, including root's. Installers that unpack into `/tmp` hit this on hardened servers. This box's `/tmp` is not `noexec`, so the demo uses a throwaway tmpfs mounted `noexec` inside a user namespace (`unshare -rm`), which needs no sudo and makes you root inside it:
+
+```text
+$ ./mnt/install.sh
+bash: line 1: ./mnt/install.sh: Permission denied
+exit=126
+$ bash mnt/install.sh
+installer ran
+exit=0
+$ findmnt -no OPTIONS --target mnt
+rw,noexec,relatime,uid=1000,gid=1000,inode64
+```
+
+Root, an executable file, still 126. `bash mnt/install.sh` works because bash only *reads* the file; the executable being launched is `/bin/bash`, which lives on a normal mount. On this box `/run` is mounted `noexec`:
+
+```text
+$ findmnt -no TARGET,OPTIONS --target /run
+/run rw,nosuid,nodev,noexec,relatime,size=6576224k,mode=755,inode64
+```
+
+**Someone else's file.** Only the owner (or root) can `chmod` a file. If `ls -l` shows another owner, ask them, or fix ownership once with `sudo chown you: file` rather than running the script under sudo forever.
+
+## The Script
+
+Save as `why-permission-denied.sh`. Give it a path and what you were trying to do (`exec`, `read` or `write`, default `exec`) and it reports which check blocks you.
+
+```bash
+#!/bin/bash
+# Script: why-permission-denied.sh
+# Purpose: "Permission denied" comes from at least five different checks and chmod +x fixes only one — this names the one blocking you.
+# Usage: ./why-permission-denied.sh FILE [exec|read|write]   (default: exec)
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+[[ $# -ge 1 && $# -le 2 ]] || { echo "usage: $0 FILE [exec|read|write]" >&2; exit 2; }
+TARGET="$1"
+MODE="${2:-exec}"
+PROBLEMS=0
+
+fail() { echo "$CROSS $*"; PROBLEMS=$((PROBLEMS + 1)); }
+
+# 1. Every parent directory needs the x (search) bit for you, or nothing inside it is reachable, whatever the file's own mode says.
+ABS=$(realpath -m -- "$TARGET")
+DIR="/"
+IFS='/' read -ra PARTS <<< "${ABS#/}"
+for part in "${PARTS[@]:0:${#PARTS[@]}-1}"; do
+  DIR="${DIR%/}/$part"
+  if [[ -d "$DIR" && ! -x "$DIR" ]]; then
+    fail "directory $DIR has no search (x) permission for you: $(stat -c '%A %U:%G' -- "$DIR")"
+  fi
+done
+
+if [[ ! -e "$TARGET" ]]; then
+  # Creating a file needs write+search on the directory, not on a file that doesn't exist yet.
+  PARENT=$(dirname -- "$ABS")
+  if [[ "$MODE" == "write" && -d "$PARENT" && ! ( -w "$PARENT" && -x "$PARENT" ) ]]; then
+    fail "cannot create files in $PARENT: $(stat -c '%A %U:%G' -- "$PARENT")"
+  fi
+  (( PROBLEMS )) || echo "$CROSS $TARGET does not exist (that is \"No such file\", not a permission problem)"
+  exit 1
+fi
+
+# Which of the three permission triplets applies depends on owner and group membership, so say which one you fall into.
+FILE_GROUP=$(stat -c %G -- "$TARGET")
+if [[ " $(id -Gn) " == *" $FILE_GROUP "* ]]; then IN_GROUP="in"; else IN_GROUP="not in"; fi
+echo "  $TARGET: $(stat -c '%A owner=%U group=%G' -- "$TARGET"); you are $(id -un), $IN_GROUP group $FILE_GROUP"
+
+# An ACL adds rules the mode bits above don't show; getfacl -s prints only files that have one.
+if command -v getfacl >/dev/null && [[ -n "$(getfacl -s -p -- "$TARGET" 2>/dev/null)" ]]; then
+  echo "  ACL present: getfacl $TARGET shows rules beyond the mode bits"
+fi
+
+case "$MODE" in
+  exec)
+    # noexec on the mount beats every mode bit, including root's, and makes [[ -x ]] false too, so check it first.
+    OPTS=$(findmnt -no OPTIONS --target "$TARGET" 2>/dev/null || true)
+    if [[ ",$OPTS," == *",noexec,"* ]]; then
+      fail "filesystem is mounted noexec ($(findmnt -no TARGET --target "$TARGET")): run bash $TARGET, or move it to a mount without noexec"
+    elif [[ ! -x "$TARGET" ]]; then
+      fail "no execute permission for you: chmod +x $TARGET (if you own it) or run it as bash $TARGET"
+    fi
+    # A shebang interpreter that exists but isn't executable also surfaces as Permission denied.
+    if IFS= read -r FIRST < "$TARGET" 2>/dev/null && [[ "$FIRST" == '#!'* ]]; then
+      INTERP=${FIRST#\#!}; INTERP=${INTERP%% *}
+      if [[ -e "$INTERP" && ! -x "$INTERP" ]]; then fail "shebang interpreter $INTERP is not executable"; fi
+    fi
+    ;;
+  read)  [[ -r "$TARGET" ]] || fail "no read permission for you: the owner ($(stat -c %U -- "$TARGET")) has to grant it, or use sudo if you are meant to have access" ;;
+  write)
+    [[ -w "$TARGET" ]] || fail "no write permission for you on the file"
+    # The immutable attribute blocks writes even for root, and the error then says "Operation not permitted".
+    if lsattr -d -- "$TARGET" 2>/dev/null | cut -d' ' -f1 | grep -q i; then
+      fail "file is immutable (chattr +i): root must run chattr -i $TARGET first"
+    fi
+    ;;
+  *) echo "unknown mode: $MODE (use exec, read or write)" >&2; exit 2 ;;
+esac
+
+if (( PROBLEMS == 0 )); then
+  echo "$CHECK nothing blocks $MODE on $TARGET for $(id -un)"
+  exit 0
+fi
+exit 1
+```
+
+## Prerequisites
+
+bash 4 or later, coreutils (`stat`, `realpath`) and util-linux (`findmnt`), which every mainstream distro ships. `getfacl` (package `acl`) and `lsattr` (e2fsprogs) are optional; the script skips those checks when they are missing. No root.
+
+## How Does Each Check Work?
+
+- **The directory walk** splits the absolute path and tests `-x` on every parent. One directory without search permission is enough to block the file, and the error never names it.
+- **The ownership line** says which permission triplet applies to you: owner, group (and whether you are in it), or other. Most "but the group has write" confusion is not being in the group, or being in it only after a fresh login.
+- **`getfacl -s`** prints output only for files with an extended ACL. When one exists, the mode bits are not the whole story.
+- **`findmnt -no OPTIONS --target`** reads the mount options of the filesystem holding the file. It runs before the `-x` test because on a `noexec` mount `-x` is false even for a `rwx` file, which would point you at `chmod` for no reason.
+- **The shebang check** catches the rare interpreter that exists but is not executable. A missing interpreter is exit 127, covered on the [command not found page](/snippets/bash-command-not-found).
+- **`lsattr`** catches the immutable flag, which turns writes into `Operation not permitted` even for root.
+
+## What Does the Script Print?
+
+On the same scratch directory (the user name is shown as `travis`):
+
+```text
+$ ./why-permission-denied.sh backup.sh
+  backup.sh: -rw-rw-r-- owner=travis group=travis; you are travis, in group travis
+✗ no execute permission for you: chmod +x backup.sh (if you own it) or run it as bash backup.sh
+exit=1
+$ ./why-permission-denied.sh backup.sh
+  backup.sh: -rwxrwxr-x owner=travis group=travis; you are travis, in group travis
+✓ nothing blocks exec on backup.sh for travis
+exit=0
+$ ./why-permission-denied.sh locked/backup.sh
+✗ directory ~/demo/locked has no search (x) permission for you: drw------- travis:travis
+exit=1
+$ ./why-permission-denied.sh /etc/shadow read
+  /etc/shadow: -rw-r----- owner=root group=shadow; you are travis, not in group shadow
+✗ no read permission for you: the owner (root) has to grant it, or use sudo if you are meant to have access
+exit=1
+$ ./why-permission-denied.sh /etc/demo.conf write
+✗ cannot create files in /etc: drwxr-xr-x root:root
+exit=1
+```
+
+And inside the `noexec` namespace, where you are root and the file is `rwx`:
+
+```text
+$ ./why-permission-denied.sh mnt/install.sh
+  mnt/install.sh: -rwxrwxr-x owner=root group=root; you are root, in group root
+✗ filesystem is mounted noexec (~/demo/mnt): run bash mnt/install.sh, or move it to a mount without noexec
+exit=1
+```
+
+It exits 1 when anything blocks you, so a deploy script can call it before trying: `./why-permission-denied.sh "$TARGET" exec || exit 1`.
+
+## When Is It "Operation not permitted" Instead?
+
+`Operation not permitted` is not a mode-bit failure. It means the operation needs privilege, or a flag forbids it whatever the bits say:
+
+```text
+$ touch flags.txt; chattr +i flags.txt
+chattr: Operation not permitted while setting flags on flags.txt
+exit=1
+$ kill -0 1
+pd.sh: line 1: kill: (1) - Operation not permitted
+exit=1
+```
+
+Setting the immutable flag needs root, and so does signalling another user's process (PID 1 is root's). Once a file *is* immutable, writes fail with `Operation not permitted` even for root, which is why the script checks `lsattr` on writes.
+
+A port below 1024 is the other common "permission" error, and it is distro-dependent: binding one as a normal user is refused when `net.ipv4.ip_unprivileged_port_start` is 1024 (the kernel default). This box has it set to 0, so a user can bind port 80 here. Check yours with `sysctl net.ipv4.ip_unprivileged_port_start` before assuming. [List Open Ports on Linux](/snippets/list-open-ports-linux) shows what is already listening.
+
+File permissions are worth locking down on purpose, not only fixing when they bite: [File Permissions Security](/snippets/file-permissions-security) audits a tree for world-writable files and loose modes, and [The Production Bash Toolkit](/starter-kit) ships ShellCheck-clean scripts that start from a safe template.
+
+## Frequently Asked Questions
+
+### What does exit code 126 mean in bash?
+
+126 means the command was found but could not be executed. The usual causes are a missing execute bit, a filesystem mounted `noexec`, a parent directory without search permission, or a shebang interpreter that exists but is not executable. Compare 127, which means the command was not found at all. Both show up in cron and CI logs, and the number alone tells you which half of the problem to look at.
+
+### Why do I get Permission denied after chmod +x?
+
+Either the filesystem is mounted `noexec`, or a directory above the file is missing its `x` bit. `noexec` beats every mode bit, including root's: check with `findmnt -no OPTIONS --target ./script.sh` and run the script as `bash script.sh`, or move it somewhere without `noexec`. A directory without `x` for you makes everything inside unreachable; `namei -l /path/to/script.sh` shows the permissions of every component on the way down.
+
+### Should I use sudo to fix Permission denied?
+
+Only when the file is meant to be root's, such as `/etc/shadow` or a system config. For your own scripts, sudo hides the real problem and creates new ones: files the script writes become owned by root, and the next run without sudo fails on those. Fix the mode or the ownership instead, `chmod +x script.sh` or `sudo chown you: file` once, and run the script as yourself. sudo also does not get past `noexec`.
+
+### Why can I delete a file I cannot write to?
+
+Because deleting a file changes the directory, not the file. `rm` needs write and search permission on the directory that holds the name. A file with mode 444 in a directory you own can be removed with `rm -f`, and a file with mode 666 in a read-only directory cannot. To protect a file from deletion, restrict the directory (or set the sticky bit, which `/tmp` uses so users can only delete their own files).
+
+### What is the difference between Permission denied and Operation not permitted?
+
+`Permission denied` (EACCES) means a permission check failed: mode bits, an ACL, a directory's search bit or a `noexec` mount. `Operation not permitted` (EPERM) means the operation itself is restricted to a privileged process or blocked by a flag, whatever the mode bits say: sending a signal to another user's process, changing a file's owner, or writing to a file with the immutable attribute (`chattr +i`), which stops even root until the flag is removed.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [File Permissions Security](/snippets/file-permissions-security) — find world-writable files and loose modes before an attacker does
+- [Fix "bash: command not found"](/snippets/bash-command-not-found) — exit 127: the file was never found
+- [Fix /bin/bash^M: bad interpreter](/snippets/fix-bad-interpreter-crlf) — the other way a file that exists refuses to start
+- [List Open Ports on Linux](/snippets/list-open-ports-linux) — what is listening, and who owns it

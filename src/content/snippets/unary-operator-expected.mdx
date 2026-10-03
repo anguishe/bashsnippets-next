@@ -1,0 +1,177 @@
+---
+title: "Fix \"unary operator expected\" in Bash: Empty Variables in [ ]"
+metaTitle: "Fix \"unary operator expected\" in Bash"
+description: "Fix bash unary operator expected errors: an empty variable inside [ ] vanishes. Quote it, switch to [[ ]] or set a default, and let ShellCheck catch it first."
+slug: "unary-operator-expected"
+tags: ["shellcheck", "troubleshooting", "test", "quoting", "error-handling"]
+quickAnswer: "The bash error [: -eq: unary operator expected means a variable inside single brackets was empty or unset. [ $count -eq 1 ] expands to [ -eq 1 ] when count is empty, so the test command sees an operator with nothing on its left and fails with exit status 2. The same thing happens with strings: [ $name = admin ] becomes [ = admin ]. There are three fixes. Quote the variable, [ \"$count\" -eq 1 ], so an empty value stays an empty argument; the error then becomes integer expected, which names the real problem. Use [[ $count -eq 1 ]], which does not word-split, so an empty value is never dropped. Or supply a default with \"${count:-0}\". set -u turns the same bug into count: unbound variable, which names the variable. ShellCheck flags the unquoted form as SC2086 before the script ever runs, and [ -n $var ] as SC2070."
+faq:
+  - question: "What does unary operator expected mean in bash?"
+    answer: "It means the [ (test) command received an operator such as -eq or = without the value that should come before it. That happens when the variable on the left was empty or unset and not quoted: bash removes the empty word during word splitting, so [ $count -eq 1 ] reaches test as [ -eq 1 ]. test then tries to read -eq as a unary operator like -f or -z, cannot, and exits with status 2."
+  - question: "Why does the error only happen sometimes?"
+    answer: "Because it only fires when the variable is empty. A script that reads a value from a file, a command or an environment variable works every time the value is present and breaks the first time it is missing: an empty file, a failed command substitution, a variable cron does not set. That is why it often appears in cron or CI and never in testing. Quoting every variable inside [ ] makes the behaviour the same whether the value is there or not."
+  - question: "Should I use [ ] or [[ ]] in bash?"
+    answer: "In a bash script, prefer [[ ]]. It does not word-split or glob-expand unquoted variables, supports && and || inside the brackets, and adds pattern matching with == and regex with =~. Use [ ] only when the script must run under plain sh (dash, busybox), and then quote every variable. Note that [[ $count -eq 0 ]] is true when count is empty, because an empty string evaluates to 0 in arithmetic, so [[ ]] removes the error but not the need to validate input."
+  - question: "What is the difference between unary operator expected and too many arguments?"
+    answer: "They are the same bug with opposite inputs. An empty unquoted variable disappears and leaves [ with too few words: unary operator expected. A variable containing spaces, such as name=\"john smith\", splits into two words and leaves [ with too many: too many arguments. Quoting the variable, or using [[ ]], fixes both."
+  - question: "How do I fix integer expected after quoting the variable?"
+    answer: "[: : integer expected means the quoted variable is empty and -eq needs a number. Quoting made the error honest; now decide what an empty value should mean. Use \"${count:-0}\" if empty means zero, or test [ -n \"$count\" ] first and handle the missing value explicitly. For required values, : \"${count:?count must be set}\" at the top of the script stops it with a named error."
+howToSteps:
+  - name: "Find the failing test"
+    text: "The error names the operator, not the variable: [: -eq: unary operator expected. Look for a [ ] test using that operator whose left-hand variable is unquoted, and check where that variable's value comes from."
+  - name: "Quote the variable or switch to [[ ]]"
+    text: "Change [ $count -eq 1 ] to [ \"$count\" -eq 1 ] or [[ $count -eq 1 ]]. Quoting keeps an empty value as an empty argument; [[ ]] never splits it."
+  - name: "Decide what empty should mean"
+    text: "Give it a default with \"${count:-0}\", reject it with : \"${count:?count must be set}\", and run shellcheck on the script so SC2086 and SC2070 catch the next unquoted test."
+author: "Travis"
+datePublished: "2026-10-03"
+dateModified: "2026-10-03"
+---
+
+<Callout type="info" title="ShellCheck finds this before it runs">
+
+The unquoted variable behind this error is [SC2086](/shellcheck/sc2086), the ShellCheck finding most scripts trip first. Paste any other code into the [ShellCheck Error Decoder](/tools/shellcheck-error-decoder).
+
+</Callout>
+
+The script ran for weeks. Then the value it tests came back empty (an empty file, a failed `$(…)`, a variable cron never set) and `[` printed `unary operator expected` and returned 2. Inside an `if` that means the condition is false, so the script quietly took the other branch. The error names the operator, not the variable, so the line it points at looks fine.
+
+## Why Does an Empty Variable Break [ ]?
+
+Reproduced here on 2026-10-03 (Kali, bash 5.3.15, ShellCheck 0.11.0) with `count` and `name` unset:
+
+```text
+$ [ $count -eq 1 ] && echo one
+u.sh: line 1: [: -eq: unary operator expected
+exit=2
+$ [ $name = admin ] && echo admin
+u.sh: line 1: [: =: unary operator expected
+exit=2
+```
+
+`[` is a command, and its arguments go through word splitting like any other command's. An unquoted empty variable produces zero words, not one empty word, so `[ $count -eq 1 ]` arrives as `[ -eq 1 ]`. With only two arguments, `test` reads the first as a unary operator (like `-f` or `-z`). `-eq` is not one, so it fails.
+
+A value with a space breaks the same line from the other side:
+
+```text
+$ name="john smith"; [ $name = admin ]
+u.sh: line 1: [: too many arguments
+exit=2
+```
+
+## The Same Expression Under [, Quotes, [[ and set -u
+
+| Expression (count unset) | Result | Exit |
+|---|---|---|
+| `[ $count -eq 1 ]` | `[: -eq: unary operator expected` | 2 |
+| `[ "$count" -eq 1 ]` | `[: : integer expected` | 2 |
+| `[[ $count -eq 1 ]]` | false, no error | 1 |
+| `[[ $count -eq 0 ]]` | **true**, no error | 0 |
+| `[ "${count:-0}" -eq 1 ]` | false, no error | 1 |
+| `bash -u`: `[ "$count" -eq 1 ]` | `count: unbound variable` | 127 |
+| `[ -n $count ]` | **true**, no error | 0 |
+
+The raw run behind the table:
+
+```text
+$ [ "$count" -eq 1 ] && echo one
+u.sh: line 1: [: : integer expected
+exit=2
+$ [[ $count -eq 1 ]] && echo one
+exit=1
+$ [[ $count -eq 0 ]] && echo zero
+zero
+exit=0
+$ [ "${count:-0}" -eq 1 ] || echo "not one"
+not one
+exit=0
+$ bash -uc '[ "$count" -eq 1 ]'
+bash: line 1: count: unbound variable
+exit=127
+$ [ -n $count ] && echo "looks non-empty"
+looks non-empty
+exit=0
+```
+
+Two rows are worse than the error. `[[ $count -eq 0 ]]` is true for an empty value, because inside `[[ ]]` arithmetic an empty string evaluates to 0. And `[ -n $count ]` is true when `count` is empty, because it collapses to `[ -n ]`, a one-argument test that is true for any non-empty string, here the literal `-n`. Neither prints anything. `set -u` is the only form that names the variable.
+
+## How Do I Fix It?
+
+Three fixes, in the order to reach for them:
+
+```bash
+# 1. Quote it. An empty value stays one (empty) argument; the error becomes honest.
+if [ "$count" -eq 1 ]; then echo one; fi
+
+# 2. Use [[ ]] in bash. No word splitting, so nothing disappears.
+if [[ $count -eq 1 ]]; then echo one; fi
+
+# 3. Decide what empty means, explicitly.
+if [ "${count:-0}" -eq 1 ]; then echo one; fi      # empty means 0
+: "${count:?count must be set}"                    # empty is an error: stop here
+```
+
+Quoting is the minimum and works in every shell. `[[ ]]` is the default for bash scripts. A default or a `:?` check is what the script should have had all along, because both fixes above still let an empty value through to the comparison. Adding `set -u` (part of `set -euo pipefail`) catches the variables you forgot to check.
+
+## How Does ShellCheck Catch It?
+
+```text
+$ shellcheck check.sh
+
+In check.sh line 3:
+if [ $count -eq 1 ]; then echo one; fi
+     ^----^ SC2086 (info): Double quote to prevent globbing and word splitting.
+
+Did you mean:
+if [ "$count" -eq 1 ]; then echo one; fi
+
+
+In check.sh line 4:
+if [ -n $count ]; then echo set; fi
+        ^----^ SC2070 (error): -n doesn't work with unquoted arguments. Quote or use [[ ]].
+        ^----^ SC2086 (info): Double quote to prevent globbing and word splitting.
+
+Did you mean:
+if [ -n "$count" ]; then echo set; fi
+```
+
+SC2086 is "info" severity, which is why people filter it out. Do not: it is the warning for this exact bug. SC2070 is an error because `[ -n $var ]` is silently wrong, not loudly wrong. Run `shellcheck` in CI or a pre-commit hook and this error never reaches a server.
+
+## Prerequisites
+
+bash (any version) and, for the checks, ShellCheck: `apt install shellcheck`, `dnf install ShellCheck` or `brew install shellcheck`. No root.
+
+## Frequently Asked Questions
+
+### What does unary operator expected mean in bash?
+
+It means the `[` (test) command received an operator such as `-eq` or `=` without the value that should come before it. That happens when the variable on the left was empty or unset and not quoted: bash removes the empty word during word splitting, so `[ $count -eq 1 ]` reaches test as `[ -eq 1 ]`. test then tries to read `-eq` as a unary operator like `-f` or `-z`, cannot, and exits with status 2.
+
+### Why does the error only happen sometimes?
+
+Because it only fires when the variable is empty. A script that reads a value from a file, a command or an environment variable works every time the value is present and breaks the first time it is missing: an empty file, a failed command substitution, a variable cron does not set. That is why it often appears in cron or CI and never in testing. Quoting every variable inside `[ ]` makes the behaviour the same whether the value is there or not.
+
+### Should I use [ ] or [[ ]] in bash?
+
+In a bash script, prefer `[[ ]]`. It does not word-split or glob-expand unquoted variables, supports `&&` and `||` inside the brackets, and adds pattern matching with `==` and regex with `=~`. Use `[ ]` only when the script must run under plain sh (dash, busybox), and then quote every variable. Note that `[[ $count -eq 0 ]]` is true when `count` is empty, because an empty string evaluates to 0 in arithmetic, so `[[ ]]` removes the error but not the need to validate input.
+
+### What is the difference between unary operator expected and too many arguments?
+
+They are the same bug with opposite inputs. An empty unquoted variable disappears and leaves `[` with too few words: `unary operator expected`. A variable containing spaces, such as `name="john smith"`, splits into two words and leaves `[` with too many: `too many arguments`. Quoting the variable, or using `[[ ]]`, fixes both.
+
+### How do I fix integer expected after quoting the variable?
+
+`[: : integer expected` means the quoted variable is empty and `-eq` needs a number. Quoting made the error honest; now decide what an empty value should mean. Use `"${count:-0}"` if empty means zero, or test `[ -n "$count" ]` first and handle the missing value explicitly. For required values, `: "${count:?count must be set}"` at the top of the script stops it with a named error.
+
+The [safe bash script template](/guides/safe-bash-script-template) puts `set -euo pipefail` and the `:?` checks at the top of every script for this reason, and [The Production Bash Toolkit](/starter-kit) ships that template ShellCheck-clean.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Bash If Else Examples](/snippets/bash-if-else-examples) — every test operator, and which ones need quotes
+- [Bash Environment Variables](/snippets/bash-environment-variables) — `${VAR:-default}` and `${VAR:?message}` in depth
+- [Fix "bash: command not found"](/snippets/bash-command-not-found) — what an empty variable does when it is the command
+- [Bash Error Handling](/snippets/bash-error-handling) — `set -euo pipefail`, including what `set -u` catches

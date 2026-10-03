@@ -247,8 +247,8 @@ Use integer comparison operators inside `[ ]`: `-eq` (equal), `-ne` (not equal),
 
 ### How do I check if a variable is empty in bash?
 
-Use `[ -z "$VAR" ]` to test for empty, or `[ -n "$VAR" ]` for non-empty. Always quote the variable — without quotes, an empty string causes a syntax error in the test.
+Use `[ -z "$VAR" ]` to test for empty, or `[ -n "$VAR" ]` for non-empty. Always quote the variable — without quotes, an empty string causes [a syntax error in the test](/snippets/unary-operator-expected).
 
 ### Why does bash say "command not found" inside an if statement?
 
-The most common cause is a missing `then` keyword or unquoted variable. Every `if` line must end with `; then`. Check for: missing spaces inside `[ ]`, missing `fi` at the end, and unquoted variables that contain spaces.
+The most common cause is a missing `then` keyword or unquoted variable ([every cause of command not found](/snippets/bash-command-not-found)). Every `if` line must end with `; then`. Check for: missing spaces inside `[ ]`, missing `fi` at the end, and unquoted variables that contain spaces.

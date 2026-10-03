@@ -29,10 +29,26 @@ howToSteps:
     text: "env -i bash ./bash-environment-variables.sh shows what cron would see. Then apply the pattern to your own script: ${VAR:?message} on every required variable at the top, so a missing one stops the script with a named error instead of an empty value."
 author: "Travis"
 datePublished: 2026-09-10
-dateModified: 2026-09-10
+dateModified: 2026-10-03
 ---
 
-The deploy script read `DEPLOY_ENV` and fell back to `staging` when it was empty, which was a sensible default right up until the afternoon someone set `DEPLOY_ENV=production` in their terminal, ran `./deploy.sh`, watched it print "deploying to staging", and assumed the prompt had lagged. It had not. `DEPLOY_ENV=production` without `export` creates a variable in the terminal's shell and nowhere else. `./deploy.sh` is a new process; it inherited the environment, the variable was not in it, and the fallback did precisely what it was written to do. The production release went to staging, the staging release that followed went to staging, and the incident report's root cause was one missing word.
+A two-line `deploy.sh` that reads `DEPLOY_ENV` and falls back to `staging` when it is empty, run from a terminal where the variable was set but not exported (bash 5.3.15, 2026-10-03):
+
+```text
+$ cat deploy.sh
+#!/bin/bash
+echo "deploying to ${DEPLOY_ENV:-staging}"
+$ DEPLOY_ENV=production
+$ ./deploy.sh
+deploying to staging
+$ echo "$DEPLOY_ENV"
+production
+$ export DEPLOY_ENV
+$ ./deploy.sh
+deploying to production
+```
+
+The terminal holds `production` the whole time. `./deploy.sh` is a new process; it inherits the environment, the variable was not in it until `export`, and the fallback did exactly what it was written to do. No error, no warning, and the release goes to the wrong place.
 
 The rules for which process can see which variable are short, but they are the kind of short that gets guessed at instead of learned. The script on this page runs each rule and prints what happened, so the version in your head matches the version in the kernel.
 
@@ -172,7 +188,7 @@ EXPORTED after unset:  <unset>
 ✗ printenv PLAIN found nothing (exit 1) — PLAIN is a shell variable, not environment
 ```
 
-Section 1 is the deploy incident in two lines. Both variables hold the same value in the parent; the child sees only the exported one.
+Section 1 is the opening `deploy.sh` run in two lines. Both variables hold the same value in the parent; the child sees only the exported one.
 
 ## Why can't a child process see my variable?
 
@@ -190,7 +206,7 @@ This is why a `config.sh` full of `KEY=value` lines has to be sourced, not execu
 
 Section 4 is the answer, and `env -i` is how you see it before cron does. `env -i command` runs the command with the environment emptied first: no `HOME`, no `LANG`, none of the exports from `.bashrc`, and a `PATH` that only exists because bash falls back to a compiled-in default when the environment supplies none. cron's environment is nearly that sparse — it sets `HOME`, `LOGNAME`, a `SHELL` of `/bin/sh`, and a `PATH` that is typically `/usr/bin:/bin`, and reads none of your dotfiles.
 
-So a script that calls `aws`, `node`, or anything installed under `/usr/local` or `~/.local/bin` fails with `command not found` under cron, and a script that reads `$API_TOKEN` from an export in `.bashrc` reads an empty string. `env -i bash ./script.sh` reproduces both failures on demand. The fix is to stop depending on inherited state: set `PATH` explicitly at the top of the script, and load secrets from a file the script sources itself. The cron half of that story — locking, logging, timeouts — is the [Bash Scripts That Survive Cron](/guides/bash-scripts-that-survive-cron) guide.
+So a script that calls `aws`, `node`, or anything installed under `/usr/local` or `~/.local/bin` fails with [`command not found`](/snippets/bash-command-not-found) under cron, and a script that reads `$API_TOKEN` from an export in `.bashrc` reads an empty string. `env -i bash ./script.sh` reproduces both failures on demand. The fix is to stop depending on inherited state: set `PATH` explicitly at the top of the script, and load secrets from a file the script sources itself. The cron half of that story — locking, logging, timeouts — is the [Bash Scripts That Survive Cron](/guides/bash-scripts-that-survive-cron) guide.
 
 ## How do I read a variable with a default, or require one?
 

@@ -59,7 +59,7 @@ export const tools: ToolMeta[] = [
           'Exit code 0 always means success in bash and all POSIX-compliant shells. Any non-zero value signals failure. This convention applies to every command, script, and function in the shell.',
       },
     ],
-    relatedSnippets: ['bash-error-handling', 'bash-if-else-examples'],
+    relatedSnippets: ['bash-error-handling', 'bash-if-else-examples', 'bash-command-not-found', 'bash-permission-denied'],
   },
   {
     slug: 'cron-job-builder',
@@ -141,7 +141,7 @@ export const tools: ToolMeta[] = [
           'When the sticky bit is set on a directory (chmod +t or mode 1755), only the file owner or root can delete or rename files inside it — even if others have write access to the directory. The /tmp directory uses this to prevent users from deleting each other\'s temporary files.',
       },
     ],
-    relatedSnippets: ['file-permissions-security', 'ssh-key-setup-script'],
+    relatedSnippets: ['file-permissions-security', 'ssh-key-setup-script', 'bash-permission-denied'],
   },
   {
     slug: 'path-debugger',
@@ -182,7 +182,7 @@ export const tools: ToolMeta[] = [
           'The binary is either not installed, or its directory is missing from $PATH. Paste your PATH into this tool to check whether the expected directory is present. If the directory is there, verify the binary exists with `which commandname` or `ls /expected/path/`.',
       },
     ],
-    relatedSnippets: ['bash-error-handling', 'bash-if-else-examples'],
+    relatedSnippets: ['bash-error-handling', 'bash-if-else-examples', 'bash-command-not-found'],
   },
   {
     slug: 'bash-boilerplate-generator',
@@ -346,7 +346,7 @@ export const tools: ToolMeta[] = [
           'ShellCheck warns about patterns that work in normal cases but fail in edge cases — variables with spaces, filenames with special characters, or pipelines that swallow errors. Each warning is a real bug risk. The script appears to work until it encounters unexpected input.',
       },
     ],
-    relatedSnippets: ['bash-error-handling'],
+    relatedSnippets: ['bash-error-handling', 'unary-operator-expected'],
   },
   {
     slug: 'bash-trap-builder',

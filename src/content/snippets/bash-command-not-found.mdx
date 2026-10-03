@@ -1,0 +1,299 @@
+---
+title: "Fix \"bash: command not found\": PATH, Typos, hash -r, CRLF and Cron"
+metaTitle: "Fix \"bash: command not found\" (Exit 127)"
+description: "Fix bash: command not found: check PATH, typos, a stale hash table, CRLF line endings and sudo's PATH. What exit code 127 means in scripts, cron and CI logs."
+slug: "bash-command-not-found"
+tags: ["path", "troubleshooting", "exit-codes", "cron", "crlf"]
+quickAnswer: "bash: command not found means bash searched every directory in $PATH and found no executable with that name. It exits with code 127. There are six usual causes: a typo (gti for git), a program that is not installed, a program installed in a directory that is not on PATH (~/.local/bin, /usr/sbin, /opt/tool/bin), a script in the current directory run without ./, an alias that exists only in interactive shells, and a stale hash table after a program moved, which prints No such file or directory instead. Diagnose with type -a NAME and command -v NAME; print your PATH one directory per line with echo \"$PATH\" | tr : '\\n'. Fix the PATH case with export PATH=\"/dir:$PATH\" in ~/.bashrc, the stale case with hash -r, and scripts in the current directory with ./script.sh. In cron, PATH is only /usr/bin:/bin, so use full paths or set PATH= at the top of the crontab."
+faq:
+  - question: "What does exit code 127 mean in bash?"
+    answer: "127 means the command could not be found: bash searched PATH and no executable matched, or a script's shebang named an interpreter that does not exist (env: 'bash\\r' from a CRLF line ending is the common case). It is different from 126, which means the file was found but could not be executed, usually a missing execute bit or a noexec mount. In cron and CI logs, a bare 127 almost always means the job's PATH is shorter than your terminal's."
+  - question: "Why does a command work in my terminal but not in cron?"
+    answer: "cron starts jobs with PATH=/usr/bin:/bin and does not read ~/.bashrc, so anything installed in /usr/local/bin, ~/.local/bin, /snap/bin or an /opt directory is invisible to it and fails with command not found, exit 127. Reproduce it with env -i PATH=/usr/bin:/bin bash -c 'yourcommand'. Fix it by using the full path in the crontab line, or by adding a PATH= line at the top of the crontab that lists the directories you need."
+  - question: "Why does sudo say command not found when the command works without sudo?"
+    answer: "sudo replaces your PATH with the secure_path setting from /etc/sudoers, which usually lists only the system directories. A tool in ~/.local/bin, /usr/local/bin or an /opt directory is found by your shell and not by sudo. Run sudo with the full path, sudo \"$(command -v tool)\", or add the directory to secure_path with visudo. Avoid sudo env PATH=\"$PATH\" as a habit: it lets any directory on your personal PATH supply binaries that run as root."
+  - question: "How do I add a directory to PATH permanently?"
+    answer: "Add export PATH=\"$HOME/.local/bin:$PATH\" (with your directory) to ~/.bashrc and open a new terminal or run source ~/.bashrc. Put the new directory first to make it win over system copies, or last ($PATH:/dir) to make it a fallback. This only affects your interactive shells: cron, systemd services and sudo each have their own PATH and need their own fix."
+  - question: "Why does bash say No such file or directory for a command that worked a minute ago?"
+    answer: "bash remembers where it found each command in a hash table. If the program is then moved or reinstalled to a different directory, bash keeps running the remembered path, which no longer exists, and prints No such file or directory with exit code 127. hash -t name shows the remembered path and hash -r clears the table so the next run searches PATH again. A new terminal also starts with an empty table."
+howToSteps:
+  - name: "Ask bash what the name resolves to"
+    text: "Run type -a NAME. It lists every alias, function, builtin and file on PATH with that name. No output means bash cannot find it anywhere on PATH."
+  - name: "Run the diagnostic script"
+    text: "Save why-command-not-found.sh, chmod +x it, and run ./why-command-not-found.sh NAME. It reports whether the name is a typo of an installed command, sits in the current directory, is installed outside PATH, has a CRLF shebang, or will be missing from cron's PATH."
+  - name: "Apply the fix for that cause"
+    text: "Use ./NAME for the current directory, export PATH=\"/dir:$PATH\" in ~/.bashrc for an installed-but-not-on-PATH program, hash -r for a stale path, sed -i 's/\\r$//' for CRLF, and full paths or a PATH= line in the crontab for cron."
+author: "Travis"
+datePublished: "2026-10-03"
+dateModified: "2026-10-03"
+---
+
+<Callout type="info" title="127 is the exit code, and the exit code is the clue">
+
+The [Bash Exit Code Lookup](/tools/bash-exit-code-lookup) explains 127 next to 126, its close cousin. If the problem is `PATH` itself (missing directories, duplicates, a typo in `.bashrc`), paste it into the [Bash $PATH Debugger](/tools/path-debugger).
+
+</Callout>
+
+`command not found` is one message for six different problems. The program might not exist, might exist somewhere `PATH` does not cover, might be a script you ran without `./`, might be an alias your script cannot see, or might be a file bash *does* find but cannot start. The message never says which, so the usual fix (install it again) works for one cause and wastes ten minutes on the other five.
+
+## What Does "command not found" Actually Mean?
+
+Reproduced here on 2026-10-03 (Kali, bash 5.3.15, ShellCheck 0.11.0) in a scratch directory. Paths under the home directory are shown as `~`.
+
+A typo and a program installed outside `PATH` print exactly the same thing:
+
+```text
+$ gti status
+bash: line 1: gti: command not found
+exit=127
+$ mytool
+bash: line 1: mytool: command not found
+exit=127
+$ ls opt/tool/bin/mytool
+opt/tool/bin/mytool
+$ PATH="$PWD/opt/tool/bin:$PATH" mytool
+mytool 1.0
+```
+
+`mytool` exists. bash only looks in the directories listed in `$PATH`, in order, and stops at the first executable match. A file anywhere else is invisible to it, including the current directory:
+
+```text
+$ deploy-check.sh
+bash: line 1: deploy-check.sh: command not found
+exit=127
+$ ./deploy-check.sh
+ok
+```
+
+Aliases live only in interactive shells. A script, `bash -c`, cron or `ssh host cmd` never sees them:
+
+```text
+$ bash -c "source ./aliases.sh; hello"
+bash: line 1: hello: command not found
+exit=127
+```
+
+## Why Does It Say "No such file or directory" for a Command That Exists?
+
+bash caches the path of every command it has run. Move the program and the cache still points at the old location. Run as a script here, so bash prefixes the error with the script name instead of `bash:`:
+
+```text
+$ mytool
+mytool 1.0
+$ type -a mytool
+mytool is ~/demo/bin/mytool
+$ mv bin/mytool newbin/mytool
+$ mytool
+hashdemo.sh: line 1: ~/demo/bin/mytool: No such file or directory
+exit=127
+$ hash -t mytool
+~/demo/bin/mytool
+$ hash -r
+$ mytool
+mytool 1.0
+```
+
+Same exit code, different message, and `newbin` was on `PATH` the whole time. This is what happens after a package moves a binary from `/usr/local/bin` to `/usr/bin` during an upgrade, or after you uninstall a pip copy and install the distro one. `hash -r` (or a new terminal) clears it.
+
+A file can also be found and still fail with 127, when its shebang names an interpreter that does not exist. Windows CRLF line endings do that, because the interpreter's name ends in a carriage return:
+
+```text
+$ crlftool
+env: ‘bash\r’: No such file or directory
+env: use -[v]S to pass options in shebang lines
+exit=127
+$ bash crlf-script.sh
+start
+crlf-script.sh: line 2: $'\r': command not found
+crlf-script.sh: line 3: $'ls\r': command not found
+exit=127
+```
+
+The second form, `$'ls\r': command not found`, names a command that ends in `\r`. The full story is on the [CRLF bad interpreter page](/snippets/fix-bad-interpreter-crlf).
+
+## Why Does It Work in the Terminal but Fail in Cron?
+
+cron runs jobs with `PATH=/usr/bin:/bin` and never reads `~/.bashrc`. Anything installed per-user or under `/usr/local` disappears. `env -i` reproduces cron's environment without waiting for the schedule:
+
+```text
+$ env -i PATH=/usr/bin:/bin bash -c 'yt-dlp --version'
+bash: line 1: yt-dlp: command not found
+exit=127
+```
+
+`yt-dlp` lives in `~/.local/bin` on this box, which is on the interactive `PATH` and not on cron's. The [cron survival guide](/guides/bash-scripts-that-survive-cron) covers the rest of what cron strips out, and [Bash Environment Variables](/snippets/bash-environment-variables) explains why exported variables do not reach it either.
+
+`sudo` has the same problem from the other direction: it replaces your `PATH` with `secure_path` from `/etc/sudoers`. Compare `echo "$PATH"` with `sudo sh -c 'echo "$PATH"'` on your machine. A tool found by one and not the other is the answer.
+
+## The 60-Second Diagnosis
+
+```bash
+type -a NAME                      # every alias, function, builtin and file bash can see
+command -v NAME; echo "exit=$?"   # what a script would run; exit 1 = nothing
+echo "$PATH" | tr : '\n'          # the directories searched, in order
+hash -t NAME                      # the cached path, if bash remembered one
+head -1 "$(command -v NAME)" | od -c | head -2   # a \r before \n = CRLF shebang
+```
+
+## The Script
+
+Save as `why-command-not-found.sh`. Give it the command name and it names the cause: typo of an installed command, file in the current directory, installed outside `PATH`, CRLF shebang, or missing from cron's `PATH`.
+
+```bash
+#!/bin/bash
+# Script: why-command-not-found.sh
+# Purpose: "command not found" has six different causes and the message is identical for all of them — this names the one that applies.
+# Usage: ./why-command-not-found.sh COMMAND
+set -euo pipefail
+
+CHECK="✓"
+CROSS="✗"
+
+# Where installers drop binaries that are often NOT on PATH (pip --user, cargo, go, snap, /opt bundles, sbin for non-root).
+EXTRA_DIRS=("$HOME/.local/bin" "$HOME/bin" "$HOME/.cargo/bin" "$HOME/go/bin" /usr/local/bin /usr/local/sbin /usr/sbin /sbin /snap/bin)
+# cron runs jobs with this PATH unless the crontab sets its own.
+CRON_PATH="/usr/bin:/bin"
+
+[[ $# -eq 1 ]] || { echo "usage: $0 COMMAND" >&2; exit 2; }
+NAME="$1"
+
+# 1. Resolvable from this script's PATH? An alias or function in your interactive shell is invisible here, which is the point: scripts don't see them either.
+if FOUND=$(type -P -- "$NAME"); then
+  echo "$CHECK $NAME resolves to $FOUND"
+  # A CRLF shebang makes an existing file fail with exit 127 ("env: 'bash\r'") or 126 ("bad interpreter").
+  if head -c 200 -- "$FOUND" | head -n 1 | grep -q $'\r'; then
+    printf '%s\n' "$CROSS its first line ends in a carriage return (CRLF): fix with sed -i 's/\\r\$//' $FOUND"
+    exit 1
+  fi
+  # Found by an interactive shell but missing from cron's PATH: the classic "works in terminal, 127 in cron".
+  CRON_HIT=$(PATH="$CRON_PATH" type -P -- "$NAME" || true)
+  if [[ -z "$CRON_HIT" ]]; then
+    echo "$CROSS cron's default PATH ($CRON_PATH) will NOT find it: use $FOUND in the crontab, or set PATH= at its top"
+  else
+    echo "$CHECK cron's default PATH finds it too ($CRON_HIT)"
+  fi
+  echo "  if your terminal still says 'not found' or 'No such file', its hash table is stale: run hash -r"
+  exit 0
+fi
+
+echo "$CROSS $NAME is not on PATH"
+
+# 2. Present in the current directory: bash never searches . unless PATH says so.
+if [[ -x "./$NAME" && ! -d "./$NAME" ]]; then
+  echo "  it is in the current directory: run it as ./$NAME"
+  exit 1
+fi
+
+# 3. Installed somewhere PATH doesn't cover.
+for dir in "${EXTRA_DIRS[@]}" /opt/*/bin; do
+  [[ -d "$dir" ]] || continue
+  if [[ -e "$dir/$NAME" ]]; then
+    if [[ -x "$dir/$NAME" ]]; then
+      echo "  found at $dir/$NAME, which is not on PATH: export PATH=\"$dir:\$PATH\" (add to ~/.bashrc to keep it)"
+    else
+      echo "  found at $dir/$NAME but it is not executable: chmod +x $dir/$NAME"
+    fi
+    exit 1
+  fi
+done
+
+# 4. Nothing anywhere: typo or not installed. Two swapped neighbours (gti, sl, pyhton) is the commonest typo, so try each swap.
+for (( i = 0; i < ${#NAME} - 1; i++ )); do
+  SWAP="${NAME:0:i}${NAME:i+1:1}${NAME:i:1}${NAME:i+2}"
+  if type -P -- "$SWAP" >/dev/null; then
+    echo "  did you mean $SWAP? ($(type -P -- "$SWAP"))"
+    exit 1
+  fi
+done
+echo "  not installed in any directory checked: check the spelling or install the package"
+exit 1
+```
+
+## Prerequisites
+
+bash 4 or later and coreutils. No root, no packages. It reads files and `PATH`; it changes nothing.
+
+## How Does Each Check Work?
+
+- **`type -P`** searches `PATH` for a file only, ignoring aliases and functions. That is deliberate: the script sees what any other script would see, so an alias that only works in your terminal shows up as "not on PATH" here.
+- **The CRLF check** reads the first line of the resolved file and looks for `\r`. A found-but-broken shebang is the one case where "the file is right there" and the command still fails.
+- **`PATH="$CRON_PATH" type -P`** repeats the lookup with cron's `PATH`. A hit in your shell and a miss here is the whole "works in terminal, fails in cron" bug.
+- **`./$NAME`** catches the script you wrote in the current directory. bash does not search `.` unless `PATH` contains it, and it should not.
+- **`EXTRA_DIRS` and `/opt/*/bin`** are where installers put binaries without touching `PATH`: `pip install --user`, `cargo install`, `go install`, snap, vendor bundles, and `/usr/sbin` for a user whose `PATH` omits it.
+- **The swap loop** tries every adjacent-letter swap of the name (`gti` → `tgi`, `git`). Transposed letters are the most common typo, and one `type -P` per swap is cheap.
+
+## What Does the Script Print?
+
+The same scratch directory, with `PATH` set to `~/demo/bin:~/.local/bin:/usr/local/bin:/usr/bin:/bin`:
+
+```text
+$ ./why-command-not-found.sh gti
+✗ gti is not on PATH
+  did you mean git? (/usr/bin/git)
+exit=1
+$ ./why-command-not-found.sh deploy-check.sh
+✗ deploy-check.sh is not on PATH
+  it is in the current directory: run it as ./deploy-check.sh
+exit=1
+$ ./why-command-not-found.sh useradd
+✗ useradd is not on PATH
+  found at /usr/sbin/useradd, which is not on PATH: export PATH="/usr/sbin:$PATH" (add to ~/.bashrc to keep it)
+exit=1
+$ ./why-command-not-found.sh crlftool
+✓ crlftool resolves to ~/demo/bin/crlftool
+✗ its first line ends in a carriage return (CRLF): fix with sed -i 's/\r$//' ~/demo/bin/crlftool
+exit=1
+$ ./why-command-not-found.sh yt-dlp
+✓ yt-dlp resolves to ~/.local/bin/yt-dlp
+✗ cron's default PATH (/usr/bin:/bin) will NOT find it: use ~/.local/bin/yt-dlp in the crontab, or set PATH= at its top
+  if your terminal still says 'not found' or 'No such file', its hash table is stale: run hash -r
+$ ./why-command-not-found.sh jq
+✓ jq resolves to /usr/bin/jq
+✓ cron's default PATH finds it too (/usr/bin/jq)
+  if your terminal still says 'not found' or 'No such file', its hash table is stale: run hash -r
+$ ./why-command-not-found.sh notarealtool
+✗ notarealtool is not on PATH
+  not installed in any directory checked: check the spelling or install the package
+exit=1
+```
+
+It exits 1 for every cause it finds and 0 when the command resolves, so it can gate a deploy script: `./why-command-not-found.sh rsync || exit 1`. In a crontab, write the expanded path (`/home/you/.local/bin/yt-dlp`) rather than `~`.
+
+## When Is It Not "command not found" at All?
+
+Exit 126 means bash *found* the file and could not run it: a missing execute bit, a directory without search permission, or a `noexec` mount. That is a different problem with different fixes, covered on [Fix "Permission denied" in Bash](/snippets/bash-permission-denied). An empty variable used as a command (`$EDITOR file` with `EDITOR` unset) runs `file` as the command instead; ShellCheck's [SC2086 deep dive](/shellcheck/sc2086) and the [ShellCheck Error Decoder](/tools/shellcheck-error-decoder) catch that class before it runs.
+
+Starting every script with `set -euo pipefail` makes a 127 stop the script on the line that caused it instead of three lines later. The [safe bash script template](/guides/safe-bash-script-template) explains each flag, and [The Production Bash Toolkit](/starter-kit) ships that template with ShellCheck-clean helpers.
+
+## Frequently Asked Questions
+
+### What does exit code 127 mean in bash?
+
+127 means the command could not be found: bash searched `PATH` and no executable matched, or a script's shebang named an interpreter that does not exist (`env: 'bash\r'` from a CRLF line ending is the common case). It is different from 126, which means the file was found but could not be executed, usually a missing execute bit or a `noexec` mount. In cron and CI logs, a bare 127 almost always means the job's `PATH` is shorter than your terminal's.
+
+### Why does a command work in my terminal but not in cron?
+
+cron starts jobs with `PATH=/usr/bin:/bin` and does not read `~/.bashrc`, so anything installed in `/usr/local/bin`, `~/.local/bin`, `/snap/bin` or an `/opt` directory is invisible to it and fails with `command not found`, exit 127. Reproduce it with `env -i PATH=/usr/bin:/bin bash -c 'yourcommand'`. Fix it by using the full path in the crontab line, or by adding a `PATH=` line at the top of the crontab that lists the directories you need.
+
+### Why does sudo say command not found when the command works without sudo?
+
+sudo replaces your `PATH` with the `secure_path` setting from `/etc/sudoers`, which usually lists only the system directories. A tool in `~/.local/bin`, `/usr/local/bin` or an `/opt` directory is found by your shell and not by sudo. Run sudo with the full path, `sudo "$(command -v tool)"`, or add the directory to `secure_path` with `visudo`. Avoid `sudo env PATH="$PATH"` as a habit: it lets any directory on your personal `PATH` supply binaries that run as root.
+
+### How do I add a directory to PATH permanently?
+
+Add `export PATH="$HOME/.local/bin:$PATH"` (with your directory) to `~/.bashrc` and open a new terminal or run `source ~/.bashrc`. Put the new directory first to make it win over system copies, or last (`$PATH:/dir`) to make it a fallback. This only affects your interactive shells: cron, systemd services and sudo each have their own `PATH` and need their own fix.
+
+### Why does bash say No such file or directory for a command that worked a minute ago?
+
+bash remembers where it found each command in a hash table. If the program is then moved or reinstalled to a different directory, bash keeps running the remembered path, which no longer exists, and prints `No such file or directory` with exit code 127. `hash -t name` shows the remembered path and `hash -r` clears the table so the next run searches `PATH` again. A new terminal also starts with an empty table.
+
+---
+
+<p className="text-sm text-muted">Part of the <a href="/snippets" className="text-blue hover:text-green transition-colors">bash snippets collection</a></p>
+
+## Related Scripts
+
+- [Fix /bin/bash^M: bad interpreter](/snippets/fix-bad-interpreter-crlf) — the CRLF cause in full, with a fixer for a whole tree
+- [Bash Environment Variables](/snippets/bash-environment-variables) — why cron and child processes see a different environment from your terminal
+- [Fix "Permission denied" in Bash](/snippets/bash-permission-denied) — exit 126: found the file, could not run it
+- [Fix "unary operator expected"](/snippets/unary-operator-expected) — the other error an empty variable causes
