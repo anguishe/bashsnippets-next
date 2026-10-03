@@ -87,6 +87,14 @@ check(() => {
   assert.equal(cards.filter((c) => c.owner !== null).length, 0);
 });
 
+// F9: ss -tulpn as non-root where every listener is root's: the Process header is there,
+// so the advice is "not root", never "you ran it without -p" (f3 with the -p header)
+check(() => {
+  const { res } = run('f9-ss-tulpn-all-root');
+  assert.equal(res.noProcessColumn, false);
+  assert.equal(res.nonRoot, true);
+});
+
 // F4: netstat -tulpn, not root
 check(() => {
   const { res, cards } = run('f4-netstat-tulpn');

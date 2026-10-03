@@ -34,7 +34,12 @@ export default function Footer() {
           </span>
         ))}
       </nav>
-      <p className="text-xs text-muted">© 2026 BashSnippets.xyz</p>
+      <p className="text-xs text-muted">
+        © 2026 BashSnippets.xyz · Website by{' '}
+        <a href="https://saltwaterstudio.xyz/" className="underline transition-colors duration-150 hover:text-green">
+          Saltwater Studio
+        </a>
+      </p>
     </footer>
   );
 }
