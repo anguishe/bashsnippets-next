@@ -1,5 +1,9 @@
 import { snippets } from '@/lib/snippets';
 
+// The feed is built entirely from the static snippet registry, so render it
+// once at build time instead of on every request.
+export const dynamic = 'force-static';
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bashsnippets.xyz';
 
 function escapeXml(text: string): string {

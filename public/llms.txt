@@ -8,7 +8,6 @@ Travis — self-taught Linux developer based in Florida, publishing here and on 
 
 ## What This Site Contains
 
-# keep in sync with the sitemap: 50 indexable snippets, 13 tools, 10 guides, 7 ShellCheck deep dives (sitemap = 86 with the 6 static pages)
 - 50 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
 - 13 interactive tools at /tools/ including script builders, command generators, and debuggers
 - 10 pillar guides at /guides/ covering cron survival, systemd timers vs cron, CI/CD, text processing, APIs, bash strict mode, hung-process diagnosis, service auto-restart and watchdogs, listing open ports, and the sysadmin script set
