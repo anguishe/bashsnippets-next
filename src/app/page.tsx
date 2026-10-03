@@ -17,7 +17,7 @@ const homeDescription =
   'Copy-paste bash scripts and interactive tools for Linux and DevOps: disk alerts, backups, cron, permissions. Every script tested and explained line by line.';
 
 export const metadata: Metadata = {
-  title: { absolute: `${homeTitle} | BashSnippets.xyz` },
+  title: { absolute: 'Copy-Paste Bash Script Library for Linux | BashSnippets.xyz' },
   description: homeDescription,
   openGraph: {
     title: homeTitle,

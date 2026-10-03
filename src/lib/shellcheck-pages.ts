@@ -82,6 +82,7 @@ export const shellcheckPages: ShellcheckPage[] = [
     slug: 'sc2063',
     severity: 'warning',
     title: 'ShellCheck SC2063: Grep Uses Regex, but This Looks Like a Glob',
+    metaTitle: 'ShellCheck SC2063: grep Pattern Looks Like a Glob',
     description:
       "grep -q '*.gz' found no rotated logs while two sat right there. What SC2063 catches, the real run, the anchored-regex and grep -F fixes, and when to disable it.",
     keywords: [
@@ -155,6 +156,7 @@ export const shellcheckPages: ShellcheckPage[] = [
     slug: 'sc2034',
     severity: 'warning',
     title: 'ShellCheck SC2034: Variable Appears Unused',
+    metaTitle: 'ShellCheck SC2034: Unused Variable',
     description:
       'An unused variable is usually a typo somewhere else. What SC2034 catches, a real run from this site\'s own repo, the export and _ fixes, and when to disable it.',
     keywords: [

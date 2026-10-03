@@ -16,7 +16,7 @@ const DESCRIPTION =
 const BREADCRUMB = 'systemd Timers vs Cron';
 
 export const metadata: Metadata = {
-  title: fitTitle(TITLE),
+  title: fitTitle('systemd Timers vs Cron: Missed Runs, Overlaps, Alerts'),
   description: DESCRIPTION,
   alternates: {
     canonical: `${SITE_URL}/guides/systemd-timers-vs-cron`,
@@ -126,7 +126,7 @@ export default async function SystemdTimersVsCronGuide() {
         </h1>
 
         <div className="mt-4 flex flex-wrap items-center gap-4 font-mono text-xs text-muted">
-          <span>Published: October 15, 2026</span>
+          <span>Published: September 28, 2026</span>
           <span aria-hidden>·</span>
           <span>14 min read</span>
         </div>
