@@ -370,7 +370,7 @@ export const snippets: SnippetRegistryEntry[] = [
     slug: 'bash-read-file-line-by-line',
     title: 'Read a File Line by Line in Bash',
     description:
-      'A while-read loop dropped the last server in a list: the file had no final newline. Read files line by line with while IFS= read -r and a last-line guard.',
+      'A while-read loop silently skips the last line of a file with no final newline. Read files line by line with while IFS= read -r and a last-line guard.',
     quickAnswer:
       'The correct way to read a file line by line in bash is while IFS= read -r line; do ... done < file.txt. Three parts matter. IFS= (empty) stops bash from trimming leading and trailing whitespace from each line. The -r flag stops read from treating backslashes as escape characters, so a path like C:\\\\temp survives intact. And redirecting the file in with < at the done keyword feeds the loop without spawning a subshell, so variables you set inside the loop are still set after it. The trap that bites everyone: if the file\'s last line has no trailing newline, read returns false on that final line and the loop skips it. Guard it with while IFS= read -r line || [[ -n "$line" ]]; do, which processes the leftover line when read hits end-of-file mid-line. Never loop for line in $(cat file) — that word-splits on spaces and reads words, not lines.',
     tags: ['bash', 'read', 'loops', 'files', 'intermediate'],

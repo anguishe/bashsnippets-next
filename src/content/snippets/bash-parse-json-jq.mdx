@@ -33,7 +33,7 @@ The APIs guide is the full fetch → parse → alert script: curl that fails whe
 
 </Callout>
 
-The wrong-turn theory was that the API was down. A teammate's deploy script had started tagging every release `latest` instead of the real version number, and we spent an hour blaming the registry before I looked at the actual parse. The script read the version out of a JSON response with `grep '"version"' | cut -d'"' -f4`. It had worked for two years. Then the API started pretty-printing its output with the version nested one level deeper under a `metadata` object, `grep` matched a *different* `"version"` field that happened to appear first — a schema version, always `"latest"` — and cut dutifully handed it back. No error. Just the wrong string, confidently, every time. That's the trap with regex on JSON: it doesn't fail, it lies.
+Reading a field out of a JSON response with `grep '"version"' | cut -d'"' -f4` works right up until the API changes the shape of its output. Let the response arrive pretty-printed, or move the field one level deeper under a `metadata` object, or grow a second field that shares the name — a schema version, say, that always reads `"latest"` — and `grep` matches a *different* `"version"` than the one you meant, and `cut` dutifully hands it back. No error. Just the wrong string, confidently, every time. That's the trap with regex on JSON: it doesn't fail, it lies.
 
 ## Why regex on JSON is guessing
 

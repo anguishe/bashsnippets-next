@@ -36,7 +36,7 @@ datePublished: 2026-08-09
 dateModified: 2026-08-09
 ---
 
-The rename looked harmless: our config keys were moving from `port` to `listen_port`, and I had forty-one YAML files to update. One `sed -i 's/port/listen_port/g'` across the tree, commit, deploy to staging. Eleven minutes later staging was down and the deploy log was full of words that don't exist: `suplisten_port`, `translisten_port`, `relisten_port`. sed had done exactly what I asked — replaced the substring `port` everywhere it appeared, including inside `support`, `transport`, and `report`. The part I wasn't willing to repeat was explaining to the on-call why the incident channel was named `#suplisten_port-escalations` for an afternoon, because the rename had also walked through a JSON fixture that seeded our chat integration.
+The classic sed disaster is a rename that looks harmless. A config key moves from `port` to `listen_port`, one `sed -i 's/port/listen_port/g'` runs across the tree, and sed does exactly what it was asked — replaces the substring `port` everywhere it appears, including inside `support`, `transport`, and `report`. The tree is now full of words that don't exist: `suplisten_port`, `translisten_port`, `relisten_port`, spread through YAML, JSON fixtures, and anything else the command touched, in files nobody thought to look at before running it.
 
 The problem is that `sed` has no idea what a word is unless you tell it. The `s` command matches *substrings*. That's the trap in almost every find-and-replace horror story: not the tool, the unanchored pattern, applied in place, with no dry run, across more files than you looked at.
 
@@ -137,7 +137,7 @@ The replacement side has traps of its own. An unescaped `&` in the replacement e
 
 `s///` operates line by line, so a pattern that spans a newline will never match — that's `awk` or `perl -0pe` territory. And if you're parsing structured formats (JSON especially), field-aware tools beat regex surgery: [jq exists so you don't run sed on API responses](/snippets/bash-parse-json-jq). sed's home turf is exactly what this page covers: plain-text config, source trees, and logs, where line-oriented substitution is the natural unit of work.
 
-The staging outage ended with `git checkout -- .` and the rename redone with `\bport\b` — total damage one afternoon and some dignity. The habit that stuck: sed edits are cheap, but *reading the diff first* is cheaper.
+When a bad rename does land in a git tree, the recovery is `git checkout -- .` and the rename redone with `\bport\b`. The habit worth keeping: sed edits are cheap, but *reading the diff first* is cheaper.
 
 Finding the text before you replace it is half this job — [searching files with grep](/snippets/search-files-for-text-grep) covers the discovery side, and [bash string manipulation](/snippets/bash-string-manipulation) handles the cases where the text is already in a variable and sed is overkill. The wider toolkit — awk, cut, sort, and where each one wins — is in the [Bash Text Processing guide](/guides/bash-text-processing), and the [Grep Pattern Builder](/tools/grep-pattern-builder) will construct the anchored pattern for you interactively.
 
