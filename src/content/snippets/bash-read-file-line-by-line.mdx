@@ -1,6 +1,6 @@
 ---
 title: "Read a File Line by Line in Bash"
-description: "A while-read loop silently dropped the last server in a monitoring list because the file had no trailing newline — and that was the server that went down. Read a file line by line the correct way: while IFS= read -r line, with the guard that catches the missing final line."
+description: "A while-read loop silently skips the last line of a file with no trailing newline. Read a file line by line the correct way: while IFS= read -r line, with the guard that catches the missing final line."
 slug: bash-read-file-line-by-line
 tags: [bash, read, loops, files, intermediate]
 quickAnswer: "The correct way to read a file line by line in bash is while IFS= read -r line; do ... done < file.txt. Three parts matter. IFS= (empty) stops bash from trimming leading and trailing whitespace from each line. The -r flag stops read from treating backslashes as escape characters, so a path like C:\\\\temp survives intact. And redirecting the file in with < at the done keyword feeds the loop without spawning a subshell, so variables you set inside the loop are still set after it. The trap that bites everyone: if the file's last line has no trailing newline, read returns false on that final line and the loop skips it. Guard it with while IFS= read -r line || [[ -n \"$line\" ]]; do, which processes the leftover line when read hits end-of-file mid-line. Never loop for line in $(cat file) — that word-splits on spaces and reads words, not lines."
@@ -33,11 +33,11 @@ The text-processing guide shows when a `while read` loop is the wrong tool — m
 
 </Callout>
 
-## The monitoring loop that never checked the last server
+## The loop that skips the last line
 
-We kept a plaintext list of hosts, one per line, and a script read it and pinged each one. `app-07` was the last line. `app-07` went down on a Sunday, and the alert never fired. The loop had been skipping the last line of the file for months, and `app-07` had only recently been appended — by an editor that did not add a trailing newline. `while read host` returned false on that final, newline-less line and the loop exited one host early, every single run. The list looked complete. The loop quietly read all of it except the part that mattered.
+A plain `while read` loop has a failure mode built for host lists and config files: when the last line of the file has no trailing newline — and plenty of editors, generators, and `printf` calls write files that way — `read` returns false on that final line and the loop exits one line early, every single run. A monitoring script that pings every host in a list silently skips the last host, which is the one somebody most recently appended. The list looks complete. The loop quietly reads all of it except the part that matters.
 
-The bug was not `ping`. It was reading lines without guarding the no-trailing-newline case, and using a bare `read` that mangles input besides.
+The bug is not in the command inside the loop. It is reading lines without guarding the no-trailing-newline case, and using a bare `read` that mangles input besides.
 
 ## The correct read loop
 
@@ -62,7 +62,7 @@ while IFS= read -r host || [[ -n "$host" ]]; do
 done < "$HOST_FILE"
 ```
 
-Every piece earns its place. `IFS=` keeps a host like `  app-07` from being silently trimmed into something else. `-r` keeps any backslash in the data literal. The `|| [[ -n "$host" ]]` is the fix for `app-07`: when `read` hits end-of-file with a partial line still in `$host`, it returns false, but the `||` clause sees the non-empty buffer and runs the loop body one last time. Redirecting with `done < "$HOST_FILE"` keeps the loop in the current shell — which matters the moment you want to count failures.
+Every piece earns its place. `IFS=` keeps a host like `  app-07` from being silently trimmed into something else. `-r` keeps any backslash in the data literal. The `|| [[ -n "$host" ]]` is the fix for the newline-less last line: when `read` hits end-of-file with a partial line still in `$host`, it returns false, but the `||` clause sees the non-empty buffer and runs the loop body one last time. Redirecting with `done < "$HOST_FILE"` keeps the loop in the current shell — which matters the moment you want to count failures.
 
 ## Why not pipe into the loop
 

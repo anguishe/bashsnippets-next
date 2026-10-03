@@ -33,11 +33,11 @@ The text-processing guide covers the case this snippet warns about: when a glob 
 
 </Callout>
 
-## The loop that backed up nothing for three weeks
+## The loop that loses files with spaces
 
-A nightly job looped `for f in $(ls /data/exports)` and copied each file to a backup volume. It ran green every night. Three weeks later we needed the `Q3 final.xlsx` export and it was not in the backup — not the current one, not any of the twenty-one before it. The loop had been splitting `Q3 final.xlsx` into `Q3` and `final.xlsx`, trying to copy two paths that did not exist, logging two harmless "no such file" lines, and moving on. The files without spaces backed up fine, which is exactly why nobody caught it.
+`for f in $(ls /data/exports)` has a built-in data-loss mode. Bash word-splits the output of `$(ls ...)`, so a filename like `Q3 final.xlsx` arrives in the loop as two items, `Q3` and `final.xlsx`. A backup job built on that loop tries to copy two paths that do not exist, logs two harmless "no such file" lines, and moves on — every night, run after run, while every file without a space in its name backs up fine. That is exactly why nobody catches it: the job runs green until the day someone needs the one file that never made it into any backup.
 
-The bug was not `cp`. It was looping over parsed command output instead of a glob.
+The bug is not `cp`. It is looping over parsed command output instead of a glob.
 
 ## Loop a glob — the form for files
 

@@ -6,7 +6,7 @@ datePublished: 2026-07-08
 dateModified: 2026-07-08
 ---
 
-A status dashboard scraped a partner's health API every two minutes and lit up green the entire weekend the partner was down. Three separate bugs stacked on top of each other to make that happen, and every one of them is the kind of thing that looks fine in a code review. The `curl` call got a response, so bash was happy. The response was a `503` maintenance page, but the script pulled the status field out with a `grep` that matched a *different* `"status"` on the HTML error page and read it as `"ok"`. And there was no alerting on the scrape itself, because who needs to monitor the monitor. By Monday the partner had been offline for 61 hours and our board had been lying the whole time.
+A status dashboard that scrapes a health API can light up green for the entire time the service it watches is down, and the bugs that produce that are the kind that look fine in code review. The `curl` call gets a response, so bash is happy — even when the response is a `503` maintenance page. The script pulls the status field out with a `grep` that matches a *different* `"status"` on the HTML error page and reads it as `"ok"`. And nothing alerts on the scrape itself, because who needs to monitor the monitor. Stack those three and the board lies for exactly as long as nobody thinks to check it by hand.
 
 Calling an API from a shell script is three problems wearing one trenchcoat: making the request, reading the response, and knowing when either one failed. Get any of the three wrong and the failure is silent — which is the worst kind, because silent failures are discovered by your users, not your tooling. Here's the pattern that closes all three gaps.
 

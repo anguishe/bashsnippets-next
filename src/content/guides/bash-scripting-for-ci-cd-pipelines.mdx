@@ -7,7 +7,7 @@ dateModified: "2026-06-10"
 readingTime: "18 min"
 ---
 
-A deployment pipeline ran for three weeks reporting every step green, and every one of those runs shipped a build that had failed to compile. The build step ended in `npm run build | tee build.log` so the output could be archived. Bash returns the exit status of the **last** command in a pipeline, which was `tee` — and `tee` always succeeds at copying text. The compiler's non-zero exit was discarded the instant the pipe handed off to `tee`. The error message was right there in `build.log`. GitHub Actions saw exit code 0, painted the step green, and deployed the broken artifact. Nobody looked at the log because the checkmark said there was nothing to look at.
+A build step that ends in `npm run build | tee build.log` can ship a build that failed to compile, under a green checkmark, on every run. Bash returns the exit status of the **last** command in a pipeline, which is `tee` — and `tee` always succeeds at copying text. The compiler's non-zero exit is discarded the instant the pipe hands off to `tee`. The error message sits right there in `build.log`. GitHub Actions sees exit code 0, paints the step green, and deploys the broken artifact. Nobody looks at the log because the checkmark says there is nothing to look at.
 
 That is the defining property of bash in CI: a silent failure can present as success. On a server you watch the command fail in your terminal. In a pipeline, a swallowed exit code produces a green checkmark over broken code, and the gap between "the logs show an error" and "the pipeline reports failure" is exactly where outages are born. This guide is about closing that gap. It is written for the developer who inherits bash they did not write — inside a GitHub Actions `run:` block, a Docker `ENTRYPOINT`, a Kubernetes init container, a deploy script — and has to run it, debug it, and change it without breaking production.
 
@@ -15,7 +15,7 @@ That is the defining property of bash in CI: a silent failure can present as suc
 
 There are four failure modes that are specific to CI and rarely bite you at an interactive prompt.
 
-**1. Exit codes swallowed by a pipe.** The story above is the canonical case. Any `command | tee`, `command | grep`, or `command | sort` returns the exit code of the *right-hand* command, masking a failure on the left. On a server you would notice the bad output; in CI the pipeline only checks the final exit code, and it is wrong. `set -o pipefail` is the fix, and it belongs in every CI step that contains a pipe whose left side can fail.
+**1. Exit codes swallowed by a pipe.** The `tee` pipeline above is the canonical case. Any `command | tee`, `command | grep`, or `command | sort` returns the exit code of the *right-hand* command, masking a failure on the left. On a server you would notice the bad output; in CI the pipeline only checks the final exit code, and it is wrong. `set -o pipefail` is the fix, and it belongs in every CI step that contains a pipe whose left side can fail.
 
 **2. Shell provisioning differences.** GitHub's `ubuntu-latest` runners give you bash 5.x. The `macos-latest` runners ship bash 3.2 — a 2007 release frozen for licensing reasons — where associative arrays, `${var,,}` case conversion, and `mapfile` do not exist. A script that passes on the Ubuntu runner can fail with a syntax error on the macOS runner in the same workflow. If a step must run cross-platform, target the lowest common denominator or pin the shell.
 

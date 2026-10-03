@@ -27,7 +27,7 @@ datePublished: 2026-07-08
 dateModified: 2026-07-08
 ---
 
-We found out the database backup had been failing for nine days when someone needed a two-day-old copy and there wasn't one. The job was in cron. It ran every night. It also `exit 1`-ed every night, because a disk had filled and the dump couldn't write — and cron did exactly what cron does with a failure, which is nothing you'll ever see. There was an email alert configured, technically. It went to an address that forwarded to a distribution list that everyone had muted in 2023. The lesson wasn't "add alerting." We *had* alerting. The lesson was that an alert nobody reads is decoration, and the only alert that counted was the one that showed up in the channel we stared at all day.
+A cron job fails silently by default. A nightly backup that `exit 1`s because the disk filled will keep failing every night, and cron does exactly what cron does with a failure, which is nothing you'll ever see — the output goes to a local mailbox nobody opens, or to a MAILTO address that forwards to a distribution list everyone muted years ago. The discovery usually happens the day someone needs a two-day-old copy and there isn't one. The lesson is not "add alerting"; an alerting path that technically exists is not the same thing as one that gets read. An alert nobody reads is decoration. The only alert that counts is the one that shows up in the channel your team stares at all day.
 
 ## Why the webhook is the whole thing
 
