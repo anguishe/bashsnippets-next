@@ -5,7 +5,7 @@ tags: ["bash", "arguments", "getopts", "cli"]
 quickAnswer: "Bash scripts receive arguments as $1, $2 and so on, with $# holding the count and $@ holding the full list. Positional arguments work for one or two required values; anything optional needs getopts, which parses short flags like -e prod -v in any order and stops with an error on a flag it does not recognise. Without parsing, ./deploy.sh --env prod stores the literal string --env in ENV and deploys to whatever default that falls through to, silently. This page covers the three forms: positional with ${1:?usage} validation, getopts for short flags, and a while/case loop for long flags like --env=prod, plus shift, the -- separator, and printing usage before exiting 2 on bad input. Everything is a bash builtin, so it runs on any Linux distribution and on macOS with nothing to install. The script below is a template to copy into any new command-line tool."
 difficulty: "intermediate"
 datePublished: "2026-06-10"
-dateModified: "2026-09-10"
+dateModified: "2026-10-03"
 howToSteps:
   - name: "Read positional args with defaults and validation"
     text: "Access ordered arguments as $1, $2. Supply a default with ${1:-value} or require one with ${1:?message} so a missing argument fails immediately and clearly."
@@ -18,6 +18,8 @@ howToSteps:
   - name: "Use -- to separate flags from positional values"
     text: "Pass -- to mark the end of options so a positional argument starting with a dash (like a filename -weird.txt) is not misread as a flag."
 faq:
+  - question: "How do I use getopts in bash?"
+    answer: "Loop with while getopts \"vf:\" opt; do case \"$opt\" in v) VERBOSE=1;; f) FILE=$OPTARG;; *) usage; exit 2;; esac; done, then shift $((OPTIND - 1)) so $@ holds only the remaining positional arguments. A letter followed by a colon takes a value, read from $OPTARG. Flags can be combined (-vf file) and given in any order. On an unknown flag bash prints 'illegal option -- x' and getopts sets opt to ?, which the * branch turns into a usage message and exit 2."
   - question: "How do I parse command-line arguments in a bash script?"
     answer: "For simple ordered input use positional parameters $1, $2 with ${1:?} validation. For short flags (-v, -f file) use getopts. For GNU-style long flags (--verbose, --file=path) use a while loop with a case statement and shift, because getopts does not support long options. Most production scripts use the while+case pattern."
   - question: "Why doesn't getopts work with long options like --verbose?"

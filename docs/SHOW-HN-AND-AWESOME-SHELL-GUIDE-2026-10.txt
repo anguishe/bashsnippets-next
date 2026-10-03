@@ -1,0 +1,207 @@
+SHOW HN + AWESOME-SHELL: STEP BY STEP (October 2026)
+Written 2026-10-03. Replaces PART 2 of GUMROAD-DISCOVER-AND-AWESOME-SHELL-GUIDE.txt
+and POST-QUEUE-2026-09.md section E. Facts re-checked live on 2026-10-03.
+================================================================================
+
+WHY THESE THREE POSTS MATTER
+  Google has indexed 1 page of the site. The site has 0 earned backlinks, and
+  that is the one lever Google is waiting on. Everything else (content, tools,
+  cross-posts) is done or scheduled. These three posts are the only items left
+  that only you can do, because they go out under your name.
+
+THE ORDER (do them in this order; each one is self-contained)
+  1. awesome-shell PR 1 + PR 2 ........ any evening, Sun 10/4 to Wed 10/7, 20 min
+  2. Show HN #1, ShellCheck Error Decoder .. Tue 10/6 or Wed 10/7, 08:00-10:00 ET
+  3. Show HN #2, Open Ports Explainer ...... Tue 10/20 or Wed 10/21, 08:00-10:00 ET
+     (at least 2 weeks after #1. Two Show HNs from one site in one week reads
+     as promotion and gets flagged.)
+
+  08:00-10:00 US Eastern = 07:00-09:00 Central. Block the 2 hours AFTER you
+  submit: you have to be in the thread for them. If a morning that week is
+  taken by WoW or anything else, move the post. Don't post and walk away.
+
+
+================================================================================
+PART 1 - awesome-shell, TWO PULL REQUESTS (20 minutes, GitHub website only)
+================================================================================
+
+HONEST ODDS (checked 2026-10-03)
+  github.com/alebcay/awesome-shell: 37.7k stars. Last merge 2025-08-28, more
+  than a year ago. PRs from 9/12-9/29 2026 are sitting open. Expect no merge.
+  Why it is still worth 20 minutes: the open PR page is a public link to the
+  tool from a 37k-star repo. Search engines and LLM crawlers read those pages
+  even when the link is nofollow. Do it once and do not chase it.
+
+  No PR from anguishe exists yet (checked), so there is nothing to duplicate.
+
+RULES (from the list's contributing guide)
+  - One addition per pull request.
+  - Format: * [Name](url) - description   (no trailing period)
+  - Self-promotion is allowed, and the PR body says so openly.
+
+STEP BY STEP. Log in to GitHub as anguishe first.
+  1  Open https://github.com/alebcay/awesome-shell/blob/master/README.md
+  2  Click the pencil icon ("Edit this file"). GitHub says you need a fork:
+     click "Fork this repository". The editor opens on your fork.
+  3  Ctrl+F for:   koalaman/shellcheck
+     That line is:
+       * [shellcheck](https://github.com/koalaman/shellcheck) - Static analysis tool for shell scripts
+     Click at the END of it, press Enter once, and paste this line:
+
+* [ShellCheck Error Decoder](https://bashsnippets.xyz/tools/shellcheck-error-decoder) - Paste an SC code for the rule name, a plain-English explanation and a before/after fix; links the ShellCheck wiki for codes it does not cover
+
+     Check: exactly one new line, it starts with "* [", no blank line added.
+  4  Click "Commit changes...".
+       Commit message:  Add ShellCheck Error Decoder
+       Choose: "Create a new branch for this commit and start a pull request"
+     Click "Propose changes".
+  5  On the "Open a pull request" page:
+       Title:  Add ShellCheck Error Decoder
+       Body:   paste PR BODY 1 (below)
+     Click "Create pull request". Copy the PR URL.
+
+  6  PR 2. Go back to the ORIGINAL page from step 1:
+       https://github.com/alebcay/awesome-shell/blob/master/README.md
+     (Not your fork's patch-1 branch. Starting from your fork would carry
+     PR 1's line into PR 2.)
+     Pencil again. Ctrl+F for:   Checksum/critic.sh
+     That line is:
+       * [critic.sh](https://github.com/Checksum/critic.sh) - Dead simple testing framework for Bash with coverage reporting
+     End of that line, Enter, paste:
+
+* [Cron Wrapper Generator](https://bashsnippets.xyz/tools/cron-wrapper-generator) - Generates a cron wrapper script that composes flock, timeout and retry with backoff, with logging and an alert on failure
+
+     (Alphabetical: it sits between critic.sh and dispatch.)
+  7  Commit message and PR title:  Add Cron Wrapper Generator
+     Body: PR BODY 2. Create pull request. Copy the PR URL.
+  8  Paste both PR URLs to Claude (or into POST-QUEUE-2026-09.md section D1),
+     so a later session never opens duplicates.
+
+PR BODY 1
+--------------------------------------------------------------------------------
+Adds ShellCheck Error Decoder to Shell Script Development.
+
+What it is: a free, no-login browser tool at bashsnippets.xyz. Paste an SC code and it shows the rule name, what breaks at runtime, and a before/after fix. It covers 35 common codes and links the ShellCheck wiki for the rest.
+Why here: it sits next to shellcheck in the workflow. You run shellcheck, then look up the code it printed.
+Disclosure: I built it. Per CONTRIBUTING, self-authored entries are fine. It is a web tool, not a GitHub project, so the star rule does not apply directly; say the word if you would rather it did.
+--------------------------------------------------------------------------------
+
+PR BODY 2
+--------------------------------------------------------------------------------
+Adds Cron Wrapper Generator to Shell Script Development.
+
+What it is: a free, no-login browser tool at bashsnippets.xyz. It generates a wrapper script around a cron job: flock so only one copy runs, timeout, retry with exponential backoff, a timestamped log, and an alert on failure. The generated script passes ShellCheck and runs under set -euo pipefail.
+Why here: it is the part most cron scripts skip, and it pairs with shellcheck in the same section.
+Disclosure: I built it. Per CONTRIBUTING, self-authored entries are fine. It is a web tool, not a GitHub project, so the star rule does not apply directly; say the word if you would rather it did.
+--------------------------------------------------------------------------------
+
+AFTER
+  Do not bump, ping, or @ the maintainer. If either merges, tell Claude. That is
+  the site's first earned backlink and it goes into docs/PLAN.md as a milestone.
+  Shortcut: Claude can open both PRs from the terminal (gh is logged in as
+  anguishe) if you say "open the awesome-shell PRs". It posts publicly under
+  your name, so it waits for you to say so.
+
+
+================================================================================
+PART 2 - SHOW HN #1: SHELLCHECK ERROR DECODER (Tue 10/6 or Wed 10/7)
+================================================================================
+
+THE NIGHT BEFORE (5 minutes)
+  [ ] Open https://bashsnippets.xyz/tools/shellcheck-error-decoder on your
+      PHONE. Type SC2086: it shows the result. Type SC2999: it says not found and
+      links the ShellCheck wiki. That is the first thing HN will test.
+  [ ] Log in to news.ycombinator.com on the account with the comment history
+      (comments since 9/11). Never a new or brand account.
+  [ ] Have this file open, so the first comment is a paste and not a rewrite.
+
+POSTING (2 minutes)
+  1  Go to https://news.ycombinator.com/submit
+  2  title:  Show HN: ShellCheck Error Decoder – plain-English fixes for 35 SC codes
+     url:    https://bashsnippets.xyz/tools/shellcheck-error-decoder
+     text:   LEAVE EMPTY. With a URL, the description goes in a comment, not here.
+  3  Click submit. You land on the new item page.
+  4  Within a minute, click "add comment" on your own post and paste FIRST
+     COMMENT 1 (below). Submit.
+  5  Copy the item URL (news.ycombinator.com/item?id=...) and send it to Claude.
+
+FIRST COMMENT 1 (paste as is; edit only if something on the page changed)
+--------------------------------------------------------------------------------
+This is a lookup for ShellCheck error codes. Paste one of the 35 codes it covers (SC2086, SC2046, SC2034 and the other common ones) and it shows the rule name, what actually breaks at runtime, and a before/after fix you can copy. Codes outside those 35 get a link to the ShellCheck wiki rather than a guess.
+
+Seven of them (2086, 2046, 2063, 2115, 2154, 2034, 2016) have a longer page where every output was produced by ShellCheck 0.11.0 and bash 5.3 on my machine. The SC2086 one, for example, shows `rm $file` deleting two files it was never given and exiting 0.
+
+It runs in the browser; the code you paste is not sent anywhere. Corrections welcome on any rule it explains badly.
+--------------------------------------------------------------------------------
+
+THE TWO HOURS AFTER (this is where the post lives or dies)
+  - Reply to EVERY comment, hostile ones included. The replies are the content.
+  - "Why not just use the ShellCheck wiki?" Agree: the wiki is the source. This
+    is a faster lookup, it adds what breaks at runtime and a copy-paste fix,
+    and it sends you to the wiki for anything it does not cover.
+  - A correction on a rule: thank them, check it, and tell Claude. A fix that
+    ships the same day and gets mentioned in the thread is the best reply there is.
+  - Your own words only. Do not paste AI-written replies; HN spots them fast.
+
+NEVER
+  - Ask anyone to upvote (friends, Discord, family). HN's vote-ring detection
+    kills the post and can flag the domain.
+  - Superlatives in the title ("best", "ultimate", "free"). "No login" is a fact,
+    fine in a comment.
+  - Mention the $9 toolkit unless someone asks how the site makes money. If
+    they ask, answer in one line, honestly.
+  - Delete and repost if it sinks. Leave it. A post that sank can be retried
+    once, a few weeks later, with a different angle.
+
+
+================================================================================
+PART 3 - SHOW HN #2: OPEN PORTS EXPLAINER (Tue 10/20 or Wed 10/21)
+================================================================================
+
+Only if #1 was at least 2 weeks earlier. If #1 slipped, this slips with it.
+
+THE NIGHT BEFORE
+  [ ] Open https://bashsnippets.xyz/tools/open-ports-explainer on your phone.
+      Tap "Load example": cards appear, and the redaction toggle is ON.
+  [ ] On the laptop: run  ss -tulpn  and paste it in. The output should come
+      back with your non-loopback IPs masked. That is the first question HN asks.
+
+POSTING
+  1  https://news.ycombinator.com/submit
+  2  title:  Show HN: Paste your ss -tulpn output and see what is actually exposed
+     url:    https://bashsnippets.xyz/tools/open-ports-explainer
+     text:   EMPTY
+  3  Submit, then within a minute paste FIRST COMMENT 2 as a comment.
+  4  Send the item URL to Claude.
+
+FIRST COMMENT 2
+--------------------------------------------------------------------------------
+I kept reading ss -tulpn and missing the one row that mattered. For months a docker-proxy sat on 0.0.0.0:3000 on my laptop, publishing a web UI to the whole network, and it was on the first lines of the output every time I looked.
+
+This takes pasted ss, netstat or lsof output and gives each listener a card: who could reach it (loopback only, one interface, or every interface), which process or systemd unit owns it, and flags for the risky cases: a database or the Docker API on a wildcard address, a published container port, a dev server on the network, a full accept queue. Each card has the next command to run.
+
+Privacy first, because it is the obvious question: parsing happens in the browser and nothing is uploaded. Redaction is on by default and masks non-loopback addresses on screen and in the share link, so a link can be posted without leaking your IPs.
+
+It can't see your firewall, security groups or NAT, and it says so. It tells you what could be reachable, not what is. Bug reports with sample output are welcome.
+--------------------------------------------------------------------------------
+  (The docker-proxy story is the real opener of /guides/open-ports-linux,
+  run on this laptop. The ufw bypass is in the tool as documented Docker
+  behaviour, so don't claim you reproduced it unless you do it first.)
+
+THE TWO HOURS AFTER: same rules as Part 2.
+  Likely questions:
+  - "Why not nmap?" nmap shows outside reachability, one port at a time, and
+    can't name the process or see loopback. This reads the host's own view.
+    Use both.
+  - "Why would I paste my ports into a website?" Point at the Network tab:
+    nothing is sent. Redaction is on by default.
+
+
+================================================================================
+AFTER EACH POST
+================================================================================
+  - Send Claude: the PR URLs / HN item URLs, the peak rank you saw, and the
+    comment count. Claude records them in docs/PLAN.md and POST-QUEUE.
+  - Nothing to submit to IndexNow; the pages are already indexed by Bing.
+  - Read the numbers 7 days later: Bing WMT backlinks, GA4 referral from
+    news.ycombinator.com and github.com, and Gumroad views by referrer.

@@ -126,7 +126,7 @@ export default async function SystemdTimersVsCronGuide() {
         </h1>
 
         <div className="mt-4 flex flex-wrap items-center gap-4 font-mono text-xs text-muted">
-          <span>Published: October 15, 2026</span>
+          <span>Published: September 28, 2026</span>
           <span aria-hidden>·</span>
           <span>14 min read</span>
         </div>

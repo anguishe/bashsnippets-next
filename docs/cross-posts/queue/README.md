@@ -184,6 +184,18 @@ CoderLegion file record what was run and when.
 
 Medium tags are in the comment at the end of each `-medium.md`.
 
+## Wave 3 — #34 SCHEDULED 2026-10-03 on all three (off-cadence Wednesday)
+
+Travis, 2026-10-03: the flagship goes out before the 11/04 read, on a Wednesday so it does not collide with the Tue/Thu queue.
+Page live + IndexNow'd 2026-10-03, so ≥ 1 week before the article.
+
+| # | date | dev.to id | CoderLegion | Medium id | canonical_url |
+|---|---|---|---|---|---|
+| 34 | Wed 10-14 08:00 CDT (13:00Z) | `4793751` | [29670](https://coderlegion.com/29670) | `e8630f672c11` ✅ | `https://bashsnippets.xyz/guides/bash-error-messages` |
+
+dev.to title: `Bash Said '-eq: unary operator expected'. The Script Still Exited 0.` · tags bash, linux, devops, sysadmin · Medium topics Bash, Linux, DevOps, Programming, Shellscripting.
+Still to draft (wave 3, Feb Tue/Thu): 29 Open Ports Explainer, 30 argument-list-too-long, 31 command-not-found, 32 lsof, 33 docker-remove-all-containers, 35+ (unary, permission denied, ss, awk, timer export 39, while/case/heredoc/scp 40–43). #34 already uses the unary and noexec runs, so give 35/36 a different opener.
+
 ## CoderLegion — ALL SCHEDULED alongside dev.to (2026-09-21) — nothing to post by hand
 
 Travis, 2026-09-21: CoderLegion goes out **with** each dev.to post, not one a week. All thirteen

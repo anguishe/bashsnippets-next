@@ -425,7 +425,7 @@ export const snippets: SnippetRegistryEntry[] = [
     tags: ['bash', 'arguments', 'getopts', 'cli'],
     difficulty: 'intermediate',
     datePublished: '2026-06-10',
-    dateModified: '2026-09-10',
+    dateModified: '2026-10-03',
   },
   {
     slug: 'bash-string-manipulation',
