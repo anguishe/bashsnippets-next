@@ -4,6 +4,9 @@
 
 @import 'highlight.js/styles/github-dark.css';
 
+/* github-dark's #1f6feb section headers are 3.49:1 on --bg3; site-gate needs 4.5 */
+.hljs-section { color: var(--blue); }
+
 :root {
   --bg: #0d1117;
   --bg2: #161b22;
