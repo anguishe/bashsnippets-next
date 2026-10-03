@@ -776,6 +776,17 @@ export const snippets: SnippetRegistryEntry[] = [
     datePublished: '2026-10-03',
     dateModified: '2026-10-03',
   },
+  {
+    slug: 'cron-job-not-running',
+    title: 'Cron Job Not Running? 7 Checks That Find the Cause',
+    metaTitle: 'Cron Job Not Running? 7 Checks',
+    description:
+      'Cron job not running? Seven checks in order: the daemon, the schedule, permissions, cron\'s PATH, unescaped %, output lost with no mail server, and overlaps.',
+    tags: ['cron', 'troubleshooting', 'cron-ready', 'path', 'logs'],
+    difficulty: 'beginner',
+    datePublished: '2026-10-03',
+    dateModified: '2026-10-03',
+  },
 ];
 
 function mergeWithFrontmatter(snippet: SnippetRegistryEntry): SnippetMeta {

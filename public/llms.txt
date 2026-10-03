@@ -8,7 +8,7 @@ Travis — self-taught Linux developer based in Florida, publishing here and on 
 
 ## What This Site Contains
 
-- 61 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
+- 62 ready-to-run bash scripts in /snippets/ — each with step-by-step explanation, variations, common mistakes, and FAQ
 - 13 interactive tools at /tools/ including script builders, command generators, and debuggers
 - 11 pillar guides at /guides/ covering bash error messages, cron survival, systemd timers vs cron, CI/CD, text processing, APIs, bash strict mode, hung-process diagnosis, service auto-restart and watchdogs, listing open ports, and the sysadmin script set
 - 7 ShellCheck deep dives at /shellcheck/ — one page per rule (SC2086, SC2046, SC2063, SC2115, SC2154, SC2034, SC2016), each with the breakage run for real, ShellCheck 0.11.0's exact output, the fix, the variants, and when to disable the rule
@@ -87,6 +87,7 @@ Travis — self-taught Linux developer based in Florida, publishing here and on 
 - [Bash Case Statement Examples](https://bashsnippets.xyz/snippets/bash-case-statement) — first match wins (*.gz above *.tar.gz misfiles a tarball); ;; vs ;;& (keep testing) vs ;& (run next body untested) shown on one script; [1-10] is a one-character set, not 1 to 10; "$pat" matches literally, $pat as a glob; shopt -s extglob on the same line as +([0-9]) is a syntax error. Script extract.sh dispatches archives by ordered case patterns with ${f,,}.
 - [Bash Heredoc: <<EOF Explained](https://bashsnippets.xyz/snippets/bash-heredoc) — quoted vs unquoted delimiter on the same body; with bash -s (stand-in for ssh host bash -s) the PIDs prove <<EOF expands in the sending shell; <<- strips tabs only, and space-indented EOF leaves the heredoc unterminated (here-document delimited by end-of-file); cat > file <<'EOF'; <<< here-strings keep read in the current shell. Script render-nginx-site.sh: :? checks, escaped \$host, stray-$name check, atomic mv.
 - [scp Command Examples for Scripts](https://bashsnippets.xyz/snippets/scp-command-examples) — OpenSSH 10.5 against a throwaway sshd: push/pull/-r, -p keeps mtime, -P vs -p, spaces work with single local quoting in SFTP mode (default since OpenSSH 9.0) but scp -O fails with "ambiguous target" unless double-quoted, quoted remote globs, exit 1 (missing file) vs 255 (connection). Script scp-verified.sh uploads to .name.part, compares sha256 both ends, renames atomically. rsync for repeated copies.
+- [Cron Job Not Running? 7 Checks](https://bashsnippets.xyz/snippets/cron-job-not-running) — ordered checklist: daemon active and CMD lines in journalctl -u cron; schedule parse (4 fields = never runs; DOM+DOW both set = either day); script exists/executable/no CRLF; cron PATH is /usr/bin:/bin; unescaped % becomes newline; no MTA = output discarded (this box: 117 "No MTA installed, discarding output" lines 9/09–10/03); overlap via flock/timeout. cron-doctor.sh checks all of it per crontab line.
 
 ## Interactive Tools
 
